@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo } from "react";
-import { Star, Trash2 } from "lucide-react";
+import { Star, Trash2, Plus, Archive } from "lucide-react";
 import { useTasks, useCreateTask, useUpdateTask, useToggleTopThree, useDeleteTask } from "@/hooks/useTasks";
 import { useToast } from "@/components/ui/use-toast";
 import { useHighlight } from "@/lib/HighlightContext";
@@ -37,6 +37,7 @@ export default function TaskTable({ project }) {
   const [sortColumn, setSortColumn] = useState(null);
   const [sortDirection, setSortDirection] = useState("asc");
   const [newDescription, setNewDescription] = useState("");
+  const [newQuadrant, setNewQuadrant] = useState("");
   const newRowInputRef = useRef(null);
 
   const handleSort = (column) => {
@@ -51,9 +52,25 @@ export default function TaskTable({ project }) {
   }, [tasks, sortColumn, sortDirection]);
 
   const handleNewTaskKeyDown = (e) => {
-    if (e.key === "Enter" && newDescription.trim()) {
-      createTask.mutate({ project_id: project.id, description: newDescription });
+    if (e.key === "Enter" && (newDescription.trim() || newQuadrant)) {
+      const payload = { project_id: project.id };
+      if (newDescription.trim()) payload.description = newDescription.trim();
+      if (newQuadrant !== "") payload.quadrant = newQuadrant === "" ? null : Number(newQuadrant);
+      createTask.mutate(payload);
       setNewDescription("");
+      setNewQuadrant("");
+      requestAnimationFrame(() => newRowInputRef.current?.focus());
+    }
+  };
+
+  const handleCreateButton = () => {
+    if (newDescription.trim() || newQuadrant) {
+      const payload = { project_id: project.id };
+      if (newDescription.trim()) payload.description = newDescription.trim();
+      if (newQuadrant !== "") payload.quadrant = newQuadrant === "" ? null : Number(newQuadrant);
+      createTask.mutate(payload);
+      setNewDescription("");
+      setNewQuadrant("");
       requestAnimationFrame(() => newRowInputRef.current?.focus());
     }
   };
@@ -114,7 +131,21 @@ export default function TaskTable({ project }) {
             <td className="p-2">
               <StatusDropdown task={task} onStatusChange={(status) => updateTask.mutate({ id: task.id, data: { status } })} />
             </td>
-            <td className="p-2 text-center whitespace-nowrap">{quadrantLabel(task)}</td>
+            <td className="p-2 text-center whitespace-nowrap">
+              {/* Quadrant selector: allows user to change quadrant in-place */}
+              <select
+                value={task.quadrant ?? ""}
+                onChange={(e) => updateTask.mutate({ id: task.id, data: { quadrant: e.target.value === "" ? null : Number(e.target.value) } })}
+                className="text-[10px] bg-transparent border border-border rounded px-1 py-0.5"
+                aria-label={`Quadrant for task ${task.id}`}
+              >
+                <option value="">Unassigned</option>
+                <option value="1">Q1</option>
+                <option value="2">Q2</option>
+                <option value="3">Q3</option>
+                <option value="4">Q4</option>
+              </select>
+            </td>
             <td className="p-2">
               <select
                 value={task.type || "OTHER"}
@@ -144,7 +175,10 @@ export default function TaskTable({ project }) {
                 <Star className={`w-4 h-4 ${task.is_today_top_three ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`} />
               </button>
             </td>
-            <td className="p-2 text-center">
+            <td className="p-2 text-center flex items-center justify-center gap-2">
+              <button onClick={() => updateTask.mutate({ id: task.id, data: { archived_at: new Date().toISOString() } })} aria-label="Archive task" className="text-muted-foreground hover:text-foreground">
+                <Archive className="w-4 h-4" />
+              </button>
               <button onClick={() => handleDelete(task)} aria-label="Delete task" className="text-muted-foreground hover:text-destructive">
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -152,16 +186,34 @@ export default function TaskTable({ project }) {
           </tr>
         ))}
         <tr>
-          <td className="p-2" colSpan={8}>
+          <td className="p-2 flex items-center gap-2" colSpan={6}>
+            <button onClick={handleCreateButton} aria-label="New task" className="text-primary/90 bg-primary/10 p-1 rounded">
+              <Plus className="w-4 h-4" />
+            </button>
             <input
               ref={newRowInputRef}
               value={newDescription}
               onChange={(e) => setNewDescription(e.target.value)}
               onKeyDown={handleNewTaskKeyDown}
-              placeholder="Type a task and press Enter..."
+              placeholder="Type a task and press Enter (or click +)"
               className="w-full text-xs px-2 py-1.5 bg-transparent border border-dashed border-border rounded outline-none"
             />
           </td>
+          <td className="p-2">
+            <select
+              value={newQuadrant}
+              onChange={(e) => setNewQuadrant(e.target.value)}
+              className="text-[10px] bg-transparent border border-border rounded px-1 py-0.5"
+              aria-label="Quadrant for new task"
+            >
+              <option value="">Unassigned</option>
+              <option value="1">Q1</option>
+              <option value="2">Q2</option>
+              <option value="3">Q3</option>
+              <option value="4">Q4</option>
+            </select>
+          </td>
+          <td className="p-2" colSpan={2}></td>
         </tr>
       </tbody>
     </table>
