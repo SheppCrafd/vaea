@@ -57,6 +57,18 @@ export function useArchiveProject() {
   });
 }
 
+export function useDeleteProject() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => base44.functions.invoke("deleteProject", { projectId: id }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["archivedProjects"] });
+      queryClient.invalidateQueries({ queryKey: ["allTasks"] });
+    },
+  });
+}
+
 export function useRestoreProject() {
   const queryClient = useQueryClient();
   return useMutation({

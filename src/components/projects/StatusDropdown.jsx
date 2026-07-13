@@ -33,6 +33,8 @@ export default function StatusDropdown({ task, onStatusChange, statusOptions = D
         {task.status.replace(/_/g, " ")}
       </button>
       {isOpen && (
+        // Rendered above full-screen modals (z-50) so the dropdown is never
+        // clipped by the table's scroll container or hidden behind the modal.
         <Portal>
           <div className="fixed inset-0 z-[60]" onClick={() => setIsOpen(false)}>
             <div

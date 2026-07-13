@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
-import { Plus } from "lucide-react";
-import { useStakeholders } from "@/hooks/useStakeholders";
+import { Plus, X } from "lucide-react";
+import { useStakeholders, useDeleteStakeholder } from "@/hooks/useStakeholders";
 import { useProducts } from "@/hooks/useProducts";
 import { useProjects } from "@/hooks/useProjects";
 import { useAllTasks } from "@/hooks/useTasks";
@@ -20,8 +20,15 @@ export default function StakeholderList() {
   const { data: tasks = [] } = useAllTasks();
   const { data: notes = [] } = useAllProjectNotes();
   const { highlightedIds, toggleHighlight } = useHighlight();
+  const deleteStakeholder = useDeleteStakeholder();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const departments = [...new Set(stakeholders.map((s) => s.department))];
+
+  const handleRemove = (stakeholder) => {
+    if (window.confirm(`Remove stakeholder? "${stakeholder.name}" will be removed from the stakeholder list.`)) {
+      deleteStakeholder.mutate(stakeholder.id);
+    }
+  };
 
   const countFor = (list, id) => list.filter((item) => (item.stakeholder_ids || []).includes(id)).length;
 
@@ -50,7 +57,14 @@ export default function StakeholderList() {
                         onChange={() => toggleHighlight(s.id)}
                       />
                       <CanvasAvatar name={s.name} avatarUrl={s.avatar_url} />
-                      <span className="text-xs flex-1 truncate">{s.name}</span>
+                      <span className="text-xs flex-1 truncate min-w-0">{s.name}</span>
+                      <button
+                        onClick={() => handleRemove(s)}
+                        className="text-muted-foreground hover:text-destructive shrink-0"
+                        aria-label="Remove stakeholder"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                     <div className="flex gap-1.5 pl-6 flex-wrap">
                       <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded">Tasks {countFor(tasks, s.id)}</span>

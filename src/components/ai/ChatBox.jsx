@@ -53,7 +53,7 @@ export default function ChatBox() {
   };
 
   return (
-    <div ref={containerRef} className="fixed bottom-6 right-6 z-50">
+    <div ref={containerRef} className="fixed bottom-6 right-6 z-40">
       {isChatOpen ? (
         <div className="w-80 h-96 bg-card border border-border rounded-xl shadow-xl flex flex-col">
           <div className="flex items-center justify-between p-3 border-b border-border">

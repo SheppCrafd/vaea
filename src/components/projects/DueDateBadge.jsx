@@ -16,9 +16,9 @@ export default function DueDateBadge({ project, allDone }) {
   }
 
   return (
-    <div className="text-right text-[11px] shrink-0">
-      <p className="text-muted-foreground">{project.owner_name || "Unassigned"}</p>
-      <p className={colorClass}>{label}</p>
+    <div className="text-right text-[11px] shrink-0 max-w-[90px]">
+      <p className="text-muted-foreground truncate">{project.owner_name || "Unassigned"}</p>
+      <p className={`${colorClass} whitespace-nowrap`}>{label}</p>
     </div>
   );
 }

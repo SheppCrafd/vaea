@@ -1,9 +1,10 @@
 import { useState, useRef, useMemo } from "react";
-import { Star } from "lucide-react";
-import { useTasks, useCreateTask, useUpdateTask, useToggleTopThree } from "@/hooks/useTasks";
+import { Star, Trash2 } from "lucide-react";
+import { useTasks, useCreateTask, useUpdateTask, useToggleTopThree, useDeleteTask } from "@/hooks/useTasks";
 import { useToast } from "@/components/ui/use-toast";
 import { useHighlight } from "@/lib/HighlightContext";
 import StatusDropdown from "@/components/projects/StatusDropdown";
+import EditableText from "@/components/shared/EditableText";
 
 const MAX_ROWS = 20;
 const TYPE_OPTIONS = ["COMMUNICATION", "OPEN_QUESTIONS", "SCRUM_NEEDS", "EMPLOYEE_NEEDS", "OTHER"];
@@ -23,8 +24,15 @@ export default function TaskTable({ project }) {
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
   const toggleTopThree = useToggleTopThree();
+  const deleteTask = useDeleteTask();
   const { toast } = useToast();
   const { highlightedIds } = useHighlight();
+
+  const handleDelete = (task) => {
+    if (window.confirm(`Delete task "${task.description}"? This cannot be undone.`)) {
+      deleteTask.mutate(task.id);
+    }
+  };
 
   const [sortColumn, setSortColumn] = useState(null);
   const [sortDirection, setSortDirection] = useState("asc");
@@ -85,16 +93,23 @@ export default function TaskTable({ project }) {
           <th className="p-2 font-medium">Notes</th>
           <th className="p-2 font-medium">Weekly</th>
           <th className="p-2 font-medium">Top 3</th>
+          <th className="p-2 font-medium">Actions</th>
         </tr>
       </thead>
       <tbody>
         {sortedTasks.slice(0, MAX_ROWS).map((task) => (
           <tr key={task.id} className={`border-b border-border last:border-0 ${isDimmed(task) ? "opacity-30" : ""}`}>
-            <td className="p-2">{task.description}</td>
+            <td className="p-2 min-w-0 max-w-[220px]">
+              <EditableText
+                value={task.description}
+                onSave={(v) => updateTask.mutate({ id: task.id, data: { description: v } })}
+                className="text-xs"
+              />
+            </td>
             <td className="p-2">
               <StatusDropdown task={task} onStatusChange={(status) => updateTask.mutate({ id: task.id, data: { status } })} />
             </td>
-            <td className="p-2 text-center">{quadrantLabel(task)}</td>
+            <td className="p-2 text-center whitespace-nowrap">{quadrantLabel(task)}</td>
             <td className="p-2">
               <select
                 value={task.type || "OTHER"}
@@ -104,7 +119,14 @@ export default function TaskTable({ project }) {
                 {TYPE_OPTIONS.map((t) => <option key={t} value={t}>{t.replace(/_/g, " ")}</option>)}
               </select>
             </td>
-            <td className="p-2 max-w-[140px] truncate" title={task.notes}>{task.notes}</td>
+            <td className="p-2 min-w-0 max-w-[160px]">
+              <EditableText
+                value={task.notes}
+                onSave={(v) => updateTask.mutate({ id: task.id, data: { notes: v } })}
+                placeholder="Add notes..."
+                className="text-[11px]"
+              />
+            </td>
             <td className="p-2 text-center">
               <input
                 type="checkbox"
@@ -117,10 +139,15 @@ export default function TaskTable({ project }) {
                 <Star className={`w-4 h-4 ${task.is_today_top_three ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`} />
               </button>
             </td>
+            <td className="p-2 text-center">
+              <button onClick={() => handleDelete(task)} aria-label="Delete task" className="text-muted-foreground hover:text-destructive">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </td>
           </tr>
         ))}
         <tr>
-          <td className="p-2" colSpan={7}>
+          <td className="p-2" colSpan={8}>
             <input
               ref={newRowInputRef}
               value={newDescription}

@@ -71,6 +71,17 @@ export function useUpdateTaskStatus() {
   });
 }
 
+export function useDeleteTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => base44.entities.Task.update(id, { deleted_at: new Date().toISOString() }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["allTasks"] });
+    },
+  });
+}
+
 export function useToggleTopThree() {
   const queryClient = useQueryClient();
   return useMutation({

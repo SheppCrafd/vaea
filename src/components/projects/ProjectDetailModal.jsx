@@ -1,20 +1,25 @@
-import { useEffect, useState } from "react";
-import { X, Archive, RotateCcw } from "lucide-react";
+import { useEffect } from "react";
+import { X, Archive, RotateCcw, Trash2 } from "lucide-react";
 import Portal from "@/lib/Portal";
 import { useProjectNotes } from "@/hooks/useProjectNotes";
 import { useStakeholders } from "@/hooks/useStakeholders";
-import { useArchiveProject, useRestoreProject, useUpdateProject } from "@/hooks/useProjects";
+import { useArchiveProject, useRestoreProject, useUpdateProject, useDeleteProject } from "@/hooks/useProjects";
 import TaskTable from "@/components/projects/TaskTable";
+import EditableText from "@/components/shared/EditableText";
+
+const DUE_DATE_STATUS_OPTIONS = ["ESTIMATED", "COMMITTED"];
 
 // Full-screen expanded project view: problem statement, metrics, activity,
-// notes, stakeholders by department, archive/restore, and the full task table.
+// notes, stakeholders by department, archive/restore/delete, and the full task table.
+// Every field here is directly editable (title, objective, owner, due date, status,
+// problem statement, activity).
 export default function ProjectDetailModal({ project, onClose }) {
   const { data: notes = [] } = useProjectNotes(project.id);
   const { data: allStakeholders = [] } = useStakeholders();
   const archiveProject = useArchiveProject();
   const restoreProject = useRestoreProject();
   const updateProject = useUpdateProject();
-  const [objective, setObjective] = useState(project.objective || "");
+  const deleteProject = useDeleteProject();
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -31,18 +36,36 @@ export default function ProjectDetailModal({ project, onClose }) {
     onClose();
   };
 
+  const handleDelete = () => {
+    if (window.confirm(`Delete project "${project.title}"? This will also delete all of its tasks. This cannot be undone.`)) {
+      deleteProject.mutate(project.id);
+      onClose();
+    }
+  };
+
   return (
     <Portal>
       <div className="fixed inset-0 bg-background z-50 overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-border sticky top-0 bg-background">
-          <h2 className="font-heading text-xl font-semibold">{project.title}</h2>
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-3 p-6 border-b border-border sticky top-0 bg-background z-10">
+          <EditableText
+            value={project.title}
+            onSave={(v) => updateProject.mutate({ id: project.id, data: { title: v } })}
+            className="font-heading text-xl font-semibold"
+          />
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={handleArchiveToggle}
-              className="text-sm flex items-center gap-1.5 px-3 py-1.5 bg-secondary text-secondary-foreground rounded-md"
+              className="text-sm flex items-center gap-1.5 px-3 py-1.5 bg-secondary text-secondary-foreground rounded-md whitespace-nowrap"
             >
               {project.is_archived ? <RotateCcw className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
               {project.is_archived ? "Restore Project" : "Archive Project"}
+            </button>
+            <button
+              onClick={handleDelete}
+              className="text-sm flex items-center gap-1.5 px-3 py-1.5 bg-destructive text-destructive-foreground rounded-md whitespace-nowrap"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Delete
             </button>
             <button onClick={onClose}><X className="w-5 h-5" /></button>
           </div>
@@ -51,28 +74,66 @@ export default function ProjectDetailModal({ project, onClose }) {
         <div className="p-6 max-w-4xl mx-auto space-y-6">
           <div>
             <label className="text-xs font-medium text-muted-foreground block mb-1">Objective</label>
-            <textarea
-              value={objective}
-              onChange={(e) => setObjective(e.target.value)}
-              onBlur={() => updateProject.mutate({ id: project.id, data: { objective } })}
-              className="w-full text-sm bg-card border border-border rounded-md p-2"
-              rows={2}
+            <EditableText
+              value={project.objective}
+              onSave={(v) => updateProject.mutate({ id: project.id, data: { objective: v } })}
+              multiline
+              className="text-sm bg-card border border-border rounded-md p-2"
             />
           </div>
 
-          {project.problem_statement && (
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-xs font-medium text-muted-foreground mb-1">Problem Statement</p>
-              <p className="text-sm">{project.problem_statement}</p>
+              <label className="text-xs font-medium text-muted-foreground block mb-1">Owner</label>
+              <EditableText
+                value={project.owner_name}
+                onSave={(v) => updateProject.mutate({ id: project.id, data: { owner_name: v } })}
+                placeholder="Unassigned"
+                className="text-sm bg-card border border-border rounded-md p-2"
+              />
             </div>
-          )}
+            <div>
+              <label className="text-xs font-medium text-muted-foreground block mb-1">Due Date</label>
+              <input
+                type="date"
+                value={project.due_date ? project.due_date.slice(0, 10) : ""}
+                onChange={(e) => updateProject.mutate({ id: project.id, data: { due_date: e.target.value ? new Date(e.target.value).toISOString() : null } })}
+                className="w-full text-sm bg-card border border-border rounded-md p-2"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground block mb-1">Due Date Status</label>
+              <select
+                value={project.due_date_status || "ESTIMATED"}
+                onChange={(e) => updateProject.mutate({ id: project.id, data: { due_date_status: e.target.value } })}
+                className="w-full text-sm bg-card border border-border rounded-md p-2"
+              >
+                {DUE_DATE_STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
 
-          {project.activity && (
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-1">Activity</p>
-              <p className="text-sm">{project.activity}</p>
-            </div>
-          )}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground block mb-1">Problem Statement</label>
+            <EditableText
+              value={project.problem_statement}
+              onSave={(v) => updateProject.mutate({ id: project.id, data: { problem_statement: v } })}
+              multiline
+              placeholder="No problem statement yet"
+              className="text-sm bg-card border border-border rounded-md p-2"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-muted-foreground block mb-1">Activity</label>
+            <EditableText
+              value={project.activity}
+              onSave={(v) => updateProject.mutate({ id: project.id, data: { activity: v } })}
+              multiline
+              placeholder="No activity logged yet"
+              className="text-sm bg-card border border-border rounded-md p-2"
+            />
+          </div>
 
           {(metrics.forecast || metrics.measured) && (
             <div>
@@ -88,9 +149,9 @@ export default function ProjectDetailModal({ project, onClose }) {
             <p className="text-xs font-medium text-muted-foreground mb-2">Risks & Open Questions</p>
             <ul className="space-y-1">
               {notes.map((note) => (
-                <li key={note.id} className="text-sm flex items-start gap-1.5">
-                  <span>{note.type === "RISK" ? "⚠️" : "❓"}</span>
-                  <span>{note.content}{note.reporter ? <span className="text-muted-foreground"> — {note.reporter}</span> : null}</span>
+                <li key={note.id} className="text-sm flex items-start gap-1.5 min-w-0">
+                  <span className="shrink-0">{note.type === "RISK" ? "⚠️" : "❓"}</span>
+                  <span className="break-words min-w-0">{note.content}{note.reporter ? <span className="text-muted-foreground"> — {note.reporter}</span> : null}</span>
                 </li>
               ))}
               {notes.length === 0 && <p className="text-sm text-muted-foreground">No notes yet.</p>}
@@ -105,7 +166,7 @@ export default function ProjectDetailModal({ project, onClose }) {
               departments.map((dept) => (
                 <div key={dept} className="mb-2">
                   <p className="text-xs text-muted-foreground">{dept}</p>
-                  <p className="text-sm">{stakeholders.filter((s) => s.department === dept).map((s) => s.name).join(", ")}</p>
+                  <p className="text-sm break-words">{stakeholders.filter((s) => s.department === dept).map((s) => s.name).join(", ")}</p>
                 </div>
               ))
             )}

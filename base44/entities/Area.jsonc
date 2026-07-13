@@ -10,6 +10,10 @@
     },
     "custom_schema": {
       "type": "object"
+    },
+    "deleted_at": {
+      "type": "string",
+      "format": "date-time"
     }
   },
   "required": [

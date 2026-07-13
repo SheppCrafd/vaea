@@ -20,23 +20,23 @@ export default function ProjectCard({ project, stakeholderIds = [] }) {
   const allDone = tasks.length > 0 && tasks.every((t) => t.status === "DONE" || t.status === "DELEGATED_DONE");
 
   return (
-    <div className={`relative bg-background border border-border rounded-lg p-3 transition-colors ${isDimmed ? "opacity-30" : ""}`}>
+    <div className={`relative z-10 bg-background border border-border rounded-lg p-3 transition-colors ${isDimmed ? "opacity-30" : ""}`}>
       <button
         onClick={() => setIsDetailOpen(true)}
-        className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
+        className="absolute top-2 right-2 z-20 text-muted-foreground hover:text-foreground"
         aria-label="Expand project"
       >
         <Expand className="w-3.5 h-3.5" />
       </button>
 
-      <div className="flex items-start gap-2">
+      <div className="flex items-start gap-3 pr-5">
         <button onClick={() => setIsTableOpen(true)} className="shrink-0">
           <ProjectQuadrant tasks={tasks} />
         </button>
 
         <div className="flex-1 text-center px-1 min-w-0">
-          <h4 className="font-heading font-semibold text-sm">{project.title}</h4>
-          <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{project.objective}</p>
+          <h4 className="font-heading font-semibold text-sm break-words">{project.title}</h4>
+          <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2 break-words">{project.objective}</p>
         </div>
 
         <DueDateBadge project={project} allDone={allDone} />

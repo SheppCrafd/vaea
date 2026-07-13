@@ -30,28 +30,26 @@ export default function ProductCard({ product }) {
   const completionPct = productTasks.length ? Math.round((doneCount / productTasks.length) * 100) : 0;
 
   return (
-    <div className={`relative bg-card border border-border rounded-xl p-4 overflow-hidden ${isDimmed ? "opacity-30" : ""}`}>
+    <div className={`relative z-10 bg-card border border-border rounded-xl p-4 overflow-hidden ${isDimmed ? "opacity-30" : ""}`}>
       <ConnectionLines />
       <button
         onClick={() => setIsDetailOpen(true)}
-        className="absolute top-3 right-3 text-muted-foreground hover:text-foreground"
-        style={{ zIndex: 2 }}
+        className="absolute top-3 right-3 z-20 text-muted-foreground hover:text-foreground"
         aria-label="Expand product"
       >
         <Expand className="w-4 h-4" />
       </button>
-      <div className="relative" style={{ zIndex: 1 }}>
-        <h3 className="font-heading font-semibold pr-6">{product.title}</h3>
-        {product.description && <p className="text-xs text-muted-foreground mt-0.5">{product.description}</p>}
+      <div className="relative z-[1] min-w-0">
+        <h3 className="font-heading font-semibold pr-6 break-words min-w-0">{product.title}</h3>
+        {product.description && <p className="text-xs text-muted-foreground mt-0.5 break-words min-w-0">{product.description}</p>}
       </div>
-      <div className="relative mt-2 flex justify-center" style={{ zIndex: 1 }}>
+      <div className="relative z-[1] mt-3 flex justify-center">
         <AvatarStack stakeholders={stakeholders} />
       </div>
 
       <div
         ref={setNodeRef}
-        className={`relative mt-4 space-y-2 min-h-[80px] rounded-lg p-2 transition-colors ${isOver ? "bg-primary/10 ring-2 ring-primary/40" : "bg-transparent"}`}
-        style={{ zIndex: 1 }}
+        className={`relative z-[1] mt-4 space-y-2 min-h-[80px] rounded-lg p-2 transition-colors ${isOver ? "bg-primary/10 ring-2 ring-primary/40" : "bg-transparent"}`}
       >
         {projects.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-4">Drop a project here</p>
@@ -62,7 +60,7 @@ export default function ProductCard({ product }) {
         )}
       </div>
 
-      <p className="relative text-xs text-muted-foreground mt-3" style={{ zIndex: 1 }}>
+      <p className="relative z-[1] text-xs text-muted-foreground mt-3">
         {completionPct}% complete
       </p>
 
