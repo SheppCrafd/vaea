@@ -1,8 +1,12 @@
 import { Maximize2 } from "lucide-react";
+import { useHighlight } from "@/lib/HighlightContext";
 
-export default function AreaCard({ area, productCount, onExpand }) {
+export default function AreaCard({ area, productCount, onExpand, stakeholderIds = [] }) {
+  const { highlightedIds } = useHighlight();
+  const isDimmed = highlightedIds.length > 0 && !stakeholderIds.some((id) => highlightedIds.includes(id));
+
   return (
-    <article className="relative bg-card border border-border rounded-xl p-5 break-inside-avoid">
+    <article className={`relative bg-card border border-border rounded-xl p-5 break-inside-avoid ${isDimmed ? "opacity-30" : ""}`}>
       <button
         onClick={onExpand}
         style={{ position: "absolute", top: 16, right: 16 }}

@@ -3,6 +3,7 @@ import { useDraggable } from "@dnd-kit/core";
 import ProjectQuadrant from "@/components/projects/ProjectQuadrant";
 import ProjectNotes from "@/components/projects/ProjectNotes";
 import TaskTableModal from "@/components/projects/TaskTableModal";
+import { useHighlight } from "@/lib/HighlightContext";
 
 function getDueBadge(dueDate) {
   const diffHours = (new Date(dueDate) - new Date()) / (1000 * 60 * 60);
@@ -11,10 +12,12 @@ function getDueBadge(dueDate) {
   return { label: dueDate, className: "bg-secondary text-secondary-foreground" };
 }
 
-export default function ProjectCard({ project }) {
+export default function ProjectCard({ project, stakeholderIds = [] }) {
   const [isTableOpen, setIsTableOpen] = useState(false);
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: project.id });
   const dueBadge = getDueBadge(project.dueDate);
+  const { highlightedIds } = useHighlight();
+  const isDimmed = highlightedIds.length > 0 && !stakeholderIds.some((id) => highlightedIds.includes(id));
 
   const style = transform
     ? { transform: `translate(${transform.x}px, ${transform.y}px)`, zIndex: isDragging ? 20 : "auto" }
@@ -27,7 +30,7 @@ export default function ProjectCard({ project }) {
       {...attributes}
       {...listeners}
       onClick={() => setIsTableOpen(true)}
-      className={`bg-background border border-border rounded-lg p-3 cursor-pointer hover:border-primary/50 transition-colors ${isDragging ? "opacity-50" : ""}`}
+      className={`bg-background border border-border rounded-lg p-3 cursor-pointer hover:border-primary/50 transition-colors ${isDragging ? "opacity-50" : ""} ${isDimmed ? "opacity-30" : ""}`}
     >
       <h4 className="font-medium text-sm" style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
         {project.title}

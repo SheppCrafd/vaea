@@ -22,6 +22,7 @@ export default function Dashboard() {
             area={area}
             productCount={products.filter((p) => p.areaId === area.id).length}
             onExpand={() => setExpandedArea(area)}
+            stakeholderIds={products.filter((p) => p.areaId === area.id).flatMap((p) => p.stakeholderIds)}
           />
         ))}
       </div>
