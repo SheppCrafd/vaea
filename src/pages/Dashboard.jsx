@@ -1,10 +1,13 @@
+import { useState } from "react";
 import { useAppStore } from "@/lib/store";
 import AreaCard from "@/components/areas/AreaCard";
+import AreaModal from "@/components/areas/AreaModal";
 import CreateModal from "@/components/modals/CreateModal";
 
 export default function Dashboard() {
   const areas = useAppStore((s) => s.areas);
   const products = useAppStore((s) => s.products);
+  const [expandedArea, setExpandedArea] = useState(null);
 
   return (
     <div>
@@ -18,10 +21,14 @@ export default function Dashboard() {
             key={area.id}
             area={area}
             productCount={products.filter((p) => p.areaId === area.id).length}
+            onExpand={() => setExpandedArea(area)}
           />
         ))}
       </div>
       <CreateModal />
+      {expandedArea && (
+        <AreaModal area={expandedArea} onClose={() => setExpandedArea(null)} />
+      )}
     </div>
   );
 }
