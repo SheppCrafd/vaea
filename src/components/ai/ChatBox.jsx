@@ -73,7 +73,7 @@ export default function ChatBox({ activeProjectId }) {
 
       const combinedPrompt = `[SYSTEM INSTRUCTIONS]
       You are the core admin routing engine for this dashboard. YOU HAVE FULL SYSTEM ACCESS.
-      CRITICAL RULE: YOU MUST RESPOND ONLY IN VALID JSON FORMAT. Do not include any conversational text.
+      CRITICAL RULE: YOU MUST RESPOND ONLY IN VALID JSON FORMAT. Do not include any conversational text outside the JSON.
       
       Look up the entity ID in the lists below and determine the action.
       
@@ -96,7 +96,8 @@ export default function ChatBox({ activeProjectId }) {
       - "DELETE_TASK" (args required: task_id)
       - "CREATE_STAKEHOLDER" (args required: name, department)
       - "DELETE_STAKEHOLDER" (args required: stakeholder_id)
-      - "UNKNOWN"
+      - "CHAT_ONLY" (Use this if the user is just saying hello, asking how you are, or making small talk. No args required.)
+      - "UNKNOWN" (use only if they ask you to do a dashboard task you cannot fulfill)
       
       [GLOBAL DATABASE STATE]
       Active Project ID: ${activeProjectId || "None"}
@@ -113,7 +114,7 @@ export default function ChatBox({ activeProjectId }) {
       {
         "action": "THE_ACTION_NAME",
         "args": { "key": "value" },
-        "message": "A short, friendly summary of what you did."
+        "message": "Your response to the user. Speak like a highly capable, candid, and upbeat AI assistant. Be conversational and energetic. Do not use generic robotic phrases like 'How can I assist you'. If they just say hello, say hi back! Be honest about being an AI, but be witty and direct. MUST BE A VALID JSON STRING."
       }`;
 
       const response = await base44.integrations.Core.InvokeLLM({ prompt: combinedPrompt });
@@ -125,7 +126,7 @@ export default function ChatBox({ activeProjectId }) {
         const cleanJsonString = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
         aiDecision = JSON.parse(cleanJsonString);
       } catch (parseError) {
-        setMessages((prev) => [...prev, { role: "assistant", content: "I encountered an error processing that request." }]);
+        setMessages((prev) => [...prev, { role: "assistant", content: "I hit a snag trying to process that. Mind trying again?" }]);
         setIsComputing(false);
         return;
       }
@@ -142,7 +143,6 @@ export default function ChatBox({ activeProjectId }) {
             return;
           }
           
-          // Pop the last saved inverse action off the stack
           const lastAction = actionHistory[actionHistory.length - 1];
           setActionHistory((prev) => prev.slice(0, -1));
 
@@ -151,50 +151,40 @@ export default function ChatBox({ activeProjectId }) {
             setMessages((prev) => [...prev, { role: "assistant", content: `⏪ Undid that! Task status reverted back to **${lastAction.previousStatus}**.` }]);
           } 
           else if (lastAction.type === "REVERT_TOGGLE") {
-            // Since the hook is just a toggle, firing it again reverses it perfectly
             toggleTopThree.mutate({ id: lastAction.id, project_id: activeProjectId });
             setMessages((prev) => [...prev, { role: "assistant", content: `⏪ Reverted the Top 3 status for that task.` }]);
           }
           else {
              setMessages((prev) => [...prev, { role: "assistant", content: "I can't safely undo that specific action yet." }]);
           }
-          return; // Exit early since we handled the undo message manually
+          return;
+
+        // -- CONVERSATION & FALLBACKS --
+        case "CHAT_ONLY":
+          setMessages((prev) => [...prev, { role: "assistant", content: message }]);
+          return;
 
         // -- TASKS (WITH HISTORY TRACKING) --
         case "UPDATE_TASK_STATUS":
-          // 1. Find the old status BEFORE we change it
           const taskBeforeUpdate = allTasks.find(t => t.id === args.task_id);
           if (taskBeforeUpdate) {
-            // 2. Save the inverse action to the stack
             setActionHistory(prev => [...prev, { 
               type: "REVERT_TASK_STATUS", 
               id: args.task_id, 
               previousStatus: taskBeforeUpdate.status || "Not Started" 
             }]);
           }
-          // 3. Fire the actual mutation
           updateTaskStatus.mutate({ id: args.task_id, status: args.status, project_id: activeProjectId });
           break;
 
         case "TOGGLE_TOP_THREE":
-          // Save the inverse to the stack. 
-          setActionHistory(prev => [...prev, { 
-            type: "REVERT_TOGGLE", 
-            id: args.task_id 
-          }]);
+          setActionHistory(prev => [...prev, { type: "REVERT_TOGGLE", id: args.task_id }]);
           toggleTopThree.mutate({ id: args.task_id, project_id: activeProjectId });
           break;
 
-        // -- DESTRUCTIVE ACTIONS (CANNOT BE EASILY UNDONE) --
-        case "DELETE_TASK":
-          // We intentionally do NOT push this to the undo stack because it's a hard delete.
-          // You would need backend support for "Soft Deletes" to undo this easily.
-          deleteTask.mutate(args.task_id);
-          break;
-
-        case "ARCHIVE_PROJECT":
-          archiveProject.mutate(args.project_id);
-          break;
+        // -- DESTRUCTIVE ACTIONS --
+        case "DELETE_TASK": deleteTask.mutate(args.task_id); break;
+        case "ARCHIVE_PROJECT": archiveProject.mutate(args.project_id); break;
 
         // -- EVERYTHING ELSE --
         case "CREATE_AREA": createArea.mutate({ name: args.name }); break;
@@ -217,7 +207,7 @@ export default function ChatBox({ activeProjectId }) {
           return;
       }
 
-      setMessages((prev) => [...prev, { role: "assistant", content: `✅ ${message}` }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: message }]);
 
     } catch (error) {
       console.error("Agent execution crashed:", error);
