@@ -8,7 +8,7 @@ import { useCreateArea } from "@/hooks/useAreas";
 import { useCreateProduct } from "@/hooks/useProducts";
 import { useCreateProject, useArchiveProject, useDeleteProject, useRestoreProject } from "@/hooks/useProjects";
 import { useStakeholders, useCreateStakeholder, useDeleteStakeholder } from "@/hooks/useStakeholders";
-import { useTasks, useUpdateTaskStatus, useToggleTopThree, useDeleteTask } from "@/hooks/useTasks";
+import { useAllTasks, useUpdateTaskStatus, useToggleTopThree, useDeleteTask } from "@/hooks/useTasks";
 
 export default function ChatBox({ activeProjectId }) {
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -17,9 +17,9 @@ export default function ChatBox({ activeProjectId }) {
   const [isComputing, setIsComputing] = useState(false);
   const containerRef = useRef(null);
 
-  // 1. INITIALIZE ALL MUTATIONS
+  // 1. INITIALIZE ALL MUTATIONS AND DATA HOOKS
   const { data: allStakeholders = [] } = useStakeholders();
-  const { data: projectTasks = [] } = useTasks(activeProjectId); // <-- ADD THIS
+  const { data: allTasks = [] } = useAllTasks(); // Fixed: Now initialized!
   
   const createArea = useCreateArea();
   const createProduct = useCreateProduct();
@@ -169,7 +169,6 @@ export default function ChatBox({ activeProjectId }) {
     setIsComputing(true);
 
     try {
-
       const response = await base44.integrations.Core.InvokeLLM({
         prompt: userText,
         system_context: `You are the PM Dashboard Copilot, an agentic AI directly integrated into the user's application. 
@@ -223,7 +222,7 @@ export default function ChatBox({ activeProjectId }) {
               break;
             case "delete_project":
               deleteProject.mutate(args.project_id);
-              actionSummaries.push(`🗑️ Deleted project ${args.project_id}.`);
+              actionSummaries.push(`🗑️ Permanently deleted project ${args.project_id}.`);
               break;
 
             // Tasks
