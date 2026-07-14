@@ -3,11 +3,8 @@ import { MessageCircle, X, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { base44 } from "@/api/base44Client";
 
-// 🚀 IMPORTING ALL THE HOOKS
-import { useCreateArea } from "@/hooks/useAreas";
-import { useCreateProduct } from "@/hooks/useProducts";
-import { useCreateProject, useArchiveProject, useDeleteProject, useRestoreProject } from "@/hooks/useProjects";
-import { useStakeholders, useCreateStakeholder, useDeleteStakeholder } from "@/hooks/useStakeholders";
+// Hooks
+import { useStakeholders } from "@/hooks/useStakeholders"; 
 import { useAllTasks, useUpdateTaskStatus, useToggleTopThree, useDeleteTask } from "@/hooks/useTasks";
 
 export default function ChatBox({ activeProjectId }) {
@@ -17,19 +14,9 @@ export default function ChatBox({ activeProjectId }) {
   const [isComputing, setIsComputing] = useState(false);
   const containerRef = useRef(null);
 
-  // 1. INITIALIZE ALL MUTATIONS AND DATA HOOKS
+  // 1. Initialize data hooks & mutations from your useTasks file
   const { data: allStakeholders = [] } = useStakeholders();
-  const { data: allTasks = [] } = useAllTasks(); // Fixed: Now initialized!
-  
-  const createArea = useCreateArea();
-  const createProduct = useCreateProduct();
-  const createProject = useCreateProject();
-  const archiveProject = useArchiveProject();
-  const deleteProject = useDeleteProject();
-  const restoreProject = useRestoreProject();
-  
-  const createStakeholder = useCreateStakeholder();
-  const deleteStakeholder = useDeleteStakeholder();
+  const { data: allTasks = [] } = useAllTasks();
   
   const updateTaskStatus = useUpdateTaskStatus();
   const toggleTopThree = useToggleTopThree();
@@ -45,74 +32,23 @@ export default function ChatBox({ activeProjectId }) {
     return () => window.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 2. THE MEGA-SCHEMA (Teaching the LLM what it can do)
+  // 2. Define the Agent's Tool Schemas matching your hooks
   const agentTools = [
-    // --- AREAS & PRODUCTS ---
     {
-      name: "create_area",
-      description: "Creates a new top-level Area of Responsibility.",
-      parameters: {
-        type: "object",
-        properties: { name: { type: "string", description: "The name of the new area." } },
-        required: ["name"]
-      }
-    },
-    {
-      name: "create_product",
-      description: "Creates a new Product inside an Area.",
+      name: "toggle_top_three",
+      description: "Flags or unflags a task as one of today's top three focus items.",
       parameters: {
         type: "object",
         properties: { 
-          area_id: { type: "string" }, 
-          name: { type: "string" } 
+          task_id: { type: "string" },
+          intent: { type: "string", enum: ["flag", "unflag"], description: "Whether the user wants to add or remove the task from top 3." }
         },
-        required: ["area_id", "name"]
+        required: ["task_id", "intent"]
       }
     },
-    // --- PROJECTS ---
-    {
-      name: "create_project",
-      description: "Creates a new Project.",
-      parameters: {
-        type: "object",
-        properties: { 
-          parent_product_id: { type: "string" }, 
-          name: { type: "string" } 
-        },
-        required: ["name"]
-      }
-    },
-    {
-      name: "archive_project",
-      description: "Archives an active project.",
-      parameters: {
-        type: "object",
-        properties: { project_id: { type: "string" } },
-        required: ["project_id"]
-      }
-    },
-    {
-      name: "restore_project",
-      description: "Restores a previously archived project back to the dashboard.",
-      parameters: {
-        type: "object",
-        properties: { project_id: { type: "string" } },
-        required: ["project_id"]
-      }
-    },
-    {
-      name: "delete_project",
-      description: "Permanently deletes a project.",
-      parameters: {
-        type: "object",
-        properties: { project_id: { type: "string" } },
-        required: ["project_id"]
-      }
-    },
-    // --- TASKS ---
     {
       name: "update_task_status",
-      description: "Updates the status of an existing task.",
+      description: "Updates the execution status of an existing task.",
       parameters: {
         type: "object",
         properties: {
@@ -123,58 +59,33 @@ export default function ChatBox({ activeProjectId }) {
       }
     },
     {
-      name: "toggle_top_three",
-      description: "Toggles a task as one of today's top three focus items.",
-      parameters: {
-        type: "object",
-        properties: { 
-          task_id: { type: "string" },
-          intent: { type: "string", enum: ["flag", "unflag"] }
-        },
-        required: ["task_id", "intent"]
-      }
-    },
-    {
       name: "delete_task",
-      description: "Permanently deletes a task.",
+      description: "Permanently deletes a task from the board.",
       parameters: {
         type: "object",
         properties: { task_id: { type: "string" } },
         required: ["task_id"]
       }
-    },
-    // --- STAKEHOLDERS ---
-    {
-      name: "create_stakeholder",
-      description: "Creates a new global stakeholder.",
-      parameters: {
-        type: "object",
-        properties: { 
-          name: { type: "string" },
-          role: { type: "string", description: "The person's job title or role" }
-        },
-        required: ["name"]
-      }
     }
   ];
 
-  // 3. THE MASTER EXECUTION LOOP
+  // 3. The Master Execution Loop
   const handleSend = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
 
-    const userText = input;
+    const userText = input.trim();
     setInput("");
     setMessages((prev) => [...prev, { role: "user", content: userText }]);
     setIsComputing(true);
 
     try {
+      // Invoke the real Base44 LLM Engine
       const response = await base44.integrations.Core.InvokeLLM({
         prompt: userText,
         system_context: `You are the PM Dashboard Copilot, an agentic AI directly integrated into the user's application. 
-        DO NOT introduce yourself as a generic AI or language model. 
         DO NOT say you do not have access to the app, lists, or user files. You HAVE full database access through your tools.
-        When asked to modify, flag, or delete an item, you MUST look up its ID in the provided context arrays and execute the tool immediately. 
+        When asked to modify, flag, or delete an item, look up its ID in the provided context arrays and execute the tool immediately. 
         
         Active Project ID: ${activeProjectId}
         Available Stakeholders: ${JSON.stringify(allStakeholders.map(s => ({id: s.id, name: s.name})))}
@@ -182,14 +93,13 @@ export default function ChatBox({ activeProjectId }) {
         tools: agentTools
       });
 
-      console.log("RAW AGENT RESPONSE:", response);
-
+      // Handle casual text chatter safely
       if (typeof response === "string") {
         setMessages((prev) => [...prev, { role: "assistant", content: response }]);
-        setIsComputing(false);
         return;
       }
 
+      // Handle structural tool execution
       if (response?.tool_calls && response.tool_calls.length > 0) {
         let actionSummaries = [];
 
@@ -197,56 +107,28 @@ export default function ChatBox({ activeProjectId }) {
           const args = JSON.parse(tool.arguments);
           
           switch (tool.name) {
-            // Areas & Products
-            case "create_area":
-              createArea.mutate({ name: args.name });
-              actionSummaries.push(`📁 Created new Area: **${args.name}**`);
-              break;
-            case "create_product":
-              createProduct.mutate({ area_id: args.area_id, name: args.name });
-              actionSummaries.push(`📦 Created new Product: **${args.name}**`);
-              break;
-            
-            // Projects
-            case "create_project":
-              createProject.mutate({ parent_product_id: args.parent_product_id, name: args.name });
-              actionSummaries.push(`🚀 Created new Project: **${args.name}**`);
-              break;
-            case "archive_project":
-              archiveProject.mutate(args.project_id);
-              actionSummaries.push(`📦 Archived project ${args.project_id}.`);
-              break;
-            case "restore_project":
-              restoreProject.mutate(args.project_id);
-              actionSummaries.push(`🔄 Restored project ${args.project_id}.`);
-              break;
-            case "delete_project":
-              deleteProject.mutate(args.project_id);
-              actionSummaries.push(`🗑️ Permanently deleted project ${args.project_id}.`);
+            case "toggle_top_three":
+              // Passing project_id alongside id satisfies your hook's onSuccess UI invalidation!
+              toggleTopThree.mutate({ id: args.task_id, project_id: activeProjectId });
+              actionSummaries.push(
+                args.intent === "unflag" 
+                  ? `⭐ I removed task \`${args.task_id}\` from Today's Top 3.` 
+                  : `⭐ I added task \`${args.task_id}\` to Today's Top 3.`
+              );
               break;
 
-            // Tasks
             case "update_task_status":
-              updateTaskStatus.mutate({ id: args.task_id, status: args.status });
-              actionSummaries.push(`✅ Updated task ${args.task_id} to **${args.status}**.`);
+              updateTaskStatus.mutate({ id: args.task_id, status: args.status, project_id: activeProjectId });
+              actionSummaries.push(`✅ Updated task \`${args.task_id}\` status to **${args.status}**.`);
               break;
-            case "toggle_top_three":
-              toggleTopThree.mutate({ id: args.task_id });
-              actionSummaries.push(`⭐ ${args.intent === "unflag" ? "Unflagged" : "Flagged"} task ${args.task_id} for Top 3.`);
-              break;
+
             case "delete_task":
               deleteTask.mutate(args.task_id);
-              actionSummaries.push(`🗑️ Deleted task ${args.task_id}.`);
-              break;
-
-            // Stakeholders
-            case "create_stakeholder":
-              createStakeholder.mutate({ name: args.name, role: args.role || "Team Member" });
-              actionSummaries.push(`👤 Added stakeholder **${args.name}** (${args.role || "Team Member"}).`);
+              actionSummaries.push(`🗑️ Deleted task \`${args.task_id}\`.`);
               break;
 
             default:
-              actionSummaries.push(`❓ Agent tried to use an unknown tool: ${tool.name}`);
+              actionSummaries.push(`❓ The agent attempted an unknown command: ${tool.name}`);
           }
         }
 
@@ -255,19 +137,13 @@ export default function ChatBox({ activeProjectId }) {
       else if (response?.text) {
         setMessages((prev) => [...prev, { role: "assistant", content: response.text }]);
       } 
-      else if (response?.content) {
-        setMessages((prev) => [...prev, { role: "assistant", content: response.content }]);
-      }
       else {
-        const rawString = JSON.stringify(response, null, 2);
-        setMessages((prev) => [
-          ...prev, 
-          { role: "assistant", content: `🤖 **Debug Raw Output:**\n\`\`\`json\n${rawString}\n\`\`\`` }
-        ]);
+        // Fallback catch-all debug renderer
+        setMessages((prev) => [...prev, { role: "assistant", content: typeof response === 'object' ? JSON.stringify(response) : String(response) }]);
       }
 
     } catch (error) {
-      console.error("Agent failed to compute:", error);
+      console.error("Agent execution crashed:", error);
       setMessages((prev) => [...prev, { role: "assistant", content: `⚠️ Error: ${error.message}` }]);
     } finally {
       setIsComputing(false);
@@ -275,23 +151,23 @@ export default function ChatBox({ activeProjectId }) {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end" ref={containerRef}>
+    <div className="fixed bottom-6 right-6 z-50 font-sans" ref={containerRef}>
       {isChatOpen ? (
-        <div className="w-80 sm:w-96 h-[500px] bg-background border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 fade-in duration-200">
-          <div className="flex items-center justify-between px-4 py-3 bg-primary text-primary-foreground">
-            <div className="flex items-center gap-2 font-semibold">
+        <div className="w-80 sm:w-96 bg-card border border-border shadow-2xl rounded-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 fade-in duration-200">
+          <div className="bg-primary px-4 py-3 flex items-center justify-between text-primary-foreground">
+            <div className="flex items-center gap-2">
               <MessageCircle className="w-5 h-5" />
-              <span>Copilot Admin</span>
+              <span className="font-semibold text-sm">PM Copilot Admin</span>
             </div>
-            <button onClick={() => setIsChatOpen(false)} className="hover:bg-primary-foreground/20 p-1 rounded-md transition-colors">
-              <X className="w-5 h-5" />
+            <button onClick={() => setIsChatOpen(false)} className="text-primary-foreground/80 hover:text-primary-foreground transition-colors">
+              <X className="w-4 h-4" />
             </button>
           </div>
           
-          <div className="flex-1 p-4 overflow-y-auto flex flex-col gap-3 scroll-smooth">
+          <div className="h-[350px] overflow-y-auto p-4 flex flex-col gap-3 text-sm bg-background/50">
             {messages.map((m, i) => (
-              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`inline-block rounded-lg px-3 py-2 max-w-[85%] text-sm ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground shadow-sm"}`}>
+              <div key={i} className={m.role === "user" ? "text-right" : ""}>
+                <div className={`inline-block rounded-lg px-3 py-1.5 max-w-[85%] text-left ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground shadow-sm"}`}>
                   <ReactMarkdown>{m.content}</ReactMarkdown>
                 </div>
               </div>
@@ -299,9 +175,9 @@ export default function ChatBox({ activeProjectId }) {
             
             {isComputing && (
               <div className="flex justify-start">
-                <div className="inline-block rounded-lg px-4 py-2 bg-secondary text-secondary-foreground shadow-sm flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                  <span className="text-xs text-muted-foreground">Admin is working...</span>
+                <div className="inline-block rounded-lg px-3 py-1.5 bg-secondary text-secondary-foreground shadow-sm flex items-center gap-2">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+                  <span className="text-xs text-muted-foreground">Updating dashboard records...</span>
                 </div>
               </div>
             )}
@@ -311,17 +187,20 @@ export default function ChatBox({ activeProjectId }) {
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="E.g., Archive project 123 and delete task 456..."
+              placeholder="E.g., Remove Test 1 from today's top 3..."
               className="flex-1 text-sm px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all"
               disabled={isComputing}
             />
             <button type="submit" disabled={isComputing} className="text-sm px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md transition-colors shadow-sm disabled:opacity-50">
-              Execute
+              Send
             </button>
           </form>
         </div>
       ) : (
-        <button onClick={() => setIsChatOpen(true)} className="w-14 h-14 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
+        <button
+          onClick={() => setIsChatOpen(true)}
+          className="w-14 h-14 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
+        >
           <MessageCircle className="w-6 h-6" />
         </button>
       )}
