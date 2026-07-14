@@ -7,13 +7,10 @@ import { useArchiveProject, useRestoreProject, useUpdateProject, useDeleteProjec
 import TaskTable from "@/components/projects/TaskTable";
 import EditableText from "@/components/shared/EditableText";
 import ProjectNotes from "@/components/projects/ProjectNotes";
+import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
 
 const DUE_DATE_STATUS_OPTIONS = ["ESTIMATED", "COMMITTED"];
 
-// Full-screen expanded project view: problem statement, metrics, activity,
-// notes, stakeholders by department, archive/restore/delete, and the full task table.
-// Every field here is directly editable (title, objective, owner, due date, status,
-// problem statement, activity).
 export default function ProjectDetailModal({ project, onClose }) {
   const { data: notes = [] } = useProjectNotes(project.id);
   const { data: allStakeholders = [] } = useStakeholders();
@@ -28,172 +25,179 @@ export default function ProjectDetailModal({ project, onClose }) {
   }, []);
 
   const stakeholders = allStakeholders.filter((s) => (project.stakeholder_ids || []).includes(s.id));
-  const departments = [...new Set(stakeholders.map((s) => s.department))];
-  const metrics = project.metrics || {};
-
-  const handleArchiveToggle = () => {
-    if (project.is_archived) restoreProject.mutate(project.id);
-    else archiveProject.mutate(project.id);
-    onClose();
-  };
-
-  const handleDelete = () => {
-    if (window.confirm(`Delete project "${project.title}"? This will also delete all of its tasks. This cannot be undone.`)) {
-      deleteProject.mutate(project.id);
-      onClose();
-    }
-  };
+  const departments = [...new Set(stakeholders.map((s) => s.department).filter(Boolean))];
 
   return (
     <Portal>
-      <div className="fixed inset-0 bg-background z-50 overflow-y-auto">
-        <div className="flex items-center justify-between gap-3 p-6 border-b border-border sticky top-0 bg-background z-10">
-          <EditableText
-            value={project.title}
-            onSave={(v) => updateProject.mutate({ id: project.id, data: { title: v } })}
-            className="font-heading text-xl font-semibold"
-          />
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={handleArchiveToggle}
-              className="text-sm flex items-center gap-1.5 px-3 py-1.5 bg-secondary text-secondary-foreground rounded-md whitespace-nowrap"
-            >
-              {project.is_archived ? <RotateCcw className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
-              {project.is_archived ? "Restore Project" : "Archive Project"}
-            </button>
-            <button
-              onClick={handleDelete}
-              className="text-sm flex items-center gap-1.5 px-3 py-1.5 bg-destructive text-destructive-foreground rounded-md whitespace-nowrap"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              Delete
-            </button>
-            <button onClick={onClose}><X className="w-5 h-5" /></button>
-          </div>
-        </div>
-
-        <div className="p-6 max-w-4xl mx-auto space-y-6">
-          <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-1">Objective</label>
-            <EditableText
-              value={project.objective}
-              onSave={(v) => updateProject.mutate({ id: project.id, data: { objective: v } })}
-              multiline
-              className="text-sm bg-card border border-border rounded-md p-2"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1">Owner</label>
+      <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          
+          {/* Header */}
+          <div className="flex items-start justify-between p-6 border-b border-border bg-muted/30">
+            <div className="flex-1 mr-4">
               <EditableText
-                value={project.owner_name}
-                onSave={(v) => updateProject.mutate({ id: project.id, data: { owner_name: v } })}
-                placeholder="Unassigned"
-                className="text-sm bg-card border border-border rounded-md p-2"
+                value={project.title}
+                onSave={(val) => updateProject.mutate({ id: project.id, data: { title: val } })}
+                className="text-2xl font-bold font-heading mb-2 w-full"
               />
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Owner:</span>
+                  <EditableText
+                    value={project.owner || "Unassigned"}
+                    onSave={(val) => updateProject.mutate({ id: project.id, data: { owner: val } })}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Due:</span>
+                  <EditableText
+                    value={project.due_date || "Not set"}
+                    onSave={(val) => updateProject.mutate({ id: project.id, data: { due_date: val } })}
+                    type="date"
+                  />
+                  <select
+                    value={project.due_date_status || "ESTIMATED"}
+                    onChange={(e) => updateProject.mutate({ id: project.id, data: { due_date_status: e.target.value } })}
+                    className="bg-transparent border border-border rounded px-1.5 py-0.5 text-xs ml-1 outline-none"
+                  >
+                    {DUE_DATE_STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1">Due Date</label>
-              <input
-                type="date"
-                value={project.due_date ? project.due_date.slice(0, 10) : ""}
-                onChange={(e) => updateProject.mutate({ id: project.id, data: { due_date: e.target.value ? new Date(e.target.value).toISOString() : null } })}
-                className="w-full text-sm bg-card border border-border rounded-md p-2"
-              />
+            <button onClick={onClose} className="p-2 hover:bg-secondary rounded-full transition-colors shrink-0">
+              <X className="w-5 h-5 text-muted-foreground" />
+            </button>
+          </div>
+
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-8">
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Objective</p>
+                <EditableText
+                  value={project.objective || "No objective set."}
+                  onSave={(val) => updateProject.mutate({ id: project.id, data: { objective: val } })}
+                  className="text-sm"
+                  multiline
+                />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Problem Statement</p>
+                <EditableText
+                  value={project.problem_statement || "No problem statement set."}
+                  onSave={(val) => updateProject.mutate({ id: project.id, data: { problem_statement: val } })}
+                  className="text-sm"
+                  multiline
+                />
+              </div>
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Risks & Open Questions powered by ProjectNotes */}
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Risks & Open Questions</p>
+                {notes.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No notes yet.</p>
+                ) : (
+                  <ProjectNotes notes={notes} />
+                )}
+              </div>
+
+              {/* Stakeholders Section with Assigner Dropdown */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Project Stakeholders</p>
+                  <StakeholderAssigner 
+                    currentStakeholderIds={project.stakeholder_ids || []} 
+                    allStakeholders={allStakeholders} 
+                    onSave={(newIds) => updateProject.mutate({ id: project.id, data: { stakeholder_ids: newIds } })}
+                  />
+                </div>
+                
+                {departments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground bg-secondary/20 p-3 rounded-lg border border-dashed border-border text-center">No stakeholders assigned yet.</p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {departments.map((dept) => {
+                      const deptStakeholders = stakeholders.filter((s) => s.department === dept);
+                      return (
+                        <div key={dept} className="bg-secondary/20 p-3 rounded-lg border border-border">
+                          <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">{dept}</p>
+                          
+                          <div className="flex items-center pl-2 mb-2">
+                            {deptStakeholders.slice(0, 5).map((s, i) => (
+                              <div key={s.id} className="w-8 h-8 rounded-full bg-primary/20 border-2 border-background flex items-center justify-center text-xs font-bold shadow-sm" style={{ marginLeft: i > 0 ? '-12px' : '0', zIndex: 10 - i }} title={s.name}>
+                                {s.name.charAt(0).toUpperCase()}
+                              </div>
+                            ))}
+                            {deptStakeholders.length > 5 && (
+                              <div className="w-8 h-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-[10px] font-bold" style={{ marginLeft: '-12px', zIndex: 0 }}>
+                                +{deptStakeholders.length - 5}
+                              </div>
+                            )}
+                          </div>
+                          
+                          <p className="text-xs break-words text-muted-foreground">
+                            {deptStakeholders.map((s) => s.name).join(", ")}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1">Due Date Status</label>
-              <select
-                value={project.due_date_status || "ESTIMATED"}
-                onChange={(e) => updateProject.mutate({ id: project.id, data: { due_date_status: e.target.value } })}
-                className="w-full text-sm bg-card border border-border rounded-md p-2"
+              <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">Tasks</p>
+              <div className="border border-border rounded-lg overflow-x-auto bg-card shadow-sm">
+                <TaskTable project={project} />
+              </div>
+            </div>
+
+          </div>
+
+          {/* Footer Actions */}
+          <div className="p-4 border-t border-border bg-muted/10 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => {
+                  if (window.confirm("Are you sure you want to delete this project?")) {
+                    deleteProject.mutate(project.id);
+                    onClose();
+                  }
+                }}
+                className="text-xs flex items-center gap-1.5 text-muted-foreground hover:text-destructive px-3 py-1.5 rounded transition-colors"
               >
-                {DUE_DATE_STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
+                <Trash2 className="w-4 h-4" /> Delete Project
+              </button>
             </div>
-          </div>
-
-          <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-1">Problem Statement</label>
-            <EditableText
-              value={project.problem_statement}
-              onSave={(v) => updateProject.mutate({ id: project.id, data: { problem_statement: v } })}
-              multiline
-              placeholder="No problem statement yet"
-              className="text-sm bg-card border border-border rounded-md p-2"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-1">Activity</label>
-            <EditableText
-              value={project.activity}
-              onSave={(v) => updateProject.mutate({ id: project.id, data: { activity: v } })}
-              multiline
-              placeholder="No activity logged yet"
-              className="text-sm bg-card border border-border rounded-md p-2"
-            />
-          </div>
-
-          {(metrics.forecast || metrics.measured) && (
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-1">Metrics</p>
-              <div className="flex gap-6 text-sm">
-                <span>Forecast: {metrics.forecast ?? "—"}</span>
-                <span>Measured: {metrics.measured ?? "—"}</span>
-              </div>
-            </div>
-          )}
-
-          <div>
-            <p className="text-xs font-medium text-muted-foreground mb-2">Risks & Open Questions</p>
-            {notes.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No notes yet.</p>
+            
+            {project.is_archived ? (
+              <button 
+                onClick={() => {
+                  restoreProject.mutate(project.id);
+                  onClose();
+                }}
+                className="text-xs flex items-center gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium transition-colors shadow-sm"
+              >
+                <RotateCcw className="w-4 h-4" /> Restore Project
+              </button>
             ) : (
-              <ProjectNotes notes={notes} />
+              <button 
+                onClick={() => {
+                  archiveProject.mutate(project.id);
+                  onClose();
+                }}
+                className="text-xs flex items-center gap-1.5 bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border px-4 py-2 rounded-md font-medium transition-colors shadow-sm"
+              >
+                <Archive className="w-4 h-4" /> Archive Project
+              </button>
             )}
           </div>
 
-          <div>
-            <p className="text-xs font-medium text-muted-foreground mb-3">Project Stakeholders</p>
-            {departments.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No stakeholders assigned.</p>
-            ) : (
-              <div className="grid grid-cols-2 gap-4">
-                {departments.map((dept) => {
-                  const deptStakeholders = stakeholders.filter((s) => s.department === dept);
-                  return (
-                    <div key={dept} className="bg-secondary/20 p-3 rounded-lg border border-border">
-                      <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">{dept}</p>
-                      <div className="flex items-center pl-2 mb-2">
-                        {deptStakeholders.slice(0,5).map((s,i)=>(
-                          <div key={s.id} className="w-8 h-8 rounded-full bg-primary/20 border-2 border-background flex items-center justify-center text-xs font-bold shadow-sm" style={{marginLeft:i>0?'-12px':'0',zIndex:10-i}} title={s.name}>
-                            {s.name.charAt(0).toUpperCase()}
-                          </div>
-                        ))}
-                        {deptStakeholders.length>5&&(
-                          <div className="w-8 h-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-[10px] font-bold" style={{marginLeft:'-12px',zIndex:0}}>
-                            +{deptStakeholders.length-5}
-                          </div>
-                        )}
-                      </div>
-                      <p className="text-xs break-words text-muted-foreground">
-                        {deptStakeholders.map((s)=>s.name).join(", ")}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          <div>
-            <p className="text-xs font-medium text-muted-foreground mb-2">Tasks</p>
-            <div className="border border-border rounded-lg overflow-x-auto">
-              <TaskTable project={project} />
-            </div>
-          </div>
         </div>
       </div>
     </Portal>
