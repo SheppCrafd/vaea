@@ -55,36 +55,6 @@ export default function ChatBox({ activeProjectId }) {
     return () => window.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 🌍 4. THE OMNIPOTENT TOOL SCHEMA
-  const agentTools = [
-    // --- AREAS ---
-    { name: "create_area", description: "Creates a new Area of Responsibility.", parameters: { type: "object", properties: { name: { type: "string" } }, required: ["name"] } },
-    { name: "update_area", description: "Renames an Area.", parameters: { type: "object", properties: { area_id: { type: "string" }, name: { type: "string" } }, required: ["area_id", "name"] } },
-    { name: "delete_area", description: "Deletes an Area.", parameters: { type: "object", properties: { area_id: { type: "string" } }, required: ["area_id"] } },
-    
-    // --- PRODUCTS ---
-    { name: "create_product", description: "Creates a Product inside an Area.", parameters: { type: "object", properties: { area_id: { type: "string" }, name: { type: "string" } }, required: ["area_id", "name"] } },
-    { name: "update_product", description: "Renames a Product.", parameters: { type: "object", properties: { product_id: { type: "string" }, name: { type: "string" } }, required: ["product_id", "name"] } },
-    
-    // --- PROJECTS ---
-    { name: "create_project", description: "Creates a Project inside a Product.", parameters: { type: "object", properties: { parent_product_id: { type: "string" }, name: { type: "string" } }, required: ["parent_product_id", "name"] } },
-    { name: "update_project", description: "Updates a Project's name or objective.", parameters: { type: "object", properties: { project_id: { type: "string" }, name: { type: "string" }, objective: { type: "string" } }, required: ["project_id"] } },
-    { name: "move_project", description: "Moves a Project to a new Product.", parameters: { type: "object", properties: { project_id: { type: "string" }, parent_product_id: { type: "string" } }, required: ["project_id", "parent_product_id"] } },
-    { name: "archive_project", description: "Archives a Project.", parameters: { type: "object", properties: { project_id: { type: "string" } }, required: ["project_id"] } },
-    { name: "restore_project", description: "Restores an archived Project.", parameters: { type: "object", properties: { project_id: { type: "string" } }, required: ["project_id"] } },
-    { name: "delete_project", description: "Deletes a Project.", parameters: { type: "object", properties: { project_id: { type: "string" } }, required: ["project_id"] } },
-    
-    // --- TASKS ---
-    { name: "update_task", description: "Updates task description or quadrant.", parameters: { type: "object", properties: { task_id: { type: "string" }, description: { type: "string" }, quadrant: { type: "number" } }, required: ["task_id"] } },
-    { name: "update_task_status", description: "Changes task status (e.g. Done, Blocked).", parameters: { type: "object", properties: { task_id: { type: "string" }, status: { type: "string", enum: ["Not Started", "In Progress", "Done", "Blocked", "Pending Feedback", "On Hold"] } }, required: ["task_id", "status"] } },
-    { name: "toggle_top_three", description: "Flags/Unflags top 3 tasks.", parameters: { type: "object", properties: { task_id: { type: "string" }, intent: { type: "string", enum: ["flag", "unflag"] } }, required: ["task_id", "intent"] } },
-    { name: "delete_task", description: "Deletes a task.", parameters: { type: "object", properties: { task_id: { type: "string" } }, required: ["task_id"] } },
-    
-    // --- STAKEHOLDERS ---
-    { name: "create_stakeholder", description: "Adds a stakeholder.", parameters: { type: "object", properties: { name: { type: "string" }, department: { type: "string" } }, required: ["name", "department"] } },
-    { name: "delete_stakeholder", description: "Deletes a stakeholder.", parameters: { type: "object", properties: { stakeholder_id: { type: "string" } }, required: ["stakeholder_id"] } }
-  ];
-
   const handleSend = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
@@ -95,19 +65,39 @@ export default function ChatBox({ activeProjectId }) {
     setIsComputing(true);
 
     try {
-      // Create lean lookup maps so the prompt doesn't get too bloated
+      // Create lean lookup maps to preserve tokens
       const ctxAreas = areas.map(a => ({ id: a.id, name: a.name }));
       const ctxProducts = products.map(p => ({ id: p.id, name: p.name }));
       const ctxProjects = projects.map(p => ({ id: p.id, name: p.name }));
       const ctxTasks = allTasks.map(t => ({ id: t.id, text: t.title || t.name || t.description || "Unknown" }));
       const ctxStakeholders = stakeholders.map(s => ({ id: s.id, name: s.name }));
 
-      // 🚨 TROJAN HORSE PROMPT: Bypassing the Base44 wrapper filter
+      // 🚨 TOTAL OVERRIDE PROMPT: Forcing strict JSON output for every possible action
       const combinedPrompt = `[SYSTEM INSTRUCTIONS]
       You are the core admin routing engine for this dashboard. YOU HAVE FULL SYSTEM ACCESS.
-      CRITICAL RULES:
-      1. You have tools to manage Areas, Products, Projects, Tasks, and Stakeholders.
-      2. DO NOT act like a generic chatbot. DO NOT say you lack access. Look up entity IDs in the lists below and execute the tool immediately.
+      CRITICAL RULE: YOU MUST RESPOND ONLY IN VALID JSON FORMAT. Do not include any conversational text.
+      
+      Look up the entity ID in the lists below and determine the action.
+      
+      [AVAILABLE ACTIONS]
+      - "CREATE_AREA" (args required: name)
+      - "UPDATE_AREA" (args required: area_id, name)
+      - "DELETE_AREA" (args required: area_id)
+      - "CREATE_PRODUCT" (args required: area_id, name)
+      - "UPDATE_PRODUCT" (args required: product_id, name)
+      - "CREATE_PROJECT" (args required: parent_product_id, name)
+      - "UPDATE_PROJECT" (args required: project_id, name (optional), objective (optional))
+      - "MOVE_PROJECT" (args required: project_id, parent_product_id)
+      - "ARCHIVE_PROJECT" (args required: project_id)
+      - "RESTORE_PROJECT" (args required: project_id)
+      - "DELETE_PROJECT" (args required: project_id)
+      - "UPDATE_TASK" (args required: task_id, description (optional), quadrant (optional))
+      - "UPDATE_TASK_STATUS" (args required: task_id, status: "Not Started"|"In Progress"|"Done"|"Blocked"|"Pending Feedback"|"On Hold")
+      - "TOGGLE_TOP_THREE" (args required: task_id, intent: "flag"|"unflag")
+      - "DELETE_TASK" (args required: task_id)
+      - "CREATE_STAKEHOLDER" (args required: name, department)
+      - "DELETE_STAKEHOLDER" (args required: stakeholder_id)
+      - "UNKNOWN" (use only if you cannot fulfill the request at all)
       
       [GLOBAL DATABASE STATE]
       Active Project ID: ${activeProjectId || "None"}
@@ -118,58 +108,107 @@ export default function ChatBox({ activeProjectId }) {
       Stakeholders: ${JSON.stringify(ctxStakeholders)}
       
       [USER REQUEST]
-      ${userText}`;
+      ${userText}
+      
+      [EXPECTED JSON OUTPUT FORMAT]
+      {
+        "action": "THE_ACTION_NAME",
+        "args": { "key": "value" },
+        "message": "A short, friendly summary of what you did to show the user."
+      }`;
 
       const response = await base44.integrations.Core.InvokeLLM({
-        prompt: combinedPrompt,
-        tools: agentTools
-        // System Context completely removed to avoid dropping data!
+        prompt: combinedPrompt
       });
 
-      if (typeof response === "string") {
-        setMessages((prev) => [...prev, { role: "assistant", content: response }]);
+      // Parse the text response as JSON
+      let aiDecision;
+      const rawText = typeof response === "string" ? response : response?.text || "";
+      
+      try {
+        // Strip out markdown formatting to ensure clean JSON parsing
+        const cleanJsonString = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+        aiDecision = JSON.parse(cleanJsonString);
+      } catch (parseError) {
+        console.error("Failed to parse LLM response as JSON:", rawText);
+        setMessages((prev) => [...prev, { role: "assistant", content: "I encountered an error processing that request." }]);
         setIsComputing(false);
         return;
       }
 
-      if (response?.tool_calls && response.tool_calls.length > 0) {
-        let actionSummaries = [];
+      const { action, args, message } = aiDecision;
 
-        for (const tool of response.tool_calls) {
-          const args = JSON.parse(tool.arguments);
-          
-          switch (tool.name) {
-            case "create_area": createArea.mutate({ name: args.name }); actionSummaries.push(`📁 Created Area: **${args.name}**`); break;
-            case "update_area": updateArea.mutate({ id: args.area_id, data: { name: args.name } }); actionSummaries.push(`✏️ Renamed Area.`); break;
-            case "delete_area": deleteArea.mutate(args.area_id); actionSummaries.push(`🗑️ Deleted Area.`); break;
-            
-            case "create_product": createProduct.mutate({ area_id: args.area_id, name: args.name }); actionSummaries.push(`📦 Created Product: **${args.name}**`); break;
-            case "update_product": updateProduct.mutate({ id: args.product_id, data: { name: args.name } }); actionSummaries.push(`✏️ Renamed Product.`); break;
-            
-            case "create_project": createProject.mutate({ parent_product_id: args.parent_product_id, name: args.name }); actionSummaries.push(`🚀 Created Project: **${args.name}**`); break;
-            case "update_project": updateProject.mutate({ id: args.project_id, data: args }); actionSummaries.push(`✏️ Updated Project.`); break;
-            case "move_project": moveProject.mutate({ id: args.project_id, parent_product_id: args.parent_product_id }); actionSummaries.push(`📦 Moved Project to new Product.`); break;
-            case "archive_project": archiveProject.mutate(args.project_id); actionSummaries.push(`📦 Archived Project.`); break;
-            case "restore_project": restoreProject.mutate(args.project_id); actionSummaries.push(`🔄 Restored Project.`); break;
-            case "delete_project": deleteProject.mutate(args.project_id); actionSummaries.push(`🗑️ Deleted Project.`); break;
-            
-            case "update_task": updateTask.mutate({ id: args.task_id, data: args }); actionSummaries.push(`✏️ Updated Task details.`); break;
-            case "update_task_status": updateTaskStatus.mutate({ id: args.task_id, status: args.status, project_id: activeProjectId }); actionSummaries.push(`✅ Updated task status to **${args.status}**.`); break;
-            case "toggle_top_three": toggleTopThree.mutate({ id: args.task_id, project_id: activeProjectId }); actionSummaries.push(args.intent === "unflag" ? `⭐ Removed task from Top 3.` : `⭐ Added task to Top 3.`); break;
-            case "delete_task": deleteTask.mutate(args.task_id); actionSummaries.push(`🗑️ Deleted task.`); break;
-            
-            case "create_stakeholder": createStakeholder.mutate({ name: args.name, department: args.department }); actionSummaries.push(`👤 Added stakeholder **${args.name}**.`); break;
-            case "delete_stakeholder": deleteStakeholder.mutate(args.stakeholder_id); actionSummaries.push(`🗑️ Deleted stakeholder.`); break;
-            
-            default: actionSummaries.push(`❓ Unknown command: ${tool.name}`);
-          }
-        }
+      // 🔀 THE MASTER ROUTER: Manually triggering the hooks based on JSON
+      switch (action) {
+        // -- AREAS --
+        case "CREATE_AREA":
+          createArea.mutate({ name: args.name });
+          break;
+        case "UPDATE_AREA":
+          updateArea.mutate({ id: args.area_id, data: { name: args.name } });
+          break;
+        case "DELETE_AREA":
+          deleteArea.mutate(args.area_id);
+          break;
 
-        setMessages((prev) => [...prev, { role: "assistant", content: actionSummaries.join("\n") }]);
-      } 
-      else if (response?.text) {
-        setMessages((prev) => [...prev, { role: "assistant", content: response.text }]);
-      } 
+        // -- PRODUCTS --
+        case "CREATE_PRODUCT":
+          createProduct.mutate({ area_id: args.area_id, name: args.name });
+          break;
+        case "UPDATE_PRODUCT":
+          updateProduct.mutate({ id: args.product_id, data: { name: args.name } });
+          break;
+
+        // -- PROJECTS --
+        case "CREATE_PROJECT":
+          createProject.mutate({ parent_product_id: args.parent_product_id, name: args.name });
+          break;
+        case "UPDATE_PROJECT":
+          updateProject.mutate({ id: args.project_id, data: args });
+          break;
+        case "MOVE_PROJECT":
+          moveProject.mutate({ id: args.project_id, parent_product_id: args.parent_product_id });
+          break;
+        case "ARCHIVE_PROJECT":
+          archiveProject.mutate(args.project_id);
+          break;
+        case "RESTORE_PROJECT":
+          restoreProject.mutate(args.project_id);
+          break;
+        case "DELETE_PROJECT":
+          deleteProject.mutate(args.project_id);
+          break;
+
+        // -- TASKS --
+        case "UPDATE_TASK":
+          updateTask.mutate({ id: args.task_id, data: args });
+          break;
+        case "UPDATE_TASK_STATUS":
+          updateTaskStatus.mutate({ id: args.task_id, status: args.status, project_id: activeProjectId });
+          break;
+        case "TOGGLE_TOP_THREE":
+          toggleTopThree.mutate({ id: args.task_id, project_id: activeProjectId });
+          break;
+        case "DELETE_TASK":
+          deleteTask.mutate(args.task_id);
+          break;
+
+        // -- STAKEHOLDERS --
+        case "CREATE_STAKEHOLDER":
+          createStakeholder.mutate({ name: args.name, department: args.department });
+          break;
+        case "DELETE_STAKEHOLDER":
+          deleteStakeholder.mutate(args.stakeholder_id);
+          break;
+
+        case "UNKNOWN":
+        default:
+          setMessages((prev) => [...prev, { role: "assistant", content: message || "I couldn't figure out how to do that based on the current data." }]);
+          return;
+      }
+
+      // If a known action succeeded, print the AI's success message
+      setMessages((prev) => [...prev, { role: "assistant", content: `✅ ${message}` }]);
 
     } catch (error) {
       console.error("Agent execution crashed:", error);
@@ -216,7 +255,7 @@ export default function ChatBox({ activeProjectId }) {
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="E.g., Archive the beta launch project..."
+              placeholder="E.g., Move the 'Beta Launch' project to..."
               className="flex-1 text-sm px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all"
               disabled={isComputing}
             />
