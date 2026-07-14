@@ -3,13 +3,10 @@ import { MessageCircle, X, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { base44 } from "@/api/base44Client";
 
-// Import your hooks so the Agent can mutate the dashboard
+// Dashboard Hooks
 import { useStakeholders } from "@/hooks/useStakeholders";
 import { useUpdateTaskStatus, useToggleTopThree } from "@/hooks/useTasks";
-import { useArchiveProject } from "@/hooks/useProjects";
-// Assuming you have these hooks based on your architecture:
-// import { useCreateTask } from "@/hooks/useTasks";
-// import { useCreateProjectNote } from "@/hooks/useProjectNotes";
+// import { useCreateProjectNote } from "@/hooks/useProjectNotes"; // Uncomment when you are ready to wire this up!
 
 export default function ChatBox({ activeProjectId }) {
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -22,8 +19,6 @@ export default function ChatBox({ activeProjectId }) {
   const { data: allStakeholders = [] } = useStakeholders();
   const updateTaskStatus = useUpdateTaskStatus();
   const toggleTopThree = useToggleTopThree();
-  const archiveProject = useArchiveProject();
-  // const createTask = useCreateTask();
   // const createNote = useCreateProjectNote();
 
   useEffect(() => {
@@ -94,19 +89,28 @@ export default function ChatBox({ activeProjectId }) {
         tools: agentTools
       });
 
-      // 1. Log to the browser console just in case
       console.log("RAW AGENT RESPONSE:", response);
 
-      // 2. Safely check for tools
+      // --- FIX 1: Casual Chat Handler ---
+      // If Base44 returns a plain string, render it and stop.
+      if (typeof response === "string") {
+        setMessages((prev) => [...prev, { role: "assistant", content: response }]);
+        setIsComputing(false);
+        return;
+      }
+
+      // --- FIX 2: Tool Execution Handler ---
       if (response?.tool_calls && response.tool_calls.length > 0) {
         let actionSummaries = [];
 
         for (const tool of response.tool_calls) {
           const args = JSON.parse(tool.arguments);
           
+          // Route the LLM's decision to your React Query mutations (using standard .mutate())
           switch (tool.name) {
             case "create_note":
-              actionSummaries.push(`📝 Simulated note creation for: ${args.tagged_stakeholder_ids?.join(", ")}`);
+              // createNote.mutate({ project_id: activeProjectId, text: args.note_text, stakeholders: args.tagged_stakeholder_ids });
+              actionSummaries.push(`📝 I simulated creating a note and tagged the requested stakeholders.`);
               break;
             case "update_task_status":
               updateTaskStatus.mutate({ id: args.task_id, status: args.status });
@@ -123,15 +127,14 @@ export default function ChatBox({ activeProjectId }) {
 
         setMessages((prev) => [...prev, { role: "assistant", content: actionSummaries.join("\n") }]);
       } 
-      // 3. Safely check for standard text
+      // --- Standard Object Handlers ---
       else if (response?.text) {
         setMessages((prev) => [...prev, { role: "assistant", content: response.text }]);
       } 
-      // 4. Sometimes LLMs return "content" instead of "text"
       else if (response?.content) {
         setMessages((prev) => [...prev, { role: "assistant", content: response.content }]);
       }
-      // 5. THE CATCH-ALL: If it's none of the above, print the raw JSON to the chat window!
+      // --- FIX 3: Catch-All Debugger ---
       else {
         const rawString = JSON.stringify(response, null, 2);
         setMessages((prev) => [
@@ -171,7 +174,6 @@ export default function ChatBox({ activeProjectId }) {
               </div>
             ))}
             
-            {/* Visual computation feedback required by your checklist */}
             {isComputing && (
               <div className="flex justify-start">
                 <div className="inline-block rounded-lg px-4 py-2 bg-secondary text-secondary-foreground shadow-sm flex items-center gap-2">
