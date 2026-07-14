@@ -3,9 +3,12 @@ import { MessageCircle, X, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { base44 } from "@/api/base44Client";
 
-// Hooks
-import { useStakeholders } from "@/hooks/useStakeholders"; 
-import { useAllTasks, useUpdateTaskStatus, useToggleTopThree, useDeleteTask } from "@/hooks/useTasks";
+// 🌍 1. IMPORT EVERY DATA & MUTATION HOOK
+import { useAreas, useCreateArea, useUpdateArea, useDeleteArea } from "@/hooks/useAreas";
+import { useProducts, useCreateProduct, useUpdateProduct } from "@/hooks/useProducts";
+import { useProjects, useCreateProject, useUpdateProject, useMoveProject, useArchiveProject, useRestoreProject, useDeleteProject } from "@/hooks/useProjects";
+import { useAllTasks, useUpdateTask, useUpdateTaskStatus, useToggleTopThree, useDeleteTask } from "@/hooks/useTasks";
+import { useStakeholders, useCreateStakeholder, useDeleteStakeholder } from "@/hooks/useStakeholders";
 
 export default function ChatBox({ activeProjectId }) {
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -14,62 +17,74 @@ export default function ChatBox({ activeProjectId }) {
   const [isComputing, setIsComputing] = useState(false);
   const containerRef = useRef(null);
 
-  // 1. Initialize data hooks & mutations from your useTasks file
-  const { data: allStakeholders = [] } = useStakeholders();
+  // 🌍 2. FETCH ALL GLOBAL STATE (The AI's "Eyes")
+  const { data: areas = [] } = useAreas();
+  const { data: products = [] } = useProducts();
+  const { data: projects = [] } = useProjects();
   const { data: allTasks = [] } = useAllTasks();
+  const { data: stakeholders = [] } = useStakeholders();
+
+  // 🌍 3. INITIALIZE EVERY MUTATION (The AI's "Hands")
+  const createArea = useCreateArea();
+  const updateArea = useUpdateArea();
+  const deleteArea = useDeleteArea();
   
+  const createProduct = useCreateProduct();
+  const updateProduct = useUpdateProduct();
+  
+  const createProject = useCreateProject();
+  const updateProject = useUpdateProject();
+  const moveProject = useMoveProject();
+  const archiveProject = useArchiveProject();
+  const restoreProject = useRestoreProject();
+  const deleteProject = useDeleteProject();
+  
+  const updateTask = useUpdateTask();
   const updateTaskStatus = useUpdateTaskStatus();
   const toggleTopThree = useToggleTopThree();
   const deleteTask = useDeleteTask();
+  
+  const createStakeholder = useCreateStakeholder();
+  const deleteStakeholder = useDeleteStakeholder();
 
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setIsChatOpen(false);
-      }
+      if (containerRef.current && !containerRef.current.contains(e.target)) setIsChatOpen(false);
     };
     window.addEventListener("mousedown", handleClickOutside);
     return () => window.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 2. Define the Agent's Tool Schemas matching your hooks
+  // 🌍 4. THE OMNIPOTENT TOOL SCHEMA
   const agentTools = [
-    {
-      name: "toggle_top_three",
-      description: "Flags or unflags a task as one of today's top three focus items.",
-      parameters: {
-        type: "object",
-        properties: { 
-          task_id: { type: "string" },
-          intent: { type: "string", enum: ["flag", "unflag"], description: "Whether the user wants to add or remove the task from top 3." }
-        },
-        required: ["task_id", "intent"]
-      }
-    },
-    {
-      name: "update_task_status",
-      description: "Updates the execution status of an existing task.",
-      parameters: {
-        type: "object",
-        properties: {
-          task_id: { type: "string" },
-          status: { type: "string", enum: ["Not Started", "In Progress", "Done", "Blocked"] }
-        },
-        required: ["task_id", "status"]
-      }
-    },
-    {
-      name: "delete_task",
-      description: "Permanently deletes a task from the board.",
-      parameters: {
-        type: "object",
-        properties: { task_id: { type: "string" } },
-        required: ["task_id"]
-      }
-    }
+    // --- AREAS ---
+    { name: "create_area", description: "Creates a new Area of Responsibility.", parameters: { type: "object", properties: { name: { type: "string" } }, required: ["name"] } },
+    { name: "update_area", description: "Renames an Area.", parameters: { type: "object", properties: { area_id: { type: "string" }, name: { type: "string" } }, required: ["area_id", "name"] } },
+    { name: "delete_area", description: "Deletes an Area.", parameters: { type: "object", properties: { area_id: { type: "string" } }, required: ["area_id"] } },
+    
+    // --- PRODUCTS ---
+    { name: "create_product", description: "Creates a Product inside an Area.", parameters: { type: "object", properties: { area_id: { type: "string" }, name: { type: "string" } }, required: ["area_id", "name"] } },
+    { name: "update_product", description: "Renames a Product.", parameters: { type: "object", properties: { product_id: { type: "string" }, name: { type: "string" } }, required: ["product_id", "name"] } },
+    
+    // --- PROJECTS ---
+    { name: "create_project", description: "Creates a Project inside a Product.", parameters: { type: "object", properties: { parent_product_id: { type: "string" }, name: { type: "string" } }, required: ["parent_product_id", "name"] } },
+    { name: "update_project", description: "Updates a Project's name or objective.", parameters: { type: "object", properties: { project_id: { type: "string" }, name: { type: "string" }, objective: { type: "string" } }, required: ["project_id"] } },
+    { name: "move_project", description: "Moves a Project to a new Product.", parameters: { type: "object", properties: { project_id: { type: "string" }, parent_product_id: { type: "string" } }, required: ["project_id", "parent_product_id"] } },
+    { name: "archive_project", description: "Archives a Project.", parameters: { type: "object", properties: { project_id: { type: "string" } }, required: ["project_id"] } },
+    { name: "restore_project", description: "Restores an archived Project.", parameters: { type: "object", properties: { project_id: { type: "string" } }, required: ["project_id"] } },
+    { name: "delete_project", description: "Deletes a Project.", parameters: { type: "object", properties: { project_id: { type: "string" } }, required: ["project_id"] } },
+    
+    // --- TASKS ---
+    { name: "update_task", description: "Updates task description or quadrant.", parameters: { type: "object", properties: { task_id: { type: "string" }, description: { type: "string" }, quadrant: { type: "number" } }, required: ["task_id"] } },
+    { name: "update_task_status", description: "Changes task status (e.g. Done, Blocked).", parameters: { type: "object", properties: { task_id: { type: "string" }, status: { type: "string", enum: ["Not Started", "In Progress", "Done", "Blocked", "Pending Feedback", "On Hold"] } }, required: ["task_id", "status"] } },
+    { name: "toggle_top_three", description: "Flags/Unflags top 3 tasks.", parameters: { type: "object", properties: { task_id: { type: "string" }, intent: { type: "string", enum: ["flag", "unflag"] } }, required: ["task_id", "intent"] } },
+    { name: "delete_task", description: "Deletes a task.", parameters: { type: "object", properties: { task_id: { type: "string" } }, required: ["task_id"] } },
+    
+    // --- STAKEHOLDERS ---
+    { name: "create_stakeholder", description: "Adds a stakeholder.", parameters: { type: "object", properties: { name: { type: "string" }, department: { type: "string" } }, required: ["name", "department"] } },
+    { name: "delete_stakeholder", description: "Deletes a stakeholder.", parameters: { type: "object", properties: { stakeholder_id: { type: "string" } }, required: ["stakeholder_id"] } }
   ];
 
-  // 3. The Master Execution Loop
   const handleSend = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
@@ -80,26 +95,36 @@ export default function ChatBox({ activeProjectId }) {
     setIsComputing(true);
 
     try {
-      // Invoke the real Base44 LLM Engine
+      // Create lean lookup maps so the prompt doesn't get too bloated
+      const ctxAreas = areas.map(a => ({ id: a.id, name: a.name }));
+      const ctxProducts = products.map(p => ({ id: p.id, name: p.name }));
+      const ctxProjects = projects.map(p => ({ id: p.id, name: p.name }));
+      const ctxTasks = allTasks.map(t => ({ id: t.id, text: t.title || t.name || t.description || "Unknown" }));
+      const ctxStakeholders = stakeholders.map(s => ({ id: s.id, name: s.name }));
+
       const response = await base44.integrations.Core.InvokeLLM({
         prompt: userText,
-        system_context: `You are the PM Dashboard Copilot, an agentic AI directly integrated into the user's application. 
-        DO NOT say you do not have access to the app, lists, or user files. You HAVE full database access through your tools.
-        When asked to modify, flag, or delete an item, look up its ID in the provided context arrays and execute the tool immediately. 
+        system_context: `You are the core admin routing engine for this dashboard. YOU HAVE FULL SYSTEM ACCESS.
+        CRITICAL RULES:
+        1. You have tools to create, update, move, archive, and delete Areas, Products, Projects, Tasks, and Stakeholders.
+        2. DO NOT ask the user for context. Look up entity IDs in the provided lists and execute the tool.
         
-        Active Project ID: ${activeProjectId}
-        Available Stakeholders: ${JSON.stringify(allStakeholders.map(s => ({id: s.id, name: s.name})))}
-        Active Tasks: ${JSON.stringify(allTasks.map(t => ({id: t.id, description: t.description})))}`,
+        GLOBAL DATABASE STATE:
+        Active Project ID: ${activeProjectId || "None"}
+        Areas: ${JSON.stringify(ctxAreas)}
+        Products: ${JSON.stringify(ctxProducts)}
+        Projects: ${JSON.stringify(ctxProjects)}
+        Tasks: ${JSON.stringify(ctxTasks)}
+        Stakeholders: ${JSON.stringify(ctxStakeholders)}`,
         tools: agentTools
       });
 
-      // Handle casual text chatter safely
       if (typeof response === "string") {
         setMessages((prev) => [...prev, { role: "assistant", content: response }]);
+        setIsComputing(false);
         return;
       }
 
-      // Handle structural tool execution
       if (response?.tool_calls && response.tool_calls.length > 0) {
         let actionSummaries = [];
 
@@ -107,28 +132,29 @@ export default function ChatBox({ activeProjectId }) {
           const args = JSON.parse(tool.arguments);
           
           switch (tool.name) {
-            case "toggle_top_three":
-              // Passing project_id alongside id satisfies your hook's onSuccess UI invalidation!
-              toggleTopThree.mutate({ id: args.task_id, project_id: activeProjectId });
-              actionSummaries.push(
-                args.intent === "unflag" 
-                  ? `⭐ I removed task \`${args.task_id}\` from Today's Top 3.` 
-                  : `⭐ I added task \`${args.task_id}\` to Today's Top 3.`
-              );
-              break;
-
-            case "update_task_status":
-              updateTaskStatus.mutate({ id: args.task_id, status: args.status, project_id: activeProjectId });
-              actionSummaries.push(`✅ Updated task \`${args.task_id}\` status to **${args.status}**.`);
-              break;
-
-            case "delete_task":
-              deleteTask.mutate(args.task_id);
-              actionSummaries.push(`🗑️ Deleted task \`${args.task_id}\`.`);
-              break;
-
-            default:
-              actionSummaries.push(`❓ The agent attempted an unknown command: ${tool.name}`);
+            case "create_area": createArea.mutate({ name: args.name }); actionSummaries.push(`📁 Created Area: **${args.name}**`); break;
+            case "update_area": updateArea.mutate({ id: args.area_id, data: { name: args.name } }); actionSummaries.push(`✏️ Renamed Area.`); break;
+            case "delete_area": deleteArea.mutate(args.area_id); actionSummaries.push(`🗑️ Deleted Area.`); break;
+            
+            case "create_product": createProduct.mutate({ area_id: args.area_id, name: args.name }); actionSummaries.push(`📦 Created Product: **${args.name}**`); break;
+            case "update_product": updateProduct.mutate({ id: args.product_id, data: { name: args.name } }); actionSummaries.push(`✏️ Renamed Product.`); break;
+            
+            case "create_project": createProject.mutate({ parent_product_id: args.parent_product_id, name: args.name }); actionSummaries.push(`🚀 Created Project: **${args.name}**`); break;
+            case "update_project": updateProject.mutate({ id: args.project_id, data: args }); actionSummaries.push(`✏️ Updated Project.`); break;
+            case "move_project": moveProject.mutate({ id: args.project_id, parent_product_id: args.parent_product_id }); actionSummaries.push(`📦 Moved Project to new Product.`); break;
+            case "archive_project": archiveProject.mutate(args.project_id); actionSummaries.push(`📦 Archived Project.`); break;
+            case "restore_project": restoreProject.mutate(args.project_id); actionSummaries.push(`🔄 Restored Project.`); break;
+            case "delete_project": deleteProject.mutate(args.project_id); actionSummaries.push(`🗑️ Deleted Project.`); break;
+            
+            case "update_task": updateTask.mutate({ id: args.task_id, data: args }); actionSummaries.push(`✏️ Updated Task details.`); break;
+            case "update_task_status": updateTaskStatus.mutate({ id: args.task_id, status: args.status, project_id: activeProjectId }); actionSummaries.push(`✅ Updated task status to **${args.status}**.`); break;
+            case "toggle_top_three": toggleTopThree.mutate({ id: args.task_id, project_id: activeProjectId }); actionSummaries.push(args.intent === "unflag" ? `⭐ Removed task from Top 3.` : `⭐ Added task to Top 3.`); break;
+            case "delete_task": deleteTask.mutate(args.task_id); actionSummaries.push(`🗑️ Deleted task.`); break;
+            
+            case "create_stakeholder": createStakeholder.mutate({ name: args.name, department: args.department }); actionSummaries.push(`👤 Added stakeholder **${args.name}**.`); break;
+            case "delete_stakeholder": deleteStakeholder.mutate(args.stakeholder_id); actionSummaries.push(`🗑️ Deleted stakeholder.`); break;
+            
+            default: actionSummaries.push(`❓ Unknown command: ${tool.name}`);
           }
         }
 
@@ -137,10 +163,6 @@ export default function ChatBox({ activeProjectId }) {
       else if (response?.text) {
         setMessages((prev) => [...prev, { role: "assistant", content: response.text }]);
       } 
-      else {
-        // Fallback catch-all debug renderer
-        setMessages((prev) => [...prev, { role: "assistant", content: typeof response === 'object' ? JSON.stringify(response) : String(response) }]);
-      }
 
     } catch (error) {
       console.error("Agent execution crashed:", error);
@@ -177,7 +199,7 @@ export default function ChatBox({ activeProjectId }) {
               <div className="flex justify-start">
                 <div className="inline-block rounded-lg px-3 py-1.5 bg-secondary text-secondary-foreground shadow-sm flex items-center gap-2">
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
-                  <span className="text-xs text-muted-foreground">Updating dashboard records...</span>
+                  <span className="text-xs text-muted-foreground">Operating Dashboard...</span>
                 </div>
               </div>
             )}
@@ -187,7 +209,7 @@ export default function ChatBox({ activeProjectId }) {
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="E.g., Remove Test 1 from today's top 3..."
+              placeholder="E.g., Move the 'Beta Launch' project to..."
               className="flex-1 text-sm px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all"
               disabled={isComputing}
             />
