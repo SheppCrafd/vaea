@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { Expand } from "lucide-react";
 import { useHighlight } from "@/lib/HighlightContext";
@@ -6,6 +6,9 @@ import { useFilter } from "@/lib/FilterContext";
 import { useStakeholders } from "@/hooks/useStakeholders";
 import { useProjects } from "@/hooks/useProjects";
 import { useAllTasks } from "@/hooks/useTasks";
+import { useUpdateProduct } from "@/hooks/useProducts";
+import { useDebouncedCallback } from "@/hooks/useDebouncedCallback";
+import EditableText from "@/components/shared/EditableText";
 import AvatarStack from "@/components/products/AvatarStack";
 import ConnectionLines from "@/components/products/ConnectionLines";
 import ProjectCard from "@/components/projects/ProjectCard";
@@ -17,10 +20,28 @@ export default function ProductCard({ product }) {
   const { data: allProjects = [] } = useProjects();
   const { data: allTasks = [] } = useAllTasks();
   const { excludedIds } = useFilter();
+  const updateProduct = useUpdateProduct();
+
+  const [title, setTitle] = useState(product.title);
+  useEffect(() => setTitle(product.title), [product.title]);
+
+  const debouncedSave = useDebouncedCallback(
+    (value) => updateProduct.mutate({ id: product.id, data: { title: value } }),
+    500
+  );
+
+  const handleInput = (e) => {
+    const value = e.currentTarget.textContent;
+    setTitle(value);
+    debouncedSave(value);
+  };
 
   const stakeholders = allStakeholders.filter((st) => product.stakeholder_ids?.includes(st.id));
   const projects = allProjects.filter((p) => p.parent_product_id === product.id && !excludedIds.includes(p.id));
+  
+  // Setup the drop zone for projects
   const { setNodeRef, isOver } = useDroppable({ id: product.id });
+  
   const { highlightedIds } = useHighlight();
   const isDimmed = highlightedIds.length > 0 && !(product.stakeholder_ids || []).some((id) => highlightedIds.includes(id));
 
@@ -39,10 +60,27 @@ export default function ProductCard({ product }) {
       >
         <Expand className="w-4 h-4" />
       </button>
-      <div className="relative z-[1] min-w-0">
-        <h3 className="font-heading font-semibold pr-6 break-words min-w-0">{product.title}</h3>
-        {product.description && <p className="text-xs text-muted-foreground mt-0.5 break-words min-w-0">{product.description}</p>}
+      
+      <div className="relative z-[1] min-w-0 pr-6">
+        <h3 
+          className="font-heading font-semibold break-words min-w-0 outline-none focus:ring-1 focus:ring-primary/40 rounded cursor-text"
+          contentEditable
+          suppressContentEditableWarning
+          onInput={handleInput}
+        >
+          {title}
+        </h3>
+        
+        <div className="mt-0.5 min-w-0">
+           <EditableText
+             value={product.description}
+             onSave={(v) => updateProduct.mutate({ id: product.id, data: { description: v } })}
+             placeholder="Add a description..."
+             className="text-xs text-muted-foreground break-words"
+           />
+        </div>
       </div>
+      
       <div className="relative z-[1] mt-3 flex justify-center">
         <AvatarStack stakeholders={stakeholders} />
       </div>
