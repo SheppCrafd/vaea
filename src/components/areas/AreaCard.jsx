@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
-import { MoreVertical, Trash2 } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Trash2 } from "lucide-react"; // <-- Removed all Dropdown imports
 import { useHighlight } from "@/lib/HighlightContext";
 import { useUpdateArea, useDeleteArea } from "@/hooks/useAreas";
 import { useDebouncedCallback } from "@/hooks/useDebouncedCallback";
 import EditableText from "@/components/shared/EditableText";
-import ProductCard from "@/components/products/ProductCard"; // <-- ADDED
-import ProjectCard from "@/components/projects/ProjectCard"; // <-- ADDED
+import ProductCard from "@/components/products/ProductCard"; 
+import ProjectCard from "@/components/projects/ProjectCard"; 
 
 export default function AreaCard({ area, products = [], orphanProjects = [], productCount, onExpand, stakeholderIds = [] }) {
   const { highlightedIds } = useHighlight();
@@ -39,25 +38,21 @@ export default function AreaCard({ area, products = [], orphanProjects = [], pro
       
       {/* Header Section */}
       <div className="relative">
+        
+        {/* ACTION CORNER: Replaced Dropdown with direct Trash button */}
         <div className="absolute top-0 right-0 flex items-center gap-1 z-20">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="text-muted-foreground hover:text-foreground p-1" aria-label="Area actions">
-                <MoreVertical className="w-4 h-4" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onExpand}>Edit details</DropdownMenuItem>
-              <DropdownMenuItem onClick={handleDelete} className="text-destructive focus:text-destructive">
-                <Trash2 className="w-3.5 h-3.5 mr-2" />
-                Delete Area
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <button 
+            onClick={handleDelete}
+            className="text-muted-foreground hover:text-destructive p-1 transition-colors" 
+            title="Delete Area"
+            aria-label="Delete Area"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
         </div>
         
         <h3
-          className="font-heading font-semibold text-lg pr-10 outline-none focus:ring-1 focus:ring-primary/40 rounded break-words min-w-0"
+          className="font-heading font-semibold text-lg pr-8 outline-none focus:ring-1 focus:ring-primary/40 rounded break-words min-w-0"
           contentEditable
           suppressContentEditableWarning
           onInput={handleInput}
