@@ -88,50 +88,61 @@ export default function ChatBox({ activeProjectId }) {
     setIsComputing(true);
 
     try {
-      // Pass the prompt, the tools, and context to base44's LLM
       const response = await base44.integrations.Core.InvokeLLM({
         prompt: userText,
         system_context: `You are a PM Dashboard Copilot. The active project ID is ${activeProjectId}. Available stakeholders: ${JSON.stringify(allStakeholders.map(s => ({id: s.id, name: s.name})))}`,
         tools: agentTools
       });
 
-      // 4. Check if the LLM decided to take an action (invoke a tool)
-      if (response.tool_calls && response.tool_calls.length > 0) {
+      // 1. Log to the browser console just in case
+      console.log("RAW AGENT RESPONSE:", response);
+
+      // 2. Safely check for tools
+      if (response?.tool_calls && response.tool_calls.length > 0) {
         let actionSummaries = [];
 
         for (const tool of response.tool_calls) {
           const args = JSON.parse(tool.arguments);
           
-          // Route the LLM's decision to your React Query mutations using standard .mutate()
           switch (tool.name) {
             case "create_note":
-              // createNote.mutate({ project_id: activeProjectId, text: args.note_text, stakeholders: args.tagged_stakeholder_ids });
-              actionSummaries.push(`📝 I created a note and tagged the requested stakeholders.`);
+              actionSummaries.push(`📝 Simulated note creation for: ${args.tagged_stakeholder_ids?.join(", ")}`);
               break;
             case "update_task_status":
               updateTaskStatus.mutate({ id: args.task_id, status: args.status });
-              actionSummaries.push(`✅ I updated the task status to ${args.status}.`);
+              actionSummaries.push(`✅ I updated task ${args.task_id} to ${args.status}.`);
               break;
             case "flag_top_three":
               toggleTopThree.mutate({ id: args.task_id });
-              actionSummaries.push(`⭐ I flagged the task for Today's Top 3.`);
+              actionSummaries.push(`⭐ I flagged task ${args.task_id} for Today's Top 3.`);
               break;
             default:
-              console.warn("Unknown tool called:", tool.name);
+              actionSummaries.push(`❓ Agent tried to use an unknown tool: ${tool.name}`);
           }
         }
 
-        // Add the success summary to the chat
         setMessages((prev) => [...prev, { role: "assistant", content: actionSummaries.join("\n") }]);
       } 
-      // If no tool was needed, just output standard text
-      else if (response.text) {
+      // 3. Safely check for standard text
+      else if (response?.text) {
         setMessages((prev) => [...prev, { role: "assistant", content: response.text }]);
+      } 
+      // 4. Sometimes LLMs return "content" instead of "text"
+      else if (response?.content) {
+        setMessages((prev) => [...prev, { role: "assistant", content: response.content }]);
+      }
+      // 5. THE CATCH-ALL: If it's none of the above, print the raw JSON to the chat window!
+      else {
+        const rawString = JSON.stringify(response, null, 2);
+        setMessages((prev) => [
+          ...prev, 
+          { role: "assistant", content: `🤖 **Debug Raw Output:**\n\`\`\`json\n${rawString}\n\`\`\`` }
+        ]);
       }
 
     } catch (error) {
       console.error("Agent failed to compute:", error);
-      setMessages((prev) => [...prev, { role: "assistant", content: "⚠️ Sorry, I encountered an error connecting to the dashboard engine." }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: `⚠️ Error: ${error.message}` }]);
     } finally {
       setIsComputing(false);
     }
