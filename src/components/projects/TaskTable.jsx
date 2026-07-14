@@ -1,6 +1,7 @@
 import { useState, useRef, useMemo } from "react";
 import { Star, Trash2, Plus, Archive } from "lucide-react";
 import { useTasks, useCreateTask, useUpdateTask, useToggleTopThree, useDeleteTask } from "@/hooks/useTasks";
+import { useStakeholders } from "@/hooks/useStakeholders"; // NEW
 import { useToast } from "@/components/ui/use-toast";
 import { useHighlight } from "@/lib/HighlightContext";
 import StatusDropdown from "@/components/projects/StatusDropdown";
@@ -9,18 +10,41 @@ import EditableText from "@/components/shared/EditableText";
 const MAX_ROWS = 20;
 const TYPE_OPTIONS = ["COMMUNICATION", "OPEN_QUESTIONS", "SCRUM_NEEDS", "EMPLOYEE_NEEDS", "OTHER"];
 
-function quadrantLabel(task) {
-  const q = task.quadrant || 4;
-  let suffix = "";
-  if (task.is_highly_important) suffix += "H";
-  if (task.is_quick_task) suffix += "Q";
-  return `${q}${suffix}`;
+// NEW: Overlapping face pile component
+function AvatarStack({ stakeholderIds, allStakeholders }) {
+  if (!stakeholderIds || stakeholderIds.length === 0) return <span className="text-[10px] text-muted-foreground">None</span>;
+  
+  const assigned = allStakeholders.filter(s => stakeholderIds.includes(s.id));
+  const visible = assigned.slice(0, 5);
+  const extra = assigned.length - 5;
+
+  return (
+    <div className="flex items-center pl-2">
+      {visible.map((s, i) => (
+        <div 
+          key={s.id} 
+          className="w-6 h-6 rounded-full bg-secondary border-2 border-card flex items-center justify-center text-[10px] font-bold shadow-sm" 
+          style={{ marginLeft: i > 0 ? '-10px' : '0', zIndex: 10 - i }} 
+          title={s.name}
+        >
+          {s.name.charAt(0).toUpperCase()}
+        </div>
+      ))}
+      {extra > 0 && (
+        <div 
+          className="w-6 h-6 rounded-full bg-muted border-2 border-card flex items-center justify-center text-[10px] font-bold shadow-sm" 
+          style={{ marginLeft: '-10px', zIndex: 0 }}
+        >
+          +{extra}
+        </div>
+      )}
+    </div>
+  );
 }
 
-// Presentational task grid — reused both inside the popup TaskTableModal and
-// inline within ProjectDetailModal.
 export default function TaskTable({ project }) {
   const { data: tasks = [] } = useTasks(project.id);
+  const { data: allStakeholders = [] } = useStakeholders(); // NEW
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
   const toggleTopThree = useToggleTopThree();
@@ -101,12 +125,13 @@ export default function TaskTable({ project }) {
 
   return (
     <table className="w-full text-xs">
-      <thead className="sticky top-0 bg-card">
+      <thead className="sticky top-0 bg-card z-10">
         <tr className="text-left text-muted-foreground border-b border-border">
           <SortHeader column="description" label="Description" />
           <th className="p-2 font-medium">Status</th>
           <th className="p-2 font-medium">Quad.</th>
           <th className="p-2 font-medium">Type</th>
+          <th className="p-2 font-medium">Stakeholders</th> {/* NEW COLUMN */}
           <th className="p-2 font-medium">Notes</th>
           <th className="p-2 font-medium">Weekly</th>
           <th className="p-2 font-medium">Top 3</th>
@@ -116,12 +141,12 @@ export default function TaskTable({ project }) {
       <tbody>
         {sortedTasks.length === 0 && (
           <tr>
-            <td className="p-2 text-muted-foreground text-center" colSpan={8}>No active tasks</td>
+            <td className="p-2 text-muted-foreground text-center" colSpan={9}>No active tasks</td>
           </tr>
         )}
         {sortedTasks.slice(0, MAX_ROWS).map((task) => (
-          <tr key={task.id} className={`border-b border-border last:border-0 ${isDimmed(task) ? "opacity-30" : ""}`}>
-            <td className="p-2 min-w-0 max-w-[220px]">
+          <tr key={task.id} className={`border-b border-border last:border-0 transition-opacity ${isDimmed(task) ? "opacity-30" : ""}`}>
+            <td className="p-2 min-w-0 max-w-[200px]">
               <EditableText
                 value={task.description}
                 onSave={(v) => updateTask.mutate({ id: task.id, data: { description: v } })}
@@ -132,7 +157,6 @@ export default function TaskTable({ project }) {
               <StatusDropdown task={task} onStatusChange={(status) => updateTask.mutate({ id: task.id, data: { status } })} />
             </td>
             <td className="p-2 text-center whitespace-nowrap">
-              {/* Quadrant selector: allows user to change quadrant in-place */}
               <select
                 value={task.quadrant ?? ""}
                 onChange={(e) => updateTask.mutate({ id: task.id, data: { quadrant: e.target.value === "" ? null : Number(e.target.value) } })}
@@ -155,7 +179,11 @@ export default function TaskTable({ project }) {
                 {TYPE_OPTIONS.map((t) => <option key={t} value={t}>{t.replace(/_/g, " ")}</option>)}
               </select>
             </td>
-            <td className="p-2 min-w-0 max-w-[160px]">
+            {/* NEW STAKEHOLDER CELL */}
+            <td className="p-2 whitespace-nowrap">
+              <AvatarStack stakeholderIds={task.stakeholder_ids} allStakeholders={allStakeholders} />
+            </td>
+            <td className="p-2 min-w-0 max-w-[140px]">
               <EditableText
                 value={task.notes}
                 onSave={(v) => updateTask.mutate({ id: task.id, data: { notes: v } })}
@@ -186,7 +214,7 @@ export default function TaskTable({ project }) {
           </tr>
         ))}
         <tr>
-          <td className="p-2 flex items-center gap-2" colSpan={6}>
+          <td className="p-2 flex items-center gap-2" colSpan={2}>
             <button onClick={handleCreateButton} aria-label="New task" className="text-primary/90 bg-primary/10 p-1 rounded">
               <Plus className="w-4 h-4" />
             </button>
@@ -213,7 +241,7 @@ export default function TaskTable({ project }) {
               <option value="4">Q4</option>
             </select>
           </td>
-          <td className="p-2" colSpan={2}></td>
+          <td className="p-2" colSpan={6}></td>
         </tr>
       </tbody>
     </table>
