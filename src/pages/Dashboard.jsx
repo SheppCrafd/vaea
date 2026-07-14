@@ -18,7 +18,6 @@ export default function Dashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [expandedArea, setExpandedArea] = useState(null);
 
-  // Deep link: ?areaId={id} reopens the matching area on direct visit.
   useEffect(() => {
     const areaId = searchParams.get("areaId");
     if (areaId && areas.length && !expandedArea) {
@@ -38,25 +37,45 @@ export default function Dashboard() {
     setSearchParams(searchParams);
   };
 
-  // Drag and Drop Handler
+  // UPDATED: Two-way Drag and Drop Handler
   const handleDragEnd = (event) => {
     const { active, over } = event;
-    
-    // If dropped outside a valid drop zone
     if (!over) return;
 
     const projectId = active.id;
-    const newParentProductId = over.id; 
+    const dropTargetId = over.id; 
 
-    // Find the project being moved
     const project = projects.find(p => p.id === projectId);
-    
-    // Only update if it actually changed products
-    if (project && project.parent_product_id !== newParentProductId) {
-      updateProject.mutate({
-        id: projectId,
-        data: { parent_product_id: newParentProductId }
-      });
+    if (!project) return;
+
+    // Check if dropped into a PRODUCT
+    const targetProduct = products.find(p => p.id === dropTargetId);
+    if (targetProduct) {
+      if (project.parent_product_id !== targetProduct.id) {
+        updateProject.mutate({
+          id: projectId,
+          data: { 
+            parent_product_id: targetProduct.id,
+            parent_area_id: targetProduct.parent_area_id // Keep area synced
+          }
+        });
+      }
+      return;
+    }
+
+    // Check if dropped into an AREA (Dragging it OUT of a product)
+    const targetArea = areas.find(a => a.id === dropTargetId);
+    if (targetArea) {
+      // If it currently belongs to a product, or a different area
+      if (project.parent_product_id !== null || project.parent_area_id !== targetArea.id) {
+        updateProject.mutate({
+          id: projectId,
+          data: { 
+            parent_product_id: null, // Detach from product
+            parent_area_id: targetArea.id // Assign directly to area
+          }
+        });
+      }
     }
   };
 
@@ -80,16 +99,13 @@ export default function Dashboard() {
             style={{ gridTemplateColumns: "repeat(auto-fill, minmax(400px, 1fr))" }}
           >
             {visibleAreas.map((area) => {
-              // Group products and projects for this specific Area
               const areaProducts = products.filter((p) => p.parent_area_id === area.id);
               
-              // Map projects into their parent products
               const productsWithProjects = areaProducts.map((product) => ({
                 ...product,
                 projects: projects.filter((proj) => proj.parent_product_id === product.id)
               }));
 
-              // Find projects that belong to the Area directly (no parent product)
               const orphanProjects = projects.filter(
                 (proj) => proj.parent_area_id === area.id && !proj.parent_product_id
               );
