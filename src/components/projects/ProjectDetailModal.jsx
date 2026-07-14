@@ -6,6 +6,7 @@ import { useStakeholders } from "@/hooks/useStakeholders";
 import { useArchiveProject, useRestoreProject, useUpdateProject, useDeleteProject } from "@/hooks/useProjects";
 import TaskTable from "@/components/projects/TaskTable";
 import EditableText from "@/components/shared/EditableText";
+import ProjectNotes from "@/components/projects/ProjectNotes";
 
 const DUE_DATE_STATUS_OPTIONS = ["ESTIMATED", "COMMITTED"];
 
@@ -147,28 +148,43 @@ export default function ProjectDetailModal({ project, onClose }) {
 
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-2">Risks & Open Questions</p>
-            <ul className="space-y-1">
-              {notes.map((note) => (
-                <li key={note.id} className="text-sm flex items-start gap-1.5 min-w-0">
-                  <span className="shrink-0">{note.type === "RISK" ? "⚠️" : "❓"}</span>
-                  <span className="break-words min-w-0">{note.content}{note.reporter ? <span className="text-muted-foreground"> — {note.reporter}</span> : null}</span>
-                </li>
-              ))}
-              {notes.length === 0 && <p className="text-sm text-muted-foreground">No notes yet.</p>}
-            </ul>
+            {notes.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No notes yet.</p>
+            ) : (
+              <ProjectNotes notes={notes} />
+            )}
           </div>
 
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-2">Stakeholders</p>
+            <p className="text-xs font-medium text-muted-foreground mb-3">Project Stakeholders</p>
             {departments.length === 0 ? (
               <p className="text-sm text-muted-foreground">No stakeholders assigned.</p>
             ) : (
-              departments.map((dept) => (
-                <div key={dept} className="mb-2">
-                  <p className="text-xs text-muted-foreground">{dept}</p>
-                  <p className="text-sm break-words">{stakeholders.filter((s) => s.department === dept).map((s) => s.name).join(", ")}</p>
-                </div>
-              ))
+              <div className="grid grid-cols-2 gap-4">
+                {departments.map((dept) => {
+                  const deptStakeholders = stakeholders.filter((s) => s.department === dept);
+                  return (
+                    <div key={dept} className="bg-secondary/20 p-3 rounded-lg border border-border">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">{dept}</p>
+                      <div className="flex items-center pl-2 mb-2">
+                        {deptStakeholders.slice(0,5).map((s,i)=>(
+                          <div key={s.id} className="w-8 h-8 rounded-full bg-primary/20 border-2 border-background flex items-center justify-center text-xs font-bold shadow-sm" style={{marginLeft:i>0?'-12px':'0',zIndex:10-i}} title={s.name}>
+                            {s.name.charAt(0).toUpperCase()}
+                          </div>
+                        ))}
+                        {deptStakeholders.length>5&&(
+                          <div className="w-8 h-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-[10px] font-bold" style={{marginLeft:'-12px',zIndex:0}}>
+                            +{deptStakeholders.length-5}
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-xs break-words text-muted-foreground">
+                        {deptStakeholders.map((s)=>s.name).join(", ")}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
 
