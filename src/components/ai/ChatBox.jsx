@@ -68,9 +68,9 @@ export default function ChatBox({ activeProjectId }) {
     setIsComputing(true);
 
     try {
-      const ctxAreas = areas.map(a => ({ id: a.id, name: a.name }));
-      const ctxProducts = products.map(p => ({ id: p.id, name: p.name }));
-      const ctxProjects = projects.map(p => ({ id: p.id, name: p.name }));
+  const ctxAreas = areas.map(a => ({ id: a.id, name: a.title }));
+  const ctxProducts = products.map(p => ({ id: p.id, name: p.title }));
+  const ctxProjects = projects.map(p => ({ id: p.id, name: p.title }));
       const ctxTasks = allTasks.map(t => ({ id: t.id, text: t.title || t.name || t.description || "Unknown", status: t.status }));
       const ctxStakeholders = stakeholders.map(s => ({ id: s.id, name: s.name }));
 
