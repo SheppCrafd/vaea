@@ -69,24 +69,6 @@ export default function AreaCard({ area, products = [], orphanProjects = [], pro
             className="text-sm text-muted-foreground"
           />
         </div>
-        
-        {/* --- STATS ON CARD --- */}
-        <div className="flex items-center gap-5 mt-4 bg-muted/30 p-2.5 rounded-lg border border-border w-max">
-          <div className="flex flex-col">
-            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Products</span>
-            <span className="text-sm font-bold text-foreground">{productCount}</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Direct Projects</span>
-            <span className="text-sm font-bold text-foreground">{orphanProjects.length}</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Total Projects</span>
-            <span className="text-sm font-bold text-foreground">
-              {products.reduce((acc, p) => acc + (p.projects?.length || 0), 0) + orphanProjects.length}
-            </span>
-          </div>
-        </div>
       </div>
 
       {/* VISUAL NESTING: Render Products */}
@@ -114,6 +96,24 @@ export default function AreaCard({ area, products = [], orphanProjects = [], pro
               <ProjectCard key={project.id} project={project} stakeholderIds={stakeholderIds} />
             ))
           )}
+        </div>
+      </div>
+
+      {/* --- STATS ON CARD (Moved to bottom, matching Product/Project Layout) --- */}
+      <div className="relative z-[1] mt-auto flex items-center justify-between border-t border-border pt-3 px-1">
+        <div className="flex flex-col">
+          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Products</span>
+          <span className="text-sm font-bold text-primary">{productCount}</span>
+        </div>
+        <div className="flex flex-col items-center">
+          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Direct Projects</span>
+          <span className="text-sm font-semibold text-foreground">{orphanProjects.length}</span>
+        </div>
+        <div className="flex flex-col items-end">
+          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Total Projects</span>
+          <span className="text-sm font-semibold text-foreground">
+            {products.reduce((acc, p) => acc + (p.projects?.length || 0), 0) + orphanProjects.length}
+          </span>
         </div>
       </div>
 
