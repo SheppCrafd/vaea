@@ -3,12 +3,13 @@ import { MessageCircle, X, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { base44 } from "@/api/base44Client";
 
-// 🌍 1. IMPORT EVERY DATA & MUTATION HOOK
+// 🌍 1. IMPORT EVERY DATA & MUTATION HOOK (GOD MODE)
 import { useAreas, useCreateArea, useUpdateArea, useDeleteArea } from "@/hooks/useAreas";
-import { useProducts, useCreateProduct, useUpdateProduct } from "@/hooks/useProducts";
+import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct } from "@/hooks/useProducts";
 import { useProjects, useCreateProject, useUpdateProject, useMoveProject, useArchiveProject, useRestoreProject, useDeleteProject } from "@/hooks/useProjects";
-import { useAllTasks, useUpdateTask, useUpdateTaskStatus, useToggleTopThree, useDeleteTask } from "@/hooks/useTasks";
-import { useStakeholders, useCreateStakeholder, useDeleteStakeholder } from "@/hooks/useStakeholders";
+import { useAllTasks, useCreateTask, useUpdateTask, useUpdateTaskStatus, useToggleTopThree, useDeleteTask } from "@/hooks/useTasks";
+import { useStakeholders, useCreateStakeholder, useUpdateStakeholder, useDeleteStakeholder } from "@/hooks/useStakeholders";
+import { useProjectNotes, useCreateProjectNote, useUpdateProjectNote, useDeleteProjectNote } from "@/hooks/useProjectNotes";
 
 export default function ChatBox({ activeProjectId }) {
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -32,20 +33,31 @@ export default function ChatBox({ activeProjectId }) {
   const createArea = useCreateArea();
   const updateArea = useUpdateArea();
   const deleteArea = useDeleteArea();
+  
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
+  const deleteProduct = useDeleteProduct(); 
+  
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
   const moveProject = useMoveProject();
   const archiveProject = useArchiveProject();
   const restoreProject = useRestoreProject();
   const deleteProject = useDeleteProject();
+  
+  const createTask = useCreateTask(); 
   const updateTask = useUpdateTask();
   const updateTaskStatus = useUpdateTaskStatus();
   const toggleTopThree = useToggleTopThree();
   const deleteTask = useDeleteTask();
+  
   const createStakeholder = useCreateStakeholder();
+  const updateStakeholder = useUpdateStakeholder(); 
   const deleteStakeholder = useDeleteStakeholder();
+
+  const createProjectNote = useCreateProjectNote();
+  const updateProjectNote = useUpdateProjectNote();
+  const deleteProjectNote = useDeleteProjectNote();
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -62,20 +74,25 @@ export default function ChatBox({ activeProjectId }) {
     const userText = input.trim();
     setInput("");
     
-    // Append the user's message locally first
     const updatedMessages = [...messages, { role: "user", content: userText }];
     setMessages(updatedMessages);
     setIsComputing(true);
 
     try {
-  const ctxAreas = areas.map(a => ({ id: a.id, name: a.title }));
-  const ctxProducts = products.map(p => ({ id: p.id, name: p.title }));
-  const ctxProjects = projects.map(p => ({ id: p.id, name: p.title }));
-      const ctxTasks = allTasks.map(t => ({ id: t.id, text: t.title || t.name || t.description || "Unknown", status: t.status }));
-      const ctxStakeholders = stakeholders.map(s => ({ id: s.id, name: s.name }));
+      // 🧠 OMNISCIENT CONTEXT MAPPING (Using .title to fix the visibility bug)
+      const ctxAreas = areas.map(a => ({ id: a.id, name: a.title, description: a.description }));
+      const ctxProducts = products.map(p => ({ id: p.id, name: p.title, description: p.description }));
+      const ctxProjects = projects.map(p => ({ 
+        id: p.id, name: p.title, 
+        objective: p.objective, risks: p.risks, 
+        owner: p.owner, status: p.dueDateStatus 
+      }));
+      const ctxTasks = allTasks.map(t => ({ 
+        id: t.id, text: t.title || t.name || t.description || "Unknown", 
+        status: t.status, quadrant: t.quadrant, project_id: t.project_id 
+      }));
+      const ctxStakeholders = stakeholders.map(s => ({ id: s.id, name: s.name, department: s.department }));
 
-      // 🧠 CONVERSATION MEMORY COMPILATION
-      // Format the past chat logs so the LLM knows what has already been said/done.
       const conversationHistoryString = updatedMessages
         .map(msg => `${msg.role.toUpperCase()}: ${msg.content}`)
         .join("\n");
@@ -84,32 +101,43 @@ export default function ChatBox({ activeProjectId }) {
       You are the core admin routing engine for this dashboard. YOU HAVE FULL SYSTEM ACCESS.
       CRITICAL RULE: YOU MUST RESPOND ONLY IN VALID JSON FORMAT. Do not include any conversational text outside the JSON.
       
-      CRITICAL MAPPING RULE: If an action requires an ID (e.g., parent_product_id, project_id, task_id), you MUST look up the correct ID from the [GLOBAL DATABASE STATE] lists below using the name the user provided. Do NOT pass the plain text name as the ID. If you cannot find an exact or close match for the ID, route to the "UNKNOWN" action and tell the user you couldn't find it.
+      CRITICAL MAPPING RULE: If an action requires an ID, you MUST look up the correct ID from the [GLOBAL DATABASE STATE] lists below using the name/title the user provided. Do NOT pass the plain text name as the ID.
       
-      [AVAILABLE ACTIONS]
+      [AVAILABLE ACTIONS - FULL SYSTEM OVERRIDE]
       
-      Look up the entity ID in the lists below and determine the action.
+      - "UNDO_LAST_ACTION" 
       
-      - "UNDO_LAST_ACTION" (Use this if the user says "undo", "go back", "revert that", etc. No args required)
-      - "CREATE_AREA" (args required: name)
-      - "UPDATE_AREA" (args required: area_id, name)
-      - "DELETE_AREA" (args required: area_id)
-      - "CREATE_PRODUCT" (args required: area_id, name)
-      - "UPDATE_PRODUCT" (args required: product_id, name)
-      - "CREATE_PROJECT" (args required: parent_product_id, name)
-      - "UPDATE_PROJECT" (args required: project_id, name, objective)
-      - "MOVE_PROJECT" (args required: project_id, parent_product_id)
-      - "ARCHIVE_PROJECT" (args required: project_id)
-      - "RESTORE_PROJECT" (args required: project_id)
-      - "DELETE_PROJECT" (args required: project_id)
-      - "UPDATE_TASK" (args required: task_id, description, quadrant)
-      - "UPDATE_TASK_STATUS" (args required: task_id, status)
-      - "TOGGLE_TOP_THREE" (Use this for "top 3", "weekly focus", "focus", or "pinning". args required: task_id, intent: "flag"|"unflag")
-      - "DELETE_TASK" (args required: task_id)
-      - "CREATE_STAKEHOLDER" (args required: name, department)
-      - "DELETE_STAKEHOLDER" (args required: stakeholder_id)
-      - "CHAT_ONLY" (Use this if the user is just saying hello, asking how you are, making small talk, or referencing a past point in the thread. No args required.)
-      - "UNKNOWN" (use only if they ask you to do a dashboard task you cannot fulfill)
+      - "CREATE_AREA" (args: name, description)
+      - "UPDATE_AREA" (args: area_id, name, description)
+      - "DELETE_AREA" (args: area_id)
+      
+      - "CREATE_PRODUCT" (args: area_id, name, description)
+      - "UPDATE_PRODUCT" (args: product_id, name, description)
+      - "DELETE_PRODUCT" (args: product_id)
+      
+      - "CREATE_PROJECT" (args: parent_product_id, parent_area_id, name, objective, owner)
+      - "UPDATE_PROJECT" (args: project_id, name, objective, risks, owner, dueDate, dueDateStatus)
+      - "MOVE_PROJECT" (args: project_id, parent_product_id, parent_area_id)
+      - "ARCHIVE_PROJECT" (args: project_id)
+      - "RESTORE_PROJECT" (args: project_id)
+      - "DELETE_PROJECT" (args: project_id)
+      
+      - "CREATE_PROJECT_NOTE" (args: project_id, content)
+      - "UPDATE_PROJECT_NOTE" (args: note_id, content)
+      - "DELETE_PROJECT_NOTE" (args: note_id)
+      
+      - "CREATE_TASK" (args: project_id, description, quadrant)
+      - "UPDATE_TASK" (args: task_id, description, quadrant)
+      - "UPDATE_TASK_STATUS" (args: task_id, status)
+      - "TOGGLE_TOP_THREE" (args: task_id)
+      - "DELETE_TASK" (args: task_id)
+      
+      - "CREATE_STAKEHOLDER" (args: name, department)
+      - "UPDATE_STAKEHOLDER" (args: stakeholder_id, name, department)
+      - "DELETE_STAKEHOLDER" (args: stakeholder_id)
+      
+      - "CHAT_ONLY" 
+      - "UNKNOWN" 
       
       [GLOBAL DATABASE STATE]
       Active Project ID: ${activeProjectId || "None"}
@@ -129,7 +157,7 @@ export default function ChatBox({ activeProjectId }) {
       {
         "action": "THE_ACTION_NAME",
         "args": { "key": "value" },
-        "message": "Your text response to the user. CRITICAL TONE RULE: Carefully analyze the vocabulary, formatting, length, punctuation, and overall vibe of the [LATEST USER REQUEST], and match their tone. If the user is brief, be brief. If the user uses slang or lower-case text, adopt that style. IMPORTANT: However, never copy the user exactly. Maintain thread context without stating you are an AI. But, if the user asks anything, you anwser honeslt and staightforwardly. MUST BE A VALID JSON STRING."
+        "message": "Your text response to the user. Match their tone."
       }`;
 
       const response = await base44.integrations.Core.InvokeLLM({ prompt: combinedPrompt });
@@ -148,16 +176,14 @@ export default function ChatBox({ activeProjectId }) {
 
       const { action, args, message } = aiDecision;
 
-      // 🔀 THE MASTER ROUTER
+      // 🔀 THE ULTIMATE MASTER ROUTER
       switch (action) {
         
-        // ⏪ THE UNDO PROTOCOL
         case "UNDO_LAST_ACTION":
           if (actionHistory.length === 0) {
             setMessages((prev) => [...prev, { role: "assistant", content: "Nothing to undo right now." }]);
             return;
           }
-          
           const lastAction = actionHistory[actionHistory.length - 1];
           setActionHistory((prev) => prev.slice(0, -1));
 
@@ -174,46 +200,58 @@ export default function ChatBox({ activeProjectId }) {
           }
           return;
 
-        // -- CONVERSATION & FALLBACKS --
         case "CHAT_ONLY":
           setMessages((prev) => [...prev, { role: "assistant", content: message }]);
           return;
 
-        // -- TASKS (WITH HISTORY TRACKING) --
+        // -- TASKS --
+        case "CREATE_TASK": createTask.mutate({ project_id: args.project_id, ...args }); break;
+        case "UPDATE_TASK": updateTask.mutate({ id: args.task_id, data: args }); break;
         case "UPDATE_TASK_STATUS":
           const taskBeforeUpdate = allTasks.find(t => t.id === args.task_id);
           if (taskBeforeUpdate) {
-            setActionHistory(prev => [...prev, { 
-              type: "REVERT_TASK_STATUS", 
-              id: args.task_id, 
-              previousStatus: taskBeforeUpdate.status || "Not Started" 
-            }]);
+            setActionHistory(prev => [...prev, { type: "REVERT_TASK_STATUS", id: args.task_id, previousStatus: taskBeforeUpdate.status || "Not Started" }]);
           }
           updateTaskStatus.mutate({ id: args.task_id, status: args.status, project_id: activeProjectId });
           break;
-
         case "TOGGLE_TOP_THREE":
           setActionHistory(prev => [...prev, { type: "REVERT_TOGGLE", id: args.task_id }]);
           toggleTopThree.mutate({ id: args.task_id, project_id: activeProjectId });
           break;
-
-        // -- DESTRUCTIVE ACTIONS --
         case "DELETE_TASK": deleteTask.mutate(args.task_id); break;
-        case "ARCHIVE_PROJECT": archiveProject.mutate(args.project_id); break;
 
-        // -- EVERYTHING ELSE --
-        case "CREATE_AREA": createArea.mutate({ name: args.name }); break;
-        case "UPDATE_AREA": updateArea.mutate({ id: args.area_id, data: { name: args.name } }); break;
-        case "DELETE_AREA": deleteArea.mutate(args.area_id); break;
-        case "CREATE_PRODUCT": createProduct.mutate({ area_id: args.area_id, name: args.name }); break;
-        case "UPDATE_PRODUCT": updateProduct.mutate({ id: args.product_id, data: { name: args.name } }); break;
-        case "CREATE_PROJECT": createProject.mutate({ parent_product_id: args.parent_product_id, name: args.name }); break;
-        case "UPDATE_PROJECT": updateProject.mutate({ id: args.project_id, data: args }); break;
-        case "MOVE_PROJECT": moveProject.mutate({ id: args.project_id, parent_product_id: args.parent_product_id }); break;
+        // -- PROJECTS --
+        case "CREATE_PROJECT": createProject.mutate({ parent_product_id: args.parent_product_id, parent_area_id: args.parent_area_id, title: args.name, name: args.name, ...args }); break;
+        case "UPDATE_PROJECT": updateProject.mutate({ id: args.project_id, data: { title: args.name, ...args } }); break;
+        case "MOVE_PROJECT": 
+          moveProject.mutate({ 
+            id: args.project_id, 
+            parent_product_id: args.parent_product_id || null,
+            parent_area_id: args.parent_area_id || null
+          }); 
+          break;
+        case "ARCHIVE_PROJECT": archiveProject.mutate(args.project_id); break;
         case "RESTORE_PROJECT": restoreProject.mutate(args.project_id); break;
         case "DELETE_PROJECT": deleteProject.mutate(args.project_id); break;
-        case "UPDATE_TASK": updateTask.mutate({ id: args.task_id, data: args }); break;
-        case "CREATE_STAKEHOLDER": createStakeholder.mutate({ name: args.name, department: args.department }); break;
+
+        // -- PROJECT NOTES --
+        case "CREATE_PROJECT_NOTE": createProjectNote.mutate({ project_id: args.project_id, content: args.content }); break;
+        case "UPDATE_PROJECT_NOTE": updateProjectNote.mutate({ id: args.note_id, data: { content: args.content } }); break;
+        case "DELETE_PROJECT_NOTE": deleteProjectNote.mutate(args.note_id); break;
+
+        // -- PRODUCTS --
+        case "CREATE_PRODUCT": createProduct.mutate({ area_id: args.area_id, title: args.name, name: args.name, ...args }); break;
+        case "UPDATE_PRODUCT": updateProduct.mutate({ id: args.product_id, data: { title: args.name, ...args } }); break;
+        case "DELETE_PRODUCT": deleteProduct.mutate(args.product_id); break;
+
+        // -- AREAS --
+        case "CREATE_AREA": createArea.mutate({ title: args.name, name: args.name, ...args }); break;
+        case "UPDATE_AREA": updateArea.mutate({ id: args.area_id, data: { title: args.name, ...args } }); break;
+        case "DELETE_AREA": deleteArea.mutate(args.area_id); break;
+
+        // -- STAKEHOLDERS --
+        case "CREATE_STAKEHOLDER": createStakeholder.mutate(args); break;
+        case "UPDATE_STAKEHOLDER": updateStakeholder.mutate({ id: args.stakeholder_id, data: args }); break;
         case "DELETE_STAKEHOLDER": deleteStakeholder.mutate(args.stakeholder_id); break;
 
         case "UNKNOWN":
@@ -269,7 +307,7 @@ export default function ChatBox({ activeProjectId }) {
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="E.g., Move the 'Beta Launch' project to..."
+              placeholder="E.g., Kill everything / Delete all / Build a new..."
               className="flex-1 text-sm px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all"
               disabled={isComputing}
             />
