@@ -28,3 +28,18 @@ export function useUpdateChatSession() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["chatSessions"] }),
   });
 }
+
+export function useDeleteChatSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id) => {
+      const messages = await base44.entities.ChatMessage.filter({ session_id: id });
+      await Promise.all(messages.map((m) => base44.entities.ChatMessage.delete(m.id)));
+      return base44.entities.ChatSession.delete(id);
+    },
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ["chatSessions"] });
+      queryClient.invalidateQueries({ queryKey: ["chatMessages", id] });
+    },
+  });
+}

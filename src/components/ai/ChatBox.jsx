@@ -333,6 +333,7 @@ export default function ChatBox({ activeProjectId }) {
           activeSessionId={activeSessionId}
           onSelect={handleSelectSession}
           onNewChat={handleNewChat}
+          onDeleted={handleNewChat}
           onClose={() => setIsSessionListOpen(false)}
         />
       )}

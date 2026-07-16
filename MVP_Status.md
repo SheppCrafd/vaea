@@ -170,6 +170,11 @@ Rebuilt end-to-end. What's now in place:
 - Added `RESTORE_TASK` (un-archiving an individual task, previously only possible for whole projects via `RESTORE_PROJECT`) and `avatar_url` support on `CREATE_STAKEHOLDER`/`UPDATE_STAKEHOLDER` (settable from an attached image) — both real UI capabilities the chat couldn't previously touch.
 - Added explicit prompt guidance for parsing an attached file's `[Attached: name](url)` reference out of the user's message and using it for `UPDATE_PROJECT`/`UPDATE_TASK` attachments or a stakeholder's `avatar_url`.
 
+**2026-07-16 second follow-up — the reverse gap: things the UI itself couldn't do, that the user (not just chat) needs.** The user reported being unable to remove a risk/question from a project at all — true, `ProjectNotes.jsx` was pure read-only display with no edit or delete affordance anywhere in the UI, even though `useUpdateProjectNote`/`useDeleteProjectNote` already existed and the AI's `UPDATE_NOTE`/`DELETE_NOTE` already worked. Same story for Stakeholders: `useUpdateStakeholder` existed and the AI could call it, but there was no UI to edit a stakeholder's name/department/photo after creation — only create and delete. Fixed both directions so the human and the assistant now have matching CRUD, not just the assistant having more than the human:
+  - `ProjectNotes.jsx` — content is now inline-editable, each note has a delete button (with confirm).
+  - `StakeholderList.jsx` — name and department are now inline-editable per stakeholder, and clicking the avatar re-uploads a new photo.
+  - Chat sessions themselves gained a delete option too (new `useDeleteChatSession`, hover-to-reveal delete button in the "<" history panel, cascades to that session's messages) — deleting the currently-open session starts a new chat. Deliberately *not* exposed to the AI itself (asking the assistant to delete the conversation you're having with it is a strange enough edge case that it's left as a manual-only action, same reasoning as icon customization).
+
 ## 12. Archive view
 
 File: `src/components/archive/ArchiveView.jsx`
