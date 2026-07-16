@@ -10,10 +10,10 @@ Deno.serve(async (req) => {
     const { projectId } = await req.json();
     if (!projectId) return Response.json({ error: 'projectId is required' }, { status: 400 });
 
-    const project = await base44.entities.Project.update(projectId, { is_archived: true });
+    const now = new Date().toISOString();
+    const project = await base44.entities.Project.update(projectId, { is_archived: true, archived_at: now });
 
     const tasks = await base44.entities.Task.filter({ project_id: projectId });
-    const now = new Date().toISOString();
     await Promise.all(tasks.map((t) => base44.entities.Task.update(t.id, { archived_at: now })));
 
     return Response.json({ project });

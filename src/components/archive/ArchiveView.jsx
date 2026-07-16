@@ -3,12 +3,16 @@ import { RotateCcw } from "lucide-react";
 import { useArchivedProjects, useRestoreProject, useProject } from "@/hooks/useProjects";
 import ProjectDetailModal from "@/components/projects/ProjectDetailModal";
 
-// Archive shell: ISO-8601 date range filter hitting the archivedProjects function
-// (which returns quadrant counts but omits nested task arrays), plus a Restore
-// action that hydrates a project back into the active dashboard. Clicking a
+// Archive/history shell: ISO-8601 date range filter hitting the
+// archivedProjects function, which reconstructs every project whose active
+// window (created_date through archived_at, or now if still active)
+// overlaps the given range — so this can surface currently-active projects
+// too, not just archived ones, matching "projects that were or are active in
+// that date range... even those archived". Returns quadrant counts but omits
+// nested task arrays. Restore only applies to the archived rows. Clicking a
 // row fetches the full project record on demand and opens the same detail
-// modal used on the live dashboard, so archived projects can be viewed and
-// edited exactly like active ones (including their archived tasks).
+// modal used on the live dashboard, so these can be viewed and edited
+// exactly like a project reached from the main dashboard.
 export default function ArchiveView() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -44,7 +48,7 @@ export default function ArchiveView() {
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Loading archive...</p>
         ) : archivedProjects.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No archived items.</p>
+          <p className="text-sm text-muted-foreground">No projects were active in that range.</p>
         ) : (
           archivedProjects.map((item) => (
             <div
@@ -56,21 +60,28 @@ export default function ArchiveView() {
               className="w-full flex items-center justify-between bg-card border border-border rounded-lg p-4 text-left hover:border-primary/40 transition-colors cursor-pointer"
             >
               <div>
-                <p className="font-medium text-sm">{item.title}</p>
+                <p className="font-medium text-sm flex items-center gap-2">
+                  {item.title}
+                  <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${item.is_archived ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary"}`}>
+                    {item.is_archived ? "Archived" : "Active"}
+                  </span>
+                </p>
                 <p className="text-xs text-muted-foreground">
                   Quadrants: {item.quadrant_counts?.join(" / ")} · last updated {item.updated_date?.slice(0, 10)}
                 </p>
               </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  restoreProject.mutate(item.id);
-                }}
-                className="text-sm flex items-center gap-1.5 px-3 py-1.5 bg-secondary text-secondary-foreground rounded-md hover:opacity-80"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                Restore
-              </button>
+              {item.is_archived && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    restoreProject.mutate(item.id);
+                  }}
+                  className="text-sm flex items-center gap-1.5 px-3 py-1.5 bg-secondary text-secondary-foreground rounded-md hover:opacity-80"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Restore
+                </button>
+              )}
             </div>
           ))
         )}

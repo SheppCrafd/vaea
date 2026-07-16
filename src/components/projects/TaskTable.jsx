@@ -41,6 +41,14 @@ function TaskRow({ task, allStakeholders, isDimmed, updateTask, onToggleTopThree
       </td>
       <td className="p-2 text-center whitespace-nowrap">
         <div className="flex items-center justify-center gap-1">
+          {/* The spec's actual display format — "1H", "2HQ", etc — combined
+              into one label; the select + toggle buttons below are what edit
+              those same two underlying fields (quadrant, H/Q flags). */}
+          <span className="text-[10px] font-semibold tabular-nums w-6 shrink-0" title="Quadrant notation">
+            {task.quadrant ?? "—"}
+            {task.is_highly_important ? "H" : ""}
+            {task.is_quick_task ? "Q" : ""}
+          </span>
           <select
             value={task.quadrant ?? ""}
             onChange={(e) => updateTask.mutate({ id: task.id, data: { quadrant: e.target.value === "" ? null : Number(e.target.value) } })}
@@ -133,7 +141,7 @@ export default function TaskTable({ project }) {
   const toggleTopThree = useToggleTopThree();
   const deleteTask = useDeleteTask();
   const { toast } = useToast();
-  const { highlightedIds } = useHighlight();
+  const { highlights } = useHighlight();
 
   const handleDelete = (task) => {
     confirmThen(`Delete task "${task.description}"? This cannot be undone.`, () => deleteTask.mutate(task.id));
@@ -156,29 +164,24 @@ export default function TaskTable({ project }) {
     return sortDirection === "asc" ? sorted : sorted.reverse();
   }, [tasks, sortColumn, sortDirection]);
 
-  const handleNewTaskKeyDown = (e) => {
-    if (e.key === "Enter" && (newDescription.trim() || newQuadrant)) {
-      const payload = { project_id: project.id };
-      if (newDescription.trim()) payload.description = newDescription.trim();
-      if (newQuadrant !== "") payload.quadrant = newQuadrant === "" ? null : Number(newQuadrant);
-      createTask.mutate(payload);
-      setNewDescription("");
-      setNewQuadrant("");
-      requestAnimationFrame(() => newRowInputRef.current?.focus());
-    }
+  // Description is the one required field ("a task can be created with any
+  // field [blank] but description") — every other field, including
+  // quadrant, is optional at creation time and can be set later from the row.
+  const createNewTask = () => {
+    if (!newDescription.trim()) return;
+    const payload = { project_id: project.id, description: newDescription.trim() };
+    if (newQuadrant !== "") payload.quadrant = Number(newQuadrant);
+    createTask.mutate(payload);
+    setNewDescription("");
+    setNewQuadrant("");
+    requestAnimationFrame(() => newRowInputRef.current?.focus());
   };
 
-  const handleCreateButton = () => {
-    if (newDescription.trim() || newQuadrant) {
-      const payload = { project_id: project.id };
-      if (newDescription.trim()) payload.description = newDescription.trim();
-      if (newQuadrant !== "") payload.quadrant = newQuadrant === "" ? null : Number(newQuadrant);
-      createTask.mutate(payload);
-      setNewDescription("");
-      setNewQuadrant("");
-      requestAnimationFrame(() => newRowInputRef.current?.focus());
-    }
+  const handleNewTaskKeyDown = (e) => {
+    if (e.key === "Enter") createNewTask();
   };
+
+  const handleCreateButton = () => createNewTask();
 
   const handleToggleTopThree = (task) => {
     toggleTopThree.mutate(
@@ -195,7 +198,7 @@ export default function TaskTable({ project }) {
     );
   };
 
-  const isDimmed = (task) => isDimmedByHighlight(highlightedIds, task.stakeholder_ids || []);
+  const isDimmed = (task) => isDimmedByHighlight(highlights, "tasks", task.stakeholder_ids || []);
 
   const SortHeader = ({ column, label }) => (
     <th className="p-2 font-medium cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort(column)}>
@@ -236,9 +239,9 @@ export default function TaskTable({ project }) {
             onDelete={handleDelete}
           />
         ))}
-        <tr className="bg-primary/10">
+        <tr className="bg-blue-500/10">
           <td className="p-2 flex items-center gap-2" colSpan={2}>
-            <button onClick={handleCreateButton} aria-label="New task" className="flex items-center gap-1 text-xs font-medium text-primary shrink-0">
+            <button onClick={handleCreateButton} aria-label="New task" className="flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 shrink-0">
               <Plus className="w-4 h-4" />
               New Task
             </button>

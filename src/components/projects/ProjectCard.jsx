@@ -29,11 +29,17 @@ export default function ProjectCard({ project, stakeholderIds = [] }) {
   // parent product/area actually included them. Fall back on empty length
   // instead of truthiness.
   const cardStakeholderIds = (project.stakeholder_ids?.length ? project.stakeholder_ids : stakeholderIds) || [];
-  const isDimmed = useHighlightDim(cardStakeholderIds);
-  const { highlightedIds } = useHighlight();
+  // Reacts to both the "projects" and "products" checkbox categories — a
+  // project card must not stay dimmed while a matching parent-product
+  // highlight lights it up via the fallback above, or vice versa.
+  const isDimmed = useHighlightDim(cardStakeholderIds, ["projects", "products"]);
+  const { highlights } = useHighlight();
 
   const { data: tasks = [] } = useTasks(project.id);
   const { data: notes = [] } = useProjectNotes(project.id);
+  // Card's center block is "Risks and open questions" only, per spec — the
+  // general "NOTE" type belongs in the full detail view, not the compact card.
+  const riskNotes = notes.filter((n) => n.type === "RISK" || n.type === "QUESTION");
   const { data: allStakeholders = [] } = useStakeholders();
   const updateProject = useUpdateProject();
   const createProjectNote = useCreateProjectNote();
@@ -74,7 +80,7 @@ export default function ProjectCard({ project, stakeholderIds = [] }) {
 
   const doneTasks = tasks.filter(isTaskDone);
   const projectProgress = tasks.length > 0 ? Math.round((doneTasks.length / tasks.length) * 100) : 0;
-  const quadrants = getQuadrantCounts(tasks, highlightedIds);
+  const quadrants = getQuadrantCounts(tasks, highlights);
 
   const activeTasks = filterActiveTasks(tasks);
   const allDone = activeTasks.length > 0 && activeTasks.every(isTaskDone);
@@ -146,6 +152,7 @@ export default function ProjectCard({ project, stakeholderIds = [] }) {
               placeholder="Add a risk or question and press Enter..."
               className="w-full text-[10px] bg-transparent outline-none text-left placeholder:text-muted-foreground/60"
             />
+            <ProjectNotes notes={riskNotes} allStakeholders={allStakeholders} />
           </div>
         </div>
 
@@ -191,10 +198,6 @@ export default function ProjectCard({ project, stakeholderIds = [] }) {
           })}
         </div>
       )}
-
-      <div className="mt-2 pl-5">
-        <ProjectNotes notes={notes} allStakeholders={allStakeholders} />
-      </div>
 
       {isTableOpen && (
         <TaskTableModal project={project} onClose={() => setIsTableOpen(false)} />

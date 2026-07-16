@@ -16,7 +16,7 @@ export default function Header() {
       <div className="flex items-center gap-2">
         <Button onClick={() => openCreateModal("task")} className="gap-2">
           <Plus className="w-4 h-4" />
-          Create
+          Create New
         </Button>
         <Button variant="outline" size="icon" onClick={() => setIsFilterOpen(true)} aria-label="Filter">
           <Filter className="w-4 h-4" />

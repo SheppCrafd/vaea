@@ -9,12 +9,30 @@ import { useProducts } from "@/hooks/useProducts";
 import { useProjects } from "@/hooks/useProjects";
 import { useAllTasks } from "@/hooks/useTasks";
 import { useAllProjectNotes } from "@/hooks/useProjectNotes";
-import { useHighlight } from "@/lib/HighlightContext";
+import { useHighlight, HIGHLIGHT_CATEGORIES } from "@/lib/HighlightContext";
 import { useEditableField } from "@/hooks/useEditableField";
 import { confirmThen } from "@/lib/entityUtils";
 import { base44 } from "@/api/base44Client";
 import Avatar from "@/components/shared/Avatar";
 import AddStakeholderModal from "@/components/sidebar/AddStakeholderModal";
+
+// One checkbox per object type (tasks/notes/projects/products), each showing
+// that type's live count and independently toggleable — checking "tasks"
+// must only highlight tasks, not this stakeholder's projects too.
+function HighlightCheckbox({ category, count, isChecked, onToggle, stakeholderName }) {
+  const label = category.charAt(0).toUpperCase() + category.slice(1);
+  return (
+    <label
+      className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border cursor-pointer select-none transition-colors ${
+        isChecked ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-transparent hover:border-border"
+      }`}
+      title={`Highlight ${category} ${stakeholderName} is on`}
+    >
+      <input type="checkbox" checked={isChecked} onChange={onToggle} className="sr-only" />
+      {label} {count}
+    </label>
+  );
+}
 
 function StakeholderRow({ stakeholder, departmentNames, isHighlighted, onToggleHighlight, onRemove, counts }) {
   const updateStakeholder = useUpdateStakeholder();
@@ -56,7 +74,6 @@ function StakeholderRow({ stakeholder, departmentNames, isHighlighted, onToggleH
         >
           <GripVertical className="w-3.5 h-3.5" />
         </button>
-        <input type="checkbox" checked={isHighlighted} onChange={onToggleHighlight} />
         <label className="cursor-pointer shrink-0" title="Click to change photo">
           <Avatar name={stakeholder.name} avatarUrl={stakeholder.avatar_url} />
           <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
@@ -90,10 +107,16 @@ function StakeholderRow({ stakeholder, departmentNames, isHighlighted, onToggleH
         </button>
       </div>
       <div className="flex gap-1.5 pl-6 flex-wrap">
-        <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded">Tasks {counts.tasks}</span>
-        <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded">Notes {counts.notes}</span>
-        <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded">Projects {counts.projects}</span>
-        <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded">Products {counts.products}</span>
+        {HIGHLIGHT_CATEGORIES.map((category) => (
+          <HighlightCheckbox
+            key={category}
+            category={category}
+            count={counts[category]}
+            isChecked={isHighlighted(category)}
+            onToggle={() => onToggleHighlight(category)}
+            stakeholderName={stakeholder.name}
+          />
+        ))}
       </div>
     </div>
   );
@@ -195,7 +218,7 @@ export default function StakeholderList() {
   const { data: projects = [] } = useProjects();
   const { data: tasks = [] } = useAllTasks();
   const { data: notes = [] } = useAllProjectNotes();
-  const { highlightedIds, toggleHighlight } = useHighlight();
+  const { toggleHighlight, isHighlighted } = useHighlight();
   const deleteStakeholder = useDeleteStakeholder();
   const createDepartment = useCreateDepartment();
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -226,8 +249,8 @@ export default function StakeholderList() {
       key={s.id}
       stakeholder={s}
       departmentNames={departmentNames}
-      isHighlighted={highlightedIds.includes(s.id)}
-      onToggleHighlight={() => toggleHighlight(s.id)}
+      isHighlighted={(category) => isHighlighted(s.id, category)}
+      onToggleHighlight={(category) => toggleHighlight(s.id, category)}
       onRemove={() => handleRemove(s)}
       counts={{
         tasks: countFor(tasks, s.id),

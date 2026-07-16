@@ -1,4 +1,4 @@
-import { Trash2 } from "lucide-react";
+import { Trash2, Expand } from "lucide-react";
 import { useDroppable } from "@dnd-kit/core";
 import { useUpdateArea, useDeleteArea } from "@/hooks/useAreas";
 import { useAllTasks } from "@/hooks/useTasks";
@@ -11,7 +11,7 @@ import ProjectCard from "@/components/projects/ProjectCard";
 import TaskStatistics from "@/components/shared/TaskStatistics";
 
 export default function AreaCard({ area, products = [], orphanProjects = [], productCount, onExpand, stakeholderIds = [] }) {
-  const isDimmed = useHighlightDim(stakeholderIds);
+  const isDimmed = useHighlightDim(stakeholderIds, ["projects", "products"]);
   const updateArea = useUpdateArea();
   const deleteArea = useDeleteArea();
 
@@ -43,18 +43,26 @@ export default function AreaCard({ area, products = [], orphanProjects = [], pro
       
       <div className="relative">
         <div className="absolute top-0 right-0 flex items-center gap-1 z-20">
-          <button 
+          <button
+            onClick={onExpand}
+            className="text-muted-foreground hover:text-foreground p-1 transition-colors"
+            title="Expand Area"
+            aria-label="Expand Area"
+          >
+            <Expand className="w-4 h-4" />
+          </button>
+          <button
             onClick={handleDelete}
-            className="text-muted-foreground hover:text-destructive p-1 transition-colors" 
+            className="text-muted-foreground hover:text-destructive p-1 transition-colors"
             title="Delete Area"
             aria-label="Delete Area"
           >
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
-        
+
         <h3
-          className="font-heading font-semibold text-lg pr-8 outline-none focus:ring-1 focus:ring-primary/40 rounded break-words min-w-0"
+          className="font-heading font-semibold text-lg pr-14 outline-none focus:ring-1 focus:ring-primary/40 rounded break-words min-w-0"
           contentEditable
           suppressContentEditableWarning
           onInput={handleInput}

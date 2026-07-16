@@ -41,7 +41,7 @@ export default function ProductCard({ product }) {
     ...(product.stakeholder_ids || []),
     ...projects.flatMap((p) => p.stakeholder_ids || []),
   ];
-  const isDimmed = useHighlightDim(productStakeholderIds);
+  const isDimmed = useHighlightDim(productStakeholderIds, ["projects", "products"]);
 
   const projectIds = projects.map((p) => p.id);
   const productTasks = allTasks.filter((t) => projectIds.includes(t.project_id));

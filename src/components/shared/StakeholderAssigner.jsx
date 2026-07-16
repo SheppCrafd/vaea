@@ -1,6 +1,7 @@
 import { Check, Plus } from "lucide-react";
 import Portal from "@/lib/Portal";
 import { usePositionedMenu } from "@/hooks/usePositionedMenu";
+import Avatar from "@/components/shared/Avatar";
 
 export default function StakeholderAssigner({
   currentStakeholderIds = [],
@@ -36,8 +37,8 @@ export default function StakeholderAssigner({
         ) : (
           <div className="flex pl-2">
             {assigned.slice(0, 5).map((s, i) => (
-              <div key={s.id} className="w-6 h-6 rounded-full bg-primary/20 border-2 border-background flex items-center justify-center text-[10px] font-bold shadow-sm" style={{ marginLeft: '-10px', zIndex: 10 - i }}>
-                {s.name.charAt(0).toUpperCase()}
+              <div key={s.id} style={{ marginLeft: '-10px', zIndex: 10 - i }}>
+                <Avatar name={s.name} avatarUrl={s.avatar_url} size="sm" />
               </div>
             ))}
             {assigned.length > 5 && (

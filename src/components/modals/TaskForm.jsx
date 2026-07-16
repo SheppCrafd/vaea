@@ -3,17 +3,29 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useProjects } from "@/hooks/useProjects";
 import { useCreateTask } from "@/hooks/useTasks";
+import { useStakeholders } from "@/hooks/useStakeholders";
+import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
+
+const TYPE_OPTIONS = ["COMMUNICATION", "OPEN_QUESTIONS", "SCRUM_NEEDS", "EMPLOYEE_NEEDS", "OTHER"];
 
 export default function TaskForm({ onDone }) {
   const [description, setDescription] = useState("");
   const [projectId, setProjectId] = useState("");
+  const [quadrant, setQuadrant] = useState("");
+  const [type, setType] = useState("");
+  const [stakeholderIds, setStakeholderIds] = useState([]);
   const { data: projects = [] } = useProjects();
+  const { data: allStakeholders = [] } = useStakeholders();
   const createTask = useCreateTask();
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!description.trim() || !projectId) return;
-    createTask.mutate({ project_id: projectId, description });
+    const payload = { project_id: projectId, description };
+    if (quadrant !== "") payload.quadrant = Number(quadrant);
+    if (type) payload.type = type;
+    if (stakeholderIds.length) payload.stakeholder_ids = stakeholderIds;
+    createTask.mutate(payload);
     onDone?.();
   };
 
@@ -35,6 +47,41 @@ export default function TaskForm({ onDone }) {
       <div>
         <label className="text-sm font-medium block mb-1">Task description</label>
         <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. Write API docs" autoFocus />
+      </div>
+      <div className="flex gap-3">
+        <div className="flex-1">
+          <label className="text-sm font-medium block mb-1">Quadrant (optional)</label>
+          <select
+            value={quadrant}
+            onChange={(e) => setQuadrant(e.target.value)}
+            className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md"
+          >
+            <option value="">—</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+          </select>
+        </div>
+        <div className="flex-1">
+          <label className="text-sm font-medium block mb-1">Type (optional)</label>
+          <select
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+            className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md"
+          >
+            <option value="">—</option>
+            {TYPE_OPTIONS.map((t) => <option key={t} value={t}>{t.replace(/_/g, " ")}</option>)}
+          </select>
+        </div>
+      </div>
+      <div>
+        <label className="text-sm font-medium block mb-1">Stakeholders (optional)</label>
+        <StakeholderAssigner
+          currentStakeholderIds={stakeholderIds}
+          allStakeholders={allStakeholders}
+          onSave={setStakeholderIds}
+        />
       </div>
       <Button type="submit" className="w-full" disabled={!projectId || !description.trim()}>Add Task</Button>
     </form>

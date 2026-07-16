@@ -14,6 +14,7 @@ import ProjectNotes from "@/components/projects/ProjectNotes";
 import AddNoteForm from "@/components/projects/AddNoteForm";
 import AttachmentsAndLinks from "@/components/projects/AttachmentsAndLinks";
 import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
+import Avatar from "@/components/shared/Avatar";
 import ProductAssigner from "@/components/shared/ProductAssigner";
 import CustomFieldsSection from "@/components/shared/CustomFieldsSection";
 
@@ -190,8 +191,8 @@ export default function ProjectDetailModal({ project, onClose }) {
 
                           <div className="flex items-center pl-2 mb-2">
                             {deptStakeholders.slice(0, 5).map((s, i) => (
-                              <div key={s.id} className="w-8 h-8 rounded-full bg-primary/20 border-2 border-background flex items-center justify-center text-xs font-bold shadow-sm" style={{ marginLeft: i > 0 ? '-12px' : '0', zIndex: 10 - i }} title={s.name}>
-                                {s.name.charAt(0).toUpperCase()}
+                              <div key={s.id} style={{ marginLeft: i > 0 ? '-12px' : '0', zIndex: 10 - i }}>
+                                <Avatar name={s.name} avatarUrl={s.avatar_url} />
                               </div>
                             ))}
                             {deptStakeholders.length > 5 && (

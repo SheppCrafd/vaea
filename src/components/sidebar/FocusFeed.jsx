@@ -14,7 +14,7 @@ export default function FocusFeed() {
   const { data: projects = [] } = useProjects();
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
-  const { highlightedIds } = useHighlight();
+  const { highlights } = useHighlight();
 
   const projectTitle = (id) => projects.find((p) => p.id === id)?.title || "Untitled";
   const topThree = tasks.filter((t) => t.is_today_top_three);
@@ -28,7 +28,7 @@ export default function FocusFeed() {
     return acc;
   }, {});
 
-  const isDimmed = (task) => isDimmedByHighlight(highlightedIds, task.stakeholder_ids || []);
+  const isDimmed = (task) => isDimmedByHighlight(highlights, "tasks", task.stakeholder_ids || []);
 
   const handleArchive = (task) => updateTask.mutate({ id: task.id, data: { archived_at: new Date().toISOString() } });
   const handleDelete = (task) =>

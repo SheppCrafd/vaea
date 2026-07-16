@@ -21,12 +21,15 @@ export function filterActiveTasks(tasks = []) {
 // Eisenhower-matrix quadrant counts for the 2x2 badge on a project card.
 // Quadrant 4 also absorbs tasks with no quadrant assigned. A quadrant is
 // flagged `hasFocus` (rendered dark green) when one of its tasks is marked
-// as this week's focus, and `hasHighlightedStakeholder` when the active
-// stakeholder spotlight (HighlightContext) matches a task in that quadrant —
+// as this week's focus, and `hasHighlightedStakeholder` when the "tasks"
+// checkbox is active for a stakeholder who has a task in that quadrant —
 // the spec calls for highlighting the specific quadrant a stakeholder's task
-// lives in, not just dimming/undimming the whole card.
-export function getQuadrantCounts(tasks = [], highlightedIds = []) {
+// lives in, not just dimming/undimming the whole card. Only the "tasks"
+// category applies here, not "projects"/"products" — those are a different
+// checkbox tied to a different object type.
+export function getQuadrantCounts(tasks = [], highlights = []) {
   const activeTasks = filterActiveTasks(tasks);
+  const highlightedTaskStakeholderIds = highlights.filter((h) => h.category === "tasks").map((h) => h.stakeholderId);
 
   return [1, 2, 3, 4].map((quadrant) => {
     const quadTasks = activeTasks.filter((t) =>
@@ -37,8 +40,8 @@ export function getQuadrantCounts(tasks = [], highlightedIds = []) {
       count: quadTasks.length,
       hasFocus: quadTasks.some((t) => t.is_weekly_focus),
       hasHighlightedStakeholder:
-        highlightedIds.length > 0 &&
-        quadTasks.some((t) => (t.stakeholder_ids || []).some((id) => highlightedIds.includes(id))),
+        highlightedTaskStakeholderIds.length > 0 &&
+        quadTasks.some((t) => (t.stakeholder_ids || []).some((id) => highlightedTaskStakeholderIds.includes(id))),
     };
   });
 }

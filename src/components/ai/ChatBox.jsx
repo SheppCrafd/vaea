@@ -143,7 +143,7 @@ export default function ChatBox({ activeProjectId }) {
     setIsComputing(true);
 
     try {
-      const conversationHistory = (chatState.data || [])
+      const conversationHistory = (chatState.messages || [])
         .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
         .join("\n");
 

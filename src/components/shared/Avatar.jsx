@@ -22,11 +22,21 @@ function getInitials(name) {
   return name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 }
 
+// Every avatar in the app — the sidebar list, avatar stacks, and stakeholder
+// picker popovers — must render the exact same color for the same person, so
+// size is the only thing allowed to vary between call sites; color/initials
+// logic always lives here, never reimplemented locally.
+const SIZE_CLASSES = {
+  sm: "w-6 h-6 text-[9px]",
+  md: "w-8 h-8 text-[11px]",
+};
+
 // Avatar that shows the uploaded photo when available; otherwise falls back
 // to initials on a pastel background, picked (stably, from the person's
 // name) from the same palette as the sidebar's Task Statistics chart.
-export default function Avatar({ name, avatarUrl, className = "" }) {
+export default function Avatar({ name, avatarUrl, className = "", size = "md" }) {
   const [imageFailed, setImageFailed] = useState(false);
+  const sizeClasses = SIZE_CLASSES[size] || SIZE_CLASSES.md;
 
   if (avatarUrl && !imageFailed) {
     return (
@@ -35,7 +45,7 @@ export default function Avatar({ name, avatarUrl, className = "" }) {
         alt={name}
         title={name}
         onError={() => setImageFailed(true)}
-        className={`w-8 h-8 rounded-full object-cover border-2 border-card ${className}`}
+        className={`${sizeClasses} rounded-full object-cover border-2 border-card ${className}`}
       />
     );
   }
@@ -44,7 +54,7 @@ export default function Avatar({ name, avatarUrl, className = "" }) {
     <div
       title={name}
       style={{ backgroundColor: pastelForName(name) }}
-      className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-slate-800 border-2 border-card ${className}`}
+      className={`${sizeClasses} rounded-full flex items-center justify-center font-bold text-slate-800 border-2 border-card ${className}`}
     >
       {getInitials(name)}
     </div>
