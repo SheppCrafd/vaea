@@ -4,6 +4,24 @@ _Rebuilt 2026-07-16 from a from-scratch, skeptical re-audit of `src/` and `base4
 
 Legend: `[x]` matches spec & verified working · `[~]` exists but was broken/incomplete/deviated — now fixed this pass unless noted · `[ ]` not built / open
 
+**Contents**
+
+- [0. Top-line summary](#0-top-line-summary)
+- [1. Layout shell](#1-layout-shell)
+- [2. Dashboard hierarchy (Area → Product → Project)](#2-dashboard-hierarchy-area--product--project)
+- [3. Project card](#3-project-card)
+- [4. Project detail / expand view](#4-project-detail--expand-view)
+- [5. Task table popup](#5-task-table-popup)
+- [6. Product card](#6-product-card)
+- [7. Area of Responsibility card](#7-area-of-responsibility-card)
+- [8. Create New / Filter](#8-create-new--filter)
+- [9. Right sidebar — Focus feed + stats](#9-right-sidebar--focus-feed--stats)
+- [10. Left sidebar — Stakeholders](#10-left-sidebar--stakeholders)
+- [11. AI Assistant (chat copilot)](#11-ai-assistant-chat-copilot)
+- [12. Archive view](#12-archive-view)
+- [13. Cross-cutting](#13-cross-cutting)
+- [Everything fixed this pass, ranked by impact](#everything-fixed-this-pass-ranked-by-user-visible-impact)
+
 ---
 
 ## 0. Top-line summary
