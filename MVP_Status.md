@@ -140,6 +140,18 @@ File: `src/components/sidebar/StakeholderList.jsx`, `AddStakeholderModal.jsx`
 - [x] "Add Stakeholder" button above the list; requires Name + Department, image optional with real upload (`base44.integrations.Core.UploadFile`) — matches spec exactly
 - [x] ~~Highlighting didn't reach the individual-quadrant-square level.~~ **Fixed** — `getQuadrantCounts()` now also takes the active `highlightedIds` and flags which quadrants contain a matching task; those squares get a ring highlight on the card, in addition to the existing whole-card dim and table-row dim.
 
+**2026-07-16 follow-up — Department promoted to a real, fully-CRUD entity.** Previously `department` was just a free-text string on each Stakeholder — no way to have an empty department, rename one for everyone at once, or delete one without silently orphaning the name. Now:
+  - New `Department` entity (`name`, soft-delete). `StakeholderList.jsx` fetches departments from it directly rather than deriving the list from whatever strings existing stakeholders happen to have, so an empty department can exist ready for people. Stakeholders whose department doesn't match any live `Department` (e.g. after one is deleted) fall into a synthetic "Unassigned" section instead of disappearing.
+  - **Create**: "Add Department" button in the sidebar; also inline from `AddStakeholderModal`'s department picker ("+ New department...").
+  - **Read**: accordion-grouped as before, now including empty departments.
+  - **Update**: department name is inline-editable (cascades to every stakeholder currently in it, via a dedicated `renameDepartment` backend function); a stakeholder's own department is a `<select>` of real departments (was free text).
+  - **Delete**: delete button per department (confirm-gated, warns how many stakeholders will become Unassigned), via a dedicated `deleteDepartment` backend function that clears the affected stakeholders' `department` field rather than deleting them.
+  - AI parity: `CREATE_DEPARTMENT`/`RENAME_DEPARTMENT`/`DELETE_DEPARTMENT` added to the chat's action catalog (delete is confirm-gated like every other destructive action), departments included in the LLM's context, and stakeholder create/update guidance updated to use real department names.
+
+**Same pass — closed two more UI/AI parity gaps found via a hook-usage sweep** (every exported hook cross-checked against whether any component actually calls it, the same class of check that caught the risks/stakeholder-edit gaps last time):
+  - `useUpdateChatSession` existed but nothing called it — chat session titles in the "<" history panel were read-only. Added rename (pencil icon, double-click to edit).
+  - `useUpdateTaskStatus` existed but nothing called it either — however this one was genuinely dead code, not a missing capability, since task status updates already work fully through the generic `useUpdateTask` hook (`TaskTable`, `FocusFeed`). Deleted rather than force a redundant second call site.
+
 ## 11. AI Assistant (chat copilot)
 
 File: `src/components/ai/ChatBox.jsx`, `src/components/ai/ChatMessageList.jsx`, `src/components/ai/ChatSessionList.jsx`, `base44/functions/aiChatStream/`

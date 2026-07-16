@@ -4,23 +4,38 @@ import Portal from "@/lib/Portal";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useCreateStakeholder } from "@/hooks/useStakeholders";
+import { useDepartments, useCreateDepartment } from "@/hooks/useDepartments";
 import { base44 } from "@/api/base44Client";
 
+const NEW_DEPARTMENT = "__new__";
+
 export default function AddStakeholderModal({ onClose }) {
+  const { data: departments = [] } = useDepartments();
+  const createDepartment = useCreateDepartment();
+  const createStakeholder = useCreateStakeholder();
+
   const [name, setName] = useState("");
   const [department, setDepartment] = useState("");
+  const [newDepartmentName, setNewDepartmentName] = useState("");
   const [file, setFile] = useState(null);
-  const createStakeholder = useCreateStakeholder();
+
+  const isCreatingDepartment = department === NEW_DEPARTMENT;
+  const resolvedDepartmentName = isCreatingDepartment ? newDepartmentName.trim() : department;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim() || !department.trim()) return;
+    if (!name.trim() || !resolvedDepartmentName) return;
+
+    if (isCreatingDepartment) {
+      await createDepartment.mutateAsync({ name: resolvedDepartmentName });
+    }
+
     let avatar_url;
     if (file) {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       avatar_url = file_url;
     }
-    createStakeholder.mutate({ name, department, avatar_url });
+    createStakeholder.mutate({ name, department: resolvedDepartmentName, avatar_url });
     onClose();
   };
 
@@ -39,13 +54,34 @@ export default function AddStakeholderModal({ onClose }) {
             </div>
             <div>
               <label className="text-sm font-medium block mb-1">Department</label>
-              <Input value={department} onChange={(e) => setDepartment(e.target.value)} />
+              <select
+                value={department}
+                onChange={(e) => setDepartment(e.target.value)}
+                className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md"
+              >
+                <option value="">Select a department...</option>
+                {departments.map((d) => (
+                  <option key={d.id} value={d.name}>{d.name}</option>
+                ))}
+                <option value={NEW_DEPARTMENT}>+ New department...</option>
+              </select>
+              {isCreatingDepartment && (
+                <Input
+                  value={newDepartmentName}
+                  onChange={(e) => setNewDepartmentName(e.target.value)}
+                  placeholder="New department name"
+                  className="mt-2"
+                  autoFocus
+                />
+              )}
             </div>
             <div>
               <label className="text-sm font-medium block mb-1">Image (optional)</label>
               <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} className="text-xs" />
             </div>
-            <Button type="submit" className="w-full" disabled={!name.trim() || !department.trim()}>Add Stakeholder</Button>
+            <Button type="submit" className="w-full" disabled={!name.trim() || !resolvedDepartmentName}>
+              Add Stakeholder
+            </Button>
           </form>
         </div>
       </div>

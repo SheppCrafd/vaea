@@ -1,6 +1,7 @@
-import { X } from "lucide-react";
+import { useState } from "react";
+import { X, Pencil } from "lucide-react";
 import Portal from "@/lib/Portal";
-import { useChatSessions, useDeleteChatSession } from "@/hooks/useChatSessions";
+import { useChatSessions, useDeleteChatSession, useUpdateChatSession } from "@/hooks/useChatSessions";
 import { confirmThen } from "@/lib/entityUtils";
 
 // The "<" caret under the chat icon pops this card out to the left of the
@@ -8,12 +9,28 @@ import { confirmThen } from "@/lib/entityUtils";
 export default function ChatSessionList({ activeSessionId, onSelect, onNewChat, onClose, onDeleted }) {
   const { data: sessions = [] } = useChatSessions();
   const deleteSession = useDeleteChatSession();
+  const updateSession = useUpdateChatSession();
+  const [editingId, setEditingId] = useState(null);
+  const [editValue, setEditValue] = useState("");
 
   const handleDelete = (session) => {
     confirmThen(`Delete chat "${session.title || "Untitled chat"}"? This cannot be undone.`, () => {
       deleteSession.mutate(session.id);
       if (session.id === activeSessionId) onDeleted?.();
     });
+  };
+
+  const startEditing = (session) => {
+    setEditingId(session.id);
+    setEditValue(session.title || "");
+  };
+
+  const commitRename = (session) => {
+    const title = editValue.trim();
+    if (title && title !== session.title) {
+      updateSession.mutate({ id: session.id, data: { title } });
+    }
+    setEditingId(null);
   };
 
   return (
@@ -38,11 +55,33 @@ export default function ChatSessionList({ activeSessionId, onSelect, onNewChat, 
                   key={s.id}
                   className={`group flex items-center gap-1 rounded-md ${s.id === activeSessionId ? "bg-primary/15" : "hover:bg-secondary"}`}
                 >
+                  {editingId === s.id ? (
+                    <input
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onBlur={() => commitRename(s)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") commitRename(s);
+                        if (e.key === "Escape") setEditingId(null);
+                      }}
+                      autoFocus
+                      className="flex-1 min-w-0 text-xs px-2 py-1.5 bg-background border border-input rounded outline-none"
+                    />
+                  ) : (
+                    <button
+                      onClick={() => onSelect(s.id)}
+                      onDoubleClick={() => startEditing(s)}
+                      className={`flex-1 min-w-0 text-left text-xs px-2 py-1.5 truncate ${s.id === activeSessionId ? "text-primary font-medium" : ""}`}
+                    >
+                      {s.title || "Untitled chat"}
+                    </button>
+                  )}
                   <button
-                    onClick={() => onSelect(s.id)}
-                    className={`flex-1 min-w-0 text-left text-xs px-2 py-1.5 truncate ${s.id === activeSessionId ? "text-primary font-medium" : ""}`}
+                    onClick={() => startEditing(s)}
+                    aria-label="Rename chat"
+                    className="shrink-0 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
                   >
-                    {s.title || "Untitled chat"}
+                    <Pencil className="w-3 h-3" />
                   </button>
                   <button
                     onClick={() => handleDelete(s)}

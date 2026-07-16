@@ -85,18 +85,6 @@ export function useUpdateTask() {
   });
 }
 
-// 5. UPDATE TASK STATUS ONLY
-export function useUpdateTaskStatus() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, status }) => base44.entities.Task.update(id, { status }),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["tasks", variables.project_id] });
-      queryClient.invalidateQueries({ queryKey: ["allTasks"] });
-    },
-  });
-}
-
 // 6. DELETE TASK (SOFT DELETE VIA DELETED_AT TIMESTAMP)
 export function useDeleteTask() {
   const queryClient = useQueryClient();

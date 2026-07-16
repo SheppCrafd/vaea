@@ -19,6 +19,7 @@ const DESTRUCTIVE_ACTIONS = new Set([
   'DELETE_TASK',
   'DELETE_STAKEHOLDER',
   'DELETE_NOTE',
+  'DELETE_DEPARTMENT',
 ]);
 
 const ACTION_CATALOG = `
@@ -54,9 +55,13 @@ const ACTION_CATALOG = `
 - "RESTORE_TASK" (args: task_id) — un-archives a task
 - "DELETE_TASK" (args: task_id)
 
-- "CREATE_STAKEHOLDER" (args: name, department, avatar_url [optional, from an attached image])
+- "CREATE_STAKEHOLDER" (args: name, department, avatar_url [optional, from an attached image]) — department should match an existing Department's name from [GLOBAL DATABASE STATE]; if the user names a department that doesn't exist yet, call CREATE_DEPARTMENT first (or ask them)
 - "UPDATE_STAKEHOLDER" (args: stakeholder_id, name, department, avatar_url)
 - "DELETE_STAKEHOLDER" (args: stakeholder_id)
+
+- "CREATE_DEPARTMENT" (args: name)
+- "RENAME_DEPARTMENT" (args: department_id, name) — cascades: every stakeholder currently in this department is updated to the new name too
+- "DELETE_DEPARTMENT" (args: department_id) — cascades: every stakeholder currently in this department becomes Unassigned (they are NOT deleted themselves)
 
 - "SET_CUSTOM_FIELD" (args: entity_type ["project","product","area"], entity_id, label, value, show_on_card [bool], area_wide [bool, optional]) — adds or updates a custom field's value on that entity. If entity_type is "project" or "product" and area_wide is true, the field is also registered on that entity's parent Area, making it available (empty, fillable) on every other project/product in that same area — matching what the "All projects/products in this area" option does in the UI. Areas have no broader scope to register against, so area_wide is ignored when entity_type is "area".
 
@@ -64,7 +69,7 @@ const ACTION_CATALOG = `
 - "UNKNOWN" (args: none — couldn't map the request to an action)
 `;
 
-function buildPrompt({ activeProjectId, areas, products, projects, archivedProjects, tasks, archivedTasks, stakeholders, notes, conversationHistory, userText }) {
+function buildPrompt({ activeProjectId, areas, products, projects, archivedProjects, tasks, archivedTasks, stakeholders, departments, notes, conversationHistory, userText }) {
   return `[SYSTEM INSTRUCTIONS]
 You are the admin routing engine for a portfolio-tracking dashboard, acting on behalf of the manager using it. You have full read/write access to every object described below, including archived ones — you can answer questions about archived projects/tasks just as well as active ones.
 
@@ -85,6 +90,7 @@ Archived Projects: ${JSON.stringify(archivedProjects.map((p) => ({ id: p.id, tit
 Active Tasks: ${JSON.stringify(tasks.map((t) => ({ id: t.id, project_id: t.project_id, description: t.description, status: t.status, quadrant: t.quadrant, type: t.type, stakeholder_ids: t.stakeholder_ids })))}
 Archived Tasks: ${JSON.stringify(archivedTasks.map((t) => ({ id: t.id, project_id: t.project_id, description: t.description, status: t.status })))}
 Stakeholders: ${JSON.stringify(stakeholders.map((s) => ({ id: s.id, name: s.name, department: s.department })))}
+Departments: ${JSON.stringify(departments.map((d) => ({ id: d.id, name: d.name })))}
 Project Notes: ${JSON.stringify(notes.map((n) => ({ id: n.id, project_id: n.project_id, type: n.type, content: n.content })))}
 
 [CONVERSATION HISTORY]
@@ -273,6 +279,31 @@ async function executeAction(base44, action, args) {
       return { toolResult: { stakeholder } };
     }
 
+    case 'CREATE_DEPARTMENT': {
+      const department = await base44.entities.Department.create({ name: args.name });
+      return { toolResult: { department } };
+    }
+    case 'RENAME_DEPARTMENT': {
+      const department = await base44.entities.Department.get(args.department_id);
+      if (!department) throw new Error('Department not found');
+      const oldName = department.name;
+      const updated = await base44.entities.Department.update(args.department_id, { name: args.name });
+      if (oldName !== args.name) {
+        const members = await base44.entities.Stakeholder.filter({ department: oldName });
+        await Promise.all(members.filter((s) => !s.deleted_at).map((s) => base44.entities.Stakeholder.update(s.id, { department: args.name })));
+      }
+      return { toolResult: { department: updated } };
+    }
+    case 'DELETE_DEPARTMENT': {
+      const department = await base44.entities.Department.get(args.department_id);
+      if (!department) throw new Error('Department not found');
+      const now = new Date().toISOString();
+      const updated = await base44.entities.Department.update(args.department_id, { deleted_at: now });
+      const members = await base44.entities.Stakeholder.filter({ department: department.name });
+      await Promise.all(members.filter((s) => !s.deleted_at).map((s) => base44.entities.Stakeholder.update(s.id, { department: '' })));
+      return { toolResult: { department: updated } };
+    }
+
     case 'SET_CUSTOM_FIELD': {
       const entityMap = { project: base44.entities.Project, product: base44.entities.Product, area: base44.entities.Area };
       const entityApi = entityMap[args.entity_type];
@@ -327,13 +358,14 @@ Deno.serve(async (req) => {
     const { message, conversationHistory, activeProjectId } = body;
     if (!message) return Response.json({ error: 'message is required' }, { status: 400 });
 
-    const [areas, products, allProjects, allTasksRaw, stakeholders, notes] = await Promise.all([
+    const [areas, products, allProjects, allTasksRaw, stakeholders, notes, departments] = await Promise.all([
       base44.entities.Area.list(),
       base44.entities.Product.list(),
       base44.entities.Project.list(),
       base44.entities.Task.list(),
       base44.entities.Stakeholder.list(),
       base44.entities.ProjectNote.list(),
+      base44.entities.Department.list(),
     ]);
 
     const projects = allProjects.filter((p) => !p.is_archived && !p.deleted_at);
@@ -350,6 +382,7 @@ Deno.serve(async (req) => {
       tasks,
       archivedTasks,
       stakeholders: stakeholders.filter((s) => !s.deleted_at),
+      departments: departments.filter((d) => !d.deleted_at),
       notes,
       conversationHistory,
       userText: message,
