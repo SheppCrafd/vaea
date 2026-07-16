@@ -5,12 +5,17 @@ import { useState } from "react";
 // excluding its grey and white entries since those aren't really "pastels".
 const PASTELS = ["#86efac", "#93c5fd", "#fde68a", "#fdba74", "#fca5a5"];
 
+// FNV-1a hash — chosen over the simpler `hash*31+c` scheme because that one
+// mixes bits poorly for short strings (most first names), which made the
+// mod-5 bucket pick cluster into just one or two colors in practice instead
+// of spreading across the palette.
 function pastelForName(name) {
-  let hash = 0;
+  let hash = 0x811c9dc5;
   for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    hash ^= name.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
   }
-  return PASTELS[Math.abs(hash) % PASTELS.length];
+  return PASTELS[(hash >>> 0) % PASTELS.length];
 }
 
 function getInitials(name) {
