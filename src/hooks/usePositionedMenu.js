@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 
 // Shared mechanics for a trigger-button-driven floating menu: tracks
 // open/closed state and computes fixed { top, left } coordinates from the
@@ -19,11 +19,18 @@ export function usePositionedMenu({ closeOnScroll = false } = {}) {
   const [coords, setCoords] = useState({ top: 0, left: 0 });
   const triggerRef = useRef(null);
 
+  // Reads the trigger's *current* on-screen position. Called both on open
+  // and (below) on resize, so `coords` is always a live measurement of
+  // where the trigger actually is right now, never a one-time snapshot that
+  // can go stale.
+  const measure = useCallback(() => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    setCoords({ top: rect.bottom + 4, left: rect.left });
+  }, []);
+
   const open = () => {
-    if (triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect();
-      setCoords({ top: rect.bottom + 4, left: rect.left });
-    }
+    measure();
     setIsOpen(true);
   };
 
@@ -38,20 +45,19 @@ export function usePositionedMenu({ closeOnScroll = false } = {}) {
     return () => window.removeEventListener("scroll", handleScroll, true);
   }, [isOpen, closeOnScroll]);
 
-  // `coords` is a one-time snapshot of the trigger's position taken at
-  // open() time — nothing re-measures it afterward. A window resize (or a
-  // devtools panel/browser chrome toggle, or an OS-level display change)
-  // moves the trigger but leaves `coords` pointing at the old pixel
-  // position, so the menu visibly detaches from its trigger — sometimes
-  // clear across the page — instead of closing or re-anchoring. Closing on
-  // resize (unconditionally, unlike the opt-in `closeOnScroll`) is simplest
-  // and matches how every consumer already handles "the anchor point is no
-  // longer valid".
+  // A window resize moves the trigger, but the trigger itself is still
+  // right there, still valid — there's a real correct position to
+  // recompute, so re-measure it instead of abandoning the menu. This is the
+  // same "re-measure the live position, don't just bail" approach
+  // useWindowGeometry already uses to keep the chat panel on-screen across
+  // a resize (`clampToViewport` there, `measure` here) rather than closing
+  // it. Closing on resize was a workable stopgap but throws away a state
+  // (the open menu) that a live re-anchor can just keep working.
   useEffect(() => {
     if (!isOpen) return;
-    window.addEventListener("resize", close);
-    return () => window.removeEventListener("resize", close);
-  }, [isOpen]);
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [isOpen, measure]);
 
   return { isOpen, coords, triggerRef, open, close, toggle };
 }
