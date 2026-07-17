@@ -38,5 +38,20 @@ export function usePositionedMenu({ closeOnScroll = false } = {}) {
     return () => window.removeEventListener("scroll", handleScroll, true);
   }, [isOpen, closeOnScroll]);
 
+  // `coords` is a one-time snapshot of the trigger's position taken at
+  // open() time — nothing re-measures it afterward. A window resize (or a
+  // devtools panel/browser chrome toggle, or an OS-level display change)
+  // moves the trigger but leaves `coords` pointing at the old pixel
+  // position, so the menu visibly detaches from its trigger — sometimes
+  // clear across the page — instead of closing or re-anchoring. Closing on
+  // resize (unconditionally, unlike the opt-in `closeOnScroll`) is simplest
+  // and matches how every consumer already handles "the anchor point is no
+  // longer valid".
+  useEffect(() => {
+    if (!isOpen) return;
+    window.addEventListener("resize", close);
+    return () => window.removeEventListener("resize", close);
+  }, [isOpen]);
+
   return { isOpen, coords, triggerRef, open, close, toggle };
 }
