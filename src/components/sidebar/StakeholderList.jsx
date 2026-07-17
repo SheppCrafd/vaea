@@ -30,7 +30,7 @@ function HighlightCheckbox({ category, count, isChecked, onToggle, stakeholderNa
       title={`Highlight ${category} ${stakeholderName} is on`}
     >
       <input type="checkbox" checked={isChecked} onChange={onToggle} className="sr-only" />
-      {label} {count}
+      {label}: {count}
     </label>
   );
 }

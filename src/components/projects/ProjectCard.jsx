@@ -250,7 +250,11 @@ export default function ProjectCard({ project, stakeholderIds = [] }) {
             <div
               key={q.quadrant}
               className={`flex items-center justify-center transition-colors ${
-                q.hasFocus ? "bg-green-800 text-white font-bold" : "bg-muted/40 text-muted-foreground"
+                q.hasFocus
+                  ? "bg-green-800 text-white font-bold"
+                  : q.hasHighlightedStakeholder
+                  ? "bg-primary/25 text-foreground font-bold"
+                  : "bg-muted/40 text-muted-foreground"
               } ${q.hasHighlightedStakeholder ? "ring-2 ring-inset ring-primary" : ""}`}
             >
               {q.count}

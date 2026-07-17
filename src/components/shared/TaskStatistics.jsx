@@ -32,7 +32,7 @@ export default function TaskStatistics({ tasks = [] }) {
         {activeStats.map((item) => (
           <div
             key={item.key}
-            className={`h-full ${item.key === "NOT_STARTED" ? "border border-black" : ""}`}
+            className="h-full"
             style={{ width: `${(item.count / total) * 100}%`, backgroundColor: item.color }}
             title={`${item.label}: ${item.count}`}
           />
@@ -43,10 +43,7 @@ export default function TaskStatistics({ tasks = [] }) {
       <div className="flex flex-wrap gap-x-2.5 gap-y-1 mt-0.5">
         {activeStats.map((item) => (
           <div key={item.key} className="flex items-center gap-1">
-            <span
-              className={`w-1.5 h-1.5 rounded-full ${item.key === "NOT_STARTED" ? "border border-black" : ""}`}
-              style={{ backgroundColor: item.color }}
-            />
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: item.color }} />
             <span className="text-[9px] text-muted-foreground whitespace-nowrap">
               {item.label}: {item.count}
             </span>

@@ -62,7 +62,7 @@ export const STATUS_BUCKETS = [
 ];
 
 // Literal, theme-independent colors — the spec calls for specific colors per
-// status ("dark grey", "white...with a thin black border"), not
+// status ("dark grey" for Blocked, black for No-status), not
 // surface-adaptive theme tokens. Shared so any consumer needing the same
 // color (e.g. a card face echoing "pending feedback" orange) has one source
 // of truth instead of a duplicated hex.
@@ -73,7 +73,7 @@ export const STATUS_COLORS = {
   BLOCKED: "#4B5563",
   PENDING_FEEDBACK: "#FDBA74",
   ON_HOLD: "#FCA5A5",
-  NOT_STARTED: "#FFFFFF",
+  NOT_STARTED: "#000000",
 };
 
 export function getStatusCounts(tasks = []) {
