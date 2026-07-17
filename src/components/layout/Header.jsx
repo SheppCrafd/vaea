@@ -19,7 +19,7 @@ export default function Header({ isLeftSidebarOpen, onToggleLeftSidebar, isRight
           
           {isLeftSidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
         </button>
-        <span className="text-lg tracking-tight font-bold [font-family:'Righteous',_system-ui]">Portfolio Tracker</span>
+        <span className="text-lg tracking-tight font-bold [font-family:'JetBrains_Mono',_monospace]">Portfolio Tracker</span>
       </div>
       <div className="flex items-center gap-2">
         <Button onClick={() => openCreateModal("task")} className="gap-2">
