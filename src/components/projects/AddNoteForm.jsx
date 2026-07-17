@@ -29,7 +29,7 @@ export default function AddNoteForm({ projectId, allStakeholders = [], defaultTy
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-2 bg-secondary/20 border border-dashed border-border rounded-lg p-3 mt-2">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-2 bg-secondary/20 border border-border rounded-lg p-3 mt-2">
       <div className="flex items-center gap-2">
         {allowedTypes.length > 1 && (
           <select

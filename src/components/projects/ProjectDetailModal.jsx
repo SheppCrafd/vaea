@@ -178,7 +178,7 @@ export default function ProjectDetailModal({ project, onClose }) {
                 </div>
 
                 {departments.length === 0 ? (
-                  <p className="text-sm text-muted-foreground bg-secondary/20 p-3 rounded-lg border border-dashed border-border text-center">No stakeholders assigned yet.</p>
+                  <p className="text-sm text-muted-foreground bg-secondary/20 p-3 rounded-lg border border-border text-center">No stakeholders assigned yet.</p>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {departments.map((dept) => {
@@ -233,7 +233,7 @@ export default function ProjectDetailModal({ project, onClose }) {
                 />
               </div>
               {(project.related_product_ids || []).length === 0 ? (
-                <p className="text-sm text-muted-foreground bg-secondary/20 p-3 rounded-lg border border-dashed border-border text-center">
+                <p className="text-sm text-muted-foreground bg-secondary/20 p-3 rounded-lg border border-border text-center">
                   Not linked to any other products yet.
                 </p>
               ) : (

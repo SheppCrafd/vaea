@@ -96,7 +96,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], pro
 
       <div 
         ref={setNodeRef}
-        className={`mt-2 p-4 border border-dashed rounded-lg transition-colors ${isOver ? "bg-primary/10 border-primary" : "border-border bg-muted/30"}`}
+        className={`mt-2 p-4 border rounded-lg transition-colors ${isOver ? "bg-primary/10 border-primary" : "border-border bg-muted/30"}`}
       >
         <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
           Direct Projects

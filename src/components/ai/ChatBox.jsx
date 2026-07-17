@@ -62,7 +62,7 @@ export default function ChatBox({ activeProjectId }) {
         <div
           ref={containerRef}
           style={{ position: "fixed", left: geometry.x, top: geometry.y, width: geometry.width, height: geometry.height }}
-          className="z-50 font-sans bg-card border border-border shadow-2xl rounded-2xl flex flex-col overflow-hidden animate-in fade-in duration-150 transition-none"
+          className="z-[110] font-sans bg-card border border-border shadow-2xl rounded-2xl flex flex-col overflow-hidden animate-in fade-in duration-150 transition-none"
         >
           <ChatResizeHandles startResize={startResize} />
 
@@ -161,7 +161,7 @@ export default function ChatBox({ activeProjectId }) {
         <button
           ref={containerRef}
           onClick={() => setIsChatOpen(true)}
-          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
+          className="fixed bottom-6 right-6 z-[110] w-14 h-14 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
         >
           <ChatIcon iconChoice={chat.iconChoice} className="w-6 h-6" />
         </button>

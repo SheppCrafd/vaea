@@ -118,7 +118,7 @@ export default function CustomFieldsSection({
       )}
 
       {isAdding && (
-        <form onSubmit={handleAdd} className="flex flex-col gap-2 bg-secondary/20 border border-dashed border-border rounded-lg p-3">
+        <form onSubmit={handleAdd} className="flex flex-col gap-2 bg-secondary/20 border border-border rounded-lg p-3">
           <div className="flex items-center gap-2">
             <input
               value={label}

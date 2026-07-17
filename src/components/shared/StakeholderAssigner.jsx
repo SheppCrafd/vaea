@@ -42,7 +42,7 @@ export default function StakeholderAssigner({
       >
         {showAddIcon ? (
           <div className="flex items-center gap-1.5 text-muted-foreground">
-            <div className="w-6 h-6 shrink-0 rounded-full bg-secondary border border-dashed border-border flex items-center justify-center">
+            <div className="w-6 h-6 shrink-0 rounded-full bg-secondary border border-border flex items-center justify-center">
               <Plus className="w-3 h-3" />
             </div>
             {label && <span className="text-xs whitespace-nowrap">{label}</span>}

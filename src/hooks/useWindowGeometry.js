@@ -52,6 +52,9 @@ export function useWindowGeometry() {
   const dragRef = useRef(null);
 
   useEffect(() => {
+    // Clamped in real time (not just at drag-end) so the panel can never be
+    // dragged or resized fully off-screen even mid-gesture — it just stops
+    // at the edge instead of continuing to follow the cursor past it.
     const handleMove = (e) => {
       const drag = dragRef.current;
       if (!drag) return;
@@ -59,7 +62,7 @@ export function useWindowGeometry() {
       const dy = e.clientY - drag.startY;
 
       if (drag.mode === "move") {
-        setGeometry({ ...drag.start, x: drag.start.x + dx, y: drag.start.y + dy });
+        setGeometry(clampToViewport({ ...drag.start, x: drag.start.x + dx, y: drag.start.y + dy }));
         return;
       }
 
@@ -74,7 +77,7 @@ export function useWindowGeometry() {
         height = Math.max(MIN_HEIGHT, drag.start.height - dy);
         y = drag.start.y + (drag.start.height - height);
       }
-      setGeometry({ x, y, width, height });
+      setGeometry(clampToViewport({ x, y, width, height }));
     };
 
     const handleUp = () => {

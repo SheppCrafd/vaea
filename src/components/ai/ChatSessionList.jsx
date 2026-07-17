@@ -1,8 +1,10 @@
 import Portal from "@/lib/Portal";
 import { useChatSessions } from "@/hooks/useChatSessions";
 import ChatSessionRow from "@/components/ai/ChatSessionRow";
+import { clampPositionToViewport } from "@/lib/viewportClamp";
 
 const POPOVER_WIDTH = 256; // w-64
+const MAX_HEIGHT = 384; // max-h-96
 const GAP = 12;
 
 // The "<" caret under the chat icon pops this card out to the left of the
@@ -13,8 +15,12 @@ const GAP = 12;
 export default function ChatSessionList({ activeSessionId, onSelect, onNewChat, onClose, onDeleted, anchor }) {
   const { data: sessions = [] } = useChatSessions();
 
-  const left = Math.max(8, anchor.x - POPOVER_WIDTH - GAP);
-  const top = Math.min(Math.max(8, anchor.y), window.innerHeight - 400);
+  const { top, left } = clampPositionToViewport({
+    top: anchor.y,
+    left: anchor.x - POPOVER_WIDTH - GAP,
+    width: POPOVER_WIDTH,
+    height: MAX_HEIGHT,
+  });
 
   return (
     <Portal>
