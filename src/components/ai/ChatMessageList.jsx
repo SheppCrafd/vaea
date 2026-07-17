@@ -14,14 +14,13 @@ export default function ChatMessageList({ messages, isComputing, iconChoice, has
   };
 
   // Always scrolls to the bottom on a new message (user's own or the
-  // assistant's reply) — deliberately keyed only on `messages.length`, not
-  // `isComputing`, so the loading animation appearing/disappearing never
-  // triggers a scroll on its own.
+  // assistant's reply) and also when the "thinking" animation appears, so
+  // it's never left out of view above the fold while the assistant works.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
-  }, [messages.length]);
+  }, [messages.length, isComputing]);
 
   return (
     <div

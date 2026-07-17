@@ -208,6 +208,5 @@ export function useChatController({ activeProjectId } = {}) {
     handleSend,
     handleConfirm,
     handleCancel,
-    triggerAnimation: isComputing ? "chat-icon-computing" : "",
   };
 }

@@ -84,7 +84,7 @@ export default function ChatPage() {
           <button
             ref={chat.iconPicker.triggerRef}
             onClick={chat.iconPicker.toggle}
-            className={`flex items-center gap-2 ${chat.triggerAnimation}`}
+            className="flex items-center gap-2"
             aria-label="Choose chat icon"
           >
             <ChatIcon iconChoice={chat.iconChoice} className="w-5 h-5" />

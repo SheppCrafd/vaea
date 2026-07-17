@@ -74,7 +74,7 @@ export default function ChatBox({ activeProjectId }) {
               <button
                 ref={chat.iconPicker.triggerRef}
                 onClick={chat.iconPicker.toggle}
-                className={`flex items-center gap-2 ${chat.triggerAnimation}`}
+                className="flex items-center gap-2"
                 aria-label="Choose chat icon"
               >
                 <ChatIcon iconChoice={chat.iconChoice} className="w-5 h-5" />
@@ -161,7 +161,7 @@ export default function ChatBox({ activeProjectId }) {
         <button
           ref={containerRef}
           onClick={() => setIsChatOpen(true)}
-          className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 ${chat.triggerAnimation}`}
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
         >
           <ChatIcon iconChoice={chat.iconChoice} className="w-6 h-6" />
         </button>
