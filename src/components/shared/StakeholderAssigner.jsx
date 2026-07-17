@@ -6,7 +6,16 @@ import Avatar from "@/components/shared/Avatar";
 export default function StakeholderAssigner({
   currentStakeholderIds = [],
   allStakeholders = [],
-  onSave
+  onSave,
+  // Always render the plain "+" trigger, never the avatar stack — for
+  // contexts (like the Project Stakeholders modal header) that already show
+  // a full avatar breakdown elsewhere, where repeating it on the trigger
+  // itself is redundant. Purely visual: the trigger still opens the exact
+  // same assign dropdown either way.
+  forceAddIcon = false,
+  // Optional text next to the "+" icon, for standalone contexts where a bare
+  // plus is ambiguous among several other icon-only buttons.
+  label,
 }) {
   const { isOpen, coords, triggerRef, toggle, close } = usePositionedMenu({ closeOnScroll: true });
 
@@ -20,19 +29,23 @@ export default function StakeholderAssigner({
 
   // Safe subset for rendering the mini-avatars
   const assigned = allStakeholders.filter(s => currentStakeholderIds.includes(s.id));
+  const showAddIcon = forceAddIcon || assigned.length === 0;
 
   return (
     <>
-      {/* TRIGGER: The Avatar Stack (or a Plus button if empty) */}
+      {/* TRIGGER: The Avatar Stack, or a Plus button if empty/forced */}
       <div
         ref={triggerRef}
         className="flex items-center cursor-pointer hover:opacity-80 transition-opacity min-h-[24px] min-w-[24px]"
         onClick={toggle}
         title="Assign Stakeholders"
       >
-        {assigned.length === 0 ? (
-          <div className="w-6 h-6 rounded-full bg-secondary border border-dashed border-border flex items-center justify-center text-muted-foreground">
-            <Plus className="w-3 h-3" />
+        {showAddIcon ? (
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <div className="w-6 h-6 shrink-0 rounded-full bg-secondary border border-dashed border-border flex items-center justify-center">
+              <Plus className="w-3 h-3" />
+            </div>
+            {label && <span className="text-xs whitespace-nowrap">{label}</span>}
           </div>
         ) : (
           <div className="flex pl-2">

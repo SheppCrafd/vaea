@@ -32,15 +32,11 @@ export default function ProductCard({ product }) {
 
   const { setNodeRef, isOver } = useDroppable({ id: product.id, data: { type: "product", id: product.id } });
 
-  // Mirrors the Area-level aggregation: a Product's own stakeholder_ids
-  // alone isn't enough to decide whether it should dim, since a stakeholder
-  // is just as often assigned directly to one of its projects as to the
-  // product itself.
-  const productStakeholderIds = [
-    ...(product.stakeholder_ids || []),
-    ...projects.flatMap((p) => p.stakeholder_ids || []),
-  ];
-  const isMatched = useHighlightMatch(productStakeholderIds, ["projects", "products"]);
+  // Only the Product's own direct stakeholders, only the "products"
+  // category — a match shouldn't cascade up from a child Project's own
+  // highlight, per direct feedback that only the actual matching card
+  // should visually react, not everything containing it.
+  const isMatched = useHighlightMatch(product.stakeholder_ids || [], "products");
 
   const projectIds = projects.map((p) => p.id);
   const productTasks = allTasks.filter((t) => projectIds.includes(t.project_id));

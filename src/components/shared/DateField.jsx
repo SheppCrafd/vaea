@@ -10,7 +10,7 @@ import { useDateSelector } from "@/hooks/useDateSelector";
 // same property, since precedence follows generated CSS order, not the
 // order classes appear in the string.
 export default function DateField({ value, onSave, className = "", unstyled = false, ...props }) {
-  const { date, handleChange } = useDateSelector(value, onSave);
+  const { date, handleChange, handleBlur, handleKeyDown } = useDateSelector(value, onSave);
 
   const base = unstyled
     ? "outline-none"
@@ -21,6 +21,8 @@ export default function DateField({ value, onSave, className = "", unstyled = fa
       type="date"
       value={date}
       onChange={handleChange}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
       className={`${base} ${className}`}
       {...props}
     />

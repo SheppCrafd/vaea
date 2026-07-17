@@ -25,11 +25,13 @@ import { sanitizeHttpUrl } from "@/lib/entityUtils";
 import { filterActiveTasks, getQuadrantCounts, isTaskDone, STATUS_COLORS } from "@/lib/taskUtils";
 import { getDueDateColorClass, DUE_DATE_STATUS_OPTIONS, METRIC_FIELDS } from "@/lib/projectUtils";
 
-// Small quick-add box for a single ProjectNote type (Risk / Open Question) —
-// tints once populated instead of always, and the type selector is gone
-// entirely since each box is already typed by which box it is; adding is
-// just a bare input + "+" button.
-function NoteBox({ title, notes, allStakeholders, tintStyle, placeholder, onAdd }) {
+// Small quick-add box for a single ProjectNote type (Risk / Open Question /
+// Notes) — tints once populated instead of always, and the type selector is
+// gone entirely since each box is already typed by which box it is. Submits
+// on Enter; the "+" button is only shown when `showButton` is set (Risks and
+// Open Questions rely on Enter alone — the general Notes box keeps a click
+// affordance too, matching AddNoteForm's modal equivalent).
+function NoteBox({ title, notes, allStakeholders, tintStyle, placeholder, onAdd, showButton = false }) {
   const [text, setText] = useState("");
   const submit = () => {
     if (!text.trim()) return;
@@ -50,9 +52,11 @@ function NoteBox({ title, notes, allStakeholders, tintStyle, placeholder, onAdd 
           placeholder={placeholder}
           className="flex-1 min-w-0 text-[10px] bg-transparent outline-none text-left placeholder:text-muted-foreground/60"
         />
-        <button type="button" onClick={submit} aria-label={`Add ${title}`} className="shrink-0 text-muted-foreground hover:text-primary">
-          <Plus className="w-3 h-3" />
-        </button>
+        {showButton && (
+          <button type="button" onClick={submit} aria-label={`Add ${title}`} className="shrink-0 text-muted-foreground hover:text-primary">
+            <Plus className="w-3 h-3" />
+          </button>
+        )}
       </div>
       <ProjectNotes notes={notes} allStakeholders={allStakeholders} />
     </div>
@@ -79,21 +83,23 @@ function LinksCorner({ links, onSave }) {
   const removeLink = (index) => onSave(links.filter((_, i) => i !== index));
 
   return (
-    <div className="absolute bottom-1.5 right-1.5 z-20 flex items-center gap-1">
+    <div className="absolute bottom-1.5 right-1.5 z-20 flex flex-wrap items-center justify-end gap-1 max-w-[95%]">
       {links.map((l, i) => (
         <a
           key={i}
           href={l.url}
           target="_blank"
           rel="noreferrer"
-          title={l.label}
-          className="text-muted-foreground hover:text-primary"
+          title={l.url}
+          className="flex items-center gap-1 max-w-[120px] text-[10px] text-primary hover:underline bg-secondary/40 rounded px-1.5 py-0.5"
         >
-          <Link2 className="w-3 h-3" />
+          <Link2 className="w-2.5 h-2.5 shrink-0" />
+          <span className="truncate">{l.label}</span>
         </a>
       ))}
-      <button ref={triggerRef} type="button" onClick={toggle} aria-label="Add link" className="text-muted-foreground hover:text-primary">
+      <button ref={triggerRef} type="button" onClick={toggle} className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary shrink-0">
         <Plus className="w-3 h-3" />
+        Add Links
       </button>
       {isOpen && (
         <Portal>
@@ -156,10 +162,10 @@ export default function ProjectCard({ project, stakeholderIds = [] }) {
   // parent product/area actually included them. Fall back on empty length
   // instead of truthiness.
   const cardStakeholderIds = (project.stakeholder_ids?.length ? project.stakeholder_ids : stakeholderIds) || [];
-  // Reacts to both the "projects" and "products" checkbox categories — a
-  // project card must not stay untinted while a matching parent-product
-  // highlight lights it up via the fallback above, or vice versa.
-  const isMatched = useHighlightMatch(cardStakeholderIds, ["projects", "products"]);
+  // Only the "projects" category — a Product-level highlight match should
+  // not also light up the projects inside it, per direct feedback that only
+  // the actual matching card should visually react, not its ancestors.
+  const isMatched = useHighlightMatch(cardStakeholderIds, "projects");
   const { highlights } = useHighlight();
 
   const { data: tasks = [] } = useTasks(project.id);
@@ -325,6 +331,7 @@ export default function ProjectCard({ project, stakeholderIds = [] }) {
             currentStakeholderIds={project.stakeholder_ids || []}
             allStakeholders={allStakeholders}
             onSave={(newIds) => updateProject.mutate({ id: project.id, data: { stakeholder_ids: newIds } })}
+            label="Add Stakeholders"
           />
         </div>
       </div>
@@ -365,6 +372,7 @@ export default function ProjectCard({ project, stakeholderIds = [] }) {
           tintStyle={{}}
           placeholder="Add a note and press Enter..."
           onAdd={(text) => addNote("NOTE", text)}
+          showButton
         />
       </div>
 

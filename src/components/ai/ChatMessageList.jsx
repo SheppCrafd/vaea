@@ -1,10 +1,10 @@
 import { useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
-import { Loader2 } from "lucide-react";
+import ChatIcon from "@/components/ai/ChatIcon";
 
 // Renders the message list. Scrolling is plain native browser scrolling —
 // lazy-loads older messages as the user scrolls near the top.
-export default function ChatMessageList({ messages, isComputing, hasMore, onLoadMore, resolvingId, onConfirm, onCancel }) {
+export default function ChatMessageList({ messages, isComputing, iconChoice, hasMore, onLoadMore, resolvingId, onConfirm, onCancel }) {
   const containerRef = useRef(null);
 
   const handleScroll = () => {
@@ -13,13 +13,14 @@ export default function ChatMessageList({ messages, isComputing, hasMore, onLoad
     if (el.scrollTop < 40 && hasMore) onLoadMore();
   };
 
+  // Always scrolls to the bottom on a new message (user's own or the
+  // assistant's reply) — deliberately keyed only on `messages.length`, not
+  // `isComputing`, so the loading animation appearing/disappearing never
+  // triggers a scroll on its own.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    // Stay pinned to the bottom on new messages, unless the user has
-    // scrolled up to read history.
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
-    if (nearBottom) el.scrollTop = el.scrollHeight;
+    el.scrollTop = el.scrollHeight;
   }, [messages.length]);
 
   return (
@@ -37,7 +38,9 @@ export default function ChatMessageList({ messages, isComputing, hasMore, onLoad
       {messages.map((m) => (
         <div key={m.id} className={m.role === "user" ? "text-right" : ""}>
           <div className={`inline-block rounded-lg px-3 py-1.5 max-w-[85%] text-left ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground shadow-sm"}`}>
-            <ReactMarkdown>{m.content}</ReactMarkdown>
+            <div className="chat-message-content">
+              <ReactMarkdown>{m.content}</ReactMarkdown>
+            </div>
           </div>
           {m.pending_action && (
             <div className="mt-1.5 flex gap-2 justify-start">
@@ -63,8 +66,7 @@ export default function ChatMessageList({ messages, isComputing, hasMore, onLoad
       {isComputing && (
         <div className="flex justify-start">
           <div className="inline-block rounded-lg px-3 py-1.5 bg-secondary text-secondary-foreground shadow-sm flex items-center gap-2">
-            <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
-            <span className="text-xs text-muted-foreground">Operating Dashboard...</span>
+            <ChatIcon iconChoice={iconChoice} className="w-4 h-4 text-primary chat-icon-computing" />
           </div>
         </div>
       )}

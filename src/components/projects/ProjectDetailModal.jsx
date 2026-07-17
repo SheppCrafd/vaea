@@ -19,7 +19,6 @@ import ProductAssigner from "@/components/shared/ProductAssigner";
 import CustomFieldsSection from "@/components/shared/CustomFieldsSection";
 import DateField from "@/components/shared/DateField";
 import { DUE_DATE_STATUS_OPTIONS, METRIC_FIELDS } from "@/lib/projectUtils";
-import { STATUS_COLORS } from "@/lib/taskUtils";
 
 export default function ProjectDetailModal({ project, onClose }) {
   const { data: notes = [] } = useProjectNotes(project.id);
@@ -138,9 +137,11 @@ export default function ProjectDetailModal({ project, onClose }) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* Risks and Open Questions are separate ProjectNote types, each
-                  its own section — a box only tints once it's populated (see
-                  matching treatment on ProjectCard). */}
-              <div className={`rounded-lg p-3 border transition-colors ${riskNotes.length > 0 ? "bg-destructive/5 border-destructive/15" : "border-transparent"}`}>
+                  its own plain section — matching every other section in this
+                  modal (Objective, Notes, Stakeholders, ...), none of which
+                  are boxed/tinted. The tint-when-populated treatment lives on
+                  the compact ProjectCard face, not here. */}
+              <div>
                 <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Risks</p>
                 <ProjectNotes notes={riskNotes} allStakeholders={allStakeholders} />
                 <AddNoteForm
@@ -150,10 +151,7 @@ export default function ProjectDetailModal({ project, onClose }) {
                   allowedTypes={["RISK"]}
                 />
               </div>
-              <div
-                className="rounded-lg p-3 border transition-colors"
-                style={questionNotes.length > 0 ? { backgroundColor: `${STATUS_COLORS.PENDING_FEEDBACK}1A`, borderColor: `${STATUS_COLORS.PENDING_FEEDBACK}4D` } : undefined}
-              >
+              <div>
                 <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Open Questions</p>
                 <ProjectNotes notes={questionNotes} allStakeholders={allStakeholders} />
                 <AddNoteForm
@@ -174,6 +172,8 @@ export default function ProjectDetailModal({ project, onClose }) {
                     currentStakeholderIds={project.stakeholder_ids || []}
                     allStakeholders={allStakeholders}
                     onSave={(newIds) => updateProject.mutate({ id: project.id, data: { stakeholder_ids: newIds } })}
+                    forceAddIcon
+                    label="Add Stakeholders"
                   />
                 </div>
 
@@ -212,11 +212,7 @@ export default function ProjectDetailModal({ project, onClose }) {
 
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Notes</p>
-                {generalNotes.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No notes yet.</p>
-                ) : (
-                  <ProjectNotes notes={generalNotes} allStakeholders={allStakeholders} />
-                )}
+                <ProjectNotes notes={generalNotes} allStakeholders={allStakeholders} />
                 <AddNoteForm
                   projectId={project.id}
                   allStakeholders={allStakeholders}

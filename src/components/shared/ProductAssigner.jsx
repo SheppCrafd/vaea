@@ -35,7 +35,7 @@ export default function ProductAssigner({
         className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-secondary text-secondary-foreground hover:opacity-80 transition-opacity"
       >
         <Link2 className="w-3 h-3" />
-        {linked.length === 0 ? "Link products" : `${linked.length} linked`}
+        {linked.length === 0 ? "Connect Products" : `${linked.length} connected`}
       </button>
 
       {isOpen && (

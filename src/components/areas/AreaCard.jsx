@@ -3,15 +3,19 @@ import { useDroppable } from "@dnd-kit/core";
 import { useUpdateArea, useDeleteArea } from "@/hooks/useAreas";
 import { useAllTasks } from "@/hooks/useTasks";
 import { useEditableField } from "@/hooks/useEditableField";
-import { useHighlightMatch } from "@/hooks/useHighlightDim";
 import { confirmThen } from "@/lib/entityUtils";
 import EditableText from "@/components/shared/EditableText";
 import ProductCard from "@/components/products/ProductCard";
 import ProjectCard from "@/components/projects/ProjectCard";
 import TaskStatistics from "@/components/shared/TaskStatistics";
 
+// `stakeholderIds` (the full aggregated subtree, from Dashboard.jsx) is only
+// used here to pass down to orphan ProjectCards as their empty-project
+// fallback — the Area card itself never tints on a highlight match. There's
+// no "areas" checkbox category, and per direct feedback a match shouldn't
+// cascade upward through every ancestor of the card that actually matches;
+// only that one card (e.g. the specific Project) should visually react.
 export default function AreaCard({ area, products = [], orphanProjects = [], productCount, onExpand, stakeholderIds = [] }) {
-  const isMatched = useHighlightMatch(stakeholderIds, ["projects", "products"]);
   const updateArea = useUpdateArea();
   const deleteArea = useDeleteArea();
 
@@ -39,7 +43,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], pro
   const areaTasks = allTasks.filter((t) => areaProjectIds.includes(t.project_id));
 
   return (
-    <article className={`relative z-10 bg-card border border-border rounded-xl p-5 break-inside-avoid flex flex-col gap-4 ${isMatched ? "bg-primary/10 ring-1 ring-primary/30" : ""}`}>
+    <article className="relative z-10 bg-card border border-border rounded-xl p-5 break-inside-avoid flex flex-col gap-4">
       
       <div className="relative">
         <div className="absolute top-0 right-0 flex items-center gap-1 z-20">

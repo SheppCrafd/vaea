@@ -96,6 +96,7 @@ export default function ChatPage() {
           <ChatMessageList
             messages={chat.chatState.messages}
             isComputing={chat.isComputing}
+            iconChoice={chat.iconChoice}
             hasMore={chat.chatState.hasMore}
             onLoadMore={chat.chatState.loadMore}
             resolvingId={chat.resolvingId}

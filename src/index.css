@@ -117,3 +117,52 @@
 .chat-launch-pulse {
   animation: chat-launch-pulse 2s ease-in-out infinite;
 }
+
+/* Spin up into a full rotation, wind down to a stop, then do it again — the
+   "thinking" animation for the chat icon while the assistant is computing.
+   Each moving segment gets its own ease-in-out so it visibly accelerates
+   then decelerates into the pause, rather than spinning at a constant rate. */
+@keyframes chat-icon-computing {
+  0%   { transform: rotate(0deg);   animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  38%  { transform: rotate(360deg); animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  50%  { transform: rotate(360deg); animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  88%  { transform: rotate(720deg); animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  100% { transform: rotate(720deg); }
+}
+
+.chat-icon-computing {
+  animation: chat-icon-computing 2.2s infinite;
+}
+
+/* Cascading fade-in for a chat message's rendered markdown — each top-level
+   block (paragraph, heading, list) and each list item fades/lifts in a beat
+   after the previous one, reading as a "line by line" reveal. */
+@keyframes chat-fade-in-line {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.chat-message-content > * {
+  opacity: 0;
+  animation: chat-fade-in-line 0.35s ease forwards;
+}
+.chat-message-content > *:nth-child(1) { animation-delay: 0ms; }
+.chat-message-content > *:nth-child(2) { animation-delay: 80ms; }
+.chat-message-content > *:nth-child(3) { animation-delay: 160ms; }
+.chat-message-content > *:nth-child(4) { animation-delay: 240ms; }
+.chat-message-content > *:nth-child(5) { animation-delay: 320ms; }
+.chat-message-content > *:nth-child(6) { animation-delay: 400ms; }
+.chat-message-content > *:nth-child(7) { animation-delay: 480ms; }
+.chat-message-content > *:nth-child(n+8) { animation-delay: 560ms; }
+
+.chat-message-content li {
+  opacity: 0;
+  animation: chat-fade-in-line 0.35s ease forwards;
+}
+.chat-message-content li:nth-child(1) { animation-delay: 0ms; }
+.chat-message-content li:nth-child(2) { animation-delay: 70ms; }
+.chat-message-content li:nth-child(3) { animation-delay: 140ms; }
+.chat-message-content li:nth-child(4) { animation-delay: 210ms; }
+.chat-message-content li:nth-child(5) { animation-delay: 280ms; }
+.chat-message-content li:nth-child(6) { animation-delay: 350ms; }
+.chat-message-content li:nth-child(n+7) { animation-delay: 420ms; }
