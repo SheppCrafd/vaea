@@ -58,7 +58,7 @@ export default function ChatBox({ activeProjectId }) {
         <div
           ref={containerRef}
           style={{ position: "fixed", left: geometry.x, top: geometry.y, width: geometry.width, height: geometry.height }}
-          className="z-50 font-sans bg-card border border-border shadow-2xl rounded-2xl flex flex-col overflow-hidden animate-in fade-in duration-150"
+          className="z-50 font-sans bg-card border border-border shadow-2xl rounded-2xl flex flex-col overflow-hidden animate-in fade-in duration-150 transition-none"
         >
           <ChatResizeHandles startResize={startResize} />
 
