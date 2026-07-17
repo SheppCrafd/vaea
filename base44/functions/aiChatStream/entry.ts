@@ -69,6 +69,29 @@ const ACTION_CATALOG = `
 - "UNKNOWN" (args: none — couldn't map the request to an action)
 `;
 
+// Mirrors the client's "/" autocomplete list in src/lib/chatCommands.js —
+// kept in sync by hand since the two live in different runtimes (this file
+// runs as a Deno function, the client list is a bundled frontend module).
+const SLASH_COMMAND_GUIDE = `
+[SLASH COMMAND SHORTHANDS]
+The chat composer offers "/" autocomplete for these one-word commands. If [LATEST USER MESSAGE] starts with one of them, treat the text after the command word as its argument and map it to the action below — resolve ids from [GLOBAL DATABASE STATE] as usual, and only ask a follow-up question if something required genuinely can't be resolved (e.g. no active project, an ambiguous task name).
+
+- "/task <description>" → CREATE_TASK on the Active Project ID
+- "/project <title>" → CREATE_PROJECT
+- "/product <title>" → CREATE_PRODUCT
+- "/area <title>" → CREATE_AREA
+- "/note <text>" → CREATE_NOTE, type "NOTE", on the Active Project ID
+- "/risk <text>" → CREATE_NOTE, type "RISK", on the Active Project ID
+- "/question <text>" → CREATE_NOTE, type "QUESTION", on the Active Project ID
+- "/stakeholder <name>" → CREATE_STAKEHOLDER
+- "/status <task, new status>" → UPDATE_TASK_STATUS
+- "/top3 <task>" → TOGGLE_TOP_THREE
+- "/focus <task>" → TOGGLE_WEEKLY_FOCUS
+- "/help" (no argument) → "CHAT_ONLY" — reply with exactly these 12 commands as a markdown list, each with its one-line description
+
+If [LATEST USER MESSAGE] starts with a "/" word that is NOT one of the commands above, ignore the slash — do not invent or guess an action for it. Respond with "CHAT_ONLY" (or "UNKNOWN" if there's truly nothing to say).
+`;
+
 function buildPrompt({ activeProjectId, areas, products, projects, archivedProjects, tasks, archivedTasks, stakeholders, departments, notes, conversationHistory, userText }) {
   return `[SYSTEM INSTRUCTIONS]
 You are the admin routing engine for a portfolio-tracking dashboard, acting on behalf of the manager using it. You have full read/write access to every object described below, including archived ones — you can answer questions about archived projects/tasks just as well as active ones.
@@ -81,6 +104,7 @@ ATTACHMENTS: if [LATEST USER MESSAGE] contains a line like "[Attached: filename]
 
 FIELDS MARKED "full replacement array": when an action arg is documented as a full replacement array (stakeholder_ids, related_product_ids, attachments, links), you must include the COMPLETE desired array, not just the item being added or removed — look up the entity's current value in [GLOBAL DATABASE STATE] first and merge/modify it yourself before sending the action.
 ${ACTION_CATALOG}
+${SLASH_COMMAND_GUIDE}
 [GLOBAL DATABASE STATE]
 Active Project ID (if the user is chatting from within a specific project): ${activeProjectId || 'None'}
 Areas: ${JSON.stringify(areas.map((a) => ({ id: a.id, title: a.title, description: a.description })))}

@@ -1,12 +1,14 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft, Plus, Paperclip, PanelLeftClose, PanelLeft } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useChatController } from "@/hooks/useChatController";
 import { useChatSessions } from "@/hooks/useChatSessions";
+import { useSlashCommand } from "@/hooks/useSlashCommand";
 import ChatIcon from "@/components/ai/ChatIcon";
 import ChatIconPicker from "@/components/ai/ChatIconPicker";
 import ChatMessageList from "@/components/ai/ChatMessageList";
 import ChatSessionRow from "@/components/ai/ChatSessionRow";
+import ChatCommandMenu from "@/components/ai/ChatCommandMenu";
 
 // Full-page chat — a dedicated /chat route (outside the dashboard's AppShell
 // chrome entirely) laid out like a standalone chat app: a persistent session
@@ -18,6 +20,8 @@ export default function ChatPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const chat = useChatController({});
   const { data: sessions = [] } = useChatSessions();
+  const messageInputRef = useRef(null);
+  const slashCommand = useSlashCommand(chat.input, chat.setInput);
 
   return (
     <div className="h-screen flex overflow-hidden bg-background">
@@ -119,11 +123,14 @@ export default function ChatPage() {
             </button>
             <input ref={chat.fileInputRef} type="file" onChange={chat.handleFileChange} className="hidden" />
             <input
+              ref={messageInputRef}
               value={chat.input}
               onChange={(e) => chat.setInput(e.target.value)}
+              onKeyDown={slashCommand.handleKeyDown}
               placeholder="Message PM Copilot..."
               className="flex-1 text-sm px-4 py-3 bg-card border border-input rounded-xl outline-none focus:ring-1 focus:ring-primary/50 transition-all"
               disabled={chat.isComputing}
+              autoComplete="off"
               autoFocus
             />
             <button
@@ -133,6 +140,15 @@ export default function ChatPage() {
             >
               Send
             </button>
+            {slashCommand.isOpen && (
+              <ChatCommandMenu
+                inputRef={messageInputRef}
+                matches={slashCommand.matches}
+                activeIndex={slashCommand.activeIndex}
+                onHover={slashCommand.setActiveIndex}
+                onSelect={slashCommand.applyCommand}
+              />
+            )}
           </form>
         </div>
       </div>

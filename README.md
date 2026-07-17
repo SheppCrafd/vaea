@@ -20,8 +20,31 @@ Each level is rendered as a card, nested inside its parent's card, so the dashbo
 - **Create New / Filter** — a single entry point to create a Task, Project, Product, or Area, plus filtering by area/product/project.
 - **Right sidebar** — Today's Top 3, this week's focus items grouped by project, and a horizontal bar chart of task status counts per project.
 - **Left sidebar** — stakeholders grouped by department, with per-category (tasks/notes/projects/products) counts that toggle a highlight/dim treatment across the dashboard.
-- **AI chat assistant** — a floating chat widget (and a full `/chat` page) backed by a streaming LLM function that can create/update tasks, projects, products, and areas, add notes, mark focus items, and answer questions about your data, including archived items.
+- **AI chat assistant** — a floating chat widget (and a full `/chat` page) backed by a streaming LLM function that can create/update tasks, projects, products, and areas, add notes, mark focus items, and answer questions about your data, including archived items. The widget is a real draggable/resizable window (drag the header to move it, drag any edge or corner to resize) and remembers its position and size between sessions.
 - **Archive view** — a date-range view of everything that was active during that window, including archived projects/tasks, which remain fully editable and can be restored.
+
+### In-chat commands
+
+Typing `/` as the first character of a chat message opens a command menu. Keep typing letters to filter it; the menu closes the moment you type anything that isn't a letter (a space, a comma, etc.), so a command is always a single word — after that, just keep typing your message normally. Select a suggestion with `↑`/`↓` + `Enter`/`Tab`, or click it.
+
+If you send a `/word` that isn't one of the commands below, it's simply treated as plain text — no menu appears for it, and the assistant doesn't try to guess an action for it.
+
+| Command | What it does |
+|---|---|
+| `/task <description>` | Add a task to the active project |
+| `/project <title>` | Create a new project |
+| `/product <title>` | Create a new product |
+| `/area <title>` | Create a new area of responsibility |
+| `/note <text>` | Add a note to the active project |
+| `/risk <text>` | Log a risk on the active project |
+| `/question <text>` | Log an open question on the active project |
+| `/stakeholder <name>` | Add a new stakeholder |
+| `/status <task, new status>` | Change a task's status |
+| `/top3 <task>` | Mark a task as one of today's top 3 |
+| `/focus <task>` | Mark a task as this week's focus |
+| `/help` | List all available slash commands |
+
+The client-side list lives in `src/lib/chatCommands.js`; the matching server-side instructions (what each command maps to, and the "ignore anything not on this list" rule) live in `base44/functions/aiChatStream/entry.ts`.
 
 ## How it works
 
@@ -57,11 +80,11 @@ Serverless functions handle operations that go beyond simple entity CRUD: `aiCha
 - `components/layout/` — app shell, header, and left/right sidebars.
 - `components/areas/`, `components/products/`, `components/projects/` — the card + detail-modal pairs for each entity level.
 - `components/sidebar/` — stakeholder list, focus feed, status chart.
-- `components/ai/` — the floating chat widget and session history UI.
+- `components/ai/` — the floating chat widget, session history UI, and the `/` command menu (`ChatCommandMenu`).
 - `components/modals/` — create/edit forms (`AreaForm`, `ProductForm`, `ProjectForm`, `TaskForm`, `CreateModal`, `FilterModal`).
 - `components/archive/` — the archive date-range panel.
 - `components/shared/` — cross-cutting UI (avatars, custom fields, stakeholder/product assignment, query error states).
-- `hooks/` — data hooks per entity (`useProjects`, `useTasks`, `useProducts`, `useAreas`, `useStakeholders`, `useDepartments`, `useProjectNotes`) plus chat (`useChatController`, `useChatMessages`, `useChatSessions`) and UI utility hooks.
+- `hooks/` — data hooks per entity (`useProjects`, `useTasks`, `useProducts`, `useAreas`, `useStakeholders`, `useDepartments`, `useProjectNotes`) plus chat (`useChatController`, `useChatMessages`, `useChatSessions`, `useSlashCommand`), the chat widget's window geometry (`useWindowGeometry`), and other UI utility hooks.
 - `lib/` — cross-cutting logic: auth context, filter/highlight context, entity and task utilities, the Base44 app-params/query-client setup.
 
 ## Getting Started

@@ -18,13 +18,16 @@ function defaultGeometry() {
   };
 }
 
-// Keeps the panel at least partly grabbable on screen even if the saved
-// geometry no longer fits (browser window shrunk, switched to a smaller
-// monitor, etc. since the last session).
+// Keeps the panel fully on screen even if the saved geometry no longer fits
+// (browser window shrunk, switched to a smaller monitor, etc. since the
+// last session) — shrinks it to fit before repositioning, rather than just
+// leaving a sliver grabbable off-edge.
 function clampToViewport(geometry) {
-  const x = Math.min(Math.max(geometry.x, -geometry.width + 160), window.innerWidth - 120);
-  const y = Math.min(Math.max(geometry.y, 0), window.innerHeight - 48);
-  return { ...geometry, x, y };
+  const width = Math.min(geometry.width, window.innerWidth);
+  const height = Math.min(geometry.height, window.innerHeight);
+  const x = Math.min(Math.max(geometry.x, 0), window.innerWidth - width);
+  const y = Math.min(Math.max(geometry.y, 0), window.innerHeight - height);
+  return { ...geometry, x, y, width, height };
 }
 
 function loadGeometry() {
@@ -84,11 +87,19 @@ export function useWindowGeometry() {
       });
     };
 
+    // Re-clamp on viewport resize too, not just after a drag — otherwise
+    // shrinking the browser window (or rotating/resizing on a smaller
+    // screen) can leave an already-open panel stranded off-screen with no
+    // drag having happened yet.
+    const handleWindowResize = () => setGeometry((current) => clampToViewport(current));
+
     window.addEventListener("mousemove", handleMove);
     window.addEventListener("mouseup", handleUp);
+    window.addEventListener("resize", handleWindowResize);
     return () => {
       window.removeEventListener("mousemove", handleMove);
       window.removeEventListener("mouseup", handleUp);
+      window.removeEventListener("resize", handleWindowResize);
     };
   }, []);
 

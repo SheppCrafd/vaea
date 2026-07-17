@@ -3,11 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { X, Plus, ChevronLeft, Paperclip, Maximize2 } from "lucide-react";
 import { useChatController } from "@/hooks/useChatController";
 import { useWindowGeometry } from "@/hooks/useWindowGeometry";
+import { useSlashCommand } from "@/hooks/useSlashCommand";
 import ChatIcon from "@/components/ai/ChatIcon";
 import ChatIconPicker from "@/components/ai/ChatIconPicker";
 import ChatMessageList from "@/components/ai/ChatMessageList";
 import ChatSessionList from "@/components/ai/ChatSessionList";
 import ChatResizeHandles from "@/components/ai/ChatResizeHandles";
+import ChatCommandMenu from "@/components/ai/ChatCommandMenu";
 
 // Floating quick-access chat widget. All the actual chat behavior (sessions,
 // sending, confirm/undo, icon persistence, attachments) lives in
@@ -19,10 +21,12 @@ export default function ChatBox({ activeProjectId }) {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isSessionListOpen, setIsSessionListOpen] = useState(false);
   const containerRef = useRef(null);
+  const messageInputRef = useRef(null);
   const navigate = useNavigate();
 
   const chat = useChatController({ activeProjectId });
   const { geometry, startMove, startResize } = useWindowGeometry();
+  const slashCommand = useSlashCommand(chat.input, chat.setInput);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -129,15 +133,27 @@ export default function ChatBox({ activeProjectId }) {
             </button>
             <input ref={chat.fileInputRef} type="file" onChange={chat.handleFileChange} className="hidden" />
             <input
+              ref={messageInputRef}
               value={chat.input}
               onChange={(e) => chat.setInput(e.target.value)}
+              onKeyDown={slashCommand.handleKeyDown}
               placeholder="E.g., Hello... / PLease add... / File a report for..."
               className="flex-1 text-sm px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all"
               disabled={chat.isComputing}
+              autoComplete="off"
             />
             <button type="submit" disabled={chat.isComputing} className="shrink-0 text-sm px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md transition-colors shadow-sm disabled:opacity-50">
               Send
             </button>
+            {slashCommand.isOpen && (
+              <ChatCommandMenu
+                inputRef={messageInputRef}
+                matches={slashCommand.matches}
+                activeIndex={slashCommand.activeIndex}
+                onHover={slashCommand.setActiveIndex}
+                onSelect={slashCommand.applyCommand}
+              />
+            )}
           </form>
         </div>
       ) : (
