@@ -27,21 +27,29 @@ export default function PositionedPopover({
   // (re)opens, then immediately measure the panel's actual rendered size and
   // clamp it fully inside the viewport — a popover's width/height isn't
   // knowable until it actually exists in the DOM, so this can only happen
-  // after mount. Both effects are layout effects (synchronous, pre-paint),
-  // so the corrected position is what actually gets painted, never a
-  // visible jump from an off-screen starting spot.
+  // after mount. This is a single layout effect (synchronous, pre-paint) so
+  // the corrected position is what actually gets painted, never a visible
+  // jump from an off-screen starting spot.
+  //
+  // Deliberately NOT split into two effects (sync-to-coords, then a
+  // separate clamp-based-on-position effect): both would run off the same
+  // stale `position` closure within one commit, and the clamp effect's
+  // setPosition call — computed from the OLD position, not the fresh
+  // `coords` — would run second and silently win, discarding the correct
+  // anchor. That's exactly how this used to fail: `position` starts at
+  // `{top: 0, left: 0}` on mount, so the very first open (or the first open
+  // after any remount, e.g. navigating back to a page that recreates this
+  // component) would get "clamped" from that stale zero position into a
+  // top-left corner instead of the real trigger location.
   useLayoutEffect(() => {
-    if (isOpen) setPosition(coords);
+    if (!isOpen) return;
+    const rect = panelRef.current?.getBoundingClientRect();
+    setPosition(
+      rect
+        ? clampPositionToViewport({ top: coords.top, left: coords.left, width: rect.width, height: rect.height })
+        : coords
+    );
   }, [isOpen, coords]);
-
-  useLayoutEffect(() => {
-    if (!isOpen || !panelRef.current) return;
-    const rect = panelRef.current.getBoundingClientRect();
-    const clamped = clampPositionToViewport({ top: position.top, left: position.left, width: rect.width, height: rect.height });
-    if (clamped.top !== position.top || clamped.left !== position.left) {
-      setPosition(clamped);
-    }
-  }, [isOpen, position]);
 
   if (!isOpen) return null;
 
