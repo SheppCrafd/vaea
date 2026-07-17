@@ -1,42 +1,42 @@
 import { describe, it, expect } from "vitest";
-import { isDimmedByHighlight } from "./useHighlightDim";
+import { isHighlightMatch } from "./useHighlightDim";
 
-describe("isDimmedByHighlight", () => {
-  it("never dims anything when no highlight is active", () => {
-    expect(isDimmedByHighlight([], "tasks", [])).toBe(false);
-    expect(isDimmedByHighlight([], "tasks", ["alice"])).toBe(false);
+describe("isHighlightMatch", () => {
+  it("never matches anything when no highlight is active", () => {
+    expect(isHighlightMatch([], "tasks", [])).toBe(false);
+    expect(isHighlightMatch([], "tasks", ["alice"])).toBe(false);
   });
 
-  it("dims when a highlight is active in the category but the entity doesn't match it", () => {
+  it("doesn't match when a highlight is active in the category but the entity doesn't match it", () => {
     const highlights = [{ stakeholderId: "alice", category: "tasks" }];
-    expect(isDimmedByHighlight(highlights, "tasks", ["bob"])).toBe(true);
-    expect(isDimmedByHighlight(highlights, "tasks", [])).toBe(true);
+    expect(isHighlightMatch(highlights, "tasks", ["bob"])).toBe(false);
+    expect(isHighlightMatch(highlights, "tasks", [])).toBe(false);
   });
 
-  it("doesn't dim when the entity's stakeholder matches an active highlight", () => {
+  it("matches when the entity's stakeholder matches an active highlight", () => {
     const highlights = [{ stakeholderId: "alice", category: "tasks" }];
-    expect(isDimmedByHighlight(highlights, "tasks", ["alice"])).toBe(false);
+    expect(isHighlightMatch(highlights, "tasks", ["alice"])).toBe(true);
   });
 
   it("ignores highlights from a different category entirely — this is the root of the per-checkbox design", () => {
     // Alice's "projects" checkbox is checked, but this is a task-row check —
     // it must not be affected by a category it doesn't belong to.
     const highlights = [{ stakeholderId: "alice", category: "projects" }];
-    expect(isDimmedByHighlight(highlights, "tasks", ["alice"])).toBe(false); // no active "tasks" highlight, so nothing dims
+    expect(isHighlightMatch(highlights, "tasks", ["alice"])).toBe(false); // no active "tasks" highlight, so nothing matches
   });
 
   it("accepts multiple categories at once (Project/Product/Area cards react to both 'projects' and 'products')", () => {
     const highlights = [{ stakeholderId: "alice", category: "products" }];
-    expect(isDimmedByHighlight(highlights, ["projects", "products"], ["alice"])).toBe(false);
-    expect(isDimmedByHighlight(highlights, ["projects", "products"], ["bob"])).toBe(true);
+    expect(isHighlightMatch(highlights, ["projects", "products"], ["alice"])).toBe(true);
+    expect(isHighlightMatch(highlights, ["projects", "products"], ["bob"])).toBe(false);
   });
 
-  it("un-dims if ANY active highlighted stakeholder (of multiple) matches", () => {
+  it("matches if ANY active highlighted stakeholder (of multiple) matches", () => {
     const highlights = [
       { stakeholderId: "alice", category: "tasks" },
       { stakeholderId: "bob", category: "tasks" },
     ];
-    expect(isDimmedByHighlight(highlights, "tasks", ["bob"])).toBe(false);
-    expect(isDimmedByHighlight(highlights, "tasks", ["carol"])).toBe(true);
+    expect(isHighlightMatch(highlights, "tasks", ["bob"])).toBe(true);
+    expect(isHighlightMatch(highlights, "tasks", ["carol"])).toBe(false);
   });
 });

@@ -20,6 +20,10 @@ const DESTRUCTIVE_ACTIONS = new Set([
   'DELETE_STAKEHOLDER',
   'DELETE_NOTE',
   'DELETE_DEPARTMENT',
+  // Not a delete, but a bulk mutation across potentially many tasks at
+  // once — confirmed first for the same reason the UI's "Clear Done"
+  // button is, even though a single ARCHIVE_TASK isn't.
+  'ARCHIVE_DONE_TASKS',
 ]);
 
 const ACTION_CATALOG = `
@@ -36,7 +40,7 @@ const ACTION_CATALOG = `
 - "DELETE_PRODUCT" (args: product_id)
 
 - "CREATE_PROJECT" (args: parent_area_id, parent_product_id [optional, null for standalone], title, objective, problem_statement, owner_name, due_date [ISO date], due_date_status ["ESTIMATED" or "COMMITTED"], stakeholder_ids [optional array], related_product_ids [optional array])
-- "UPDATE_PROJECT" (args: project_id, title, objective, problem_statement, owner_name, due_date, due_date_status, activity, stakeholder_ids [full replacement array], related_product_ids [full replacement array, products this project also serves beyond its primary parent], attachments [full replacement array of {name,url}], links [full replacement array of {label,url}], metrics [object with any of impact_forecast/impact_measured/outcome_forecast/outcome_measured]) — omit a field to leave it unchanged
+- "UPDATE_PROJECT" (args: project_id, title, objective, problem_statement, owner_name, due_date, due_date_status, stakeholder_ids [full replacement array], related_product_ids [full replacement array, products this project also serves beyond its primary parent], attachments [full replacement array of {name,url}], links [full replacement array of {label,url}], metrics [object with any of impact_forecast/impact_measured/outcome_forecast/outcome_measured]) — omit a field to leave it unchanged
 - "MOVE_PROJECT" (args: project_id, parent_product_id [null to detach], parent_area_id)
 - "ARCHIVE_PROJECT" (args: project_id) — cascades: also archives every task under it
 - "RESTORE_PROJECT" (args: project_id)
@@ -46,12 +50,13 @@ const ACTION_CATALOG = `
 - "UPDATE_NOTE" (args: note_id, content)
 - "DELETE_NOTE" (args: note_id)
 
-- "CREATE_TASK" (args: project_id, description, quadrant [1-4 or null], type ["COMMUNICATION","OPEN_QUESTIONS","SCRUM_NEEDS","EMPLOYEE_NEEDS","OTHER"], is_highly_important [bool], is_quick_task [bool], stakeholder_ids [array])
+- "CREATE_TASK" (args: project_id, description, quadrant [1-4 or null], type ["COMMUNICATION","OPEN_QUESTIONS","SCRUM_NEEDS","EMPLOYEE_NEEDS","OTHER"], is_highly_important [bool], is_quick_task [bool], stakeholder_ids [array], status [optional, one of the UPDATE_TASK_STATUS values, defaults to "NOT_STARTED"], notes [optional], is_weekly_focus [optional bool]) — every field but description may be omitted, matching the task table's "fill in what you have" new-row
 - "UPDATE_TASK" (args: task_id, description, quadrant, type, is_highly_important, is_quick_task, stakeholder_ids [full replacement array], notes, attachments [full replacement array of {name,url}])
 - "UPDATE_TASK_STATUS" (args: task_id, status ["NOT_STARTED","IN_PROGRESS","DELEGATED","PENDING_FEEDBACK","ON_HOLD","BLOCKED","DONE","DELEGATED_DONE"])
 - "TOGGLE_WEEKLY_FOCUS" (args: task_id)
 - "TOGGLE_TOP_THREE" (args: task_id) — max 3 per project, will error if exceeded
 - "ARCHIVE_TASK" (args: task_id)
+- "ARCHIVE_DONE_TASKS" (args: project_id) — bulk-archives every active (not already archived) task in the project whose status is "DONE" or "DELEGATED_DONE"; mirrors the task table's "Clear Done" button
 - "RESTORE_TASK" (args: task_id) — un-archives a task
 - "DELETE_TASK" (args: task_id)
 
@@ -245,6 +250,9 @@ async function executeAction(base44, action, args) {
         is_highly_important: !!args.is_highly_important,
         is_quick_task: !!args.is_quick_task,
         stakeholder_ids: args.stakeholder_ids || [],
+        status: args.status || 'NOT_STARTED',
+        notes: args.notes || '',
+        is_weekly_focus: !!args.is_weekly_focus,
       });
       return { toolResult: { task } };
     }
@@ -279,6 +287,13 @@ async function executeAction(base44, action, args) {
     case 'ARCHIVE_TASK': {
       const task = await base44.entities.Task.update(args.task_id, { archived_at: new Date().toISOString() });
       return { toolResult: { task } };
+    }
+    case 'ARCHIVE_DONE_TASKS': {
+      const tasks = await base44.entities.Task.filter({ project_id: args.project_id });
+      const now = new Date().toISOString();
+      const doneTasks = tasks.filter((t) => !t.archived_at && (t.status === 'DONE' || t.status === 'DELEGATED_DONE'));
+      const archived = await Promise.all(doneTasks.map((t) => base44.entities.Task.update(t.id, { archived_at: now })));
+      return { toolResult: { tasks: archived, count: archived.length } };
     }
     case 'RESTORE_TASK': {
       const task = await base44.entities.Task.update(args.task_id, { archived_at: null });

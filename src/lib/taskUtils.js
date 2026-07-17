@@ -48,16 +48,33 @@ export function getQuadrantCounts(tasks = [], highlights = []) {
 
 // Single source of truth for the 7-way status breakdown used by both the
 // project-card stacked bar and the sidebar status chart. Each consumer owns
-// its own color palette/rendering; this only owns the categorization.
+// its own rendering; this only owns the categorization and display order.
+// In Progress and Pending Feedback are swapped from spec reading order per
+// direct user request.
 export const STATUS_BUCKETS = [
   { key: "DONE", label: "Done", match: (s) => s === "DONE" || s === "DELEGATED_DONE" },
   { key: "DELEGATED", label: "Delegated", match: (s) => s === "DELEGATED" },
-  { key: "IN_PROGRESS", label: "In Progress", match: (s) => s === "IN_PROGRESS" },
-  { key: "BLOCKED", label: "Blocked", match: (s) => s === "BLOCKED" },
   { key: "PENDING_FEEDBACK", label: "Pending Feedback", match: (s) => s === "PENDING_FEEDBACK" },
+  { key: "BLOCKED", label: "Blocked", match: (s) => s === "BLOCKED" },
+  { key: "IN_PROGRESS", label: "In Progress", match: (s) => s === "IN_PROGRESS" },
   { key: "ON_HOLD", label: "On Hold", match: (s) => s === "ON_HOLD" },
   { key: "NOT_STARTED", label: "Not Started", match: (s) => !s || s === "NOT_STARTED" },
 ];
+
+// Literal, theme-independent colors — the spec calls for specific colors per
+// status ("dark grey", "white...with a thin black border"), not
+// surface-adaptive theme tokens. Shared so any consumer needing the same
+// color (e.g. a card face echoing "pending feedback" orange) has one source
+// of truth instead of a duplicated hex.
+export const STATUS_COLORS = {
+  DONE: "#86E7B0",
+  DELEGATED: "#93C5FD",
+  IN_PROGRESS: "#FEF08A",
+  BLOCKED: "#4B5563",
+  PENDING_FEEDBACK: "#FDBA74",
+  ON_HOLD: "#FCA5A5",
+  NOT_STARTED: "#FFFFFF",
+};
 
 export function getStatusCounts(tasks = []) {
   const activeTasks = filterActiveTasks(tasks);

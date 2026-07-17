@@ -5,20 +5,98 @@ import { useTasks, useCreateTask, useUpdateTask, useToggleTopThree, useDeleteTas
 import { useStakeholders } from "@/hooks/useStakeholders";
 import { useToast } from "@/components/ui/use-toast";
 import { useHighlight } from "@/lib/HighlightContext";
-import { isDimmedByHighlight } from "@/hooks/useHighlightDim";
+import { isHighlightMatch } from "@/hooks/useHighlightDim";
 import { confirmThen } from "@/lib/entityUtils";
-import StatusDropdown from "@/components/projects/StatusDropdown";
+import { isTaskDone } from "@/lib/taskUtils";
+import StatusDropdown, { DEFAULT_STATUSES } from "@/components/projects/StatusDropdown";
 import TaskAttachments from "@/components/projects/TaskAttachments";
 import EditableText from "@/components/shared/EditableText";
 import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
+import ColumnFilterMenu from "@/components/shared/ColumnFilterMenu";
 
 const MAX_ROWS = 20;
 const TYPE_OPTIONS = ["COMMUNICATION", "OPEN_QUESTIONS", "SCRUM_NEEDS", "EMPLOYEE_NEEDS", "OTHER"];
+const QUADRANT_OPTIONS = [
+  { value: "1", label: "1" },
+  { value: "2", label: "2" },
+  { value: "3", label: "3" },
+  { value: "4", label: "4" },
+  { value: "unassigned", label: "Unassigned" },
+];
+const STATUS_FILTER_OPTIONS = DEFAULT_STATUSES.map((s) => ({ value: s, label: s.replace(/_/g, " ") }));
+const TYPE_FILTER_OPTIONS = TYPE_OPTIONS.map((t) => ({ value: t, label: t.replace(/_/g, " ") }));
+
+const EMPTY_FILTERS = {
+  description: "",
+  status: [],
+  quadrant: [],
+  type: [],
+  stakeholders: [],
+  notes: "",
+  files: "all",
+  weekly: "all",
+  top3: "all",
+};
+
+function taskMatchesFilters(task, filters) {
+  if (filters.description && !(task.description || "").toLowerCase().includes(filters.description.toLowerCase())) return false;
+  if (filters.status.length && !filters.status.includes(task.status || "NOT_STARTED")) return false;
+  if (filters.quadrant.length) {
+    const q = task.quadrant ? String(task.quadrant) : "unassigned";
+    if (!filters.quadrant.includes(q)) return false;
+  }
+  if (filters.type.length && !filters.type.includes(task.type || "OTHER")) return false;
+  if (filters.stakeholders.length && !(task.stakeholder_ids || []).some((id) => filters.stakeholders.includes(id))) return false;
+  if (filters.notes && !(task.notes || "").toLowerCase().includes(filters.notes.toLowerCase())) return false;
+  if (filters.files !== "all") {
+    const hasFiles = (task.attachments || []).length > 0;
+    if ((filters.files === "yes") !== hasFiles) return false;
+  }
+  if (filters.weekly !== "all" && (filters.weekly === "yes") !== !!task.is_weekly_focus) return false;
+  if (filters.top3 !== "all" && (filters.top3 === "yes") !== !!task.is_today_top_three) return false;
+  return true;
+}
+
+function getSortValue(task, column) {
+  switch (column) {
+    case "quadrant":
+      return task.quadrant ?? 5;
+    case "status": {
+      const i = DEFAULT_STATUSES.indexOf(task.status || "NOT_STARTED");
+      return i === -1 ? DEFAULT_STATUSES.length : i;
+    }
+    case "weekly":
+      return task.is_weekly_focus ? 1 : 0;
+    case "top3":
+      return task.is_today_top_three ? 1 : 0;
+    case "stakeholders":
+      return (task.stakeholder_ids || []).length;
+    case "files":
+      return (task.attachments || []).length;
+    default:
+      return (task[column] ?? "").toString().toLowerCase();
+  }
+}
+
+// Sortable + filterable column header — a label (click to sort, with an
+// arrow indicating direction) plus a ColumnFilterMenu funnel trigger.
+function ColumnHeader({ column, label, sortColumn, sortDirection, onSort, children }) {
+  return (
+    <th className="p-2 font-medium whitespace-nowrap">
+      <div className="flex items-center gap-1">
+        <button type="button" onClick={() => onSort(column)} className="flex items-center gap-0.5 select-none">
+          {label}{sortColumn === column ? (sortDirection === "asc" ? " ▲" : " ▼") : ""}
+        </button>
+        {children}
+      </div>
+    </th>
+  );
+}
 
 // Own component (not just a mapped <tr>) so it can be a stakeholder-drop
 // target — dragging a stakeholder from the sidebar onto a task row assigns
 // them to it.
-function TaskRow({ task, allStakeholders, isDimmed, updateTask, onToggleTopThree, onDelete }) {
+function TaskRow({ task, allStakeholders, isMatched, updateTask, onToggleTopThree, onDelete }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `task-drop-${task.id}`,
     data: { type: "task", id: task.id },
@@ -27,7 +105,7 @@ function TaskRow({ task, allStakeholders, isDimmed, updateTask, onToggleTopThree
   return (
     <tr
       ref={setNodeRef}
-      className={`border-b border-border last:border-0 transition-opacity ${isDimmed ? "opacity-30" : ""} ${isOver ? "ring-2 ring-inset ring-primary bg-primary/5" : ""}`}
+      className={`border-b border-border last:border-0 transition-colors ${isMatched ? "bg-primary/5" : ""} ${isOver ? "ring-2 ring-inset ring-primary bg-primary/5" : ""}`}
     >
       <td className="p-2 min-w-0 max-w-[200px]">
         <EditableText
@@ -44,7 +122,7 @@ function TaskRow({ task, allStakeholders, isDimmed, updateTask, onToggleTopThree
           {/* The spec's actual display format — "1H", "2HQ", etc — combined
               into one label; the select + toggle buttons below are what edit
               those same two underlying fields (quadrant, H/Q flags). */}
-          <span className="text-[10px] font-semibold tabular-nums w-6 shrink-0" title="Quadrant notation">
+          <span className="text-xs font-semibold tabular-nums w-6 shrink-0" title="Quadrant notation">
             {task.quadrant ?? "—"}
             {task.is_highly_important ? "H" : ""}
             {task.is_quick_task ? "Q" : ""}
@@ -147,10 +225,17 @@ export default function TaskTable({ project }) {
     confirmThen(`Delete task "${task.description}"? This cannot be undone.`, () => deleteTask.mutate(task.id));
   };
 
-  const [sortColumn, setSortColumn] = useState(null);
+  // Default view is sorted by Quadrant, per direct user request.
+  const [sortColumn, setSortColumn] = useState("quadrant");
   const [sortDirection, setSortDirection] = useState("asc");
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [newDescription, setNewDescription] = useState("");
   const [newQuadrant, setNewQuadrant] = useState("");
+  const [newStatus, setNewStatus] = useState("");
+  const [newType, setNewType] = useState("");
+  const [newStakeholderIds, setNewStakeholderIds] = useState([]);
+  const [newNotes, setNewNotes] = useState("");
+  const [newWeekly, setNewWeekly] = useState(false);
   const newRowInputRef = useRef(null);
 
   const handleSort = (column) => {
@@ -158,30 +243,55 @@ export default function TaskTable({ project }) {
     else { setSortColumn(column); setSortDirection("asc"); }
   };
 
+  const setTextFilter = (column, value) => setFilters((f) => ({ ...f, [column]: value }));
+  const setTriStateFilter = (column, value) => setFilters((f) => ({ ...f, [column]: value }));
+  const toggleChecklistFilter = (column, value) =>
+    setFilters((f) => ({
+      ...f,
+      [column]: f[column].includes(value) ? f[column].filter((v) => v !== value) : [...f[column], value],
+    }));
+  const clearChecklistFilter = (column) => setFilters((f) => ({ ...f, [column]: [] }));
+
+  const filteredTasks = useMemo(() => tasks.filter((t) => taskMatchesFilters(t, filters)), [tasks, filters]);
+
   const sortedTasks = useMemo(() => {
-    if (!sortColumn) return tasks;
-    const sorted = [...tasks].sort((a, b) => String(a[sortColumn]).localeCompare(String(b[sortColumn])));
+    if (!sortColumn) return filteredTasks;
+    const sorted = [...filteredTasks].sort((a, b) => {
+      const av = getSortValue(a, sortColumn);
+      const bv = getSortValue(b, sortColumn);
+      if (typeof av === "number" && typeof bv === "number") return av - bv;
+      return String(av).localeCompare(String(bv));
+    });
     return sortDirection === "asc" ? sorted : sorted.reverse();
-  }, [tasks, sortColumn, sortDirection]);
+  }, [filteredTasks, sortColumn, sortDirection]);
 
   // Description is the one required field ("a task can be created with any
-  // field [blank] but description") — every other field, including
-  // quadrant, is optional at creation time and can be set later from the row.
+  // field [blank] but description") — every other field is optional at
+  // creation time and can also be set later from the row; these just let the
+  // user fill them in up front instead of always needing a second pass.
   const createNewTask = () => {
     if (!newDescription.trim()) return;
     const payload = { project_id: project.id, description: newDescription.trim() };
     if (newQuadrant !== "") payload.quadrant = Number(newQuadrant);
+    if (newStatus !== "") payload.status = newStatus;
+    if (newType !== "") payload.type = newType;
+    if (newStakeholderIds.length) payload.stakeholder_ids = newStakeholderIds;
+    if (newNotes.trim()) payload.notes = newNotes.trim();
+    if (newWeekly) payload.is_weekly_focus = true;
     createTask.mutate(payload);
     setNewDescription("");
     setNewQuadrant("");
+    setNewStatus("");
+    setNewType("");
+    setNewStakeholderIds([]);
+    setNewNotes("");
+    setNewWeekly(false);
     requestAnimationFrame(() => newRowInputRef.current?.focus());
   };
 
   const handleNewTaskKeyDown = (e) => {
     if (e.key === "Enter") createNewTask();
   };
-
-  const handleCreateButton = () => createNewTask();
 
   const handleToggleTopThree = (task) => {
     toggleTopThree.mutate(
@@ -198,79 +308,178 @@ export default function TaskTable({ project }) {
     );
   };
 
-  const isDimmed = (task) => isDimmedByHighlight(highlights, "tasks", task.stakeholder_ids || []);
+  const isMatched = (task) => isHighlightMatch(highlights, "tasks", task.stakeholder_ids || []);
 
-  const SortHeader = ({ column, label }) => (
-    <th className="p-2 font-medium cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort(column)}>
-      {label}{sortColumn === column ? (sortDirection === "asc" ? " ▲" : " ▼") : ""}
-    </th>
-  );
+  const doneTasks = tasks.filter((t) => isTaskDone(t) && !t.archived_at);
+  const handleClearDone = () => {
+    if (doneTasks.length === 0) return;
+    confirmThen(`Archive ${doneTasks.length} done task${doneTasks.length === 1 ? "" : "s"}? They'll still be viewable (and restorable) from Archived tasks.`, () => {
+      doneTasks.forEach((t) => updateTask.mutate({ id: t.id, data: { archived_at: new Date().toISOString() } }));
+    });
+  };
 
   return (
-    <table className="w-full text-xs">
-      <thead className="sticky top-0 bg-card z-10">
-        <tr className="text-left text-muted-foreground border-b border-border">
-          <SortHeader column="description" label="Description" />
-          <th className="p-2 font-medium">Status</th>
-          <th className="p-2 font-medium">Quad.</th>
-          <th className="p-2 font-medium">Type</th>
-          <th className="p-2 font-medium">Stakeholders</th>
-          <th className="p-2 font-medium">Files</th>
-          <th className="p-2 font-medium">Notes</th>
-          <th className="p-2 font-medium">Weekly</th>
-          <th className="p-2 font-medium">Top 3</th>
-          <th className="p-2 font-medium">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {sortedTasks.length === 0 && (
-          <tr>
-            <td className="p-2 text-muted-foreground text-center" colSpan={10}>No active tasks</td>
+    <div>
+      <div className="flex items-center justify-end mb-1.5">
+        <button
+          onClick={handleClearDone}
+          disabled={doneTasks.length === 0}
+          className="text-xs px-2.5 py-1 rounded-md bg-secondary text-secondary-foreground hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Clear Done
+        </button>
+      </div>
+      <table className="w-full text-xs">
+        <thead className="sticky top-0 bg-card z-10">
+          <tr className="text-left text-muted-foreground border-b border-border">
+            <ColumnHeader column="description" label="Description" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort}>
+              <ColumnFilterMenu mode="text" text={filters.description} onTextChange={(v) => setTextFilter("description", v)} />
+            </ColumnHeader>
+            <ColumnHeader column="status" label="Status" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort}>
+              <ColumnFilterMenu
+                mode="checklist"
+                options={STATUS_FILTER_OPTIONS}
+                selected={filters.status}
+                onToggleOption={(v) => toggleChecklistFilter("status", v)}
+                onClearOptions={() => clearChecklistFilter("status")}
+              />
+            </ColumnHeader>
+            <ColumnHeader column="quadrant" label="Quadrant" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort}>
+              <ColumnFilterMenu
+                mode="checklist"
+                options={QUADRANT_OPTIONS}
+                selected={filters.quadrant}
+                onToggleOption={(v) => toggleChecklistFilter("quadrant", v)}
+                onClearOptions={() => clearChecklistFilter("quadrant")}
+              />
+            </ColumnHeader>
+            <ColumnHeader column="type" label="Type" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort}>
+              <ColumnFilterMenu
+                mode="checklist"
+                options={TYPE_FILTER_OPTIONS}
+                selected={filters.type}
+                onToggleOption={(v) => toggleChecklistFilter("type", v)}
+                onClearOptions={() => clearChecklistFilter("type")}
+              />
+            </ColumnHeader>
+            <ColumnHeader column="stakeholders" label="Stakeholders" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort}>
+              <ColumnFilterMenu
+                mode="checklist"
+                options={allStakeholders.map((s) => ({ value: s.id, label: s.name }))}
+                selected={filters.stakeholders}
+                onToggleOption={(v) => toggleChecklistFilter("stakeholders", v)}
+                onClearOptions={() => clearChecklistFilter("stakeholders")}
+              />
+            </ColumnHeader>
+            <ColumnHeader column="files" label="Files" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort}>
+              <ColumnFilterMenu mode="triState" triState={filters.files} onTriStateChange={(v) => setTriStateFilter("files", v)} />
+            </ColumnHeader>
+            <ColumnHeader column="notes" label="Notes" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort}>
+              <ColumnFilterMenu mode="text" text={filters.notes} onTextChange={(v) => setTextFilter("notes", v)} />
+            </ColumnHeader>
+            <ColumnHeader column="weekly" label="Weekly" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort}>
+              <ColumnFilterMenu mode="triState" triState={filters.weekly} onTriStateChange={(v) => setTriStateFilter("weekly", v)} />
+            </ColumnHeader>
+            <ColumnHeader column="top3" label="Top 3" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort}>
+              <ColumnFilterMenu mode="triState" triState={filters.top3} onTriStateChange={(v) => setTriStateFilter("top3", v)} />
+            </ColumnHeader>
+            <th className="p-2 font-medium">Actions</th>
           </tr>
-        )}
-        {sortedTasks.slice(0, MAX_ROWS).map((task) => (
-          <TaskRow
-            key={task.id}
-            task={task}
-            allStakeholders={allStakeholders}
-            isDimmed={isDimmed(task)}
-            updateTask={updateTask}
-            onToggleTopThree={handleToggleTopThree}
-            onDelete={handleDelete}
-          />
-        ))}
-        <tr className="bg-blue-500/10">
-          <td className="p-2 flex items-center gap-2" colSpan={2}>
-            <button onClick={handleCreateButton} aria-label="New task" className="flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 shrink-0">
-              <Plus className="w-4 h-4" />
-              New Task
-            </button>
-            <input
-              ref={newRowInputRef}
-              value={newDescription}
-              onChange={(e) => setNewDescription(e.target.value)}
-              onKeyDown={handleNewTaskKeyDown}
-              placeholder="Type a task and press Enter (or click +)"
-              className="w-full text-xs px-2 py-1.5 bg-background border border-dashed border-border rounded outline-none"
+        </thead>
+        <tbody>
+          {sortedTasks.length === 0 && (
+            <tr>
+              <td className="p-2 text-muted-foreground text-center" colSpan={10}>No active tasks</td>
+            </tr>
+          )}
+          {sortedTasks.slice(0, MAX_ROWS).map((task) => (
+            <TaskRow
+              key={task.id}
+              task={task}
+              allStakeholders={allStakeholders}
+              isMatched={isMatched(task)}
+              updateTask={updateTask}
+              onToggleTopThree={handleToggleTopThree}
+              onDelete={handleDelete}
             />
-          </td>
-          <td className="p-2">
-            <select
-              value={newQuadrant}
-              onChange={(e) => setNewQuadrant(e.target.value)}
-              className="text-[10px] bg-background border border-border rounded px-1 py-0.5"
-              aria-label="Quadrant for new task"
-            >
-              <option value="">—</option>
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-            </select>
-          </td>
-          <td className="p-2" colSpan={7}></td>
-        </tr>
-      </tbody>
-    </table>
+          ))}
+          <tr className="bg-blue-500/10">
+            <td className="p-2 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <button onClick={createNewTask} aria-label="New task" className="flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 shrink-0">
+                  <Plus className="w-4 h-4" />
+                  New Task
+                </button>
+                <input
+                  ref={newRowInputRef}
+                  value={newDescription}
+                  onChange={(e) => setNewDescription(e.target.value)}
+                  onKeyDown={handleNewTaskKeyDown}
+                  placeholder="Type a task and press Enter (or click +)"
+                  className="w-full min-w-0 text-xs px-2 py-1.5 bg-background border border-dashed border-border rounded outline-none"
+                />
+              </div>
+            </td>
+            <td className="p-2">
+              <select
+                value={newStatus}
+                onChange={(e) => setNewStatus(e.target.value)}
+                className="text-[10px] bg-background border border-border rounded px-1 py-0.5"
+                aria-label="Status for new task"
+              >
+                <option value="">—</option>
+                {DEFAULT_STATUSES.map((s) => <option key={s} value={s}>{s.replace(/_/g, " ")}</option>)}
+              </select>
+            </td>
+            <td className="p-2">
+              <select
+                value={newQuadrant}
+                onChange={(e) => setNewQuadrant(e.target.value)}
+                className="text-[10px] bg-background border border-border rounded px-1 py-0.5"
+                aria-label="Quadrant for new task"
+              >
+                <option value="">—</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+              </select>
+            </td>
+            <td className="p-2">
+              <select
+                value={newType}
+                onChange={(e) => setNewType(e.target.value)}
+                className="text-[10px] bg-background border border-border rounded px-1 py-0.5"
+                aria-label="Type for new task"
+              >
+                <option value="">—</option>
+                {TYPE_OPTIONS.map((t) => <option key={t} value={t}>{t.replace(/_/g, " ")}</option>)}
+              </select>
+            </td>
+            <td className="p-2 whitespace-nowrap">
+              <StakeholderAssigner
+                currentStakeholderIds={newStakeholderIds}
+                allStakeholders={allStakeholders}
+                onSave={setNewStakeholderIds}
+              />
+            </td>
+            <td className="p-2"></td>
+            <td className="p-2 min-w-0 max-w-[140px]">
+              <input
+                value={newNotes}
+                onChange={(e) => setNewNotes(e.target.value)}
+                onKeyDown={handleNewTaskKeyDown}
+                placeholder="Notes..."
+                className="w-full min-w-0 text-[11px] px-1.5 py-1 bg-background border border-dashed border-border rounded outline-none"
+              />
+            </td>
+            <td className="p-2 text-center">
+              <input type="checkbox" checked={newWeekly} onChange={(e) => setNewWeekly(e.target.checked)} aria-label="Weekly focus for new task" />
+            </td>
+            <td className="p-2" colSpan={2}></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   );
 }

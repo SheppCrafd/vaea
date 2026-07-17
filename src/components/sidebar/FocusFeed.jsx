@@ -2,11 +2,11 @@ import { Archive, Trash2 } from "lucide-react";
 import { useAllTasks, useUpdateTask, useDeleteTask } from "@/hooks/useTasks";
 import { useProjects } from "@/hooks/useProjects";
 import { useHighlight } from "@/lib/HighlightContext";
-import { isDimmedByHighlight } from "@/hooks/useHighlightDim";
+import { isHighlightMatch } from "@/hooks/useHighlightDim";
 import { confirmThen } from "@/lib/entityUtils";
 import QueryError from "@/components/shared/QueryError";
 
-const STATUS_OPTIONS = ["NOT_STARTED", "IN_PROGRESS", "DELEGATED", "PENDING_FEEDBACK", "ON_HOLD", "BLOCKED", "DONE", "DELEGATED_DONE"];
+const STATUS_OPTIONS = ["NOT_STARTED", "PENDING_FEEDBACK", "DELEGATED", "IN_PROGRESS", "ON_HOLD", "BLOCKED", "DONE", "DELEGATED_DONE"];
 
 // Live feed: today's Top 3 first, then this week's focus items grouped by
 // project and, within each project, by task type.
@@ -33,14 +33,14 @@ export default function FocusFeed() {
     return acc;
   }, {});
 
-  const isDimmed = (task) => isDimmedByHighlight(highlights, "tasks", task.stakeholder_ids || []);
+  const isMatched = (task) => isHighlightMatch(highlights, "tasks", task.stakeholder_ids || []);
 
   const handleArchive = (task) => updateTask.mutate({ id: task.id, data: { archived_at: new Date().toISOString() } });
   const handleDelete = (task) =>
     confirmThen(`Delete task "${task.description}"? This cannot be undone.`, () => deleteTask.mutate(task.id));
 
   const renderRow = (task) => (
-    <div key={task.id} className={`flex items-center justify-between gap-1.5 text-xs bg-muted rounded p-2 ${isDimmed(task) ? "opacity-30" : ""}`}>
+    <div key={task.id} className={`flex items-center justify-between gap-1.5 text-xs bg-muted rounded p-2 ${isMatched(task) ? "bg-primary/10" : ""}`}>
       <span className="truncate flex-1">{task.description}</span>
       <select
         value={task.status}

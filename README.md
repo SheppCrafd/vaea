@@ -14,12 +14,12 @@ Each level is rendered as a card, nested inside its parent's card, so the dashbo
 
 ### Key features
 
-- **Project cards** show a quadrant breakdown of task counts (Eisenhower-style: important/urgent), owner and due date (color-coded by commitment status), and open risks/questions — with an expandable detail view for the full picture (notes, stakeholders, metrics, attachments, links, custom fields).
-- **Task table** per project with status, quadrant + H/Q flags, type, notes, stakeholders, and attachments. Tasks can be flagged as a weekly focus item or one of "today's top 3."
+- **Project cards** show a quadrant breakdown of task counts (Eisenhower-style: important/urgent), owner and due date (color-coded by commitment status), and separate Risks and Open Questions boxes that only tint (red / pending-feedback orange) once populated — plus nearly everything from the expandable detail view is also directly editable on the card face itself (objective, problem statement, metrics, stakeholders, notes, related products, attachments, and populated links in the lower-right corner). The detail view remains for archive/delete, the full task table, and custom-field creation.
+- **Task table** per project with status, quadrant + H/Q flags, type, notes, stakeholders, and attachments — every column is independently sortable and filterable, defaulting to a Quadrant sort, plus a "Clear Done" button to bulk-archive completed tasks. Tasks can be flagged as a weekly focus item or one of "today's top 3."
 - **Product and Area cards** with their own expandable detail views, stakeholders, and support for user-defined custom fields (global or per-card, optionally surfaced on the card face).
 - **Create New / Filter** — a single entry point to create a Task, Project, Product, or Area, plus filtering by area/product/project.
 - **Right sidebar** — Today's Top 3, this week's focus items grouped by project, and a horizontal bar chart of task status counts per project.
-- **Left sidebar** — stakeholders grouped by department, with per-category (tasks/notes/projects/products) counts that toggle a highlight/dim treatment across the dashboard.
+- **Left sidebar** — stakeholders grouped by department, with per-category (tasks/notes/projects/products) counts that toggle a color-coded highlight (a tint on the matching cards/rows) across the dashboard.
 - **AI chat assistant** — a floating chat widget (and a full `/chat` page) backed by a streaming LLM function that can create/update tasks, projects, products, and areas, add notes, mark focus items, and answer questions about your data, including archived items. The widget is a real draggable/resizable window (drag the header to move it, drag any edge or corner to resize) and remembers its position and size between sessions.
 - **Archive view** — a date-range view of everything that was active during that window, including archived projects/tasks, which remain fully editable and can be restored.
 

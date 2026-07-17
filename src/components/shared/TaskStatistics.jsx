@@ -1,19 +1,17 @@
 import React from "react";
-import { getStatusCounts } from "@/lib/taskUtils";
+import { getStatusCounts, STATUS_COLORS } from "@/lib/taskUtils";
 
-// Literal, theme-independent colors — the spec calls for specific colors
-// per status ("dark grey", "white...with a thin black border"), not
-// surface-adaptive theme tokens. `bg-muted-foreground`/`bg-muted` flip
-// lightness between light/dark mode, which silently inverted Blocked to
-// light-grey and No-status to dark-on-dark in dark mode.
-const BUCKET_STYLE = {
-  DONE: { label: "Done", color: "bg-[#86E7B0]" },
-  DELEGATED: { label: "Delegated", color: "bg-[#93C5FD]" },
-  IN_PROGRESS: { label: "In Prog", color: "bg-[#FEF08A]" },
-  BLOCKED: { label: "Blocked", color: "bg-[#4B5563]" },
-  PENDING_FEEDBACK: { label: "Feedback", color: "bg-[#FDBA74]" },
-  ON_HOLD: { label: "On Hold", color: "bg-[#FCA5A5]" },
-  NOT_STARTED: { label: "Unstarted", color: "bg-white border border-black" },
+// Short legend labels per bucket — colors come from the shared
+// STATUS_COLORS (taskUtils.js) so any other consumer (e.g. the Open
+// Questions card echoing "pending feedback" orange) uses the exact same hex.
+const BUCKET_LABEL = {
+  DONE: "Done",
+  DELEGATED: "Delegated",
+  IN_PROGRESS: "In Prog",
+  BLOCKED: "Blocked",
+  PENDING_FEEDBACK: "Feedback",
+  ON_HOLD: "On Hold",
+  NOT_STARTED: "Unstarted",
 };
 
 export default function TaskStatistics({ tasks = [] }) {
@@ -25,7 +23,7 @@ export default function TaskStatistics({ tasks = [] }) {
 
   const activeStats = counts
     .filter((c) => c.count > 0)
-    .map((c) => ({ key: c.key, count: c.count, ...BUCKET_STYLE[c.key] }));
+    .map((c) => ({ key: c.key, count: c.count, label: BUCKET_LABEL[c.key], color: STATUS_COLORS[c.key] }));
 
   return (
     <div className="mt-3 pt-3 border-t border-border w-full flex flex-col gap-1.5">
@@ -34,8 +32,8 @@ export default function TaskStatistics({ tasks = [] }) {
         {activeStats.map((item) => (
           <div
             key={item.key}
-            className={`h-full ${item.color}`}
-            style={{ width: `${(item.count / total) * 100}%` }}
+            className={`h-full ${item.key === "NOT_STARTED" ? "border border-black" : ""}`}
+            style={{ width: `${(item.count / total) * 100}%`, backgroundColor: item.color }}
             title={`${item.label}: ${item.count}`}
           />
         ))}
@@ -45,9 +43,12 @@ export default function TaskStatistics({ tasks = [] }) {
       <div className="flex flex-wrap gap-x-2.5 gap-y-1 mt-0.5">
         {activeStats.map((item) => (
           <div key={item.key} className="flex items-center gap-1">
-            <span className={`w-1.5 h-1.5 rounded-full ${item.color}`} />
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${item.key === "NOT_STARTED" ? "border border-black" : ""}`}
+              style={{ backgroundColor: item.color }}
+            />
             <span className="text-[9px] text-muted-foreground whitespace-nowrap">
-              {item.label} {item.count}
+              {item.label}: {item.count}
             </span>
           </div>
         ))}

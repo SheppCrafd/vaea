@@ -2,7 +2,7 @@ import { X } from "lucide-react";
 import EditableText from "@/components/shared/EditableText";
 import { useUpdateProjectNote, useDeleteProjectNote } from "@/hooks/useProjectNotes";
 import { useHighlight } from "@/lib/HighlightContext";
-import { isDimmedByHighlight } from "@/hooks/useHighlightDim";
+import { isHighlightMatch } from "@/hooks/useHighlightDim";
 import { confirmThen } from "@/lib/entityUtils";
 
 const TYPE_ICON = { RISK: "⚠️", QUESTION: "❓", NOTE: "📝" };
@@ -23,10 +23,10 @@ export default function ProjectNotes({ notes, allStakeholders = [] }) {
         const stakeholderNames = (note.stakeholder_ids || [])
           .map((id) => allStakeholders.find((s) => s.id === id)?.name)
           .filter(Boolean);
-        const isDimmed = isDimmedByHighlight(highlights, "notes", note.stakeholder_ids || []);
+        const isMatched = isHighlightMatch(highlights, "notes", note.stakeholder_ids || []);
 
         return (
-          <li key={note.id} className={`text-xs flex flex-col gap-1 group transition-opacity ${isDimmed ? "opacity-30" : ""}`}>
+          <li key={note.id} className={`text-xs flex flex-col gap-1 group transition-colors rounded ${isMatched ? "bg-primary/5" : ""}`}>
             <div className="flex items-start gap-1.5">
               <span aria-hidden="true" className="shrink-0 mt-0.5">{TYPE_ICON[note.type] || "📝"}</span>
               <div className="flex-1 min-w-0 text-muted-foreground">

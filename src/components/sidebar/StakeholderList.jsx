@@ -38,7 +38,7 @@ function HighlightCheckbox({ category, count, isChecked, onToggle, stakeholderNa
 function StakeholderRow({ stakeholder, departmentNames, isHighlighted, onToggleHighlight, onRemove, counts }) {
   const updateStakeholder = useUpdateStakeholder();
 
-  const { value: name, handleInput: handleNameInput } = useEditableField(
+  const { value: name, handleInput: handleNameInput, handleBlur: handleNameBlur, handleKeyDown: handleNameKeyDown } = useEditableField(
     stakeholder.name,
     (value) => updateStakeholder.mutate({ id: stakeholder.id, data: { name: value } })
   );
@@ -84,6 +84,8 @@ function StakeholderRow({ stakeholder, departmentNames, isHighlighted, onToggleH
             contentEditable
             suppressContentEditableWarning
             onInput={handleNameInput}
+            onBlur={handleNameBlur}
+            onKeyDown={handleNameKeyDown}
             className="text-xs block truncate outline-none focus:ring-1 focus:ring-primary/40 rounded cursor-text"
           >
             {name}

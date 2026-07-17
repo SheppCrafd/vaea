@@ -1,3 +1,12 @@
+export const DUE_DATE_STATUS_OPTIONS = ["ESTIMATED", "COMMITTED"];
+
+export const METRIC_FIELDS = [
+  { key: "impact_forecast", label: "Impact (Forecast)" },
+  { key: "impact_measured", label: "Impact (Measured)" },
+  { key: "outcome_forecast", label: "Outcome (Forecast)" },
+  { key: "outcome_measured", label: "Outcome (Measured)" },
+];
+
 export function getProjectOwner(project) {
   return project.owner_name || null;
 }
@@ -23,10 +32,10 @@ const AT_RISK_WINDOW_DAYS = 7;
 // this is computed fresh every render and updates itself as time passes.
 export function getDueDateColorClass(project, allDone = false) {
   if (allDone) return "text-blue-500 font-bold";
-  if (getProjectDueStatus(project) !== "COMMITTED") return "text-black dark:text-white";
+  if (getProjectDueStatus(project) !== "COMMITTED") return "text-black";
 
   const dueDate = getProjectDueDate(project);
-  if (!dueDate) return "text-black dark:text-white";
+  if (!dueDate) return "text-black";
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);

@@ -7,10 +7,10 @@ import { useProjects } from "@/hooks/useProjects";
 import { useAllTasks } from "@/hooks/useTasks";
 import { useUpdateProduct } from "@/hooks/useProducts";
 import { useEditableField } from "@/hooks/useEditableField";
-import { useHighlightDim } from "@/hooks/useHighlightDim";
+import { useHighlightMatch } from "@/hooks/useHighlightDim";
 import { isTaskDone } from "@/lib/taskUtils";
 import EditableText from "@/components/shared/EditableText";
-import AvatarStack from "@/components/products/AvatarStack";
+import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
 import ProjectCard from "@/components/projects/ProjectCard";
 import ProductDetailModal from "@/components/products/ProductDetailModal";
 import TaskStatistics from "@/components/shared/TaskStatistics";
@@ -23,12 +23,11 @@ export default function ProductCard({ product }) {
   const { excludedIds } = useFilter();
   const updateProduct = useUpdateProduct();
 
-  const { value: title, handleInput } = useEditableField(
+  const { value: title, handleInput, handleBlur: handleTitleBlur, handleKeyDown: handleTitleKeyDown } = useEditableField(
     product.title,
     (value) => updateProduct.mutate({ id: product.id, data: { title: value } })
   );
 
-  const stakeholders = allStakeholders.filter((st) => product.stakeholder_ids?.includes(st.id));
   const projects = allProjects.filter((p) => p.parent_product_id === product.id && !excludedIds.includes(p.id));
 
   const { setNodeRef, isOver } = useDroppable({ id: product.id, data: { type: "product", id: product.id } });
@@ -41,7 +40,7 @@ export default function ProductCard({ product }) {
     ...(product.stakeholder_ids || []),
     ...projects.flatMap((p) => p.stakeholder_ids || []),
   ];
-  const isDimmed = useHighlightDim(productStakeholderIds, ["projects", "products"]);
+  const isMatched = useHighlightMatch(productStakeholderIds, ["projects", "products"]);
 
   const projectIds = projects.map((p) => p.id);
   const productTasks = allTasks.filter((t) => projectIds.includes(t.project_id));
@@ -52,7 +51,7 @@ export default function ProductCard({ product }) {
     <div
       ref={setNodeRef}
       data-product-card={product.id}
-      className={`relative z-10 bg-card border border-border rounded-xl p-4 overflow-hidden ${isDimmed ? "opacity-30" : ""} ${isOver ? "ring-2 ring-primary ring-offset-1" : ""}`}
+      className={`relative z-10 bg-card border border-border rounded-xl p-4 overflow-hidden ${isMatched ? "bg-primary/10 ring-1 ring-primary/30" : ""} ${isOver ? "ring-2 ring-primary ring-offset-1" : ""}`}
     >
       <button
         onClick={() => setIsDetailOpen(true)}
@@ -68,6 +67,8 @@ export default function ProductCard({ product }) {
           contentEditable
           suppressContentEditableWarning
           onInput={handleInput}
+          onBlur={handleTitleBlur}
+          onKeyDown={handleTitleKeyDown}
         >
           {title}
         </h3>
@@ -83,7 +84,11 @@ export default function ProductCard({ product }) {
       </div>
       
       <div className="relative z-[1] mt-3 flex justify-center">
-        <AvatarStack stakeholders={stakeholders} />
+        <StakeholderAssigner
+          currentStakeholderIds={product.stakeholder_ids || []}
+          allStakeholders={allStakeholders}
+          onSave={(newIds) => updateProduct.mutate({ id: product.id, data: { stakeholder_ids: newIds } })}
+        />
       </div>
 
       <div
@@ -121,8 +126,14 @@ export default function ProductCard({ product }) {
             const field = product.custom_data?.[key];
             if (!field) return null;
             return (
-              <span key={key} className="text-[10px] text-muted-foreground">
-                <span className="font-medium text-foreground">{field.label}:</span> {field.value || "—"}
+              <span key={key} className="text-[10px] text-muted-foreground flex items-center gap-1 min-w-0">
+                <span className="font-medium text-foreground shrink-0">{field.label}:</span>
+                <EditableText
+                  value={field.value}
+                  onSave={(val) => updateProduct.mutate({ id: product.id, data: { custom_data: { ...product.custom_data, [key]: { label: field.label, value: val } } } })}
+                  placeholder="—"
+                  className="text-[10px] w-auto"
+                />
               </span>
             );
           })}

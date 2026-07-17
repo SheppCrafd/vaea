@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Paperclip, Link2, X, Upload } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { sanitizeHttpUrl } from "@/lib/entityUtils";
 
 export default function AttachmentsAndLinks({ project, onSave }) {
   const attachments = project.attachments || [];
@@ -29,17 +30,9 @@ export default function AttachmentsAndLinks({ project, onSave }) {
 
   const addLink = (e) => {
     e.preventDefault();
-    const trimmed = linkUrl.trim();
+    // Invalid/unsafe URLs (e.g. javascript:) are silently rejected here.
+    const trimmed = sanitizeHttpUrl(linkUrl);
     if (!trimmed) return;
-    // Only allow http(s) URLs to prevent stored XSS via unsafe protocols
-    // (e.g. javascript:). Invalid input is silently rejected here.
-    let protocol = "";
-    try {
-      protocol = new URL(trimmed).protocol;
-    } catch {
-      return;
-    }
-    if (protocol !== "http:" && protocol !== "https:") return;
     onSave({ links: [...links, { label: linkLabel.trim() || trimmed, url: trimmed }] });
     setLinkLabel("");
     setLinkUrl("");
@@ -65,7 +58,6 @@ export default function AttachmentsAndLinks({ project, onSave }) {
               </button>
             </div>
           ))}
-          {attachments.length === 0 && <p className="text-xs text-muted-foreground">No attachments yet.</p>}
         </div>
         <label className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 bg-secondary text-secondary-foreground rounded-md cursor-pointer hover:opacity-80">
           <Upload className="w-3 h-3" />
@@ -88,7 +80,6 @@ export default function AttachmentsAndLinks({ project, onSave }) {
               </button>
             </div>
           ))}
-          {links.length === 0 && <p className="text-xs text-muted-foreground">No links yet.</p>}
         </div>
         <form onSubmit={addLink} className="flex items-center gap-1.5">
           <input

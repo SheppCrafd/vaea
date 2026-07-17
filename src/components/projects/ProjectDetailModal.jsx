@@ -17,15 +17,9 @@ import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
 import Avatar from "@/components/shared/Avatar";
 import ProductAssigner from "@/components/shared/ProductAssigner";
 import CustomFieldsSection from "@/components/shared/CustomFieldsSection";
-
-const DUE_DATE_STATUS_OPTIONS = ["ESTIMATED", "COMMITTED"];
-
-const METRIC_FIELDS = [
-  { key: "impact_forecast", label: "Impact (Forecast)" },
-  { key: "impact_measured", label: "Impact (Measured)" },
-  { key: "outcome_forecast", label: "Outcome (Forecast)" },
-  { key: "outcome_measured", label: "Outcome (Measured)" },
-];
+import DateField from "@/components/shared/DateField";
+import { DUE_DATE_STATUS_OPTIONS, METRIC_FIELDS } from "@/lib/projectUtils";
+import { STATUS_COLORS } from "@/lib/taskUtils";
 
 export default function ProjectDetailModal({ project, onClose }) {
   const { data: notes = [] } = useProjectNotes(project.id);
@@ -49,7 +43,8 @@ export default function ProjectDetailModal({ project, onClose }) {
   const stakeholders = allStakeholders.filter((s) => (project.stakeholder_ids || []).includes(s.id));
   const departments = [...new Set(stakeholders.map((s) => s.department).filter(Boolean))];
 
-  const riskNotes = notes.filter((n) => n.type !== "NOTE");
+  const riskNotes = notes.filter((n) => n.type === "RISK");
+  const questionNotes = notes.filter((n) => n.type === "QUESTION");
   const generalNotes = notes.filter((n) => n.type === "NOTE");
 
   const saveMetric = (key, value) => {
@@ -79,10 +74,9 @@ export default function ProjectDetailModal({ project, onClose }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-medium">Due:</span>
-                  <EditableText
-                    value={project.due_date || "Not set"}
+                  <DateField
+                    value={project.due_date}
                     onSave={(val) => updateProject.mutate({ id: project.id, data: { due_date: val } })}
-                    type="date"
                   />
                   <select
                     value={project.due_date_status || "ESTIMATED"}
@@ -106,8 +100,9 @@ export default function ProjectDetailModal({ project, onClose }) {
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Objective</p>
                 <EditableText
-                  value={project.objective || "No objective set."}
+                  value={project.objective}
                   onSave={(val) => updateProject.mutate({ id: project.id, data: { objective: val } })}
+                  placeholder="No objective set"
                   className="text-sm"
                   multiline
                 />
@@ -115,59 +110,62 @@ export default function ProjectDetailModal({ project, onClose }) {
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Problem Statement</p>
                 <EditableText
-                  value={project.problem_statement || "No problem statement set."}
+                  value={project.problem_statement}
                   onSave={(val) => updateProject.mutate({ id: project.id, data: { problem_statement: val } })}
+                  placeholder="No problem statement set"
                   className="text-sm"
                   multiline
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Activity</p>
-                <EditableText
-                  value={project.activity || "No activity logged."}
-                  onSave={(val) => updateProject.mutate({ id: project.id, data: { activity: val } })}
-                  className="text-sm"
-                  multiline
-                />
-              </div>
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Impact & Outcome Metrics</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {METRIC_FIELDS.map(({ key, label }) => (
-                    <div key={key}>
-                      <label className="text-[10px] text-muted-foreground block mb-0.5">{label}</label>
-                      <EditableText
-                        value={project.metrics?.[key] || ""}
-                        onSave={(val) => saveMetric(key, val)}
-                        placeholder="—"
-                        className="text-xs bg-background border border-border rounded px-1.5 py-1"
-                      />
-                    </div>
-                  ))}
-                </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Impact & Outcome Metrics</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {METRIC_FIELDS.map(({ key, label }) => (
+                  <div key={key}>
+                    <label className="text-[10px] text-muted-foreground block mb-0.5">{label}</label>
+                    <EditableText
+                      value={project.metrics?.[key] || ""}
+                      onSave={(val) => saveMetric(key, val)}
+                      placeholder="—"
+                      className="text-xs bg-background border border-border rounded px-1.5 py-1"
+                    />
+                  </div>
+                ))}
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Risks & Open Questions powered by ProjectNotes */}
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Risks & Open Questions</p>
-                {riskNotes.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No risks or open questions yet.</p>
-                ) : (
-                  <ProjectNotes notes={riskNotes} allStakeholders={allStakeholders} />
-                )}
+              {/* Risks and Open Questions are separate ProjectNote types, each
+                  its own section — a box only tints once it's populated (see
+                  matching treatment on ProjectCard). */}
+              <div className={`rounded-lg p-3 border transition-colors ${riskNotes.length > 0 ? "bg-destructive/5 border-destructive/15" : "border-transparent"}`}>
+                <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Risks</p>
+                <ProjectNotes notes={riskNotes} allStakeholders={allStakeholders} />
                 <AddNoteForm
                   projectId={project.id}
                   allStakeholders={allStakeholders}
                   defaultType="RISK"
-                  allowedTypes={["RISK", "QUESTION"]}
+                  allowedTypes={["RISK"]}
                 />
               </div>
+              <div
+                className="rounded-lg p-3 border transition-colors"
+                style={questionNotes.length > 0 ? { backgroundColor: `${STATUS_COLORS.PENDING_FEEDBACK}1A`, borderColor: `${STATUS_COLORS.PENDING_FEEDBACK}4D` } : undefined}
+              >
+                <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Open Questions</p>
+                <ProjectNotes notes={questionNotes} allStakeholders={allStakeholders} />
+                <AddNoteForm
+                  projectId={project.id}
+                  allStakeholders={allStakeholders}
+                  defaultType="QUESTION"
+                  allowedTypes={["QUESTION"]}
+                />
+              </div>
+            </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* Stakeholders Section with Assigner Dropdown */}
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -211,21 +209,21 @@ export default function ProjectDetailModal({ project, onClose }) {
                   </div>
                 )}
               </div>
-            </div>
 
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Notes</p>
-              {generalNotes.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No notes yet.</p>
-              ) : (
-                <ProjectNotes notes={generalNotes} allStakeholders={allStakeholders} />
-              )}
-              <AddNoteForm
-                projectId={project.id}
-                allStakeholders={allStakeholders}
-                defaultType="NOTE"
-                allowedTypes={["NOTE"]}
-              />
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Notes</p>
+                {generalNotes.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No notes yet.</p>
+                ) : (
+                  <ProjectNotes notes={generalNotes} allStakeholders={allStakeholders} />
+                )}
+                <AddNoteForm
+                  projectId={project.id}
+                  allStakeholders={allStakeholders}
+                  defaultType="NOTE"
+                  allowedTypes={["NOTE"]}
+                />
+              </div>
             </div>
 
             <div>

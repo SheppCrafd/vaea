@@ -3,7 +3,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { useUpdateArea, useDeleteArea } from "@/hooks/useAreas";
 import { useAllTasks } from "@/hooks/useTasks";
 import { useEditableField } from "@/hooks/useEditableField";
-import { useHighlightDim } from "@/hooks/useHighlightDim";
+import { useHighlightMatch } from "@/hooks/useHighlightDim";
 import { confirmThen } from "@/lib/entityUtils";
 import EditableText from "@/components/shared/EditableText";
 import ProductCard from "@/components/products/ProductCard";
@@ -11,7 +11,7 @@ import ProjectCard from "@/components/projects/ProjectCard";
 import TaskStatistics from "@/components/shared/TaskStatistics";
 
 export default function AreaCard({ area, products = [], orphanProjects = [], productCount, onExpand, stakeholderIds = [] }) {
-  const isDimmed = useHighlightDim(stakeholderIds, ["projects", "products"]);
+  const isMatched = useHighlightMatch(stakeholderIds, ["projects", "products"]);
   const updateArea = useUpdateArea();
   const deleteArea = useDeleteArea();
 
@@ -19,7 +19,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], pro
 
   const { setNodeRef, isOver } = useDroppable({ id: area.id, data: { type: "area", id: area.id } });
 
-  const { value: title, handleInput } = useEditableField(
+  const { value: title, handleInput, handleBlur: handleTitleBlur, handleKeyDown: handleTitleKeyDown } = useEditableField(
     area.title,
     (value) => updateArea.mutate({ id: area.id, data: { title: value } })
   );
@@ -39,7 +39,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], pro
   const areaTasks = allTasks.filter((t) => areaProjectIds.includes(t.project_id));
 
   return (
-    <article className={`relative z-10 bg-card border border-border rounded-xl p-5 break-inside-avoid flex flex-col gap-4 ${isDimmed ? "opacity-30" : ""}`}>
+    <article className={`relative z-10 bg-card border border-border rounded-xl p-5 break-inside-avoid flex flex-col gap-4 ${isMatched ? "bg-primary/10 ring-1 ring-primary/30" : ""}`}>
       
       <div className="relative">
         <div className="absolute top-0 right-0 flex items-center gap-1 z-20">
@@ -66,6 +66,8 @@ export default function AreaCard({ area, products = [], orphanProjects = [], pro
           contentEditable
           suppressContentEditableWarning
           onInput={handleInput}
+          onBlur={handleTitleBlur}
+          onKeyDown={handleTitleKeyDown}
         >
           {title}
         </h3>
@@ -130,8 +132,14 @@ export default function AreaCard({ area, products = [], orphanProjects = [], pro
             const field = area.custom_data?.[key];
             if (!field) return null;
             return (
-              <span key={key} className="text-[10px] text-muted-foreground">
-                <span className="font-medium text-foreground">{field.label}:</span> {field.value || "—"}
+              <span key={key} className="text-[10px] text-muted-foreground flex items-center gap-1 min-w-0">
+                <span className="font-medium text-foreground shrink-0">{field.label}:</span>
+                <EditableText
+                  value={field.value}
+                  onSave={(val) => updateArea.mutate({ id: area.id, data: { custom_data: { ...area.custom_data, [key]: { label: field.label, value: val } } } })}
+                  placeholder="—"
+                  className="text-[10px] w-auto"
+                />
               </span>
             );
           })}
