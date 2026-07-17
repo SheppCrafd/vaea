@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { Expand, GripVertical, Link2, Plus, X } from "lucide-react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
-import Portal from "@/lib/Portal";
 import { usePositionedMenu } from "@/hooks/usePositionedMenu";
+import PositionedPopover from "@/components/shared/PositionedPopover";
 import ProjectNotes from "@/components/projects/ProjectNotes";
 import TaskTableModal from "@/components/projects/TaskTableModal";
 import TaskAttachments from "@/components/projects/TaskAttachments";
 import ProjectDetailModal from "@/components/projects/ProjectDetailModal";
 import TaskStatistics from "@/components/shared/TaskStatistics";
 import EditableText from "@/components/shared/EditableText";
+import CardCustomFields from "@/components/shared/CardCustomFields";
 import DateField from "@/components/shared/DateField";
 import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
 import ProductAssigner from "@/components/shared/ProductAssigner";
@@ -100,50 +101,45 @@ function LinksCorner({ links, onSave }) {
         <Plus className="w-3 h-3" />
         Add Links
       </button>
-      {isOpen && (
-        <Portal>
-          <div className="fixed inset-0 z-[9999]" onClick={close}>
-            <div
-              className="fixed w-56 max-h-64 overflow-y-auto bg-card border border-border rounded-md shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-100"
-              style={{ top: `${coords.top}px`, left: `${coords.left}px` }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <p className="text-[10px] font-bold uppercase text-muted-foreground px-1 py-1 border-b border-border mb-1">Links</p>
-              <div className="flex flex-col gap-1 mb-1">
-                {links.map((l, i) => (
-                  <div key={i} className="flex items-center justify-between gap-1 text-xs px-1 py-1 hover:bg-secondary rounded-sm">
-                    <a href={l.url} target="_blank" rel="noreferrer" className="truncate text-primary hover:underline min-w-0">
-                      {l.label}
-                    </a>
-                    <button onClick={() => removeLink(i)} aria-label="Remove link" className="shrink-0 text-muted-foreground hover:text-destructive">
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <form onSubmit={addLink} className="flex flex-col gap-1">
-                <input
-                  value={label}
-                  onChange={(e) => setLabel(e.target.value)}
-                  placeholder="Label (optional)"
-                  className="text-xs px-2 py-1 bg-background border border-input rounded outline-none"
-                />
-                <div className="flex items-center gap-1">
-                  <input
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    placeholder="https://..."
-                    className="flex-1 min-w-0 text-xs px-2 py-1 bg-background border border-input rounded outline-none"
-                  />
-                  <button type="submit" disabled={!url.trim()} className="text-xs px-2 py-1 bg-primary text-primary-foreground rounded disabled:opacity-50 shrink-0">
-                    Add
-                  </button>
-                </div>
-              </form>
+      <PositionedPopover
+        isOpen={isOpen}
+        coords={coords}
+        close={close}
+        panelClassName="fixed w-56 max-h-64 overflow-y-auto bg-card border border-border rounded-md shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-100"
+      >
+        <p className="text-[10px] font-bold uppercase text-muted-foreground px-1 py-1 border-b border-border mb-1">Links</p>
+        <div className="flex flex-col gap-1 mb-1">
+          {links.map((l, i) => (
+            <div key={i} className="flex items-center justify-between gap-1 text-xs px-1 py-1 hover:bg-secondary rounded-sm">
+              <a href={l.url} target="_blank" rel="noreferrer" className="truncate text-primary hover:underline min-w-0">
+                {l.label}
+              </a>
+              <button onClick={() => removeLink(i)} aria-label="Remove link" className="shrink-0 text-muted-foreground hover:text-destructive">
+                <X className="w-3 h-3" />
+              </button>
             </div>
+          ))}
+        </div>
+        <form onSubmit={addLink} className="flex flex-col gap-1">
+          <input
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="Label (optional)"
+            className="text-xs px-2 py-1 bg-background border border-input rounded outline-none"
+          />
+          <div className="flex items-center gap-1">
+            <input
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://..."
+              className="flex-1 min-w-0 text-xs px-2 py-1 bg-background border border-input rounded outline-none"
+            />
+            <button type="submit" disabled={!url.trim()} className="text-xs px-2 py-1 bg-primary text-primary-foreground rounded disabled:opacity-50 shrink-0">
+              Add
+            </button>
           </div>
-        </Portal>
-      )}
+        </form>
+      </PositionedPopover>
     </div>
   );
 }
@@ -220,10 +216,6 @@ export default function ProjectCard({ project, stakeholderIds = [] }) {
 
   const saveMetric = (key, value) => {
     updateProject.mutate({ id: project.id, data: { metrics: { ...project.metrics, [key]: value } } });
-  };
-
-  const saveCustomFieldValue = (key, label, value) => {
-    updateProject.mutate({ id: project.id, data: { custom_data: { ...project.custom_data, [key]: { label, value } } } });
   };
 
   return (
@@ -407,25 +399,11 @@ export default function ProjectCard({ project, stakeholderIds = [] }) {
         </div>
       </div>
 
-      {(project.display_on_card_fields || []).length > 0 && (
-        <div className="mt-2 pl-5 flex flex-wrap gap-x-3 gap-y-1">
-          {(project.display_on_card_fields || []).map((key) => {
-            const field = project.custom_data?.[key];
-            if (!field) return null;
-            return (
-              <span key={key} className="text-[10px] text-muted-foreground flex items-center gap-1 min-w-0">
-                <span className="font-medium text-foreground shrink-0">{field.label}:</span>
-                <EditableText
-                  value={field.value}
-                  onSave={(val) => saveCustomFieldValue(key, field.label, val)}
-                  placeholder="—"
-                  className="text-[10px] w-auto"
-                />
-              </span>
-            );
-          })}
-        </div>
-      )}
+      <CardCustomFields
+        entity={project}
+        onUpdateEntity={(data) => updateProject.mutate({ id: project.id, data })}
+        className="mt-2 pl-5 flex flex-wrap gap-x-3 gap-y-1"
+      />
 
       <LinksCorner
         links={project.links || []}

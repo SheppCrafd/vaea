@@ -1,5 +1,5 @@
-import Portal from "@/lib/Portal";
 import { usePositionedMenu } from "@/hooks/usePositionedMenu";
+import PositionedPopover from "@/components/shared/PositionedPopover";
 
 export const DEFAULT_STATUSES = ["NOT_STARTED", "PENDING_FEEDBACK", "DELEGATED", "IN_PROGRESS", "ON_HOLD", "BLOCKED", "DONE", "DELEGATED_DONE"];
 
@@ -22,29 +22,25 @@ export default function StatusDropdown({ task, onStatusChange, statusOptions = D
       >
         {task.status.replace(/_/g, " ")}
       </button>
-      {isOpen && (
-        // Rendered above full-screen modals (z-50) so the dropdown is never
-        // clipped by the table's scroll container or hidden behind the modal.
-        <Portal>
-          <div className="fixed inset-0 z-[60]" onClick={close}>
-            <div
-              className="absolute bg-card border border-border rounded-md shadow-lg py-1 w-40"
-              style={{ top: coords.top, left: coords.left }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {statusOptions.map((status) => (
-                <button
-                  key={status}
-                  onClick={() => handleSelect(status)}
-                  className="w-full text-left px-3 py-1.5 text-xs capitalize hover:bg-accent"
-                >
-                  {status.replace(/_/g, " ")}
-                </button>
-              ))}
-            </div>
-          </div>
-        </Portal>
-      )}
+      {/* Rendered above full-screen modals (z-50) so the dropdown is never
+          clipped by the table's scroll container or hidden behind the modal. */}
+      <PositionedPopover
+        isOpen={isOpen}
+        coords={coords}
+        close={close}
+        overlayClassName="fixed inset-0 z-[60]"
+        panelClassName="absolute bg-card border border-border rounded-md shadow-lg py-1 w-40"
+      >
+        {statusOptions.map((status) => (
+          <button
+            key={status}
+            onClick={() => handleSelect(status)}
+            className="w-full text-left px-3 py-1.5 text-xs capitalize hover:bg-accent"
+          >
+            {status.replace(/_/g, " ")}
+          </button>
+        ))}
+      </PositionedPopover>
     </>
   );
 }

@@ -7,15 +7,15 @@ import { useToast } from "@/components/ui/use-toast";
 import { useHighlight } from "@/lib/HighlightContext";
 import { isHighlightMatch } from "@/hooks/useHighlightDim";
 import { confirmThen } from "@/lib/entityUtils";
-import { isTaskDone, STATUS_COLORS } from "@/lib/taskUtils";
+import { isTaskDone, STATUS_COLORS, TYPE_OPTIONS } from "@/lib/taskUtils";
 import StatusDropdown, { DEFAULT_STATUSES } from "@/components/projects/StatusDropdown";
 import TaskAttachments from "@/components/projects/TaskAttachments";
 import EditableText from "@/components/shared/EditableText";
 import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
 import ColumnFilterMenu from "@/components/shared/ColumnFilterMenu";
+import QuadrantOptions from "@/components/shared/QuadrantOptions";
 
 const MAX_ROWS = 20;
-const TYPE_OPTIONS = ["COMMUNICATION", "OPEN_QUESTIONS", "SCRUM_NEEDS", "EMPLOYEE_NEEDS", "OTHER"];
 const QUADRANT_OPTIONS = [
   { value: "1", label: "1" },
   { value: "2", label: "2" },
@@ -134,11 +134,7 @@ function TaskRow({ task, allStakeholders, isMatched, updateTask, onToggleTopThre
             className="text-[10px] bg-transparent border border-border rounded px-1 py-0.5"
             aria-label={`Quadrant for task ${task.id}`}
           >
-            <option value="">—</option>
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
+            <QuadrantOptions />
           </select>
           <button
             onClick={() => updateTask.mutate({ id: task.id, data: { is_highly_important: !task.is_highly_important } })}
@@ -439,11 +435,7 @@ export default function TaskTable({ project }) {
                 className="text-[10px] bg-background border border-border rounded px-1 py-0.5"
                 aria-label="Quadrant for new task"
               >
-                <option value="">—</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
+                <QuadrantOptions />
               </select>
             </td>
             <td className="p-2">

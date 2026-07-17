@@ -1,27 +1,22 @@
 import { useState } from "react";
 import { Paperclip, Link2, X, Upload } from "lucide-react";
-import { base44 } from "@/api/base44Client";
 import { sanitizeHttpUrl } from "@/lib/entityUtils";
+import { useFileUpload } from "@/hooks/useFileUpload";
 
 export default function AttachmentsAndLinks({ project, onSave }) {
   const attachments = project.attachments || [];
   const links = project.links || [];
 
-  const [isUploading, setIsUploading] = useState(false);
+  const { isUploading, upload } = useFileUpload();
   const [linkLabel, setLinkLabel] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
 
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setIsUploading(true);
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      onSave({ attachments: [...attachments, { name: file.name, url: file_url }] });
-    } finally {
-      setIsUploading(false);
-      e.target.value = "";
-    }
+    const file_url = await upload(file);
+    onSave({ attachments: [...attachments, { name: file.name, url: file_url }] });
+    e.target.value = "";
   };
 
   const removeAttachment = (index) => {

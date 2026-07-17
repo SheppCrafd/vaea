@@ -6,6 +6,7 @@ import StatusDropdown from "@/components/projects/StatusDropdown";
 import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
 import TaskAttachments from "@/components/projects/TaskAttachments";
 import EditableText from "@/components/shared/EditableText";
+import QuadrantOptions from "@/components/shared/QuadrantOptions";
 
 // A project's archived tasks — a secondary, occasionally-visited view, but
 // per spec "archived objects can be edited just like active objects", so
@@ -62,11 +63,7 @@ export default function ArchivedTaskList({ projectId }) {
               className="text-[10px] bg-transparent border border-border rounded px-1 py-0.5"
               aria-label={`Quadrant for task ${task.id}`}
             >
-              <option value="">—</option>
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
+              <QuadrantOptions />
             </select>
             <StakeholderAssigner
               currentStakeholderIds={task.stakeholder_ids || []}

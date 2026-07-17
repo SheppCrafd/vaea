@@ -1,7 +1,7 @@
 import { Check, Plus } from "lucide-react";
-import Portal from "@/lib/Portal";
 import { usePositionedMenu } from "@/hooks/usePositionedMenu";
 import Avatar from "@/components/shared/Avatar";
+import PositionedPopover from "@/components/shared/PositionedPopover";
 
 export default function StakeholderAssigner({
   currentStakeholderIds = [],
@@ -64,37 +64,29 @@ export default function StakeholderAssigner({
       </div>
 
       {/* DROPDOWN MENU (Portal at document root, overlay click closes it) */}
-      {isOpen && (
-        <Portal>
-          <div className="fixed inset-0 z-[9999]" onClick={close}>
-            <div
-              className="fixed w-48 max-h-64 overflow-y-auto bg-card border border-border rounded-md shadow-2xl p-1 animate-in fade-in zoom-in-95 duration-100"
-              style={{
-                top: `${coords.top}px`,
-                left: `${coords.left}px`
-              }}
-              onClick={(e) => e.stopPropagation()}
+      <PositionedPopover
+        isOpen={isOpen}
+        coords={coords}
+        close={close}
+        panelClassName="fixed w-48 max-h-64 overflow-y-auto bg-card border border-border rounded-md shadow-2xl p-1 animate-in fade-in zoom-in-95 duration-100"
+      >
+        <p className="text-[10px] font-bold uppercase text-muted-foreground px-2 py-1.5 border-b border-border mb-1">
+          Assign Stakeholders
+        </p>
+        {allStakeholders.map((s) => {
+          const isAssigned = currentStakeholderIds.includes(s.id);
+          return (
+            <button
+              key={s.id}
+              onClick={() => toggleStakeholder(s.id)}
+              className="w-full text-left px-2 py-1.5 text-xs flex items-center justify-between hover:bg-secondary rounded-sm transition-colors"
             >
-              <p className="text-[10px] font-bold uppercase text-muted-foreground px-2 py-1.5 border-b border-border mb-1">
-                Assign Stakeholders
-              </p>
-              {allStakeholders.map((s) => {
-                const isAssigned = currentStakeholderIds.includes(s.id);
-                return (
-                  <button
-                    key={s.id}
-                    onClick={() => toggleStakeholder(s.id)}
-                    className="w-full text-left px-2 py-1.5 text-xs flex items-center justify-between hover:bg-secondary rounded-sm transition-colors"
-                  >
-                    <span>{s.name} <span className="text-[10px] text-muted-foreground ml-1">({s.department})</span></span>
-                    {isAssigned && <Check className="w-3.5 h-3.5 text-primary" />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </Portal>
-      )}
+              <span>{s.name} <span className="text-[10px] text-muted-foreground ml-1">({s.department})</span></span>
+              {isAssigned && <Check className="w-3.5 h-3.5 text-primary" />}
+            </button>
+          );
+        })}
+      </PositionedPopover>
     </>
   );
 }

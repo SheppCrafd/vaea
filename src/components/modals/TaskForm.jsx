@@ -5,8 +5,8 @@ import { useProjects } from "@/hooks/useProjects";
 import { useCreateTask } from "@/hooks/useTasks";
 import { useStakeholders } from "@/hooks/useStakeholders";
 import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
-
-const TYPE_OPTIONS = ["COMMUNICATION", "OPEN_QUESTIONS", "SCRUM_NEEDS", "EMPLOYEE_NEEDS", "OTHER"];
+import QuadrantOptions from "@/components/shared/QuadrantOptions";
+import { TYPE_OPTIONS } from "@/lib/taskUtils";
 
 export default function TaskForm({ onDone }) {
   const [description, setDescription] = useState("");
@@ -56,11 +56,7 @@ export default function TaskForm({ onDone }) {
             onChange={(e) => setQuadrant(e.target.value)}
             className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md"
           >
-            <option value="">—</option>
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
+            <QuadrantOptions />
           </select>
         </div>
         <div className="flex-1">

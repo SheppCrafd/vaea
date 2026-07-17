@@ -10,6 +10,7 @@ import { useEditableField } from "@/hooks/useEditableField";
 import { useHighlightMatch } from "@/hooks/useHighlightDim";
 import { isTaskDone } from "@/lib/taskUtils";
 import EditableText from "@/components/shared/EditableText";
+import CardCustomFields from "@/components/shared/CardCustomFields";
 import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
 import ProjectCard from "@/components/projects/ProjectCard";
 import ProductDetailModal from "@/components/products/ProductDetailModal";
@@ -116,25 +117,11 @@ export default function ProductCard({ product }) {
         </div>
       </div>
 
-      {(product.display_on_card_fields || []).length > 0 && (
-        <div className="relative z-[1] mt-3 pt-3 border-t border-border flex flex-wrap gap-x-3 gap-y-1">
-          {(product.display_on_card_fields || []).map((key) => {
-            const field = product.custom_data?.[key];
-            if (!field) return null;
-            return (
-              <span key={key} className="text-[10px] text-muted-foreground flex items-center gap-1 min-w-0">
-                <span className="font-medium text-foreground shrink-0">{field.label}:</span>
-                <EditableText
-                  value={field.value}
-                  onSave={(val) => updateProduct.mutate({ id: product.id, data: { custom_data: { ...product.custom_data, [key]: { label: field.label, value: val } } } })}
-                  placeholder="—"
-                  className="text-[10px] w-auto"
-                />
-              </span>
-            );
-          })}
-        </div>
-      )}
+      <CardCustomFields
+        entity={product}
+        onUpdateEntity={(data) => updateProduct.mutate({ id: product.id, data })}
+        className="relative z-[1] mt-3 pt-3 border-t border-border flex flex-wrap gap-x-3 gap-y-1"
+      />
 
       {isDetailOpen && <ProductDetailModal product={product} onClose={() => setIsDetailOpen(false)} />}
     </div>

@@ -5,6 +5,7 @@ import { useAllTasks } from "@/hooks/useTasks";
 import { useEditableField } from "@/hooks/useEditableField";
 import { confirmThen } from "@/lib/entityUtils";
 import EditableText from "@/components/shared/EditableText";
+import CardCustomFields from "@/components/shared/CardCustomFields";
 import ProductCard from "@/components/products/ProductCard";
 import ProjectCard from "@/components/projects/ProjectCard";
 import TaskStatistics from "@/components/shared/TaskStatistics";
@@ -130,25 +131,11 @@ export default function AreaCard({ area, products = [], orphanProjects = [], pro
         </div>
       </div>
 
-      {(area.display_on_card_fields || []).length > 0 && (
-        <div className="flex flex-wrap gap-x-3 gap-y-1">
-          {(area.display_on_card_fields || []).map((key) => {
-            const field = area.custom_data?.[key];
-            if (!field) return null;
-            return (
-              <span key={key} className="text-[10px] text-muted-foreground flex items-center gap-1 min-w-0">
-                <span className="font-medium text-foreground shrink-0">{field.label}:</span>
-                <EditableText
-                  value={field.value}
-                  onSave={(val) => updateArea.mutate({ id: area.id, data: { custom_data: { ...area.custom_data, [key]: { label: field.label, value: val } } } })}
-                  placeholder="—"
-                  className="text-[10px] w-auto"
-                />
-              </span>
-            );
-          })}
-        </div>
-      )}
+      <CardCustomFields
+        entity={area}
+        onUpdateEntity={(data) => updateArea.mutate({ id: area.id, data })}
+        className="flex flex-wrap gap-x-3 gap-y-1"
+      />
 
     </article>
   );
