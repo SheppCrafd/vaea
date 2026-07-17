@@ -29,8 +29,18 @@ export default function AttachmentsAndLinks({ project, onSave }) {
 
   const addLink = (e) => {
     e.preventDefault();
-    if (!linkUrl.trim()) return;
-    onSave({ links: [...links, { label: linkLabel.trim() || linkUrl.trim(), url: linkUrl.trim() }] });
+    const trimmed = linkUrl.trim();
+    if (!trimmed) return;
+    // Only allow http(s) URLs to prevent stored XSS via unsafe protocols
+    // (e.g. javascript:). Invalid input is silently rejected here.
+    let protocol = "";
+    try {
+      protocol = new URL(trimmed).protocol;
+    } catch {
+      return;
+    }
+    if (protocol !== "http:" && protocol !== "https:") return;
+    onSave({ links: [...links, { label: linkLabel.trim() || trimmed, url: trimmed }] });
     setLinkLabel("");
     setLinkUrl("");
   };
