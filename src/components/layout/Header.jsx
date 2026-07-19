@@ -15,11 +15,11 @@ export default function Header({ isLeftSidebarOpen, onToggleLeftSidebar, isRight
         <button
           onClick={onToggleLeftSidebar}
           aria-label={isLeftSidebarOpen ? "Collapse stakeholders panel" : "Expand stakeholders panel"}
-          className="text-muted-foreground hover:text-foreground transition-colors"
-        >
+          className="text-muted-foreground hover:text-foreground transition-colors">
+          
           {isLeftSidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
         </button>
-        <span className="font-heading text-lg font-semibold tracking-tight">Portfolio Tracker</span>
+        <span className="text-lg tracking-tight font-bold [font-family:'JetBrains_Mono',_monospace]">Portfolio Tracker</span>
       </div>
       <div className="flex items-center gap-2">
         <Button onClick={() => openCreateModal("task")} className="gap-2">
@@ -33,13 +33,13 @@ export default function Header({ isLeftSidebarOpen, onToggleLeftSidebar, isRight
         <button
           onClick={onToggleRightSidebar}
           aria-label={isRightSidebarOpen ? "Collapse focus panel" : "Expand focus panel"}
-          className="text-muted-foreground hover:text-foreground transition-colors"
-        >
+          className="text-muted-foreground hover:text-foreground transition-colors">
+          
           {isRightSidebarOpen ? <PanelRightClose className="w-4 h-4" /> : <PanelRight className="w-4 h-4" />}
         </button>
         <UserMenu />
       </div>
       {isFilterOpen && <FilterModal onClose={() => setIsFilterOpen(false)} />}
-    </header>
-  );
+    </header>);
+
 }
