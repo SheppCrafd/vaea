@@ -5,25 +5,22 @@ import { usePositionedMenu } from "@/hooks/usePositionedMenu";
 import PositionedPopover from "@/components/shared/PositionedPopover";
 import ProjectNotes from "@/components/projects/ProjectNotes";
 import TaskTableModal from "@/components/projects/TaskTableModal";
-import TaskAttachments from "@/components/projects/TaskAttachments";
 import ProjectDetailModal from "@/components/projects/ProjectDetailModal";
 import TaskStatistics from "@/components/shared/TaskStatistics";
 import EditableText from "@/components/shared/EditableText";
 import CardCustomFields from "@/components/shared/CardCustomFields";
 import DateField from "@/components/shared/DateField";
 import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
-import ProductAssigner from "@/components/shared/ProductAssigner";
 import { useTasks } from "@/hooks/useTasks";
 import { useProjectNotes, useCreateProjectNote } from "@/hooks/useProjectNotes";
 import { useStakeholders } from "@/hooks/useStakeholders";
-import { useProducts } from "@/hooks/useProducts";
 import { useUpdateProject } from "@/hooks/useProjects";
 import { useEditableField } from "@/hooks/useEditableField";
 import { useHighlightMatch } from "@/hooks/useHighlightDim";
 import { useHighlight } from "@/lib/HighlightContext";
 import { sanitizeHttpUrl } from "@/lib/entityUtils";
 import { filterActiveTasks, getQuadrantCounts, isTaskDone, STATUS_COLORS } from "@/lib/taskUtils";
-import { getDueDateColorClass, DUE_DATE_STATUS_OPTIONS, METRIC_FIELDS } from "@/lib/projectUtils";
+import { getDueDateColorClass, DUE_DATE_STATUS_OPTIONS } from "@/lib/projectUtils";
 
 // Small quick-add box for a single ProjectNote type (Risk / Open Question /
 // Notes) — tints once populated instead of always, and the type selector is
@@ -167,9 +164,7 @@ export default function ProjectCard({ project, stakeholderIds = [] }) {
   const { data: notes = [] } = useProjectNotes(project.id);
   const riskNotes = notes.filter((n) => n.type === "RISK");
   const questionNotes = notes.filter((n) => n.type === "QUESTION");
-  const generalNotes = notes.filter((n) => n.type === "NOTE");
   const { data: allStakeholders = [] } = useStakeholders();
-  const { data: allProducts = [] } = useProducts();
   const updateProject = useUpdateProject();
   const createProjectNote = useCreateProjectNote();
 
@@ -205,18 +200,12 @@ export default function ProjectCard({ project, stakeholderIds = [] }) {
     opacity: isDragging ? 0.4 : 1,
   };
 
-  const doneTasks = tasks.filter(isTaskDone);
-  const projectProgress = tasks.length > 0 ? Math.round((doneTasks.length / tasks.length) * 100) : 0;
   const quadrants = getQuadrantCounts(tasks, highlights);
 
   const activeTasks = filterActiveTasks(tasks);
   const allDone = activeTasks.length > 0 && activeTasks.every(isTaskDone);
 
   const dateColorClass = getDueDateColorClass(project, allDone);
-
-  const saveMetric = (key, value) => {
-    updateProject.mutate({ id: project.id, data: { metrics: { ...project.metrics, [key]: value } } });
-  };
 
   return (
     <div
@@ -343,60 +332,6 @@ export default function ProjectCard({ project, stakeholderIds = [] }) {
           className="text-[10px] text-muted-foreground"
           multiline
         />
-      </div>
-
-      <div className="pl-5 pr-1 mt-2 grid grid-cols-2 gap-1.5">
-        {METRIC_FIELDS.map(({ key, label }) => (
-          <div key={key} className="min-w-0">
-            <label className="text-[8px] text-muted-foreground uppercase tracking-wider block">{label}</label>
-            <EditableText
-              value={project.metrics?.[key] || ""}
-              onSave={(v) => saveMetric(key, v)}
-              placeholder="—"
-              className="text-[10px] bg-muted/30 border border-border rounded px-1 py-0.5"
-            />
-          </div>
-        ))}
-      </div>
-
-      <div className="pl-5 pr-1 mt-2">
-        <NoteBox
-          title="Notes"
-          notes={generalNotes}
-          allStakeholders={allStakeholders}
-          tintStyle={{}}
-          placeholder="Add a note and press Enter..."
-          onAdd={(text) => addNote("NOTE", text)}
-          showButton
-        />
-      </div>
-
-      <div className="pl-5 pr-1 mt-2 flex items-center justify-between">
-        <ProductAssigner
-          currentProductIds={project.related_product_ids || []}
-          allProducts={allProducts}
-          excludeProductId={project.parent_product_id}
-          onSave={(newIds) => updateProject.mutate({ id: project.id, data: { related_product_ids: newIds } })}
-        />
-        <TaskAttachments
-          attachments={project.attachments || []}
-          onSave={(newAttachments) => updateProject.mutate({ id: project.id, data: { attachments: newAttachments } })}
-        />
-      </div>
-
-      <div className="mt-3 flex items-center justify-between border-t border-border pt-2 px-1 ml-5">
-        <div className="flex flex-col">
-          <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider">Progress</span>
-          <span className="text-xs font-bold text-primary">{projectProgress}%</span>
-        </div>
-        <div className="flex flex-col items-center">
-          <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider">Tasks</span>
-          <span className="text-xs font-semibold text-foreground">{doneTasks.length} <span className="text-muted-foreground font-normal">/ {tasks.length}</span></span>
-        </div>
-        <div className="flex flex-col items-end">
-          <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider">Notes</span>
-          <span className="text-xs font-semibold text-foreground">{notes.length}</span>
-        </div>
       </div>
 
       <CardCustomFields
