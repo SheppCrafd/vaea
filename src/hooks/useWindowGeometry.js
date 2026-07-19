@@ -85,7 +85,11 @@ export function useWindowGeometry() {
       dragRef.current = null;
       setGeometry((current) => {
         const clamped = clampToViewport(current);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(clamped));
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(clamped));
+        } catch {
+          // best-effort — the position just won't survive a reload
+        }
         return clamped;
       });
     };

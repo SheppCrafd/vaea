@@ -44,6 +44,7 @@
     --status-todo: #9e9e9e;
     --status-in-progress: #ff9800;
     --status-done: #4caf50;
+    --status-not-started: #000000;
   }
 
   .dark {
@@ -82,6 +83,7 @@
     --status-todo: #9e9e9e;
     --status-in-progress: #ff9800;
     --status-done: #4caf50;
+    --status-not-started: #ffffff;
   }
 
   /* Curated accent-theme presets — set via `data-accent` on <html> by

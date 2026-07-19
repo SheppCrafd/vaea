@@ -66,6 +66,10 @@ export const STATUS_BUCKETS = [
 // surface-adaptive theme tokens. Shared so any consumer needing the same
 // color (e.g. a card face echoing "pending feedback" orange) has one source
 // of truth instead of a duplicated hex.
+// NOT_STARTED is the one exception: literal black is invisible against a
+// dark-mode card background, so it's the one bucket that does flip with the
+// theme, via the --status-not-started CSS var (black in :root, white in
+// .dark — see index.css) rather than a hardcoded hex.
 export const STATUS_COLORS = {
   DONE: "#86E7B0",
   DELEGATED: "#93C5FD",
@@ -73,7 +77,7 @@ export const STATUS_COLORS = {
   BLOCKED: "#4B5563",
   PENDING_FEEDBACK: "#FDBA74",
   ON_HOLD: "#FCA5A5",
-  NOT_STARTED: "#000000",
+  NOT_STARTED: "var(--status-not-started)",
 };
 
 // Single source for the task Type enum (TaskTable's row + new-row selects,

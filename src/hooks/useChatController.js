@@ -28,9 +28,44 @@ const APP_QUERY_KEYS = [
   "stakeholders", "projectNotes", "allProjectNotes", "archivedProjects", "project",
 ];
 
+// localStorage can throw on read or write (private-browsing storage
+// restrictions, quota errors, storage disabled/blocked in an embedded
+// iframe, etc.) — real conditions, not just theoretical. This hook's state
+// initializers run at mount time, and since ChatBox is a persistent widget
+// that's designed to never unmount during normal use, mount only actually
+// happens on a hard refresh (or some other full remount) — so an unguarded
+// throw here doesn't surface in everyday use, it surfaces as the chat
+// widget silently failing to render the moment the page reloads. Guarding
+// every access (matching the pattern already used for geometry/icon reads
+// elsewhere in this file) keeps a storage failure from ever taking the
+// widget down with it.
+function readStorage(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeStorage(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // best-effort — the choice just won't survive a reload
+  }
+}
+
+function removeStorage(key) {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // best-effort
+  }
+}
+
 function loadIconChoice() {
   try {
-    return JSON.parse(localStorage.getItem(ICON_STORAGE_KEY)) || { key: "message-circle" };
+    return JSON.parse(readStorage(ICON_STORAGE_KEY)) || { key: "message-circle" };
   } catch {
     return { key: "message-circle" };
   }
@@ -49,7 +84,7 @@ export function useChatController({ activeProjectId } = {}) {
   const [iconChoice, setIconChoice] = useState(loadIconChoice);
   const [resolvingId, setResolvingId] = useState(null);
   const [actionHistory, setActionHistory] = useState([]);
-  const [activeSessionId, setActiveSessionId] = useState(() => localStorage.getItem(SESSION_STORAGE_KEY) || null);
+  const [activeSessionId, setActiveSessionId] = useState(() => readStorage(SESSION_STORAGE_KEY));
 
   const fileInputRef = useRef(null);
   const queryClient = useQueryClient();
@@ -66,7 +101,7 @@ export function useChatController({ activeProjectId } = {}) {
 
   const chooseIcon = (choice) => {
     setIconChoice(choice);
-    localStorage.setItem(ICON_STORAGE_KEY, JSON.stringify(choice));
+    writeStorage(ICON_STORAGE_KEY, JSON.stringify(choice));
     iconPicker.close();
   };
 
@@ -74,18 +109,18 @@ export function useChatController({ activeProjectId } = {}) {
     if (activeSessionId) return activeSessionId;
     const session = await createSession.mutateAsync({ title: input.trim().slice(0, 40) || "New chat" });
     setActiveSessionId(session.id);
-    localStorage.setItem(SESSION_STORAGE_KEY, session.id);
+    writeStorage(SESSION_STORAGE_KEY, session.id);
     return session.id;
   };
 
   const handleSelectSession = (id) => {
     setActiveSessionId(id);
-    localStorage.setItem(SESSION_STORAGE_KEY, id);
+    writeStorage(SESSION_STORAGE_KEY, id);
   };
 
   const handleNewChat = () => {
     setActiveSessionId(null);
-    localStorage.removeItem(SESSION_STORAGE_KEY);
+    removeStorage(SESSION_STORAGE_KEY);
   };
 
   const handleFileChange = async (e) => {
