@@ -1,12 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { localDb } from "@/lib/localDb";
 import { excludeSoftDeleted } from "@/lib/entityUtils";
 
 export function useProjects() {
   return useQuery({
     queryKey: ["projects"],
     queryFn: async () => {
-      const projects = await base44.entities.Project.list();
+      const projects = await localDb.projects.list();
       return excludeSoftDeleted(projects).filter((p) => !p.is_archived);
     },
   });
@@ -14,22 +14,64 @@ export function useProjects() {
 
 // Fetches a single full Project record by id — used by the Archive view,
 // which otherwise only has the lightweight { id, title, quadrant_counts }
-// shape from the archivedProjects function and needs the full record to
-// open ProjectDetailModal.
+// shape from useArchivedProjects and needs the full record to open
+// ProjectDetailModal.
 export function useProject(id) {
   return useQuery({
     queryKey: ["project", id],
-    queryFn: () => base44.entities.Project.get(id),
+    queryFn: () => localDb.projects.get(id),
     enabled: !!id,
   });
 }
 
+// "Reveal all projects that were or are active in that date range... even
+// those archived" — this is a project-lifetime overlap check, not a simple
+// is_archived filter. A project's active window is [created_date, archived_at
+// ?? now]; it belongs in the result if that window overlaps [start, end].
+// This deliberately includes currently active (non-archived) projects too,
+// since "even those archived" implies archived projects are an addition to
+// the otherwise-expected active set, not the whole result.
 export function useArchivedProjects(start, end) {
   return useQuery({
     queryKey: ["archivedProjects", start, end],
     queryFn: async () => {
-      const res = await base44.functions.invoke("archivedProjects", { start, end });
-      return res.data; // { projects: [...] }
+      const allProjects = await localDb.projects.list();
+      const rangeStart = start ? new Date(start) : null;
+      const rangeEnd = end ? new Date(end) : null;
+      const filtered = allProjects.filter((p) => {
+        if (p.deleted_at) return false;
+        // No range picked yet: default to the archive's original purpose
+        // (browse archived projects) rather than dumping the whole live
+        // dashboard into this view.
+        if (!rangeStart && !rangeEnd) return !!p.is_archived;
+        const activeFrom = p.created_date ? new Date(p.created_date) : null;
+        const activeUntil = p.is_archived && p.archived_at ? new Date(p.archived_at) : null; // null = still active
+        if (rangeEnd && activeFrom && activeFrom > rangeEnd) return false; // didn't exist yet by end of range
+        if (rangeStart && activeUntil && activeUntil < rangeStart) return false; // was archived before range started
+        return true;
+      });
+
+      const withQuadrants = await Promise.all(
+        filtered.map(async (p) => {
+          const tasks = await localDb.tasks.filter({ project_id: p.id });
+          const activeTasks = tasks.filter((t) => !t.deleted_at);
+          const quadrantCounts = [1, 2, 3, 4].map((q) => activeTasks.filter((t) => (t.quadrant || 4) === q).length);
+          return {
+            id: p.id,
+            title: p.title,
+            objective: p.objective,
+            due_date: p.due_date,
+            parent_product_id: p.parent_product_id,
+            parent_area_id: p.parent_area_id,
+            updated_date: p.updated_date,
+            is_archived: !!p.is_archived,
+            archived_at: p.archived_at || null,
+            quadrant_counts: quadrantCounts,
+          };
+        })
+      );
+
+      return { projects: withQuadrants };
     },
   });
 }
@@ -37,7 +79,7 @@ export function useArchivedProjects(start, end) {
 export function useMoveProject() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, parent_product_id }) => base44.entities.Project.update(id, { parent_product_id }),
+    mutationFn: ({ id, parent_product_id }) => localDb.projects.update(id, { parent_product_id }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["projects"] }),
   });
 }
@@ -45,7 +87,7 @@ export function useMoveProject() {
 export function useUpdateProject() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Project.update(id, data),
+    mutationFn: ({ id, data }) => localDb.projects.update(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["projects"] }),
   });
 }
@@ -53,15 +95,23 @@ export function useUpdateProject() {
 export function useCreateProject() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data) => base44.entities.Project.create(data),
+    mutationFn: (data) => localDb.projects.create(data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["projects"] }),
   });
 }
 
+// Cascading archive: tags the project is_archived, and cascades archived_at
+// to every child task.
 export function useArchiveProject() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id) => base44.functions.invoke("archiveProject", { projectId: id }),
+    mutationFn: async (id) => {
+      const now = new Date().toISOString();
+      const project = await localDb.projects.update(id, { is_archived: true, archived_at: now });
+      const tasks = await localDb.tasks.filter({ project_id: id });
+      await Promise.all(tasks.map((t) => localDb.tasks.update(t.id, { archived_at: now })));
+      return project;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["archivedProjects"] });
@@ -70,10 +120,18 @@ export function useArchiveProject() {
   });
 }
 
+// Soft delete: tags the project deleted_at, and cascades deleted_at to every
+// child task.
 export function useDeleteProject() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id) => base44.functions.invoke("deleteProject", { projectId: id }),
+    mutationFn: async (id) => {
+      const now = new Date().toISOString();
+      const project = await localDb.projects.update(id, { deleted_at: now });
+      const tasks = await localDb.tasks.filter({ project_id: id });
+      await Promise.all(tasks.filter((t) => !t.deleted_at).map((t) => localDb.tasks.update(t.id, { deleted_at: now })));
+      return project;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["archivedProjects"] });
@@ -82,10 +140,16 @@ export function useDeleteProject() {
   });
 }
 
+// Restores a project and un-cascades archived_at from its tasks.
 export function useRestoreProject() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id) => base44.functions.invoke("restoreProject", { projectId: id }),
+    mutationFn: async (id) => {
+      const project = await localDb.projects.update(id, { is_archived: false, archived_at: null });
+      const tasks = await localDb.tasks.filter({ project_id: id });
+      await Promise.all(tasks.filter((t) => t.archived_at).map((t) => localDb.tasks.update(t.id, { archived_at: null })));
+      return project;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["archivedProjects"] });

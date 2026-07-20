@@ -1,12 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { localDb } from "@/lib/localDb";
 import { excludeSoftDeleted } from "@/lib/entityUtils";
 
 export function useProducts() {
   return useQuery({
     queryKey: ["products"],
     queryFn: async () => {
-      const products = await base44.entities.Product.list();
+      const products = await localDb.products.list();
       return excludeSoftDeleted(products);
     },
   });
@@ -15,7 +15,7 @@ export function useProducts() {
 export function useCreateProduct() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data) => base44.entities.Product.create(data),
+    mutationFn: (data) => localDb.products.create(data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["products"] }),
   });
 }
@@ -23,15 +23,32 @@ export function useCreateProduct() {
 export function useUpdateProduct() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Product.update(id, data),
+    mutationFn: ({ id, data }) => localDb.products.update(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["products"] }),
   });
 }
 
+// Soft delete: tags the product deleted_at, and cascades deleted_at to every
+// child Project (and every Task under those projects).
 export function useDeleteProduct() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id) => base44.functions.invoke("deleteProduct", { productId: id }),
+    mutationFn: async (id) => {
+      const now = new Date().toISOString();
+      const product = await localDb.products.update(id, { deleted_at: now });
+
+      const projects = await localDb.projects.filter({ parent_product_id: id });
+      await Promise.all(
+        projects.filter((p) => !p.deleted_at).map((p) => localDb.projects.update(p.id, { deleted_at: now }))
+      );
+
+      const tasksByProject = await Promise.all(projects.map((p) => localDb.tasks.filter({ project_id: p.id })));
+      await Promise.all(
+        tasksByProject.flat().filter((t) => !t.deleted_at).map((t) => localDb.tasks.update(t.id, { deleted_at: now }))
+      );
+
+      return product;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });

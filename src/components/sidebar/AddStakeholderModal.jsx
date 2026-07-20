@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useCreateStakeholder } from "@/hooks/useStakeholders";
 import { useDepartments, useCreateDepartment } from "@/hooks/useDepartments";
-import { base44 } from "@/api/base44Client";
+import { useFileUpload } from "@/hooks/useFileUpload";
 
 const NEW_DEPARTMENT = "__new__";
 
@@ -13,6 +13,7 @@ export default function AddStakeholderModal({ onClose }) {
   const { data: departments = [] } = useDepartments();
   const createDepartment = useCreateDepartment();
   const createStakeholder = useCreateStakeholder();
+  const { upload } = useFileUpload();
 
   const [name, setName] = useState("");
   const [department, setDepartment] = useState("");
@@ -37,8 +38,7 @@ export default function AddStakeholderModal({ onClose }) {
 
     let avatar_url;
     if (file) {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      avatar_url = file_url;
+      avatar_url = await upload(file);
     }
     createStakeholder.mutate({ name, department: resolvedDepartmentName, avatar_url });
 

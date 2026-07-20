@@ -2,33 +2,26 @@
 
 ## Project Context
 
-This is a Base44 app repository. Treat it as user-owned application code, keep changes focused on the user's request, and preserve existing project conventions.
+This is a fork of a Base44 app with everything except the AI assistant moved off Base44. Core app data (areas, products, projects, tasks, stakeholders, departments, notes) lives in browser `localStorage` via `src/lib/localDb.js` — no hosted database, no login/auth. Base44 is retained only to run the AI chat assistant's backend function (`base44/functions/aiChatStream`) and store chat history (`ChatSession`/`ChatMessage`).
 
-Start with `README.md` for local setup, environment variables, and publish workflow.
+Important: `aiChatStream` acts on Base44's own hosted entities, not the local `localDb` data — the AI assistant and the rest of the app currently read/write two disconnected datasets. This was a deliberate scope decision, not a bug; don't "fix" it without being asked to.
 
-## Base44 References
+Treat this as user-owned application code, keep changes focused on the user's request, and preserve existing project conventions.
 
-- CLI overview: https://docs.base44.com/developers/references/cli/get-started/overview.md
-- Agent skills: https://docs.base44.com/developers/backend/overview/skills.md
-
-If your agent supports Agent Skills, install or update Base44 skills before Base44-specific work:
-
-```bash
-npx skills add base44/skills
-```
+Start with `README.md` for local setup and architecture details.
 
 ## Key Files
 
-- `src/`: frontend application source.
-- `src/api/base44Client.js`: frontend Base44 SDK client.
-- `vite.config.js`: Vite config and Base44 Vite plugin setup.
-- `.env.local`: local-only environment values; never commit secrets.
+- `src/lib/localDb.js`: the local data layer for all non-chat app data.
+- `src/hooks/`: entity hooks (`useAreas`, `useProducts`, `useProjects`, `useTasks`, `useStakeholders`, `useDepartments`, `useProjectNotes`) — all `localDb`-backed, including the cascade/business logic that used to live in Base44 functions.
+- `src/api/base44Client.js`: frontend Base44 SDK client, used only for chat (`useChatController`, `useChatSessions`, `useChatMessages`) and its file attachments.
+- `base44/functions/aiChatStream/`: the one remaining Base44 function. Unauthenticated (the auth gate was removed along with the rest of Base44 auth).
+- `vite.config.js`: Vite config and Base44 Vite plugin setup — kept because `aiChatStream` still needs the Base44 toolchain.
 
 ## Working Notes
 
-- Use `base44 dev` as the default local development command when you need the local Base44 backend. It can run the backend and frontend together.
-- When docs or code mention the frontend being started automatically, that usually means the Base44 project config includes `site.serveCommand`, for example `"serveCommand": "npm run dev"` in `base44/config.jsonc`.
-- Use `npm run dev` only for frontend-only work against the hosted Base44 backend.
-- Prefer the existing Base44 CLI workflow over adding new npm scripts for Base44-specific tasks.
-- Reuse the existing SDK client and Vite plugin patterns before adding new Base44 integration paths.
+- Most feature work needs nothing but `npm run dev` against local data.
+- Only touch `base44 dev` / the Base44 CLI when working on the AI chat function itself.
+- Non-chat file uploads (`useFileUpload`, and the stakeholder avatar uploads in `StakeholderList.jsx`/`AddStakeholderModal.jsx`) store files as data URLs locally — don't reach for `base44.integrations.Core.UploadFile` there. The chat widget's own attachment upload in `useChatController.js` is the one exception, left on Base44 intentionally.
+- There's no user/account/auth concept anymore — don't reintroduce login-gated UI unless asked.
 - Run the relevant checks from `package.json` before finishing code changes.

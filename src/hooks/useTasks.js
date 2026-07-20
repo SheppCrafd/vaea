@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { localDb } from "@/lib/localDb";
 import { filterActiveTasks, isTaskArchived, isTaskDeleted } from "@/lib/taskUtils";
 
 // 1. FETCH TASKS FOR A SPECIFIC PROJECT (WITH LIVE SUBSCRIPTION POLLING)
@@ -9,7 +9,7 @@ export function useTasks(projectId) {
   const query = useQuery({
     queryKey: ["tasks", projectId],
     queryFn: async () => {
-      const tasks = await base44.entities.Task.filter({ project_id: projectId });
+      const tasks = await localDb.tasks.filter({ project_id: projectId });
       return filterActiveTasks(tasks);
     },
     enabled: !!projectId,
@@ -18,10 +18,8 @@ export function useTasks(projectId) {
   // Live "matrix polling": any Task change refreshes this project's quadrant counts instantly.
   useEffect(() => {
     if (!projectId) return;
-    const unsubscribe = base44.entities.Task.subscribe((event) => {
-      if (event.data?.project_id === projectId) {
-        queryClient.invalidateQueries({ queryKey: ["tasks", projectId] });
-      }
+    const unsubscribe = localDb.tasks.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: ["tasks", projectId] });
     });
     return unsubscribe;
   }, [projectId, queryClient]);
@@ -35,7 +33,7 @@ export function useArchivedTasks(projectId) {
   return useQuery({
     queryKey: ["archivedTasks", projectId],
     queryFn: async () => {
-      const tasks = await base44.entities.Task.filter({ project_id: projectId });
+      const tasks = await localDb.tasks.filter({ project_id: projectId });
       return tasks.filter((t) => isTaskArchived(t) && !isTaskDeleted(t));
     },
     enabled: !!projectId,
@@ -47,7 +45,7 @@ export function useAllTasks() {
   return useQuery({
     queryKey: ["allTasks"],
     queryFn: async () => {
-      const tasks = await base44.entities.Task.list();
+      const tasks = await localDb.tasks.list();
       return filterActiveTasks(tasks);
     },
   });
@@ -57,7 +55,7 @@ export function useAllTasks() {
 export function useCreateTask() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data) => base44.entities.Task.create(data),
+    mutationFn: (data) => localDb.tasks.create(data),
     onSuccess: (_, variables) => {
       // Invalidate both general task lists and the active project's tasks
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
@@ -73,7 +71,7 @@ export function useCreateTask() {
 export function useUpdateTask() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Task.update(id, data),
+    mutationFn: ({ id, data }) => localDb.tasks.update(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["archivedTasks"] });
@@ -89,7 +87,7 @@ export function useUpdateTask() {
 export function useDeleteTask() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id) => base44.entities.Task.update(id, { deleted_at: new Date().toISOString() }),
+    mutationFn: (id) => localDb.tasks.update(id, { deleted_at: new Date().toISOString() }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["allTasks"] });
@@ -97,11 +95,23 @@ export function useDeleteTask() {
   });
 }
 
-// 7. TOGGLE TASK PRIORITY IN TOP THREE FOCUS LIST
+// 7. TOGGLE TASK PRIORITY IN TOP THREE FOCUS LIST — max 3 per project.
 export function useToggleTopThree() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id }) => base44.functions.invoke("toggleTopThree", { taskId: id }),
+    mutationFn: async ({ id }) => {
+      const task = await localDb.tasks.get(id);
+      if (!task) throw new Error("Task not found");
+      const nextValue = !task.is_today_top_three;
+      if (nextValue) {
+        const projectTasks = await localDb.tasks.filter({ project_id: task.project_id, is_today_top_three: true });
+        const otherTopThree = projectTasks.filter((t) => t.id !== id);
+        if (otherTopThree.length >= 3) {
+          throw new Error('Only 3 "Top 3" tasks are allowed per project');
+        }
+      }
+      return localDb.tasks.update(id, { is_today_top_three: nextValue });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["allTasks"] });

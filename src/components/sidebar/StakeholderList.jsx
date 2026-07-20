@@ -11,7 +11,7 @@ import { useAllProjectNotes } from "@/hooks/useProjectNotes";
 import { useHighlight, HIGHLIGHT_CATEGORIES } from "@/lib/HighlightContext";
 import { useEditableField } from "@/hooks/useEditableField";
 import { confirmThen } from "@/lib/entityUtils";
-import { base44 } from "@/api/base44Client";
+import { useFileUpload } from "@/hooks/useFileUpload";
 import Avatar from "@/components/shared/Avatar";
 import AddStakeholderModal from "@/components/sidebar/AddStakeholderModal";
 import QueryError from "@/components/shared/QueryError";
@@ -36,6 +36,7 @@ function HighlightCheckbox({ category, count, isChecked, onToggle, stakeholderNa
 
 function StakeholderRow({ stakeholder, isHighlighted, onToggleHighlight, onRemove, counts }) {
   const updateStakeholder = useUpdateStakeholder();
+  const { upload } = useFileUpload();
 
   const { value: name, handleInput: handleNameInput, handleBlur: handleNameBlur, handleKeyDown: handleNameKeyDown } = useEditableField(
     stakeholder.name,
@@ -45,7 +46,7 @@ function StakeholderRow({ stakeholder, isHighlighted, onToggleHighlight, onRemov
   const handleAvatarChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const file_url = await upload(file);
     updateStakeholder.mutate({ id: stakeholder.id, data: { avatar_url: file_url } });
     e.target.value = "";
   };

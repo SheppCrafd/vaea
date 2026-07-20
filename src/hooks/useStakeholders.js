@@ -1,12 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { localDb } from "@/lib/localDb";
 import { excludeSoftDeleted } from "@/lib/entityUtils";
 
 export function useStakeholders() {
   return useQuery({
     queryKey: ["stakeholders"],
     queryFn: async () => {
-      const stakeholders = await base44.entities.Stakeholder.list();
+      const stakeholders = await localDb.stakeholders.list();
       return excludeSoftDeleted(stakeholders);
     },
   });
@@ -15,7 +15,7 @@ export function useStakeholders() {
 export function useCreateStakeholder() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data) => base44.entities.Stakeholder.create(data),
+    mutationFn: (data) => localDb.stakeholders.create(data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["stakeholders"] }),
   });
 }
@@ -23,7 +23,7 @@ export function useCreateStakeholder() {
 export function useUpdateStakeholder() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Stakeholder.update(id, data),
+    mutationFn: ({ id, data }) => localDb.stakeholders.update(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["stakeholders"] }),
   });
 }
@@ -31,7 +31,7 @@ export function useUpdateStakeholder() {
 export function useDeleteStakeholder() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id) => base44.entities.Stakeholder.update(id, { deleted_at: new Date().toISOString() }),
+    mutationFn: (id) => localDb.stakeholders.update(id, { deleted_at: new Date().toISOString() }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["stakeholders"] }),
   });
 }

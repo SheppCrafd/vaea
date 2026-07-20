@@ -1,22 +1,22 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { localDb } from "@/lib/localDb";
 
 export function useProjectNotes(projectId) {
   return useQuery({
     queryKey: ["projectNotes", projectId],
-    queryFn: () => base44.entities.ProjectNote.filter({ project_id: projectId }),
+    queryFn: () => localDb.projectNotes.filter({ project_id: projectId }),
     enabled: !!projectId,
   });
 }
 
 export function useAllProjectNotes() {
-  return useQuery({ queryKey: ["allProjectNotes"], queryFn: () => base44.entities.ProjectNote.list() });
+  return useQuery({ queryKey: ["allProjectNotes"], queryFn: () => localDb.projectNotes.list() });
 }
 
 export function useCreateProjectNote() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data) => base44.entities.ProjectNote.create(data),
+    mutationFn: (data) => localDb.projectNotes.create(data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["projectNotes", variables.project_id] });
       queryClient.invalidateQueries({ queryKey: ["allProjectNotes"] });
@@ -27,7 +27,7 @@ export function useCreateProjectNote() {
 export function useUpdateProjectNote() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }) => base44.entities.ProjectNote.update(id, data),
+    mutationFn: ({ id, data }) => localDb.projectNotes.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projectNotes"] });
       queryClient.invalidateQueries({ queryKey: ["allProjectNotes"] });
@@ -38,7 +38,7 @@ export function useUpdateProjectNote() {
 export function useDeleteProjectNote() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id) => base44.entities.ProjectNote.delete(id),
+    mutationFn: (id) => localDb.projectNotes.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projectNotes"] });
       queryClient.invalidateQueries({ queryKey: ["allProjectNotes"] });

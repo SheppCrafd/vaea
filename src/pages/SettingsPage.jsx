@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import AccountSection from "@/components/settings/AccountSection";
 import AppearanceSection from "@/components/settings/AppearanceSection";
 
 // A standalone /settings route (outside AppShell's three-column dashboard
@@ -20,7 +19,6 @@ export default function SettingsPage() {
       </div>
 
       <div className="max-w-2xl mx-auto px-6 py-8 flex flex-col gap-6">
-        <AccountSection />
         <AppearanceSection />
       </div>
     </div>

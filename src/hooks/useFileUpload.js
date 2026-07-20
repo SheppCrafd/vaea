@@ -1,17 +1,23 @@
 import { useState } from "react";
-import { base44 } from "@/api/base44Client";
 
-// Shared upload-a-file-to-Base44-storage plumbing — used by every
-// attachments UI (TaskAttachments, AttachmentsAndLinks) so the
-// isUploading-flag/try-finally boilerplate around
-// `base44.integrations.Core.UploadFile` only lives in one place.
+// Shared upload-a-file plumbing — used by every non-chat attachments UI
+// (TaskAttachments, AttachmentsAndLinks). Files are read as data URLs and
+// stored inline (in the attaching record's `attachments` array in
+// localStorage) since there's no backend file store anymore. Chat
+// attachments are unrelated to this hook — see useChatController.js, which
+// still uploads via base44.
 export function useFileUpload() {
   const [isUploading, setIsUploading] = useState(false);
 
   const upload = async (file) => {
     setIsUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const file_url = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
       return file_url;
     } finally {
       setIsUploading(false);

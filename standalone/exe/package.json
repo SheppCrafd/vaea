@@ -1,0 +1,14 @@
+{
+  "name": "portfolio-tracker-native-launcher",
+  "private": true,
+  "version": "1.0.0",
+  "bin": "server.js",
+  "pkg": {
+    "assets": [
+      "app/**/*"
+    ]
+  },
+  "devDependencies": {
+    "@yao-pkg/pkg": "^5.16.1"
+  }
+}

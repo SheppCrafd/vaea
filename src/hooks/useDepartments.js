@@ -1,12 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { localDb } from "@/lib/localDb";
 import { excludeSoftDeleted } from "@/lib/entityUtils";
 
 export function useDepartments() {
   return useQuery({
     queryKey: ["departments"],
     queryFn: async () => {
-      const departments = await base44.entities.Department.list();
+      const departments = await localDb.departments.list();
       return excludeSoftDeleted(departments).sort((a, b) => a.name.localeCompare(b.name));
     },
   });
@@ -15,16 +15,30 @@ export function useDepartments() {
 export function useCreateDepartment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data) => base44.entities.Department.create(data),
+    mutationFn: (data) => localDb.departments.create(data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["departments"] }),
   });
 }
 
-// Cascades the rename to every Stakeholder currently assigned to this department.
+// Cascades the rename to every Stakeholder currently assigned to this
+// department. Stakeholder.department is a plain string, not a foreign key,
+// so the cascade is a string-match update across matching records.
 export function useRenameDepartment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, name }) => base44.functions.invoke("renameDepartment", { departmentId: id, newName: name }),
+    mutationFn: async ({ id, name }) => {
+      const department = await localDb.departments.get(id);
+      if (!department) throw new Error("Department not found");
+      const oldName = department.name;
+      const updated = await localDb.departments.update(id, { name });
+      if (oldName !== name) {
+        const stakeholders = await localDb.stakeholders.filter({ department: oldName });
+        await Promise.all(
+          stakeholders.filter((s) => !s.deleted_at).map((s) => localDb.stakeholders.update(s.id, { department: name }))
+        );
+      }
+      return updated;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["departments"] });
       queryClient.invalidateQueries({ queryKey: ["stakeholders"] });
@@ -37,7 +51,17 @@ export function useRenameDepartment() {
 export function useDeleteDepartment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id) => base44.functions.invoke("deleteDepartment", { departmentId: id }),
+    mutationFn: async (id) => {
+      const department = await localDb.departments.get(id);
+      if (!department) throw new Error("Department not found");
+      const now = new Date().toISOString();
+      const updated = await localDb.departments.update(id, { deleted_at: now });
+      const stakeholders = await localDb.stakeholders.filter({ department: department.name });
+      await Promise.all(
+        stakeholders.filter((s) => !s.deleted_at).map((s) => localDb.stakeholders.update(s.id, { department: "" }))
+      );
+      return updated;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["departments"] });
       queryClient.invalidateQueries({ queryKey: ["stakeholders"] });
