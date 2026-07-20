@@ -1,5 +1,7 @@
 # Portfolio Tracker (semi-self-owned)
 
+Repo: https://github.com/SheppCrafd/portfolio-tracker-semiselfowned
+
 A dashboard for managing a portfolio of projects and products across your areas of responsibility — with task tracking, stakeholder visibility, a focus feed, and an AI chat assistant that can act on your data.
 
 This is a fork of the original [Base44](https://base44.com)-backed Portfolio Tracker with everything but the AI assistant moved off Base44: there's no login/account system, and all core app data (areas, products, projects, tasks, stakeholders, departments, notes) lives in the browser's `localStorage` (`src/lib/localDb.js`) instead of a hosted database. Base44 is retained only to run the AI chat assistant's backend function and its own chat history storage — see "Architecture" below for how that split works, including an important caveat about the AI assistant's data.
@@ -26,6 +28,7 @@ Each level is rendered as a card, nested inside its parent's card, so the dashbo
 - **Archive view** — a date-range view of everything that was active during that window, including archived projects/tasks, which remain fully editable and can be restored.
 - **Product connection lines** — when a project is linked to a product beyond its primary parent (via the "Connect Products" control), a dashed curve is drawn between the two cards, layered so it crosses over Area/Product/Project cards but stays underneath every other UI element (popovers, modals, the chat widget, the archive button).
 - **Collapsible sidebars, dark mode, and accent themes** — both side panels collapse via hamburger toggles in the header (state persists across sessions), and a settings shortcut (top right) links to a **Settings** page for switching Light/Dark/System theme and picking one of four curated accent colors (Slate/Indigo/Emerald/Amber). There's no account system, so nothing else lives there.
+- **Own branding** — tab title, favicon, and web app manifest (`public/`) are this fork's own, not Base44's default.
 
 ### In-chat commands
 
