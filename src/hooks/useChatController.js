@@ -142,7 +142,7 @@ export function useChatController({ activeProjectId } = {}) {
     return res.data;
   };
 
-  const runUndo = async (sessionId) => {
+  const runUndo = async () => {
     const last = actionHistory[actionHistory.length - 1];
     if (!last) return;
     setActionHistory((prev) => prev.slice(0, -1));
@@ -177,7 +177,7 @@ export function useChatController({ activeProjectId } = {}) {
       const data = await invokeAssistant({ message: userText, conversationHistory, activeProjectId });
 
       if (data.action === "UNDO_LAST_ACTION") {
-        await runUndo(sessionId);
+        await runUndo();
         await createMessage.mutateAsync({ session_id: sessionId, role: "assistant", content: data.reply });
         return;
       }
