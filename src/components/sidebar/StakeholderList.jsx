@@ -24,14 +24,14 @@ function HighlightCheckbox({ category, count, isChecked, onToggle, stakeholderNa
   return (
     <label
       className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border cursor-pointer select-none transition-colors ${
-        isChecked ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border"
-      }`}
-      title={`Highlight ${category} ${stakeholderName} is on`}
-    >
+      isChecked ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border"}`
+      }
+      title={`Highlight ${category} ${stakeholderName} is on`}>
+      
       <input type="checkbox" checked={isChecked} onChange={onToggle} className="sr-only" />
       {label}: {count}
-    </label>
-  );
+    </label>);
+
 }
 
 function StakeholderRow({ stakeholder, isHighlighted, onToggleHighlight, onRemove, counts }) {
@@ -58,7 +58,7 @@ function StakeholderRow({ stakeholder, isHighlighted, onToggleHighlight, onRemov
   // targets (checkbox, avatar upload, inline-editable name, delete).
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `stakeholder-${stakeholder.id}`,
-    data: { type: "stakeholder", stakeholderId: stakeholder.id, name: stakeholder.name, avatarUrl: stakeholder.avatar_url },
+    data: { type: "stakeholder", stakeholderId: stakeholder.id, name: stakeholder.name, avatarUrl: stakeholder.avatar_url }
   });
   // The row itself stays put as a faded "ghost" while dragging — it's
   // nested inside the accordion's clipped, scrollable sidebar, so no
@@ -66,7 +66,7 @@ function StakeholderRow({ stakeholder, isHighlighted, onToggleHighlight, onRemov
   // visual under the cursor is AppShell's <DragOverlay>, which portals
   // straight to document.body and is unaffected by any of that.
   const style = {
-    opacity: isDragging ? 0.4 : 1,
+    opacity: isDragging ? 0.4 : 1
   };
 
   return (
@@ -76,8 +76,8 @@ function StakeholderRow({ stakeholder, isHighlighted, onToggleHighlight, onRemov
           {...attributes}
           {...listeners}
           className="cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-foreground shrink-0"
-          aria-label="Drag to assign or move"
-        >
+          aria-label="Drag to assign or move">
+          
           <GripVertical className="w-3.5 h-3.5" />
         </button>
         <label className="cursor-pointer shrink-0" title="Click to change photo">
@@ -91,8 +91,8 @@ function StakeholderRow({ stakeholder, isHighlighted, onToggleHighlight, onRemov
             onInput={handleNameInput}
             onBlur={handleNameBlur}
             onKeyDown={handleNameKeyDown}
-            className="text-xs block truncate outline-none focus:ring-1 focus:ring-primary/40 rounded cursor-text"
-          >
+            className="text-xs block truncate outline-none focus:ring-1 focus:ring-primary/40 rounded cursor-text">
+            
             {name}
           </span>
           <span className="text-[9px] text-muted-foreground truncate block">
@@ -102,25 +102,25 @@ function StakeholderRow({ stakeholder, isHighlighted, onToggleHighlight, onRemov
         <button
           onClick={onRemove}
           className="text-muted-foreground hover:text-destructive shrink-0"
-          aria-label="Remove stakeholder"
-        >
+          aria-label="Remove stakeholder">
+          
           <X className="w-3.5 h-3.5" />
         </button>
       </div>
       <div className="flex gap-1.5 pl-6 flex-wrap">
-        {HIGHLIGHT_CATEGORIES.map((category) => (
-          <HighlightCheckbox
-            key={category}
-            category={category}
-            count={counts[category]}
-            isChecked={isHighlighted(category)}
-            onToggle={() => onToggleHighlight(category)}
-            stakeholderName={stakeholder.name}
-          />
-        ))}
+        {HIGHLIGHT_CATEGORIES.map((category) =>
+        <HighlightCheckbox
+          key={category}
+          category={category}
+          count={counts[category]}
+          isChecked={isHighlighted(category)}
+          onToggle={() => onToggleHighlight(category)}
+          stakeholderName={stakeholder.name} />
+
+        )}
       </div>
-    </div>
-  );
+    </div>);
+
 }
 
 // Rename/delete toolbar for a real Department record — kept out of the
@@ -166,10 +166,10 @@ function DepartmentToolbar({ department, memberCount }) {
             if (e.key === "Escape") setIsRenaming(false);
           }}
           autoFocus
-          className="flex-1 min-w-0 text-xs px-2 py-1 bg-background border border-input rounded outline-none"
-        />
-      </div>
-    );
+          className="flex-1 min-w-0 text-xs px-2 py-1 bg-background border border-input rounded outline-none" />
+        
+      </div>);
+
   }
 
   return (
@@ -180,8 +180,8 @@ function DepartmentToolbar({ department, memberCount }) {
       <button onClick={handleDelete} aria-label="Delete department" className="text-muted-foreground hover:text-destructive">
         <Trash2 className="w-3.5 h-3.5" />
       </button>
-    </div>
-  );
+    </div>);
+
 }
 
 // Wraps a whole department's AccordionItem so it's a stakeholder-drop target
@@ -191,7 +191,7 @@ function DepartmentToolbar({ department, memberCount }) {
 function DepartmentSection({ id, name, children }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `department-drop-${id ?? "unassigned"}`,
-    data: { type: "department", id, name: name || "" },
+    data: { type: "department", id, name: name || "" }
   });
 
   return (
@@ -200,8 +200,8 @@ function DepartmentSection({ id, name, children }) {
         <AccordionTrigger className="text-sm">{name || "Unassigned"}</AccordionTrigger>
         <AccordionContent>{children}</AccordionContent>
       </AccordionItem>
-    </div>
-  );
+    </div>);
+
 }
 
 // Stakeholders grouped by department. Departments are a real, managed list
@@ -231,7 +231,7 @@ export default function StakeholderList() {
 
   const handleRemove = (stakeholder) => {
     confirmThen(`Remove stakeholder? "${stakeholder.name}" will be removed from the stakeholder list.`, () =>
-      deleteStakeholder.mutate(stakeholder.id)
+    deleteStakeholder.mutate(stakeholder.id)
     );
   };
 
@@ -245,21 +245,21 @@ export default function StakeholderList() {
 
   const countFor = (list, id) => list.filter((item) => (item.stakeholder_ids || []).includes(id)).length;
 
-  const renderRow = (s) => (
-    <StakeholderRow
-      key={s.id}
-      stakeholder={s}
-      isHighlighted={(category) => isHighlighted(s.id, category)}
-      onToggleHighlight={(category) => toggleHighlight(s.id, category)}
-      onRemove={() => handleRemove(s)}
-      counts={{
-        tasks: countFor(tasks, s.id),
-        notes: countFor(notes, s.id),
-        projects: countFor(projects, s.id),
-        products: countFor(products, s.id),
-      }}
-    />
-  );
+  const renderRow = (s) =>
+  <StakeholderRow
+    key={s.id}
+    stakeholder={s}
+    isHighlighted={(category) => isHighlighted(s.id, category)}
+    onToggleHighlight={(category) => toggleHighlight(s.id, category)}
+    onRemove={() => handleRemove(s)}
+    counts={{
+      tasks: countFor(tasks, s.id),
+      notes: countFor(notes, s.id),
+      projects: countFor(projects, s.id),
+      products: countFor(products, s.id)
+    }} />;
+
+
 
   if (stakeholdersError) {
     return <QueryError error={stakeholdersErrorObj} onRetry={refetchStakeholders} label="Couldn't load stakeholders." />;
@@ -269,41 +269,41 @@ export default function StakeholderList() {
     <div>
       <button
         onClick={() => setIsAddOpen(true)}
-        className="w-full mb-2 text-xs flex items-center justify-center gap-1.5 px-3 py-1.5 bg-secondary text-secondary-foreground border border-border rounded-md"
-      >
+        className="w-full mb-2 text-xs flex items-center justify-center gap-1.5 px-3 py-1.5 bg-secondary text-secondary-foreground border border-border rounded-md">
+        
         <Plus className="w-3.5 h-3.5" />
         Add Stakeholder
       </button>
 
-      {isAddingDept ? (
-        <form onSubmit={handleAddDepartment} className="flex items-center gap-1.5 mb-3">
+      {isAddingDept ?
+      <form onSubmit={handleAddDepartment} className="flex items-center gap-1.5 mb-3">
           <input
-            value={newDeptName}
-            onChange={(e) => setNewDeptName(e.target.value)}
-            placeholder="Department name"
-            autoFocus
-            className="flex-1 text-xs px-2 py-1.5 bg-background border border-input rounded outline-none"
-          />
+          value={newDeptName}
+          onChange={(e) => setNewDeptName(e.target.value)}
+          placeholder="Department name"
+          autoFocus
+          className="flex-1 text-xs px-2 py-1.5 bg-background border border-input rounded outline-none" />
+        
           <button type="submit" disabled={!newDeptName.trim()} className="text-xs px-2 py-1.5 bg-primary text-primary-foreground border border-border rounded-md disabled:opacity-50">
             Add
           </button>
           <button type="button" onClick={() => setIsAddingDept(false)} className="text-xs px-2 py-1.5 text-muted-foreground hover:text-foreground">
             Cancel
           </button>
-        </form>
-      ) : (
-        <button
-          onClick={() => setIsAddingDept(true)}
-          className="w-full mb-3 text-xs flex items-center justify-center gap-1.5 px-3 py-1.5 bg-secondary/50 text-secondary-foreground rounded-md border border-border"
-        >
+        </form> :
+
+      <button
+        onClick={() => setIsAddingDept(true)}
+        className="w-full mb-3 text-xs flex items-center justify-center gap-1.5 px-3 py-1.5 text-secondary-foreground rounded-md border border-border bg-[hsl(var(--secondary))]">
+        
           <Plus className="w-3.5 h-3.5" />
           Add Department
         </button>
-      )}
+      }
 
-      {departments.length === 0 && unassignedStakeholders.length === 0 && (
-        <p className="text-xs text-muted-foreground">No stakeholders added.</p>
-      )}
+      {departments.length === 0 && unassignedStakeholders.length === 0 &&
+      <p className="text-xs text-muted-foreground">No stakeholders added.</p>
+      }
 
       <Accordion type="multiple" className="w-full space-y-1">
         {departments.map((dept) => {
@@ -312,23 +312,23 @@ export default function StakeholderList() {
             <DepartmentSection key={dept.id} id={dept.id} name={dept.name}>
               <DepartmentToolbar department={dept} memberCount={members.length} />
               <div className="space-y-3">
-                {members.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">No stakeholders in this department yet.</p>
-                ) : (
-                  members.map(renderRow)
-                )}
+                {members.length === 0 ?
+                <p className="text-xs text-muted-foreground">No stakeholders in this department yet.</p> :
+
+                members.map(renderRow)
+                }
               </div>
-            </DepartmentSection>
-          );
+            </DepartmentSection>);
+
         })}
-        {unassignedStakeholders.length > 0 && (
-          <DepartmentSection id={null} name="">
+        {unassignedStakeholders.length > 0 &&
+        <DepartmentSection id={null} name="">
             <div className="space-y-3">{unassignedStakeholders.map(renderRow)}</div>
           </DepartmentSection>
-        )}
+        }
       </Accordion>
 
       {isAddOpen && <AddStakeholderModal onClose={() => setIsAddOpen(false)} />}
-    </div>
-  );
+    </div>);
+
 }
