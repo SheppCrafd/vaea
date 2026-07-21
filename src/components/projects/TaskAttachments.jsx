@@ -2,6 +2,7 @@ import { Paperclip, X, Upload } from "lucide-react";
 import { usePositionedMenu } from "@/hooks/usePositionedMenu";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import PositionedPopover from "@/components/shared/PositionedPopover";
+import { sanitizeHttpUrl } from "@/lib/entityUtils";
 
 // Compact attachments popover for a task row — a paperclip icon showing the
 // attachment count, opening a small upload/list/remove panel. Mirrors
@@ -46,7 +47,7 @@ export default function TaskAttachments({ attachments = [], onSave }) {
         <div className="flex flex-col gap-1 mb-1">
           {attachments.map((a, i) => (
             <div key={i} className="flex items-center justify-between gap-1 text-xs px-1 py-1 hover:bg-secondary rounded-sm">
-              <a href={a.url} target="_blank" rel="noreferrer" className="truncate text-primary hover:underline min-w-0">
+              <a href={sanitizeHttpUrl(a.url) || "#"} target="_blank" rel="noreferrer" className="truncate text-primary hover:underline min-w-0">
                 {a.name}
               </a>
               <button onClick={() => removeAttachment(i)} aria-label="Remove attachment" className="shrink-0 text-muted-foreground hover:text-destructive">
