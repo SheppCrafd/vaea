@@ -46,13 +46,11 @@ export default function ProductCard({ product }) {
   const projectIds = projects.map((p) => p.id);
   const productTasks = allTasks.filter((t) => projectIds.includes(t.project_id));
 
-  // The product box shrink-wraps to fit whatever it actually contains,
-  // rather than always claiming the Area's full width — so when there's
-  // room, multiple products cascade side by side instead of each forcing a
-  // new row. Capped at the Area's width so it wraps instead of overflowing,
-  // with a floor so an empty/short-titled product doesn't collapse to a
-  // sliver.
-  const sizingClass = "inline-flex flex-col w-fit max-w-full min-w-[240px]";
+  // The Area's products row is a CSS grid (`auto-fit`/`minmax`) — it decides
+  // how many Products fit per row and how wide each one's column is (growing
+  // to fill leftover space when there's room, wrapping to a new row when
+  // there isn't). This card just needs to stretch to fill that column.
+  const sizingClass = "flex flex-col";
 
   // Same reasoning as the card itself: the projects list can force its own
   // internal wrap, at which point plain CSS `w-fit` on this card gives up

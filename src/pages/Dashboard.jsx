@@ -121,7 +121,7 @@ export default function Dashboard() {
           <p className="text-sm">No areas found. Click "Create New" to add your first Area of Responsibility.</p>
         </div>
       ) : (
-        <div className="flex flex-wrap items-start gap-5">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(340px,1fr))] items-start gap-5">
           {areaViewModels.map(({ area, productsWithProjects, orphanProjects, areaStakeholderIds }) => (
             <AreaCard
               key={area.id}

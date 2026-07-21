@@ -30,13 +30,11 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
 
   const { setNodeRef, isOver } = useDroppable({ id: area.id, data: { type: "area", id: area.id } });
 
-  // CSS `w-fit` on this card can't shrink-wrap around content that itself
-  // wraps (see useShrinkWrapWidth's own comment) — these two containers are
-  // the ones whose row-count can force a wrap, so their tight width is
-  // computed in JS; the card's own `w-fit` then hugs those now-definite
-  // widths automatically.
-  const productsRef = useRef(null);
-  useShrinkWrapWidth(productsRef, { gap: 16 }); // gap-4
+  // Direct Projects still holds fixed-size Project cards that only cascade
+  // (never grow to fill leftover row space) — see useShrinkWrapWidth's own
+  // comment for why CSS `w-fit` alone can't shrink-wrap this box to match.
+  // The Products row above uses a CSS grid instead (see className below),
+  // since Products *should* grow to fill leftover width.
   const orphanProjectsRef = useRef(null);
   useShrinkWrapWidth(orphanProjectsRef, { gap: 8 }); // gap-2
 
@@ -60,7 +58,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
   const areaTasks = allTasks.filter((t) => areaProjectIds.includes(t.project_id));
 
   return (
-    <article className="relative z-10 bg-card border border-border rounded-xl shadow-sm p-5 break-inside-avoid inline-flex flex-col gap-4 w-fit max-w-full min-w-[340px]">
+    <article className="relative z-10 bg-card border border-border rounded-xl shadow-sm p-5 break-inside-avoid flex flex-col gap-4">
 
       <div className="relative">
         <div className="absolute top-0 right-0 flex items-center gap-1 z-20">
@@ -103,7 +101,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
       </div>
 
       {products.length > 0 && (
-        <div ref={productsRef} className="mt-2 flex flex-wrap items-start gap-4">
+        <div className="mt-2 grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] items-start gap-4">
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
