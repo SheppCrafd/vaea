@@ -40,3 +40,4 @@ standalone/exe/app
 .env
 .vite
 base44/.app.jsonc
+.app.jsonc
