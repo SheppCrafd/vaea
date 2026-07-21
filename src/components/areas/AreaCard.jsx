@@ -91,7 +91,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
       </div>
 
       {products.length > 0 && (
-        <div className={`mt-2 ${cardView === "full" ? "flex flex-col gap-4" : "flex flex-wrap items-start gap-4"}`}>
+        <div className="mt-2 flex flex-wrap items-start gap-4">
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
@@ -105,7 +105,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
         <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
           Direct Projects
         </h4>
-        <div className={cardView === "full" ? "flex flex-col gap-3 min-h-[50px]" : "flex flex-wrap gap-2 min-h-[50px]"}>
+        <div className="flex flex-wrap items-start gap-2 min-h-[50px]">
           {orphanProjects.length === 0 ? (
              <p className="w-full text-xs text-muted-foreground text-center py-4">Drop a project here to remove it from a product</p>
           ) : (

@@ -45,14 +45,13 @@ export default function ProductCard({ product }) {
   const projectIds = projects.map((p) => p.id);
   const productTasks = allTasks.filter((t) => projectIds.includes(t.project_id));
 
-  // Mini Cards: the product box shrink-wraps to fit whatever project squares
-  // it actually contains (a product with one or two mini cards shouldn't
-  // stretch to the Area's full width, leaving a huge empty void) — capped at
-  // the Area's width so it wraps instead of overflowing, with a floor so an
-  // empty product (or one with just a short title) doesn't collapse to a
-  // sliver. Full Cards keeps the original always-full-width block, since a
-  // full-size project card already fills that width on its own.
-  const sizingClass = cardView === "full" ? "w-full" : "inline-flex flex-col w-fit max-w-full min-w-[240px]";
+  // The product box shrink-wraps to fit whatever it actually contains,
+  // rather than always claiming the Area's full width — so when there's
+  // room, multiple products cascade side by side instead of each forcing a
+  // new row. Capped at the Area's width so it wraps instead of overflowing,
+  // with a floor so an empty/short-titled product doesn't collapse to a
+  // sliver.
+  const sizingClass = "inline-flex flex-col w-fit max-w-full min-w-[240px]";
 
   return (
     <div
@@ -99,7 +98,7 @@ export default function ProductCard({ product }) {
       </div>
 
       <div
-        className={`relative z-[1] mt-4 ${cardView === "full" ? "flex flex-col gap-2" : "flex flex-wrap gap-2"} min-h-[80px] rounded-lg p-2 transition-colors ${isOver ? "bg-primary/10 ring-2 ring-primary/40" : "bg-transparent"}`}
+        className={`relative z-[1] mt-4 flex flex-wrap items-start gap-2 min-h-[80px] rounded-lg p-2 transition-colors ${isOver ? "bg-primary/10 ring-2 ring-primary/40" : "bg-transparent"}`}
       >
         {projects.length === 0 ? (
           <p className="w-full text-xs text-muted-foreground text-center py-4">Drop a project here</p>

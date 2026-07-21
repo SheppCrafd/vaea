@@ -158,20 +158,39 @@ export function useChatController({ activeProjectId } = {}) {
     const tasks = allTasks.filter((t) => !t.archived_at && !t.deleted_at);
     const archivedTasks = allTasks.filter((t) => t.archived_at && !t.deleted_at);
 
-    const res = await base44.functions.invoke("aiChatStream", {
-      ...payload,
-      areas: areas.filter((a) => !a.deleted_at),
-      products: products.filter((p) => !p.deleted_at),
-      projects: projectsActive,
-      archivedProjects,
-      tasks,
-      archivedTasks,
-      stakeholders: stakeholders.filter((s) => !s.deleted_at),
-      departments: departments.filter((d) => !d.deleted_at),
-      notes,
-    });
-    if (res.data?.error) throw new Error(res.data.error);
-    return res.data;
+    try {
+      // Base44's SDK response interceptor already unwraps a successful
+      // response to its body directly (`res` here IS `{reply, actions}`,
+      // not an axios-style `{data: ...}` wrapper) — our function never
+      // returns an `error` field on a 200 anyway, since every error path
+      // uses a non-2xx status instead.
+      return await base44.functions.invoke("aiChatStream", {
+        ...payload,
+        areas: areas.filter((a) => !a.deleted_at),
+        products: products.filter((p) => !p.deleted_at),
+        projects: projectsActive,
+        archivedProjects,
+        tasks,
+        archivedTasks,
+        stakeholders: stakeholders.filter((s) => !s.deleted_at),
+        departments: departments.filter((d) => !d.deleted_at),
+        notes,
+      });
+    } catch (error) {
+      // On any non-2xx response, Base44's SDK response interceptor rejects
+      // with a Base44Error (see @base44/sdk/dist/utils/axios-client.js) —
+      // it never gets to our own error handling. That interceptor builds
+      // its own `.message` from response.data.message / .detail, but our
+      // function returns `Response.json({ error: error.message }, { status
+      // : 500 })` — the field is `error`, not `message`/`detail` — so its
+      // message-extraction misses it and falls back to axios's generic
+      // "Request failed with status code 500", identical for every failure
+      // regardless of cause. The real text survives anyway, just under a
+      // different key: Base44Error.data is the raw response body, so
+      // error.data.error is our actual message. Surface that instead.
+      const serverMessage = error.data?.error || error.originalError?.response?.data?.error;
+      throw new Error(serverMessage || error.message);
+    }
   };
 
   const runUndo = async () => {
