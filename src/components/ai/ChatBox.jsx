@@ -94,8 +94,9 @@ export default function ChatBox({ activeProjectId }) {
               <Info
                 className="w-3.5 h-3.5 text-primary-foreground/70 cursor-help"
                 aria-label="Privacy notice"
-                title="Everything else in this app stays on your device. Chat is the one exception: your current data is sent to an AI service to answer you, only for that one exchange — nothing is stored on a server."
-              />
+              >
+                <title>Everything else in this app stays on your device. Chat is the one exception: your current data is sent to an AI service to answer you, only for that one exchange — nothing is stored on a server.</title>
+              </Info>
               <button
                 onClick={() => navigate("/chat")}
                 aria-label="Expand to full page"

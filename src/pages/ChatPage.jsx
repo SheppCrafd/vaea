@@ -93,8 +93,9 @@ export default function ChatPage() {
           <Info
             className="w-4 h-4 text-muted-foreground cursor-help ml-auto"
             aria-label="Privacy notice"
-            title="Everything else in this app stays on your device. Chat is the one exception: your current data is sent to an AI service to answer you, only for that one exchange — nothing is stored on a server."
-          />
+          >
+            <title>Everything else in this app stays on your device. Chat is the one exception: your current data is sent to an AI service to answer you, only for that one exchange — nothing is stored on a server.</title>
+          </Info>
         </div>
 
         <div className="flex-1 min-h-0 flex flex-col max-w-3xl w-full mx-auto">
