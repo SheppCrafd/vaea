@@ -4,10 +4,12 @@ import { useUpdateArea, useDeleteArea } from "@/hooks/useAreas";
 import { useAllTasks } from "@/hooks/useTasks";
 import { useEditableField } from "@/hooks/useEditableField";
 import { confirmThen } from "@/lib/entityUtils";
+import { useCardView } from "@/lib/CardViewContext";
 import EditableText from "@/components/shared/EditableText";
 import CardCustomFields from "@/components/shared/CardCustomFields";
 import ProductCard from "@/components/products/ProductCard";
 import ProjectCard from "@/components/projects/ProjectCard";
+import ProjectCardFull from "@/components/projects/ProjectCardFull";
 import TaskStatistics from "@/components/shared/TaskStatistics";
 
 // `stakeholderIds` (the full aggregated subtree, from Dashboard.jsx) is only
@@ -19,6 +21,8 @@ import TaskStatistics from "@/components/shared/TaskStatistics";
 export default function AreaCard({ area, products = [], orphanProjects = [], onExpand, stakeholderIds = [] }) {
   const updateArea = useUpdateArea();
   const deleteArea = useDeleteArea();
+  const { cardView } = useCardView();
+  const ProjectCardComponent = cardView === "full" ? ProjectCardFull : ProjectCard;
 
   const { data: allTasks = [] } = useAllTasks();
 
@@ -101,12 +105,12 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
         <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
           Direct Projects
         </h4>
-        <div className="flex flex-wrap gap-2 min-h-[50px]">
+        <div className={cardView === "full" ? "flex flex-col gap-3 min-h-[50px]" : "flex flex-wrap gap-2 min-h-[50px]"}>
           {orphanProjects.length === 0 ? (
              <p className="w-full text-xs text-muted-foreground text-center py-4">Drop a project here to remove it from a product</p>
           ) : (
             orphanProjects.map((project) => (
-              <ProjectCard key={project.id} project={project} stakeholderIds={stakeholderIds} />
+              <ProjectCardComponent key={project.id} project={project} stakeholderIds={stakeholderIds} />
             ))
           )}
         </div>

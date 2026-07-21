@@ -4,6 +4,7 @@ import { useAreas } from "@/hooks/useAreas";
 import { useProducts } from "@/hooks/useProducts";
 import { useProjects } from "@/hooks/useProjects";
 import { useFilter } from "@/lib/FilterContext";
+import { useCardView } from "@/lib/CardViewContext";
 import AreaCard from "@/components/areas/AreaCard";
 import AreaModal from "@/components/areas/AreaModal";
 import CreateModal from "@/components/modals/CreateModal";
@@ -15,6 +16,7 @@ export default function Dashboard() {
   const { data: products = [], isError: productsError, error: productsErrorObj, refetch: refetchProducts } = useProducts();
   const { data: projects = [], isError: projectsError, error: projectsErrorObj, refetch: refetchProjects } = useProjects();
   const { excludedIds } = useFilter();
+  const { cardView, setCardView } = useCardView();
   const [searchParams, setSearchParams] = useSearchParams();
   const [expandedArea, setExpandedArea] = useState(null);
 
@@ -95,7 +97,25 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h1 className="font-heading text-2xl font-semibold mb-6">Areas of Responsibility</h1>
+      <div className="flex items-center justify-between gap-4 mb-6">
+        <h1 className="font-heading text-2xl font-semibold">Areas of Responsibility</h1>
+        <div className="shrink-0 inline-flex items-center rounded-lg border border-border bg-muted/40 p-0.5 text-xs font-medium">
+          <button
+            onClick={() => setCardView("mini")}
+            aria-pressed={cardView === "mini"}
+            className={`px-3 py-1.5 rounded-md transition-colors ${cardView === "mini" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Mini Cards
+          </button>
+          <button
+            onClick={() => setCardView("full")}
+            aria-pressed={cardView === "full"}
+            className={`px-3 py-1.5 rounded-md transition-colors ${cardView === "full" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Full Cards
+          </button>
+        </div>
+      </div>
       {areaViewModels.length === 0 ? (
         <div className="text-center py-20 text-muted-foreground">
           <p className="text-sm">No areas found. Click "Create New" to add your first Area of Responsibility.</p>

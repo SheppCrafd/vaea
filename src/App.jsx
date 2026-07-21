@@ -10,6 +10,7 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import { HighlightProvider } from '@/lib/HighlightContext';
 import { FilterProvider } from '@/lib/FilterContext';
+import { CardViewProvider } from '@/lib/CardViewContext';
 import AppShell from '@/components/layout/AppShell';
 import Dashboard from '@/pages/Dashboard';
 // /chat and /settings are code-split out of the main bundle — they're
@@ -68,11 +69,13 @@ function App() {
         <QueryClientProvider client={queryClientInstance}>
           <HighlightProvider>
             <FilterProvider>
-              <Router>
-                <ScrollToTop />
-                <AuthenticatedApp />
-              </Router>
-              <Toaster />
+              <CardViewProvider>
+                <Router>
+                  <ScrollToTop />
+                  <AuthenticatedApp />
+                </Router>
+                <Toaster />
+              </CardViewProvider>
             </FilterProvider>
           </HighlightProvider>
         </QueryClientProvider>

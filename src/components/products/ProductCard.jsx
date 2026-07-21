@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { Expand } from "lucide-react";
 import { useFilter } from "@/lib/FilterContext";
+import { useCardView } from "@/lib/CardViewContext";
 import { useStakeholders } from "@/hooks/useStakeholders";
 import { useProjects } from "@/hooks/useProjects";
 import { useAllTasks } from "@/hooks/useTasks";
@@ -12,6 +13,7 @@ import EditableText from "@/components/shared/EditableText";
 import CardCustomFields from "@/components/shared/CardCustomFields";
 import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
 import ProjectCard from "@/components/projects/ProjectCard";
+import ProjectCardFull from "@/components/projects/ProjectCardFull";
 import ProductDetailModal from "@/components/products/ProductDetailModal";
 import TaskStatistics from "@/components/shared/TaskStatistics";
 
@@ -21,7 +23,9 @@ export default function ProductCard({ product }) {
   const { data: allProjects = [] } = useProjects();
   const { data: allTasks = [] } = useAllTasks();
   const { excludedIds } = useFilter();
+  const { cardView } = useCardView();
   const updateProduct = useUpdateProduct();
+  const ProjectCardComponent = cardView === "full" ? ProjectCardFull : ProjectCard;
 
   const { value: title, handleInput, handleBlur: handleTitleBlur, handleKeyDown: handleTitleKeyDown } = useEditableField(
     product.title,
@@ -86,13 +90,13 @@ export default function ProductCard({ product }) {
       </div>
 
       <div
-        className={`relative z-[1] mt-4 flex flex-wrap gap-2 min-h-[80px] rounded-lg p-2 transition-colors ${isOver ? "bg-primary/10 ring-2 ring-primary/40" : "bg-transparent"}`}
+        className={`relative z-[1] mt-4 ${cardView === "full" ? "flex flex-col gap-2" : "flex flex-wrap gap-2"} min-h-[80px] rounded-lg p-2 transition-colors ${isOver ? "bg-primary/10 ring-2 ring-primary/40" : "bg-transparent"}`}
       >
         {projects.length === 0 ? (
           <p className="w-full text-xs text-muted-foreground text-center py-4">Drop a project here</p>
         ) : (
           projects.map((project) => (
-            <ProjectCard key={project.id} project={project} stakeholderIds={product.stakeholder_ids} />
+            <ProjectCardComponent key={project.id} project={project} stakeholderIds={product.stakeholder_ids} />
           ))
         )}
       </div>
