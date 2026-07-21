@@ -224,7 +224,14 @@ export default function ProjectCardFull({ project, stakeholderIds = [] }) {
       ref={setRefs}
       style={style}
       data-project-card={project.id}
-      className={`relative bg-card border border-border rounded-xl p-3 pb-6 transition-colors w-[420px] max-w-full ${isMatched ? "bg-primary/10 ring-1 ring-primary/30" : ""} ${isDragging ? "shadow-2xl scale-105 border-primary" : "shadow-sm"} ${isOver ? "ring-2 ring-primary ring-offset-1" : ""}`}
+      // No `max-w-full` here: this card sits inside a useShrinkWrapWidth
+      // container, which measures each child's rendered width as its true
+      // desired size. `max-w-full` would let a still-shrunk ancestor (e.g.
+      // right after switching to Full Cards, before anything has grown)
+      // clamp this card's measured width down, and the hook would then
+      // lock that too-small width in permanently since nothing further
+      // changes size to trigger a re-measure.
+      className={`relative bg-card border border-border rounded-xl p-3 pb-6 transition-colors w-[420px] ${isMatched ? "bg-primary/10 ring-1 ring-primary/30" : ""} ${isDragging ? "shadow-2xl scale-105 border-primary" : "shadow-sm"} ${isOver ? "ring-2 ring-primary ring-offset-1" : ""}`}
     >
       <div
         {...attributes}

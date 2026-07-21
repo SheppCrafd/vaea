@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { Expand } from "lucide-react";
 import { useFilter } from "@/lib/FilterContext";
@@ -9,6 +9,7 @@ import { useAllTasks } from "@/hooks/useTasks";
 import { useUpdateProduct } from "@/hooks/useProducts";
 import { useEditableField } from "@/hooks/useEditableField";
 import { useHighlightMatch } from "@/hooks/useHighlightDim";
+import { useShrinkWrapWidth } from "@/hooks/useShrinkWrapWidth";
 import EditableText from "@/components/shared/EditableText";
 import CardCustomFields from "@/components/shared/CardCustomFields";
 import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
@@ -52,6 +53,13 @@ export default function ProductCard({ product }) {
   // with a floor so an empty/short-titled product doesn't collapse to a
   // sliver.
   const sizingClass = "inline-flex flex-col w-fit max-w-full min-w-[240px]";
+
+  // Same reasoning as the card itself: the projects list can force its own
+  // internal wrap, at which point plain CSS `w-fit` on this card gives up
+  // and fills all available width instead of hugging the (now multi-row)
+  // content — see useShrinkWrapWidth's own comment for why.
+  const projectsRef = useRef(null);
+  useShrinkWrapWidth(projectsRef, { gap: 8 }); // gap-2
 
   return (
     <div
@@ -98,6 +106,7 @@ export default function ProductCard({ product }) {
       </div>
 
       <div
+        ref={projectsRef}
         className={`relative z-[1] mt-4 flex flex-wrap items-start gap-2 min-h-[80px] rounded-lg p-2 transition-colors ${isOver ? "bg-primary/10 ring-2 ring-primary/40" : "bg-transparent"}`}
       >
         {projects.length === 0 ? (

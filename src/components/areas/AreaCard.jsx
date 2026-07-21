@@ -1,8 +1,10 @@
+import { useRef } from "react";
 import { Trash2, Expand } from "lucide-react";
 import { useDroppable } from "@dnd-kit/core";
 import { useUpdateArea, useDeleteArea } from "@/hooks/useAreas";
 import { useAllTasks } from "@/hooks/useTasks";
 import { useEditableField } from "@/hooks/useEditableField";
+import { useShrinkWrapWidth } from "@/hooks/useShrinkWrapWidth";
 import { confirmThen } from "@/lib/entityUtils";
 import { useCardView } from "@/lib/CardViewContext";
 import EditableText from "@/components/shared/EditableText";
@@ -27,6 +29,16 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
   const { data: allTasks = [] } = useAllTasks();
 
   const { setNodeRef, isOver } = useDroppable({ id: area.id, data: { type: "area", id: area.id } });
+
+  // CSS `w-fit` on this card can't shrink-wrap around content that itself
+  // wraps (see useShrinkWrapWidth's own comment) — these two containers are
+  // the ones whose row-count can force a wrap, so their tight width is
+  // computed in JS; the card's own `w-fit` then hugs those now-definite
+  // widths automatically.
+  const productsRef = useRef(null);
+  useShrinkWrapWidth(productsRef, { gap: 16 }); // gap-4
+  const orphanProjectsRef = useRef(null);
+  useShrinkWrapWidth(orphanProjectsRef, { gap: 8 }); // gap-2
 
   const { value: title, handleInput, handleBlur: handleTitleBlur, handleKeyDown: handleTitleKeyDown } = useEditableField(
     area.title,
@@ -91,7 +103,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
       </div>
 
       {products.length > 0 && (
-        <div className="mt-2 flex flex-wrap items-start gap-4">
+        <div ref={productsRef} className="mt-2 flex flex-wrap items-start gap-4">
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
@@ -105,7 +117,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
         <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
           Direct Projects
         </h4>
-        <div className="flex flex-wrap items-start gap-2 min-h-[50px]">
+        <div ref={orphanProjectsRef} className="flex flex-wrap items-start gap-2 min-h-[50px]">
           {orphanProjects.length === 0 ? (
              <p className="w-full text-xs text-muted-foreground text-center py-4">Drop a project here to remove it from a product</p>
           ) : (
