@@ -9,6 +9,12 @@ export function useAreas() {
       const areas = await localDb.areas.list();
       return excludeSoftDeleted(areas);
     },
+    // Local-only data: the only writer is this app's own mutation hooks,
+    // which always invalidateQueries(["areas"]) on success. Nothing else can
+    // change this data out from under us, so there's nothing to gain from
+    // React Query re-running the query on every mount/refocus — that would
+    // just be a wasted extra localDb read.
+    staleTime: Infinity,
   });
 }
 
@@ -39,18 +45,21 @@ export function useDeleteArea() {
       const area = await localDb.areas.update(id, { deleted_at: now });
 
       const products = await localDb.products.filter({ parent_area_id: id });
-      await Promise.all(
-        products.filter((p) => !p.deleted_at).map((p) => localDb.products.update(p.id, { deleted_at: now }))
+      await localDb.products.updateMany(
+        products.filter((p) => !p.deleted_at).map((p) => p.id),
+        { deleted_at: now }
       );
 
       const projects = await localDb.projects.filter({ parent_area_id: id });
-      await Promise.all(
-        projects.filter((p) => !p.deleted_at).map((p) => localDb.projects.update(p.id, { deleted_at: now }))
+      await localDb.projects.updateMany(
+        projects.filter((p) => !p.deleted_at).map((p) => p.id),
+        { deleted_at: now }
       );
 
       const tasksByProject = await Promise.all(projects.map((p) => localDb.tasks.filter({ project_id: p.id })));
-      await Promise.all(
-        tasksByProject.flat().filter((t) => !t.deleted_at).map((t) => localDb.tasks.update(t.id, { deleted_at: now }))
+      await localDb.tasks.updateMany(
+        tasksByProject.flat().filter((t) => !t.deleted_at).map((t) => t.id),
+        { deleted_at: now }
       );
 
       return area;

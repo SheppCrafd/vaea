@@ -9,6 +9,8 @@ export function useProjects() {
       const projects = await localDb.projects.list();
       return excludeSoftDeleted(projects).filter((p) => !p.is_archived);
     },
+    // Local-only data — see the matching comment in useAreas.js.
+    staleTime: Infinity,
   });
 }
 
@@ -21,6 +23,8 @@ export function useProject(id) {
     queryKey: ["project", id],
     queryFn: () => localDb.projects.get(id),
     enabled: !!id,
+    // Local-only data — see the matching comment in useAreas.js.
+    staleTime: Infinity,
   });
 }
 
@@ -73,6 +77,8 @@ export function useArchivedProjects(start, end) {
 
       return { projects: withQuadrants };
     },
+    // Local-only data — see the matching comment in useAreas.js.
+    staleTime: Infinity,
   });
 }
 
@@ -109,7 +115,7 @@ export function useArchiveProject() {
       const now = new Date().toISOString();
       const project = await localDb.projects.update(id, { is_archived: true, archived_at: now });
       const tasks = await localDb.tasks.filter({ project_id: id });
-      await Promise.all(tasks.map((t) => localDb.tasks.update(t.id, { archived_at: now })));
+      await localDb.tasks.updateMany(tasks.map((t) => t.id), { archived_at: now });
       return project;
     },
     onSuccess: () => {
@@ -129,7 +135,7 @@ export function useDeleteProject() {
       const now = new Date().toISOString();
       const project = await localDb.projects.update(id, { deleted_at: now });
       const tasks = await localDb.tasks.filter({ project_id: id });
-      await Promise.all(tasks.filter((t) => !t.deleted_at).map((t) => localDb.tasks.update(t.id, { deleted_at: now })));
+      await localDb.tasks.updateMany(tasks.filter((t) => !t.deleted_at).map((t) => t.id), { deleted_at: now });
       return project;
     },
     onSuccess: () => {
@@ -147,7 +153,7 @@ export function useRestoreProject() {
     mutationFn: async (id) => {
       const project = await localDb.projects.update(id, { is_archived: false, archived_at: null });
       const tasks = await localDb.tasks.filter({ project_id: id });
-      await Promise.all(tasks.filter((t) => t.archived_at).map((t) => localDb.tasks.update(t.id, { archived_at: null })));
+      await localDb.tasks.updateMany(tasks.filter((t) => t.archived_at).map((t) => t.id), { archived_at: null });
       return project;
     },
     onSuccess: () => {
