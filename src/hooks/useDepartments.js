@@ -9,6 +9,8 @@ export function useDepartments() {
       const departments = await localDb.departments.list();
       return excludeSoftDeleted(departments).sort((a, b) => a.name.localeCompare(b.name));
     },
+    // Local-only data — see the matching comment in useAreas.js.
+    staleTime: Infinity,
   });
 }
 
@@ -33,8 +35,9 @@ export function useRenameDepartment() {
       const updated = await localDb.departments.update(id, { name });
       if (oldName !== name) {
         const stakeholders = await localDb.stakeholders.filter({ department: oldName });
-        await Promise.all(
-          stakeholders.filter((s) => !s.deleted_at).map((s) => localDb.stakeholders.update(s.id, { department: name }))
+        await localDb.stakeholders.updateMany(
+          stakeholders.filter((s) => !s.deleted_at).map((s) => s.id),
+          { department: name }
         );
       }
       return updated;
@@ -57,8 +60,9 @@ export function useDeleteDepartment() {
       const now = new Date().toISOString();
       const updated = await localDb.departments.update(id, { deleted_at: now });
       const stakeholders = await localDb.stakeholders.filter({ department: department.name });
-      await Promise.all(
-        stakeholders.filter((s) => !s.deleted_at).map((s) => localDb.stakeholders.update(s.id, { department: "" }))
+      await localDb.stakeholders.updateMany(
+        stakeholders.filter((s) => !s.deleted_at).map((s) => s.id),
+        { department: "" }
       );
       return updated;
     },

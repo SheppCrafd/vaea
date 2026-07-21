@@ -13,6 +13,10 @@ export function useTasks(projectId) {
       return filterActiveTasks(tasks);
     },
     enabled: !!projectId,
+    // Local-only data — see the matching comment in useAreas.js. The
+    // subscribe()-driven invalidation right below still forces a refetch the
+    // instant any task changes, regardless of staleTime.
+    staleTime: Infinity,
   });
 
   // Live "matrix polling": any Task change refreshes this project's quadrant counts instantly.
@@ -37,6 +41,8 @@ export function useArchivedTasks(projectId) {
       return tasks.filter((t) => isTaskArchived(t) && !isTaskDeleted(t));
     },
     enabled: !!projectId,
+    // Local-only data — see the matching comment in useAreas.js.
+    staleTime: Infinity,
   });
 }
 
@@ -48,6 +54,8 @@ export function useAllTasks() {
       const tasks = await localDb.tasks.list();
       return filterActiveTasks(tasks);
     },
+    // Local-only data — see the matching comment in useAreas.js.
+    staleTime: Infinity,
   });
 }
 

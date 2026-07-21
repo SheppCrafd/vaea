@@ -15,5 +15,24 @@ export default defineConfig({
       visualEditAgent: true
     }),
     react(),
-  ]
+  ],
+  build: {
+    rollupOptions: {
+      output: {
+        // Split the rarely-changing framework libs into their own chunk,
+        // separate from app code (which changes on every release). Purely a
+        // caching/parallel-download optimization — same code, same
+        // behavior, just grouped differently across files.
+        manualChunks: {
+          vendor: [
+            "react",
+            "react-dom",
+            "react-router-dom",
+            "@tanstack/react-query",
+            "zustand",
+          ],
+        },
+      },
+    },
+  },
 });

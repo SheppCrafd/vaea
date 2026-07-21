@@ -9,6 +9,8 @@ export function useProducts() {
       const products = await localDb.products.list();
       return excludeSoftDeleted(products);
     },
+    // Local-only data — see the matching comment in useAreas.js.
+    staleTime: Infinity,
   });
 }
 
@@ -38,13 +40,15 @@ export function useDeleteProduct() {
       const product = await localDb.products.update(id, { deleted_at: now });
 
       const projects = await localDb.projects.filter({ parent_product_id: id });
-      await Promise.all(
-        projects.filter((p) => !p.deleted_at).map((p) => localDb.projects.update(p.id, { deleted_at: now }))
+      await localDb.projects.updateMany(
+        projects.filter((p) => !p.deleted_at).map((p) => p.id),
+        { deleted_at: now }
       );
 
       const tasksByProject = await Promise.all(projects.map((p) => localDb.tasks.filter({ project_id: p.id })));
-      await Promise.all(
-        tasksByProject.flat().filter((t) => !t.deleted_at).map((t) => localDb.tasks.update(t.id, { deleted_at: now }))
+      await localDb.tasks.updateMany(
+        tasksByProject.flat().filter((t) => !t.deleted_at).map((t) => t.id),
+        { deleted_at: now }
       );
 
       return product;

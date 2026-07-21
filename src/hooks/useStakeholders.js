@@ -9,6 +9,8 @@ export function useStakeholders() {
       const stakeholders = await localDb.stakeholders.list();
       return excludeSoftDeleted(stakeholders);
     },
+    // Local-only data — see the matching comment in useAreas.js.
+    staleTime: Infinity,
   });
 }
 

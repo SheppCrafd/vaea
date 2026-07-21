@@ -6,11 +6,18 @@ export function useProjectNotes(projectId) {
     queryKey: ["projectNotes", projectId],
     queryFn: () => localDb.projectNotes.filter({ project_id: projectId }),
     enabled: !!projectId,
+    // Local-only data — see the matching comment in useAreas.js.
+    staleTime: Infinity,
   });
 }
 
 export function useAllProjectNotes() {
-  return useQuery({ queryKey: ["allProjectNotes"], queryFn: () => localDb.projectNotes.list() });
+  return useQuery({
+    queryKey: ["allProjectNotes"],
+    queryFn: () => localDb.projectNotes.list(),
+    // Local-only data — see the matching comment in useAreas.js.
+    staleTime: Infinity,
+  });
 }
 
 export function useCreateProjectNote() {

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useCallback, useMemo } from "react";
 
 const HighlightContext = createContext();
 
@@ -13,19 +13,29 @@ export const HIGHLIGHT_CATEGORIES = ["tasks", "notes", "projects", "products"];
 export function HighlightProvider({ children }) {
   const [highlights, setHighlights] = useState([]); // [{ stakeholderId, category }]
 
-  const toggleHighlight = (stakeholderId, category) => {
+  const toggleHighlight = useCallback((stakeholderId, category) => {
     setHighlights((prev) =>
       prev.some((h) => h.stakeholderId === stakeholderId && h.category === category)
         ? prev.filter((h) => !(h.stakeholderId === stakeholderId && h.category === category))
         : [...prev, { stakeholderId, category }]
     );
-  };
+  }, []);
 
-  const isHighlighted = (stakeholderId, category) =>
-    highlights.some((h) => h.stakeholderId === stakeholderId && h.category === category);
+  const isHighlighted = useCallback(
+    (stakeholderId, category) =>
+      highlights.some((h) => h.stakeholderId === stakeholderId && h.category === category),
+    [highlights]
+  );
+
+  // Memoized so every consumer of useHighlight() (every card/row across the
+  // dashboard) only re-renders when `highlights` itself actually changes,
+  // not whenever HighlightProvider happens to re-render for an unrelated
+  // reason (a new object literal here would otherwise change context value
+  // identity on every render, forcing all consumers to re-render too).
+  const value = useMemo(() => ({ highlights, toggleHighlight, isHighlighted }), [highlights, toggleHighlight, isHighlighted]);
 
   return (
-    <HighlightContext.Provider value={{ highlights, toggleHighlight, isHighlighted }}>
+    <HighlightContext.Provider value={value}>
       {children}
     </HighlightContext.Provider>
   );
