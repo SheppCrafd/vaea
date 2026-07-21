@@ -91,7 +91,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
       </div>
 
       {products.length > 0 && (
-        <div className="flex flex-col gap-4 mt-2">
+        <div className={`mt-2 ${cardView === "full" ? "flex flex-col gap-4" : "flex flex-wrap items-start gap-4"}`}>
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
