@@ -86,10 +86,10 @@ export default function ProductCard({ product }) {
       </div>
 
       <div
-        className={`relative z-[1] mt-4 space-y-2 min-h-[80px] rounded-lg p-2 transition-colors ${isOver ? "bg-primary/10 ring-2 ring-primary/40" : "bg-transparent"}`}
+        className={`relative z-[1] mt-4 flex flex-wrap gap-2 min-h-[80px] rounded-lg p-2 transition-colors ${isOver ? "bg-primary/10 ring-2 ring-primary/40" : "bg-transparent"}`}
       >
         {projects.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-4">Drop a project here</p>
+          <p className="w-full text-xs text-muted-foreground text-center py-4">Drop a project here</p>
         ) : (
           projects.map((project) => (
             <ProjectCard key={project.id} project={project} stakeholderIds={product.stakeholder_ids} />
