@@ -91,3 +91,26 @@ export function getStatusCounts(tasks = []) {
     count: activeTasks.filter((t) => bucket.match(t.status)).length,
   }));
 }
+
+// 3-bucket collapse of the 7-way status breakdown, for the mini project-card
+// stats bar. ON_HOLD/BLOCKED/PENDING_FEEDBACK/DELEGATED all fold into
+// "In Prog" — they're all "not started" and "not done" in the coarse sense
+// this compact view needs; the full 7-way breakdown is still one click away
+// via the project detail modal's task table.
+export const MINI_STATUS_BUCKETS = [
+  { key: "NOT_STARTED", label: "Not Started", color: STATUS_COLORS.NOT_STARTED },
+  { key: "IN_PROGRESS", label: "In Prog", color: STATUS_COLORS.IN_PROGRESS },
+  { key: "DONE", label: "Done", color: STATUS_COLORS.DONE },
+];
+
+export function getMiniStatusCounts(tasks = []) {
+  const activeTasks = filterActiveTasks(tasks);
+  const notStarted = activeTasks.filter((t) => !t.status || t.status === "NOT_STARTED").length;
+  const done = activeTasks.filter(isTaskDone).length;
+  const inProgress = activeTasks.length - notStarted - done;
+  return [
+    { ...MINI_STATUS_BUCKETS[0], count: notStarted },
+    { ...MINI_STATUS_BUCKETS[1], count: inProgress },
+    { ...MINI_STATUS_BUCKETS[2], count: done },
+  ];
+}

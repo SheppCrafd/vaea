@@ -101,9 +101,9 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
         <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
           Direct Projects
         </h4>
-        <div className="flex flex-col gap-3 min-h-[50px]">
+        <div className="flex flex-wrap gap-2 min-h-[50px]">
           {orphanProjects.length === 0 ? (
-             <p className="text-xs text-muted-foreground text-center py-4">Drop a project here to remove it from a product</p>
+             <p className="w-full text-xs text-muted-foreground text-center py-4">Drop a project here to remove it from a product</p>
           ) : (
             orphanProjects.map((project) => (
               <ProjectCard key={project.id} project={project} stakeholderIds={stakeholderIds} />
