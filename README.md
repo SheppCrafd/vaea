@@ -4,13 +4,13 @@ Repo: https://github.com/SheppCrafd/portfolio-tracker
 
 A dashboard for managing a portfolio of projects and products across your areas of responsibility — with task tracking, stakeholder visibility, a focus feed, and an AI chat assistant that can act on your data.
 
-This app has core app data (areas, products, projects, tasks, stakeholders, departments, notes) living in the browser's `localStorage` (`src/lib/localDb.js`) instead of a hosted database — including everything the AI chat assistant reads and writes, since it acts on this exact same data (see "Architecture" below for how that works without a server ever storing it). [Base44](https://base44.com) is retained for two things: making the LLM call itself (`aiChatStream`) and gating the whole app behind login (Google/Microsoft/Apple/email, via Base44's hosted auth) — there's no custom login form, just Base44's own hosted sign-in page.
+This app has core app data (areas, products, projects, tasks, stakeholders, departments, notes) living locally instead of a hosted database — including everything the AI chat assistant reads and writes, since it acts on this exact same data (see "Architecture" below for how that works without a server ever storing it). Running the repo locally via `npm run dev`/`npm run preview`, that data is plain JSON files in a gitignored `data/` folder right in your clone; anywhere else (the hosted preview, a production deploy, the standalone distributables), it's the browser's `localStorage` instead — see "Local data storage" below. [Base44](https://base44.com) is retained for two things: making the LLM call itself (`aiChatStream`) and gating the whole app behind login (Google/Microsoft/Apple/email, via Base44's hosted auth) — there's no custom login form, just Base44's own hosted sign-in page.
 
 ## For Enterprises & Organizations
 
 This project is built around data locality, which matters if your organization evaluates tools on data residency and third-party processor exposure:
 
-- **No backend database for your data.** Every Area, Product, Project, Task, Stakeholder, and Note lives in the browser's local storage on the machine running it. There is nothing to breach, subpoena, or leak from a server, because there is no server holding it.
+- **No backend database for your data.** Every Area, Product, Project, Task, Stakeholder, and Note lives locally on the machine running it — as plain files in your own clone if you're running the repo directly, or in the browser's local storage otherwise. There is nothing to breach, subpoena, or leak from a server, because there is no server holding it.
 - **The one exception — the AI assistant — is disclosed, not hidden.** Asking it to do something sends a snapshot of your current data to an LLM provider (via a Base44 function) for that single exchange, and nothing is written back to a server afterward. This is stated directly in the product (the info icon in both chat surfaces), not buried in a policy document. If your organization can't accept even transient third-party LLM exposure, the rest of the app works fully with chat simply left unused — see the standalone distributables below for a build with no network dependency at all.
 - **Self-hostable, small, and auditable.** The frontend is a static build (`npm run build` → `dist/`) deployable to any static host or internal server — no runtime backend to operate or patch beyond the one optional serverless function powering chat. The codebase is compact and dependency-light enough for a real architecture/security review in an afternoon.
 - **Honest about current scope:** this is a single-user, single-browser tool today — there's no multi-user data sharing, roles, or admin console. It's built for one manager's own dashboard, not (yet) a shared team system of record. Evaluate it as a personal productivity tool, not a multi-seat platform, until that changes.
@@ -19,7 +19,7 @@ This project is built around data locality, which matters if your organization e
 
 Portfolio Tracker is built for someone managing many projects and products across multiple areas of responsibility (e.g. "Work", "Home"). It organizes work into a three-level hierarchy and gives you a single dashboard to see status, risks, and priorities at a glance:
 
-- **Areas of Responsibility** — the broadest grouping (e.g. Work, Home). Each one stretches across the full dashboard width and stacks vertically — areas are never placed side by side, so a wide monitor gives an area more room, not more columns.
+- **Areas of Responsibility** — the broadest grouping (e.g. Work, Home). A single area fills the full dashboard width; add more and they cascade side by side, sharing the row evenly, wrapping to a new row once they no longer fit — so a wide monitor shows more areas at once, not one area stretched thin.
 - **Products** — sit inside an area, optionally connected to related products.
 - **Projects** — sit inside a product, or directly inside an area if there's no product. Each project owns a set of tasks.
 
@@ -70,12 +70,20 @@ The client-side list lives in `src/lib/chatCommands.js`; the matching server-sid
 ### Architecture
 
 - **Frontend**: React 18 + Vite, React Router, TanStack Query for data fetching/caching, Zustand for lightweight client state, Tailwind CSS + Radix UI primitives (via `shadcn`-style components in `src/components/ui`) for the design system. Animation is plain Tailwind (`tailwindcss-animate`'s `animate-in`/`fade-in`/`zoom-in` utilities) plus a handful of custom CSS keyframes in `src/index.css` (the chat "thinking" icon, message fade-in, launch pulse) — no animation library. The status bar chart (`TaskStatistics`) is a hand-rolled stacked-div bar, not a charting library. Dark/light/system theming is wired via `next-themes` (`ThemeProvider` in `App.jsx`); accent color is a separate `data-accent` attribute + CSS-variable override system (`useAccentTheme`), independent of light/dark.
-- **Core app data** (areas, products, projects, tasks, stakeholders, departments, project notes) lives entirely in the browser via `src/lib/localDb.js`, a small localStorage-backed repository (list/get/filter/create/update/delete + a subscribe hook for live task-count polling) that the entity hooks in `src/hooks/` (`useAreas`, `useProducts`, `useProjects`, `useTasks`, `useStakeholders`, `useDepartments`, `useProjectNotes`) sit on top of. There is no server for this data — it's single-browser, and clearing site data clears it.
+- **Core app data** (areas, products, projects, tasks, stakeholders, departments, project notes) lives entirely locally via `src/lib/localDb.js`, a small repository (list/get/filter/create/update/delete + a subscribe hook for live task-count polling) that the entity hooks in `src/hooks/` (`useAreas`, `useProducts`, `useProjects`, `useTasks`, `useStakeholders`, `useDepartments`, `useProjectNotes`) sit on top of. There is no server database for this data — see "Local data storage" below for exactly where it's kept and why there are two backing stores.
 - **The AI chat assistant acts on this same local data**, split across two places so your data never has to be stored on a server to get there:
   - **`base44/functions/aiChatStream`** (a Base44 serverless function) only decides *what* to do. The client sends it the message plus a snapshot of your current local dataset; it calls the LLM, gets back a plan (a list of actions), and returns that plan **unexecuted**. It never writes anything, anywhere.
   - **`src/lib/chatActions.js`** (client-side) actually runs the plan, against `localDb` — reusing the exact same plain mutation functions (including cascade logic) the UI's own hooks in `src/hooks/` are built on, imported directly rather than duplicated. Destructive actions (deletes, bulk operations) are held for a confirm step client-side before running, same as before.
   - Net effect: your project data touches Base44 only in transit, for one request per message, so the LLM can see it — never persisted there. Chat session/message history (`ChatSession`/`ChatMessage`) and chat file attachments are the one thing that *does* still live on Base44, via `src/api/base44Client.js` — that's conversation history, not your project data.
 - **Build tooling**: Vite with the `@base44/vite-plugin` (dev-only HMR notifier, visual-edit agent, and analytics hooks — kept because `aiChatStream` still needs the Base44 toolchain), ESLint, TypeScript in `checkJs` mode for type-checking JS via `jsconfig.json`, and Vitest for unit tests.
+
+### Local data storage
+
+`src/lib/localDb.js` picks one of two backing stores automatically, per session — nothing else in the app needs to know or care which is active:
+
+- **File-backed (running the repo locally via `npm run dev` or `npm run preview`):** data lives as plain JSON files in a gitignored `data/` folder at the repo root (`data/areas.json`, `data/products.json`, etc.) — one file per collection, written by a small Vite dev-server middleware (`vite-localdb-plugin.js`). Open them directly in any editor, back them up, or hand-edit them; the app picks up whatever's on disk on its next read.
+- **`localStorage` (everywhere else):** the base44-hosted preview, a production static deploy, and the standalone `.bat`/`.exe` distributables below have no Node process behind them to serve the file-backed API, so the app falls back to the browser's local storage there instead — the same behavior this app has always had.
+- The app detects which one is available with a single probe request on first load; there's no manual switch, and no data migrates automatically between the two if you move from one mode to the other (e.g. going from `npm run dev` to the hosted preview starts with a separate, empty dataset).
 
 ### Data model
 
@@ -128,7 +136,7 @@ Base44 entities (`base44/entities`) — none of your project data: `User` (login
 npm run dev
 ```
 
-The dashboard, tasks, projects, products, areas, stakeholders, and settings all work fully — they only ever talk to `localStorage`. The AI chat widget will error on send, since there's no `aiChatStream` function running.
+The dashboard, tasks, projects, products, areas, stakeholders, and settings all work fully — they read/write the `data/` folder described in "Local data storage" above (gitignored, created automatically on first write). The AI chat widget will error on send, since there's no `aiChatStream` function running.
 
 ### Run locally (with AI chat)
 
@@ -155,7 +163,7 @@ node standalone/build.cjs   # embeds dist/ into both launchers
 
 Whoever receives one of the two files just runs it: double-click the `.bat` on Windows, or `./PortfolioTracker-Linux.sh` (or `bash PortfolioTracker-Linux.sh`) on macOS/Linux. Either one starts a tiny local server with SPA-aware routing and opens the app in their default browser automatically, no install step. See `standalone/README.txt` for the exact instructions each one ships with (also printed to anyone who opens the folder instead of running the file).
 
-This is the same localStorage-only app as `npm run dev` — full functionality except the AI chat widget, which needs Base44's hosting for the LLM call itself and can't be bundled into an offline file (the data it acts on, though, is exactly the same local data everything else here uses — see Architecture above). The two generated launchers (and the transient `standalone/_payload.*` build files) are gitignored — they're build artifacts, regenerate them from source rather than committing them. The editable source for each lives in `standalone/templates/*.tpl`.
+This is the same app as `npm run dev`, minus the AI chat widget, which needs Base44's hosting for the LLM call itself and can't be bundled into an offline file (the data it acts on, though, is exactly the same local data everything else here uses — see Architecture above). Unlike `npm run dev`, these launchers serve the already-built static `dist/` with no Vite dev server behind them — so there's no `data/` folder here, and data is kept in the browser's `localStorage` instead, same as it always has been (see "Local data storage" above). The two generated launchers (and the transient `standalone/_payload.*` build files) are gitignored — they're build artifacts, regenerate them from source rather than committing them. The editable source for each lives in `standalone/templates/*.tpl`.
 
 **Zero-dependency alternative:** `standalone/exe/` builds native executables (`PortfolioTracker-Windows.exe`, `PortfolioTracker-Linux`) with the Node.js runtime itself embedded via [`pkg`](https://github.com/yao-pkg/pkg) — not even PowerShell/Python are required, at the cost of ~45-50MB per file instead of a few hundred KB. Regenerate with:
 

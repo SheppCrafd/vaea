@@ -1,52 +1,104 @@
-// Browser-localStorage-backed data layer for all non-AI app data (areas,
-// products, projects, tasks, stakeholders, departments, project notes).
-// Mirrors the subset of the base44 entities API (list/get/filter/create/
-// update/delete/subscribe) that the app's hooks used, so this is a drop-in
-// swap behind those hooks. Chat data (ChatMessage/ChatSession) stays on
-// base44 and does not go through this module.
+// Local-first data layer for all non-AI app data (areas, products, projects,
+// tasks, stakeholders, departments, project notes). Mirrors the subset of
+// the base44 entities API (list/get/filter/create/update/delete/subscribe)
+// that the app's hooks used, so this is a drop-in swap behind those hooks.
+// Chat data (ChatMessage/ChatSession) stays on base44 and does not go
+// through this module.
+//
+// Two backing stores, chosen automatically per session:
+// - File-backed (dev/preview only): real JSON files in a gitignored `data/`
+//   folder in the cloned repo, read/written through vite-localdb-plugin.js's
+//   dev-server middleware. Lets a developer running `npm run dev`/`npm run
+//   preview` open their own data as plain files.
+// - localStorage (everywhere else — production build, the base44-hosted
+//   preview, the standalone .bat/.exe distributions): none of those have a
+//   Node process behind them to serve the file-backed API, so this is the
+//   fallback that keeps the app fully functional without one.
+// Both stores expose the exact same shape below; nothing outside this file
+// needs to know or care which one is actually active.
 
 const COLLECTIONS = ["areas", "products", "projects", "tasks", "stakeholders", "departments", "projectNotes"];
 
 const STORAGE_PREFIX = "portfolio_tracker_db_";
+const FILE_API_PREFIX = "/__localdb/";
 
-// In-memory mirror of each collection, lazily hydrated from localStorage on
-// first access and kept in sync on every write. This app is single-tab/
-// single-browser (no other writer touches these keys — see writeCollection),
-// so the cache can be trusted as the source of truth between writes instead
-// of re-parsing the full JSON blob from localStorage on every single read.
-// That matters here: every useQuery in the entity hooks calls list()/filter()
-// on mount and after every invalidation, so an uncached read was doing a full
-// JSON.parse of the entire collection on the main thread for every one of
-// those calls.
+// A single shared probe, not one per collection — if the dev-server
+// middleware isn't there, it isn't there for any collection. Memoized so
+// every caller (every collection, every read) awaits the same in-flight
+// check instead of each re-probing independently.
+let fileBackedModePromise = null;
+function isFileBackedModeAvailable() {
+  if (!fileBackedModePromise) {
+    fileBackedModePromise = fetch(`${FILE_API_PREFIX}__probe`)
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then(() => true)
+      .catch(() => false);
+  }
+  return fileBackedModePromise;
+}
+
+// In-memory mirror of each collection, populated once (from whichever store
+// is active) and kept in sync on every write — so a read never has to hit
+// the file API or re-parse localStorage more than once per collection. This
+// app is single-tab/single-writer (no other process touches these files or
+// keys — see writeCollection), so the cache can be trusted as the source of
+// truth between writes.
 const cache = new Map(); // name -> item[]
+const loading = new Map(); // name -> in-flight Promise<item[]>
 
-function loadCollection(name) {
-  if (!cache.has(name)) {
+async function loadCollection(name) {
+  if (cache.has(name)) return cache.get(name);
+  if (loading.has(name)) return loading.get(name);
+
+  const promise = (async () => {
     let items = [];
-    try {
-      const raw = localStorage.getItem(STORAGE_PREFIX + name);
-      items = raw ? JSON.parse(raw) : [];
-    } catch {
-      items = [];
+    if (await isFileBackedModeAvailable()) {
+      try {
+        const res = await fetch(`${FILE_API_PREFIX}${name}`);
+        items = res.ok ? await res.json() : [];
+      } catch {
+        items = [];
+      }
+    } else {
+      try {
+        const raw = localStorage.getItem(STORAGE_PREFIX + name);
+        items = raw ? JSON.parse(raw) : [];
+      } catch {
+        items = [];
+      }
     }
     cache.set(name, items);
-  }
-  return cache.get(name);
+    loading.delete(name);
+    return items;
+  })();
+
+  loading.set(name, promise);
+  return promise;
 }
 
 // Returns a fresh array reference (shallow copy) every call — callers (React
 // Query in particular) rely on getting a new array identity per read, and
 // nothing here may hand out the live cached array itself, since create()
 // mutates its local copy in place before writing it back.
-function readCollection(name) {
-  return loadCollection(name).slice();
+async function readCollection(name) {
+  const items = await loadCollection(name);
+  return items.slice();
 }
 
-function writeCollection(name, items) {
-  // Persist first: if localStorage throws (quota, private-browsing, etc.)
-  // the cache must not drift from what's actually on disk, matching the
-  // prior (uncached) behavior where a failed write left storage untouched.
-  localStorage.setItem(STORAGE_PREFIX + name, JSON.stringify(items));
+async function writeCollection(name, items) {
+  // Persist first: if the write throws (a file-system error, localStorage
+  // quota/private-browsing, etc.) the cache must not drift from what's
+  // actually on disk, matching the prior (uncached) behavior where a failed
+  // write left storage untouched.
+  if (await isFileBackedModeAvailable()) {
+    await fetch(`${FILE_API_PREFIX}${name}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(items),
+    });
+  } else {
+    localStorage.setItem(STORAGE_PREFIX + name, JSON.stringify(items));
+  }
   cache.set(name, items);
   emit(name);
 }
@@ -70,23 +122,23 @@ function matches(item, query) {
 function createCollection(name) {
   return {
     list: async () => readCollection(name),
-    get: async (id) => readCollection(name).find((item) => item.id === id) || null,
-    filter: async (query = {}) => readCollection(name).filter((item) => matches(item, query)),
+    get: async (id) => (await readCollection(name)).find((item) => item.id === id) || null,
+    filter: async (query = {}) => (await readCollection(name)).filter((item) => matches(item, query)),
     create: async (data) => {
       const now = new Date().toISOString();
       const item = { id: crypto.randomUUID(), created_date: now, updated_date: now, ...data };
-      const items = readCollection(name);
+      const items = await readCollection(name);
       items.push(item);
-      writeCollection(name, items);
+      await writeCollection(name, items);
       return item;
     },
     update: async (id, patch) => {
-      const items = readCollection(name);
+      const items = await readCollection(name);
       const index = items.findIndex((item) => item.id === id);
       if (index === -1) throw new Error(`${name} record ${id} not found`);
       const updated = { ...items[index], ...patch, updated_date: new Date().toISOString() };
       items[index] = updated;
-      writeCollection(name, items);
+      await writeCollection(name, items);
       return updated;
     },
     // Applies the same patch (or a per-item patch function) to every item
@@ -94,7 +146,7 @@ function createCollection(name) {
     // read+write per id. Used by cascade updates (e.g. deleting an Area
     // soft-deletes every Product/Project/Task beneath it) where the naive
     // "map to update() calls" pattern re-serialized the entire collection to
-    // localStorage once per affected item. Unknown ids are silently ignored
+    // storage once per affected item. Unknown ids are silently ignored
     // (cascades always derive `ids` from a just-read filter, so this mirrors
     // that caller's own view of what exists).
     updateMany: async (ids, patch) => {
@@ -102,18 +154,18 @@ function createCollection(name) {
       const idSet = new Set(ids);
       const now = new Date().toISOString();
       const updated = [];
-      const items = readCollection(name).map((item) => {
+      const items = (await readCollection(name)).map((item) => {
         if (!idSet.has(item.id)) return item;
         const merged = { ...item, ...(typeof patch === "function" ? patch(item) : patch), updated_date: now };
         updated.push(merged);
         return merged;
       });
-      writeCollection(name, items);
+      await writeCollection(name, items);
       return updated;
     },
     delete: async (id) => {
-      const items = readCollection(name);
-      writeCollection(name, items.filter((item) => item.id !== id));
+      const items = await readCollection(name);
+      await writeCollection(name, items.filter((item) => item.id !== id));
       return { id };
     },
     subscribe: (fn) => subscribe(name, fn),

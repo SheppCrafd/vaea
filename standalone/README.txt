@@ -36,7 +36,12 @@ YOUR DATA
   Everything you create — areas, products, projects, tasks, stakeholders,
   notes — is stored locally in that browser's storage on your machine only.
   Nothing is uploaded anywhere. Using a different browser, or clearing this
-  browser's site data, starts you with an empty workspace.
+  browser's site data, starts you with an empty workspace. (If you're a
+  developer running the actual git repo instead of this standalone copy via
+  `npm run dev`, data is stored as plain JSON files in a `data/` folder in
+  your clone instead — see the main README.md's "Local data storage"
+  section. That doesn't apply here; this standalone copy has no dev server
+  behind it, so it's always browser storage.)
 
 SIGNING IN
 
