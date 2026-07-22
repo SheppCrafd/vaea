@@ -20,7 +20,11 @@ export default function StatusDropdown({ task, onStatusChange, statusOptions = D
         onClick={toggle}
         className="text-[10px] px-2 py-1 rounded-full bg-secondary text-secondary-foreground border border-border capitalize whitespace-nowrap"
       >
-        {task.status.replace(/_/g, " ")}
+        {/* Falls back for tasks created before createTask started defaulting
+            status to NOT_STARTED — those existing records can still have
+            status === undefined, and .replace() on that crashed the whole
+            app (no error boundary existed until this same investigation). */}
+        {(task.status || "NOT_STARTED").replace(/_/g, " ")}
       </button>
       {/* Rendered above full-screen modals (z-50) so the dropdown is never
           clipped by the table's scroll container or hidden behind the modal. */}

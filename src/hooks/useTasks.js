@@ -60,7 +60,11 @@ export function useAllTasks() {
 }
 
 // 3. CREATE TASK (SUPPORTS ANY CUSTOM PAYLOADS LIKE STAKEHOLDER_ID)
-export const createTask = (data) => localDb.tasks.create(data);
+// status defaults to NOT_STARTED here rather than being left undefined —
+// the table's "new row" only sets it if the user explicitly picked one
+// (see TaskTable.jsx's createNewTask), but every status-reading component
+// (StatusDropdown in particular) assumes a task always has a real string.
+export const createTask = (data) => localDb.tasks.create({ status: "NOT_STARTED", ...data });
 
 // 4. UPDATE TASK (GENERIC DATA MUTATION - PERFECT FOR ASSIGNING STAKEHOLDERS,
 // ARCHIVING/RESTORING, AND TOGGLING WEEKLY FOCUS - ALL JUST FIELD PATCHES)
