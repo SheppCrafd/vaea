@@ -2,6 +2,20 @@ import { useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import ChatIcon from "@/components/ai/ChatIcon";
 
+// react-markdown's own default already allows only a safe set of protocols,
+// but the AI assistant's reply is composed partly from untrusted database
+// content (project titles, task descriptions, custom fields) that an
+// attacker could craft to include a `javascript:` or `data:` link. Pin the
+// allowed schemes explicitly here so a malicious link injected via prompt
+// indirection is stripped to "#" before it ever reaches a clickable anchor.
+const SAFE_URL = /^(https?:\/\/|mailto:|tel:|\/|#|[^:/?#]*($|[#?]))/i;
+const sanitizeUrl = (url) => {
+  if (typeof url !== "string") return "";
+  const trimmed = url.trim();
+  if (SAFE_URL.test(trimmed)) return url;
+  return "";
+};
+
 // Renders the message list. Scrolling is plain native browser scrolling —
 // lazy-loads older messages as the user scrolls near the top.
 export default function ChatMessageList({ messages, isComputing, iconChoice, hasMore, onLoadMore, resolvingId, onConfirm, onCancel }) {
@@ -38,7 +52,7 @@ export default function ChatMessageList({ messages, isComputing, iconChoice, has
         <div key={m.id} className={m.role === "user" ? "text-right" : ""}>
           <div className={`inline-block rounded-lg px-3 py-1.5 max-w-[85%] text-left ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground shadow-sm"}`}>
             <div className="chat-message-content">
-              <ReactMarkdown>{m.content}</ReactMarkdown>
+              <ReactMarkdown urlTransform={sanitizeUrl}>{m.content}</ReactMarkdown>
             </div>
           </div>
           {m.pending_action && (
