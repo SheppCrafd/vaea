@@ -5,12 +5,14 @@ import TaskForm from "@/components/modals/TaskForm";
 import ProjectForm from "@/components/modals/ProjectForm";
 import ProductForm from "@/components/modals/ProductForm";
 import AreaForm from "@/components/modals/AreaForm";
+import CsvImportForm from "@/components/modals/CsvImportForm";
 
 const TYPES = [
   { key: "task", label: "Task" },
   { key: "project", label: "Project" },
   { key: "product", label: "Product" },
   { key: "area", label: "Area" },
+  { key: "csv", label: "Via .csv" },
 ];
 
 // Polymorphic create modal — switches between the four object forms based on createModalType.
@@ -27,6 +29,7 @@ export default function CreateModal() {
       case "project": return <ProjectForm onDone={closeCreateModal} />;
       case "product": return <ProductForm onDone={closeCreateModal} />;
       case "area": return <AreaForm onDone={closeCreateModal} />;
+      case "csv": return <CsvImportForm />;
       case "task":
       default: return <TaskForm onDone={closeCreateModal} />;
     }

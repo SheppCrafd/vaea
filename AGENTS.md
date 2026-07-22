@@ -23,6 +23,9 @@ Start with `README.md` for local setup and architecture details.
 - `src/lib/AuthContext.jsx` + the `AuthenticatedApp` wrapper in `src/App.jsx`: gates the whole app behind base44's own hosted login (Google/Microsoft/Apple/email) — same pattern as Zmanim Today. Restored from pre-fork history at the user's explicit request; don't remove without being asked, same as you wouldn't have added it without being asked.
 - `src/lib/CardViewContext.jsx`: the "mini" vs "full" project-card preference, toggled at the top of the Dashboard and shared by `AreaCard`/`ProductCard` (which switch both which `ProjectCard*` component renders and their container's layout class). `ProjectCard.jsx` (mini, default) and `ProjectCardFull.jsx` (the original always-editable card, restored from pre-mini-cards history) are both real, maintained components — don't treat one as dead code.
 - `vite.config.js`: Vite config and Base44 Vite plugin setup — kept because `aiChatStream` still needs the Base44 toolchain.
+- `src/lib/csv.js`: generic, entity-agnostic CSV parse/stringify (no external dependency — hand-rolled but RFC4180-correct: quoted fields, embedded commas/newlines, escaped `""` quotes).
+- `src/lib/csvImportSchemas.js`: per-entity-type (area/product/project/task) template columns and row -> CREATE_* args resolution for the Create New popover's "Via .csv" tab — including title-based lookup of parent area/product/project, with per-row errors (not a whole-import abort) when a reference doesn't resolve to exactly one match.
+- `src/components/modals/CsvImportForm.jsx`: the "Via .csv" tab's UI — download a template, upload a filled-in file, runs every resolved row through `chatActions.js`'s `BULK_CREATE`, same as everything else. Don't add a separate creation path here; reuse the existing one.
 
 ## Working Notes
 
