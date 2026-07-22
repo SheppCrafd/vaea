@@ -19,6 +19,10 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
+    // Trust boundary: the target account is ALWAYS the authenticated caller's
+    // own id (user.id from auth.me()). The request body is deliberately never
+    // parsed, so no client-supplied id can ever redirect this update onto
+    // another user's account — do not introduce a body-sourced id here.
     const updated = await base44.asServiceRole.entities.User.update(user.id, {
       disabled: true,
       full_name: 'Deleted User',
