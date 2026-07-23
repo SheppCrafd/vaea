@@ -71,7 +71,13 @@ export default function ProjectCard({ project, stakeholderIds = [] }) {
       ref={setRefs}
       style={style}
       data-project-card={project.id}
-      className={`relative bg-card border border-border rounded-xl p-2 w-28 h-28 flex flex-col items-center transition-colors ${isMatched ? "bg-primary/10 ring-1 ring-primary/30" : ""} ${isDragging ? "shadow-2xl scale-105 border-primary" : "shadow-sm"} ${isOver ? "ring-2 ring-primary ring-offset-1" : ""}`}
+      // No fixed width: this card is only ever rendered inside ProjectsGrid's
+      // Mini-mode CSS grid (auto-fit/minmax(112px, 1fr)), which sets a 112px
+      // floor and grows this card via 1fr when there's leftover space in its
+      // row, same as ProjectCardFull one card-view up. Height stays fixed —
+      // only the width grows — so it reads as a wider tile, not a stretched
+      // square.
+      className={`relative bg-card border border-border rounded-xl p-2 w-full h-28 flex flex-col items-center transition-colors ${isMatched ? "bg-primary/10 ring-1 ring-primary/30" : ""} ${isDragging ? "shadow-2xl scale-105 border-primary" : "shadow-sm"} ${isOver ? "ring-2 ring-primary ring-offset-1" : ""}`}
     >
       <div
         {...attributes}

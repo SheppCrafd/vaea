@@ -122,14 +122,12 @@ export default function Dashboard() {
         </div>
       ) : (
         <div
-          className="grid items-start gap-5"
-          // Full Cards' project card is a fixed 420px — an Area needs enough
-          // room for at least one Product wide enough to hold that without
-          // clipping (see AreaCard's own products-grid comment), or the
-          // grid can hand an Area a column narrower than its own content
-          // needs. Mini Cards' tiles are much smaller, so 340px is plenty
-          // there — this floor only needs to grow for Full mode.
-          style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${cardView === "full" ? 500 : 340}px, 1fr))` }}
+          // Areas always stack as a single full-width column, in both card
+          // views — unlike Products/Projects one level down, an Area never
+          // shares a row with a sibling Area, so it always gets the whole
+          // dashboard width to arrange its own Products (which in turn fill
+          // it, cascading the same way down to Projects) in.
+          className="grid grid-cols-1 items-start gap-5"
         >
           {areaViewModels.map(({ area, productsWithProjects, orphanProjects, areaStakeholderIds }) => (
             <AreaCard
