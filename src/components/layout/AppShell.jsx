@@ -1,13 +1,19 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { DndContext, DragOverlay, closestCenter } from "@dnd-kit/core";
 import { Archive, FolderKanban } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import LeftSidebar from "@/components/layout/LeftSidebar";
-import ChatBox from "@/components/ai/ChatBox";
 import ArchivePanel from "@/components/archive/ArchivePanel";
 import Avatar from "@/components/shared/Avatar";
 import { useGlobalDragEnd } from "@/hooks/useGlobalDragEnd";
+
+// Code-split, like /chat and /settings already are (see App.jsx) — ChatBox
+// pulls in react-markdown (message rendering) and its own session/action
+// machinery, none of which every dashboard visitor needs downloaded and
+// parsed before first paint just because the widget happens to always be
+// mounted. This alone was the main-bundle's single biggest chunk.
+const ChatBox = lazy(() => import("@/components/ai/ChatBox"));
 
 const LEFT_STORAGE_KEY = "vaea_left_sidebar_open";
 const RIGHT_STORAGE_KEY = "vaea_right_sidebar_open";
@@ -99,7 +105,9 @@ export default function AppShell({ children }) {
             </div>
           )}
         </aside>
-        <ChatBox />
+        <Suspense fallback={null}>
+          <ChatBox />
+        </Suspense>
 
         <button
           onClick={() => setIsArchiveOpen(true)}
