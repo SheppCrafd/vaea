@@ -12,14 +12,27 @@ const TABS = [
   { key: "settings", label: "Settings", to: "/settings", Icon: SettingsIcon, isActive: (path) => path.startsWith("/settings") },
 ];
 
+// Every page with its own persistent left sidebar shares one toggle button
+// and one visual treatment (this is the "applicable everywhere" version of
+// what used to be Chat-only: a collapsible list on the left, its
+// open/closed state persisted). Keyed by exact pathname, not TABS' looser
+// isActive — /settings/vault-setup would otherwise inherit the Settings
+// tab's match and show a toggle for a sidebar that page doesn't render.
+const SIDEBAR_BY_PATH = {
+  "/": { isOpenKey: "isLeftSidebarOpen", toggleKey: "toggleLeftSidebar", label: "stakeholders panel" },
+  "/chat": { isOpenKey: "isChatSidebarOpen", toggleKey: "toggleChatSidebar", label: "chat history panel" },
+  "/settings": { isOpenKey: "isSettingsSidebarOpen", toggleKey: "toggleSettingsSidebar", label: "settings sections panel" },
+};
+
 // Rendered once, above every route (App.jsx) rather than inside AppShell —
-// the dashboard's sidebar toggles / Create New / Filter only mean anything
-// on the dashboard route itself, so those stay gated behind isDashboard;
-// the logo, tab bar, search, and settings shortcut are universal.
+// Create New / Filter / the right-hand focus panel only mean anything on
+// the dashboard route, so those stay gated behind isDashboard; the logo,
+// tab bar, search, left-sidebar toggle, and settings shortcut are universal.
 export default function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const isDashboard = location.pathname === "/";
+  const sidebarConfig = SIDEBAR_BY_PATH[location.pathname];
 
   const openCreateModal = useAppStore((s) => s.openCreateModal);
   const openCommandPalette = useAppStore((s) => s.openCommandPalette);
@@ -27,10 +40,24 @@ export default function Header() {
   const toggleLeftSidebar = useAppStore((s) => s.toggleLeftSidebar);
   const isRightSidebarOpen = useAppStore((s) => s.isRightSidebarOpen);
   const toggleRightSidebar = useAppStore((s) => s.toggleRightSidebar);
+  const isChatSidebarOpen = useAppStore((s) => s.isChatSidebarOpen);
+  const toggleChatSidebar = useAppStore((s) => s.toggleChatSidebar);
+  const isSettingsSidebarOpen = useAppStore((s) => s.isSettingsSidebarOpen);
+  const toggleSettingsSidebar = useAppStore((s) => s.toggleSettingsSidebar);
   const openTabKeys = useAppStore((s) => s.openTabKeys);
   const closeTab = useAppStore((s) => s.closeTab);
   const ensureTabOpen = useAppStore((s) => s.ensureTabOpen);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  // Every page's sidebar state lives in the store under a different key —
+  // this picks out the (isOpen, toggle) pair for whichever one applies to
+  // the current route, so the button below stays a single implementation
+  // instead of a per-page copy.
+  const sidebarState = sidebarConfig && {
+    isOpen: { isLeftSidebarOpen, isChatSidebarOpen, isSettingsSidebarOpen }[sidebarConfig.isOpenKey],
+    toggle: { toggleLeftSidebar, toggleChatSidebar, toggleSettingsSidebar }[sidebarConfig.toggleKey],
+    label: sidebarConfig.label,
+  };
 
   // Navigating to a route reopens its tab if it had been closed — same as
   // clicking a link to an already-closed browser tab's page just opens it
@@ -55,13 +82,13 @@ export default function Header() {
   return (
     <header className="h-16 shrink-0 flex items-center justify-between px-6 border-b border-border bg-card shadow-sm relative z-10">
       <div className="flex items-center gap-3">
-        {isDashboard && (
+        {sidebarState && (
           <button
-            onClick={toggleLeftSidebar}
-            aria-label={isLeftSidebarOpen ? "Collapse stakeholders panel" : "Expand stakeholders panel"}
+            onClick={sidebarState.toggle}
+            aria-label={sidebarState.isOpen ? `Collapse ${sidebarState.label}` : `Expand ${sidebarState.label}`}
             className="text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 -ml-1.5 rounded-md transition-colors">
 
-            {isLeftSidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
+            {sidebarState.isOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
           </button>
         )}
         <span className="text-lg tracking-tight font-bold [font-family:'JetBrains_Mono',_monospace]">Vaea</span>
