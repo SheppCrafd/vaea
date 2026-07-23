@@ -96,7 +96,17 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
           // own p-4 padding ≈ 452px) — a 240px floor (fine for Mini Cards'
           // small tiles) can hand a Product a column too narrow for that in
           // Full mode, and the card's overflow-hidden clips the rest.
-          style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${cardView === "full" ? 460 : 240}px, 1fr))` }}
+          //
+          // auto-fill, not auto-fit: same reasoning as ProjectsGrid's Full
+          // mode — auto-fit stretches a lone Product to consume the entire
+          // row's width, wasting space where a sibling could otherwise land.
+          // auto-fill reserves as many floor-width tracks as the row has
+          // room for and splits leftover space across all of them (occupied
+          // or not), so an existing Product only grows to roughly one
+          // track's share. Areas deliberately don't get this — they're
+          // always a single full-width column, never sharing a row with a
+          // sibling Area to begin with.
+          style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${cardView === "full" ? 460 : 240}px, 1fr))` }}
         >
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />
