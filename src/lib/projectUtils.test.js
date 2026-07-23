@@ -8,13 +8,13 @@ const daysFromNow = (n) => {
 };
 
 describe("getDueDateColorClass", () => {
-  it("is black when estimated, regardless of due date", () => {
+  it("is the neutral theme-aware color when estimated, regardless of due date", () => {
     const project = { due_date_status: "ESTIMATED", due_date: daysFromNow(-30) };
-    expect(getDueDateColorClass(project)).toContain("text-black");
+    expect(getDueDateColorClass(project)).toContain("text-foreground");
   });
 
-  it("is black when there's no due date at all", () => {
-    expect(getDueDateColorClass({ due_date_status: "COMMITTED", due_date: null })).toContain("text-black");
+  it("is the neutral theme-aware color when there's no due date at all", () => {
+    expect(getDueDateColorClass({ due_date_status: "COMMITTED", due_date: null })).toContain("text-foreground");
   });
 
   it("is green when committed and comfortably on track", () => {

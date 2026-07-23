@@ -32,10 +32,15 @@ const AT_RISK_WINDOW_DAYS = 7;
 // this is computed fresh every render and updates itself as time passes.
 export function getDueDateColorClass(project, allDone = false) {
   if (allDone) return "text-blue-500 font-bold";
-  if (getProjectDueStatus(project) !== "COMMITTED") return "text-black";
+  // text-foreground, not a literal text-black — this renders directly onto
+  // a native <input type="date"> (ProjectCardFull.jsx), and an explicit
+  // `color` on the element always wins over color-scheme's own default
+  // form-control text color. A literal black was invisible against a dark
+  // background regardless of that fix, per direct feedback.
+  if (getProjectDueStatus(project) !== "COMMITTED") return "text-foreground";
 
   const dueDate = getProjectDueDate(project);
-  if (!dueDate) return "text-black";
+  if (!dueDate) return "text-foreground";
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
