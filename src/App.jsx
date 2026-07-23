@@ -26,7 +26,7 @@ const VaultSetupGuidePage = lazy(() => import('@/pages/VaultSetupGuidePage'));
 // Add page imports here
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, continueAnonymously } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -56,15 +56,9 @@ const AuthenticatedApp = () => {
           <div className="max-w-sm text-center space-y-3">
             <p className="text-sm font-medium">Couldn't sign you in automatically</p>
             <p className="text-xs text-muted-foreground">
-              Your dashboard data lives on this device either way — signing in only affects the AI chat.
+              Sign-in is required to use this app. If this keeps happening, try again in a moment.
             </p>
             <div className="flex items-center justify-center gap-2 pt-1">
-              <button
-                onClick={continueAnonymously}
-                className="text-sm px-4 py-2 bg-secondary hover:opacity-80 text-secondary-foreground border border-border font-medium rounded-md transition-colors"
-              >
-                Continue without signing in
-              </button>
               <button
                 onClick={() => { markAuthRedirectAttempted(); navigateToLogin(); }}
                 className="text-sm px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md transition-colors"

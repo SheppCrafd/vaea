@@ -76,9 +76,22 @@ export const AuthProvider = ({ children }) => {
         if (appParams.token) {
           await checkUserAuth();
         } else {
+          // No token at all (a fresh, never-logged-in visitor) used to fall
+          // through here as "not authenticated, no error" — since
+          // AuthenticatedApp in App.jsx only ever branches on authError,
+          // not isAuthenticated, that silently let anonymous visitors reach
+          // the full dashboard. Per AGENTS.md, login is required for the
+          // whole app (restored from pre-fork history at the user's
+          // explicit request) — so this is the same auth_required path a
+          // stale token takes, letting App.jsx's existing (loop-guarded,
+          // see hasAttemptedAuthRedirect above) redirect handle it.
           setIsLoadingAuth(false);
           setIsAuthenticated(false);
           setAuthChecked(true);
+          setAuthError({
+            type: 'auth_required',
+            message: 'Authentication required'
+          });
         }
         setIsLoadingPublicSettings(false);
       } catch (appError) {
@@ -167,28 +180,6 @@ export const AuthProvider = ({ children }) => {
     base44.auth.redirectToLogin(window.location.href);
   };
 
-  // Escape hatch from the "couldn't sign you in automatically" screen — the
-  // dashboard is designed to work fully signed-out (requiresAuth: false,
-  // all app data is local), so a stale/invalid token should never be able
-  // to trap someone out of their own local data. Clears the bad token
-  // in-place (no navigation, unlike base44.auth.logout()) and drops back to
-  // the same state a fresh anonymous visitor starts in.
-  const continueAnonymously = () => {
-    try {
-      localStorage.removeItem('base44_access_token');
-      localStorage.removeItem('token');
-    } catch {
-      // best-effort
-    }
-    setUser(null);
-    setIsAuthenticated(false);
-    setAuthError(null);
-    setIsLoadingAuth(false);
-    setIsLoadingPublicSettings(false);
-    setAuthChecked(true);
-    clearAuthRedirectAttempted();
-  };
-
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -200,7 +191,6 @@ export const AuthProvider = ({ children }) => {
       authChecked,
       logout,
       navigateToLogin,
-      continueAnonymously,
       checkUserAuth,
       checkAppState
     }}>
