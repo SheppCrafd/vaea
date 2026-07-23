@@ -76,6 +76,26 @@ describe("githubApi: writeVaultFile", () => {
     expect(body.sha).toBe("existing-sha");
   });
 
+  it("surfaces GitHub's own message when the existence check itself fails (e.g. 403)", async () => {
+    globalThis.fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 403,
+      json: async () => ({ message: "API rate limit exceeded for xxx.xxx.xxx.xxx." }),
+    });
+
+    await expect(
+      writeVaultFile({ owner: "me", repo: "vault", branch: "main", token: "t", path: "x.md", content: "x" })
+    ).rejects.toThrow("API rate limit exceeded");
+  });
+
+  it("falls back to the bare status when GitHub's error body has no message", async () => {
+    globalThis.fetch.mockResolvedValueOnce({ ok: false, status: 403, json: async () => ({}) });
+
+    await expect(
+      writeVaultFile({ owner: "me", repo: "vault", branch: "main", token: "t", path: "x.md", content: "x" })
+    ).rejects.toThrow(/403/);
+  });
+
   it("throws GitHub's own error message on a failed write", async () => {
     globalThis.fetch
       .mockResolvedValueOnce({ ok: false, status: 404 })

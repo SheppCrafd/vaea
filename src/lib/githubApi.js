@@ -59,7 +59,14 @@ export async function writeVaultFile({ owner, repo, branch, token, path, content
   if (existing.ok) {
     sha = (await existing.json()).sha;
   } else if (existing.status !== 404) {
-    throw new Error(`Couldn't check for an existing file (${existing.status}).`);
+    // A bare status code here is useless for telling apart the three real
+    // causes GitHub uses 403 for on this endpoint (rate limit exceeded, the
+    // token has no Contents permission on this repo, org SSO not
+    // authorized for the token) — each has its own distinct `message` in
+    // the body. The PUT below already reads its own error body; this GET
+    // never did.
+    const body = await existing.json().catch(() => ({}));
+    throw new Error(body.message || `Couldn't check for an existing file (${existing.status}).`);
   }
 
   const res = await fetch(url, {
