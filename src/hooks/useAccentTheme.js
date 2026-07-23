@@ -6,7 +6,7 @@ const STORAGE_KEY = "vaea_accent_theme";
 // for the picker's swatch preview; the actual applied colors live in the
 // `[data-accent="..."]` CSS variable blocks in index.css.
 export const ACCENT_THEMES = [
-  { key: "slate", label: "Slate", swatch: "#475569" },
+  { key: "slate", label: "Slate", swatch: "#1E333E" },
   { key: "indigo", label: "Indigo", swatch: "#4f46e5" },
   { key: "emerald", label: "Emerald", swatch: "#059669" },
   { key: "amber", label: "Amber", swatch: "#f59e0b" },
