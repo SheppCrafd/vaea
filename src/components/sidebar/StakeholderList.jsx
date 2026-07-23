@@ -269,8 +269,8 @@ export default function StakeholderList() {
     <div>
       <button
         onClick={() => setIsAddOpen(true)}
-        className="w-full mb-2 text-xs flex items-center justify-center gap-1.5 px-3 py-1.5 bg-secondary text-secondary-foreground border border-border rounded-md">
-        
+        className="w-full mb-2 text-xs flex items-center justify-center gap-1.5 px-3 py-1.5 bg-secondary text-secondary-foreground border border-border rounded-md shadow-sm hover:bg-accent hover:shadow transition-all">
+
         <Plus className="w-3.5 h-3.5" />
         Add Stakeholder
       </button>
@@ -294,8 +294,8 @@ export default function StakeholderList() {
 
       <button
         onClick={() => setIsAddingDept(true)}
-        className="w-full mb-3 text-xs flex items-center justify-center gap-1.5 px-3 py-1.5 text-secondary-foreground rounded-md border border-border bg-[hsl(var(--secondary))]">
-        
+        className="w-full mb-3 text-xs flex items-center justify-center gap-1.5 px-3 py-1.5 text-secondary-foreground rounded-md border border-border bg-[hsl(var(--secondary))] shadow-sm hover:bg-accent hover:shadow transition-all">
+
           <Plus className="w-3.5 h-3.5" />
           Add Department
         </button>

@@ -47,15 +47,21 @@ export default function ProductCard({ product }) {
   // there isn't). This card just needs to stretch to fill that column.
   const sizingClass = "flex flex-col";
 
+  // A Product sits nested one level inside its Area card (which already owns
+  // the elevated bg-card/shadow-md surface) — a recessed muted surface here
+  // (no shadow of its own) reads as "inset into" the parent rather than a
+  // second identical elevated card stacked on top of it, matching the same
+  // recessed treatment AreaCard already uses for its own "Direct Projects"
+  // drop zone.
   return (
     <div
       ref={setNodeRef}
       data-product-card={product.id}
-      className={`relative z-10 bg-card border border-border rounded-xl shadow-sm p-4 overflow-hidden ${sizingClass} ${isMatched ? "bg-primary/10 ring-1 ring-primary/30" : ""} ${isOver ? "ring-2 ring-primary ring-offset-1" : ""}`}
+      className={`relative z-10 bg-muted/40 border border-border/70 rounded-xl p-4 overflow-hidden ${sizingClass} ${isMatched ? "bg-primary/10 ring-1 ring-primary/30" : ""} ${isOver ? "ring-2 ring-primary ring-offset-1" : ""}`}
     >
       <button
         onClick={() => setIsDetailOpen(true)}
-        className="absolute top-3 right-3 z-20 text-muted-foreground hover:text-foreground"
+        className="absolute top-3 right-3 z-20 text-muted-foreground hover:text-foreground hover:bg-card p-1 rounded-md transition-colors"
         aria-label="Expand product"
       >
         <Expand className="w-4 h-4" />

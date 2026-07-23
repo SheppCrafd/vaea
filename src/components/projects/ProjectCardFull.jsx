@@ -237,7 +237,7 @@ export default function ProjectCardFull({ project, stakeholderIds = [] }) {
       <div
         {...attributes}
         {...listeners}
-        className="absolute top-2 left-1 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1 z-20"
+        className="absolute top-2 left-1 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground hover:bg-accent p-1 rounded-md z-20 transition-colors"
       >
         <GripVertical className="w-4 h-4" />
       </div>

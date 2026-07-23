@@ -46,13 +46,13 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
   const areaTasks = allTasks.filter((t) => areaProjectIds.includes(t.project_id));
 
   return (
-    <article className="relative z-10 bg-card border border-border rounded-xl shadow-sm p-5 break-inside-avoid flex flex-col gap-4">
+    <article className="relative z-10 bg-card border border-border rounded-xl shadow-md p-5 break-inside-avoid flex flex-col gap-4">
 
       <div className="relative">
         <div className="absolute top-0 right-0 flex items-center gap-1 z-20">
           <button
             onClick={onExpand}
-            className="text-muted-foreground hover:text-foreground p-1 transition-colors"
+            className="text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 rounded-md transition-colors"
             title="Expand Area"
             aria-label="Expand Area"
           >
@@ -60,7 +60,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
           </button>
           <button
             onClick={handleDelete}
-            className="text-muted-foreground hover:text-destructive p-1 transition-colors"
+            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 p-1.5 rounded-md transition-colors"
             title="Delete Area"
             aria-label="Delete Area"
           >
@@ -69,7 +69,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
         </div>
 
         <h3
-          className="font-heading font-semibold text-lg pr-14 outline-none focus:ring-1 focus:ring-primary/40 rounded break-words min-w-0"
+          className="font-heading font-semibold text-lg pr-16 outline-none focus:ring-1 focus:ring-primary/40 rounded break-words min-w-0"
           contentEditable
           suppressContentEditableWarning
           onInput={handleInput}

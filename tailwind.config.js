@@ -4,6 +4,20 @@ module.exports = {
     content: ["./index.html", "./src/**/*.{ts,tsx,js,jsx}"],
   theme: {
   	extend: {
+  		boxShadow: {
+  			// A tinted, low-contrast shadow scale (fixed dark-hue tone, not
+  			// theme-adaptive — shadows read as physical light occlusion and
+  			// stay dark in both light/dark mode) replacing Tailwind's stock
+  			// flat-black defaults. Every existing `shadow-sm`/`shadow`/
+  			// `shadow-lg`/`shadow-xl`/`shadow-2xl` class in the app inherits
+  			// this automatically — no component changes needed.
+  			sm: '0 1px 2px 0 hsl(200 30% 12% / 0.06)',
+  			DEFAULT: '0 1px 3px 0 hsl(200 30% 12% / 0.10), 0 1px 2px -1px hsl(200 30% 12% / 0.08)',
+  			md: '0 4px 10px -2px hsl(200 30% 12% / 0.12), 0 2px 4px -2px hsl(200 30% 12% / 0.08)',
+  			lg: '0 10px 22px -4px hsl(200 30% 12% / 0.14), 0 4px 8px -4px hsl(200 30% 12% / 0.08)',
+  			xl: '0 20px 34px -8px hsl(200 30% 12% / 0.18), 0 8px 16px -8px hsl(200 30% 12% / 0.10)',
+  			'2xl': '0 28px 58px -12px hsl(200 30% 12% / 0.24)',
+  		},
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
@@ -65,7 +79,8 @@ module.exports = {
   			heading: ['var(--font-heading)'],
   			body: ['var(--font-body)'],
   			display: ['var(--font-display)'],
-  			mono: ['var(--font-mono)']
+  			mono: ['var(--font-mono)'],
+  			terminal: ['var(--font-terminal)']
   		},
   		keyframes: {
   			'accordion-down': {

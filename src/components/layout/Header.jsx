@@ -10,13 +10,13 @@ export default function Header({ isLeftSidebarOpen, onToggleLeftSidebar, isRight
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   return (
-    <header className="h-16 flex items-center justify-between px-6 border-b border-border bg-card">
+    <header className="h-16 flex items-center justify-between px-6 border-b border-border bg-card shadow-sm relative z-10">
       <div className="flex items-center gap-3">
         <button
           onClick={onToggleLeftSidebar}
           aria-label={isLeftSidebarOpen ? "Collapse stakeholders panel" : "Expand stakeholders panel"}
-          className="text-muted-foreground hover:text-foreground transition-colors">
-          
+          className="text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 -ml-1.5 rounded-md transition-colors">
+
           {isLeftSidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
         </button>
         <span className="text-lg tracking-tight font-bold [font-family:'JetBrains_Mono',_monospace]">Vaea</span>
@@ -33,8 +33,8 @@ export default function Header({ isLeftSidebarOpen, onToggleLeftSidebar, isRight
         <button
           onClick={onToggleRightSidebar}
           aria-label={isRightSidebarOpen ? "Collapse focus panel" : "Expand focus panel"}
-          className="text-muted-foreground hover:text-foreground transition-colors">
-          
+          className="text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 rounded-md transition-colors">
+
           {isRightSidebarOpen ? <PanelRightClose className="w-4 h-4" /> : <PanelRight className="w-4 h-4" />}
         </button>
         <UserMenu />
