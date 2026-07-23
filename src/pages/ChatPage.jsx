@@ -1,4 +1,4 @@
-import { Plus, Paperclip, Info, Settings } from "lucide-react";
+import { Plus, Paperclip, Info, Settings, PanelLeft, PanelLeftClose } from "lucide-react";
 import { useRef, useState } from "react";
 import { useChatController } from "@/hooks/useChatController";
 import { useChatSessions } from "@/hooks/useChatSessions";
@@ -19,14 +19,17 @@ import ChatAuthPrompt from "@/components/ai/ChatAuthPrompt";
 // composer pinned at the bottom. Shares useChatController with the floating
 // ChatBox widget, so switching between the two never loses a session.
 //
-// The sidebar's open/closed state and its toggle button both moved to
-// Header.jsx/useAppStore — it used to be local useState (reset on every
-// reload) with its own collapse/expand buttons duplicated in two places
-// here (the sidebar's own header, and this page's inner top bar). Now it's
-// the same persisted, single-toggle-button pattern every other page's
-// sidebar uses.
+// The sidebar's own header row (label + collapse button at the seam
+// nearest the main column) and the main column's own header row (which
+// shows the matching expand button at that same seam once the sidebar is
+// closed, so the button visually stays put) is the pattern this page
+// originated — every other page's sidebar (Dashboard's stakeholders,
+// Settings' section nav) now follows it too. Open/closed state itself
+// lives in useAppStore, persisted, rather than local useState reset on
+// every reload.
 export default function ChatPage() {
   const isSidebarOpen = useAppStore((s) => s.isChatSidebarOpen);
+  const toggleSidebar = useAppStore((s) => s.toggleChatSidebar);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const chat = useChatController({});
   const { data: sessions = [] } = useChatSessions();
@@ -37,6 +40,16 @@ export default function ChatPage() {
     <div className="h-full flex overflow-hidden bg-background">
       {isSidebarOpen && (
         <aside className="w-64 shrink-0 border-r border-border bg-card flex flex-col">
+          <div className="h-14 shrink-0 border-b border-border flex items-center justify-between px-3">
+            <p className="text-sm font-semibold truncate">Chat History</p>
+            <button
+              onClick={toggleSidebar}
+              aria-label="Collapse chat history panel"
+              className="text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 rounded-md transition-colors shrink-0"
+            >
+              <PanelLeftClose className="w-4 h-4" />
+            </button>
+          </div>
           <div className="p-3">
             <button
               onClick={chat.handleNewChat}
@@ -47,7 +60,6 @@ export default function ChatPage() {
             </button>
           </div>
           <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-2">
-            <p className="text-[10px] font-bold uppercase text-muted-foreground px-2 py-1.5">Chat History</p>
             {sessions.length === 0 ? (
               <p className="text-xs text-muted-foreground p-2">No previous sessions yet.</p>
             ) : (
@@ -69,6 +81,15 @@ export default function ChatPage() {
 
       <div className="flex-1 min-w-0 flex flex-col">
         <div className="h-14 shrink-0 border-b border-border flex items-center gap-3 px-4">
+          {!isSidebarOpen && (
+            <button
+              onClick={toggleSidebar}
+              aria-label="Expand chat history panel"
+              className="text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 -ml-1.5 rounded-md transition-colors shrink-0"
+            >
+              <PanelLeft className="w-4 h-4" />
+            </button>
+          )}
           <button
             ref={chat.iconPicker.triggerRef}
             onClick={chat.iconPicker.toggle}

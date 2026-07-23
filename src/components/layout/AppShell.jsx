@@ -1,9 +1,11 @@
 import { useState, lazy, Suspense } from "react";
 import { DndContext, DragOverlay, closestCenter } from "@dnd-kit/core";
-import { Archive, FolderKanban } from "lucide-react";
+import { Archive, FolderKanban, Plus, Filter, PanelLeft, PanelLeftClose, PanelRight, PanelRightClose } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import Sidebar from "@/components/layout/Sidebar";
 import LeftSidebar from "@/components/layout/LeftSidebar";
 import ArchivePanel from "@/components/archive/ArchivePanel";
+import FilterModal from "@/components/modals/FilterModal";
 import Avatar from "@/components/shared/Avatar";
 import { useGlobalDragEnd } from "@/hooks/useGlobalDragEnd";
 import { useAppStore } from "@/lib/store";
@@ -16,13 +18,15 @@ import { useAppStore } from "@/lib/store";
 const ChatBox = lazy(() => import("@/components/ai/ChatBox"));
 
 // Locks the dashboard into a CSS grid: stakeholders left, main content
-// center, focus/stats right. Either side panel can be collapsed via
-// Header's hamburger toggles — collapsing reflows the center column to fill
-// the freed space (not an overlay). Panel open/closed state and its
-// localStorage persistence live in useAppStore now, not a local useState —
-// Header renders once above every route (App.jsx), not inside AppShell
-// anymore, so it needs to reach this state without AppShell passing it
-// down as props.
+// center, focus/stats right. Each of the three columns owns its own h-14
+// header row (Chat's original pattern, generalized here rather than a
+// single button living in the app-level Header): a sidebar's header holds
+// its collapse button at the seam nearest the main column, and when that
+// sidebar closes, the *main* column's own header shows the matching expand
+// button at that same seam — the button visually stays put; only the
+// sidebar around it appears/disappears. Panel open/closed state and its
+// localStorage persistence live in useAppStore (Header/App.jsx render
+// above this, so state can't just be local to here anymore).
 //
 // The single DndContext lives here (not scoped to Dashboard/AreaModal like
 // it used to be) because dragging a stakeholder from the left sidebar onto a
@@ -32,9 +36,13 @@ const ChatBox = lazy(() => import("@/components/ai/ChatBox"));
 // (AreaModal, ProjectDetailModal, ProductDetailModal, etc.).
 export default function AppShell({ children }) {
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeDragData, setActiveDragData] = useState(null);
   const isLeftSidebarOpen = useAppStore((s) => s.isLeftSidebarOpen);
+  const toggleLeftSidebar = useAppStore((s) => s.toggleLeftSidebar);
   const isRightSidebarOpen = useAppStore((s) => s.isRightSidebarOpen);
+  const toggleRightSidebar = useAppStore((s) => s.toggleRightSidebar);
+  const openCreateModal = useAppStore((s) => s.openCreateModal);
   const handleDragEnd = useGlobalDragEnd();
 
   return (
@@ -54,23 +62,79 @@ export default function AppShell({ children }) {
           gridTemplateColumns: `${isLeftSidebarOpen ? "280px" : "0px"} 1fr ${isRightSidebarOpen ? "320px" : "0px"}`,
         }}
       >
-        <aside style={{ gridArea: "leftsidebar" }} className="overflow-hidden border-r border-border bg-card">
+        <aside style={{ gridArea: "leftsidebar" }} className="overflow-hidden border-r border-border bg-card flex flex-col">
           {isLeftSidebarOpen && (
-            <div className="h-full overflow-y-auto p-4">
-              <LeftSidebar />
-            </div>
+            <>
+              <div className="h-14 shrink-0 border-b border-border flex items-center justify-between px-3">
+                <p className="text-sm font-semibold truncate">Stakeholders</p>
+                <button
+                  onClick={toggleLeftSidebar}
+                  aria-label="Collapse stakeholders panel"
+                  className="text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 rounded-md transition-colors shrink-0"
+                >
+                  <PanelLeftClose className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex-1 min-h-0 overflow-y-auto p-4">
+                <LeftSidebar />
+              </div>
+            </>
           )}
         </aside>
-        <main style={{ gridArea: "main" }} className="overflow-y-auto p-6 bg-background">
-          {children}
-        </main>
-        <aside style={{ gridArea: "sidebar" }} className="overflow-hidden border-l border-border bg-card">
+
+        <div style={{ gridArea: "main" }} className="flex flex-col min-w-0 overflow-hidden">
+          <div className="h-14 shrink-0 border-b border-border flex items-center gap-2 px-4">
+            {!isLeftSidebarOpen && (
+              <button
+                onClick={toggleLeftSidebar}
+                aria-label="Expand stakeholders panel"
+                className="text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 -ml-1.5 rounded-md transition-colors shrink-0"
+              >
+                <PanelLeft className="w-4 h-4" />
+              </button>
+            )}
+            <Button onClick={() => openCreateModal("task")} className="gap-2">
+              <Plus className="w-4 h-4" />
+              Create New
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => setIsFilterOpen(true)} aria-label="Filter">
+              <Filter className="w-4 h-4" />
+            </Button>
+            {!isRightSidebarOpen && (
+              <button
+                onClick={toggleRightSidebar}
+                aria-label="Expand focus panel"
+                className="ml-auto text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 rounded-md transition-colors shrink-0"
+              >
+                <PanelRight className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          <main className="flex-1 min-h-0 overflow-y-auto p-6 bg-background">
+            {children}
+          </main>
+        </div>
+
+        <aside style={{ gridArea: "sidebar" }} className="overflow-hidden border-l border-border bg-card flex flex-col">
           {isRightSidebarOpen && (
-            <div className="h-full overflow-y-auto p-4">
-              <Sidebar />
-            </div>
+            <>
+              <div className="h-14 shrink-0 border-b border-border flex items-center justify-between px-3">
+                <button
+                  onClick={toggleRightSidebar}
+                  aria-label="Collapse focus panel"
+                  className="text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 rounded-md transition-colors shrink-0"
+                >
+                  <PanelRightClose className="w-4 h-4" />
+                </button>
+                <p className="text-sm font-semibold truncate">Focus &amp; Stats</p>
+              </div>
+              <div className="flex-1 min-h-0 overflow-y-auto p-4">
+                <Sidebar />
+              </div>
+            </>
           )}
         </aside>
+
         <Suspense fallback={null}>
           <ChatBox />
         </Suspense>
@@ -83,6 +147,7 @@ export default function AppShell({ children }) {
           View Archive
         </button>
         {isArchiveOpen && <ArchivePanel onClose={() => setIsArchiveOpen(false)} />}
+        {isFilterOpen && <FilterModal onClose={() => setIsFilterOpen(false)} />}
       </div>
 
       {/* Portals straight to document.body, escaping every ancestor's own
