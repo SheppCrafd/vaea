@@ -13,6 +13,12 @@
      than flat black — this is the color the "Slate" swatch in Appearance
      actually refers to (see useAccentTheme.js). */
   :root {
+    /* Without this, native form controls (date/time inputs, their calendar
+       icon, scrollbars) always render with light-mode assumptions no matter
+       what the page's own colors say — Chromium doesn't infer it from
+       background color. This is the actual fix for date-input text/icon
+       staying black in dark mode; it's not a Tailwind-class problem. */
+    color-scheme: light;
     --background: 200 20% 97%;
     --foreground: 200 25% 11%;
     --card: 0 0% 100%;
@@ -61,38 +67,47 @@
   }
 
   .dark {
-    --background: 200 22% 7%;
-    --foreground: 200 15% 94%;
-    --card: 200 20% 9.5%;
-    --card-foreground: 200 15% 94%;
-    --popover: 200 20% 9.5%;
-    --popover-foreground: 200 15% 94%;
-    --primary: 200 15% 92%;
-    --primary-foreground: 200 30% 12%;
-    --secondary: 200 15% 16%;
-    --secondary-foreground: 200 15% 94%;
-    --muted: 200 15% 16%;
-    --muted-foreground: 200 10% 62%;
-    --accent: 200 15% 16%;
-    --accent-foreground: 200 15% 94%;
+    color-scheme: dark;
+    /* True neutral (0% saturation) instead of carrying light mode's 200°
+       graphite-teal hue into dark mode — at dark-mode lightness levels that
+       hue read as a muddy green-gray rather than "considered neutral", per
+       direct feedback. Lightness values are unchanged from before, so the
+       elevation hierarchy / shadow-scale contrast tuning from the visual
+       design refresh still holds; only the color cast is gone. White cards
+       -> black, light-gray cards/text -> dark gray, a straight lightness
+       mirror of :root's values with the hue removed. */
+    --background: 0 0% 7%;
+    --foreground: 0 0% 94%;
+    --card: 0 0% 9.5%;
+    --card-foreground: 0 0% 94%;
+    --popover: 0 0% 9.5%;
+    --popover-foreground: 0 0% 94%;
+    --primary: 0 0% 92%;
+    --primary-foreground: 0 0% 12%;
+    --secondary: 0 0% 16%;
+    --secondary-foreground: 0 0% 94%;
+    --muted: 0 0% 16%;
+    --muted-foreground: 0 0% 62%;
+    --accent: 0 0% 16%;
+    --accent-foreground: 0 0% 94%;
     --destructive: 0 62% 40%;
     --destructive-foreground: 0 0% 98%;
-    --border: 200 15% 17%;
-    --input: 200 15% 17%;
-    --ring: 200 20% 75%;
+    --border: 0 0% 17%;
+    --input: 0 0% 17%;
+    --ring: 0 0% 75%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
-    --sidebar-background: 200 22% 8%;
-    --sidebar-foreground: 200 12% 80%;
-    --sidebar-primary: 200 55% 55%;
-    --sidebar-primary-foreground: 200 30% 10%;
-    --sidebar-accent: 200 15% 15%;
-    --sidebar-accent-foreground: 200 15% 90%;
-    --sidebar-border: 200 15% 15%;
-    --sidebar-ring: 200 55% 55%;
+    --sidebar-background: 0 0% 8%;
+    --sidebar-foreground: 0 0% 80%;
+    --sidebar-primary: 0 0% 55%;
+    --sidebar-primary-foreground: 0 0% 10%;
+    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent-foreground: 0 0% 90%;
+    --sidebar-border: 0 0% 15%;
+    --sidebar-ring: 0 0% 55%;
     --status-todo: #9e9e9e;
     --status-in-progress: #ff9800;
     --status-done: #4caf50;
