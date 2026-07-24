@@ -2,6 +2,30 @@ import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Bot, Fingerprint, Command, LockKeyhole, ArrowRight, BookOpen, GitBranch, MessageCircle } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+
+const FAQS = [
+  {
+    q: "Do I need to be technical to use this?",
+    a: "No. If you can use a chat app, you can use Vaea — type what's on your plate in plain English and it sorts it out. The only technical-ish step is optional (Vaea Vault, for Obsidian users).",
+  },
+  {
+    q: "How long does it actually take to get set up?",
+    a: "About a minute. Sign in, pick where your stuff lives (or skip that and just use the browser), and start telling Vaea Chat what's going on. There's no setup wizard standing between you and using it.",
+  },
+  {
+    q: "Is my data actually private?",
+    a: "Yes — everything except your chat history with Vaea lives on your own device, not our servers. When chat needs your data to answer, it's sent for that one request only and never stored on our end.",
+  },
+  {
+    q: "What if I don't use Obsidian or take notes anywhere?",
+    a: "Then skip Vaea Vault entirely — it's optional. Everything else (projects, tasks, Vaea Chat) works exactly the same without it.",
+  },
+  {
+    q: "Does this cost anything?",
+    a: "No pricing plans, no usage limits to worry about. It's free.",
+  },
+];
 
 const HIGHLIGHTS = [
   {
@@ -217,6 +241,22 @@ export default function HomePage() {
               </Link>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="border-t border-border">
+        <div className="max-w-2xl mx-auto px-6 py-16 sm:py-20">
+          <h2 className="font-heading text-2xl sm:text-3xl font-semibold tracking-tight text-center">
+            Before you're sold, the honest questions
+          </h2>
+          <Accordion type="single" collapsible className="mt-8">
+            {FAQS.map(({ q, a }) => (
+              <AccordionItem key={q} value={q}>
+                <AccordionTrigger className="text-base">{q}</AccordionTrigger>
+                <AccordionContent className="text-muted-foreground">{a}</AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
         </div>
       </div>
 

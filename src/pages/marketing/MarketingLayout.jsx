@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Github } from "lucide-react";
+import { Github, Menu, X } from "lucide-react";
 
 const NAV_LINKS = [
   { to: "/features", label: "Features" },
@@ -21,6 +22,7 @@ function Logo() {
 
 function NavBar() {
   const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -56,7 +58,7 @@ function NavBar() {
         <div className="flex items-center gap-3 shrink-0">
           <Link
             to="/login"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors px-2"
+            className="hidden sm:inline text-sm text-muted-foreground hover:text-foreground transition-colors px-2"
           >
             Log in
           </Link>
@@ -66,8 +68,52 @@ function NavBar() {
           >
             Sign up
           </Link>
+          <button
+            type="button"
+            onClick={() => setMobileOpen((v) => !v)}
+            aria-label={mobileOpen ? "Close menu" : "Open menu"}
+            aria-expanded={mobileOpen}
+            className="sm:hidden flex items-center justify-center w-9 h-9 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors -mr-1"
+          >
+            {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+          </button>
         </div>
       </div>
+
+      {mobileOpen && (
+        <nav className="sm:hidden border-t border-border bg-background px-6 py-4 flex flex-col gap-1">
+          {NAV_LINKS.map(({ to, label }) => (
+            <Link
+              key={to}
+              to={to}
+              onClick={() => setMobileOpen(false)}
+              className={`text-sm py-2.5 transition-colors ${
+                location.pathname === to
+                  ? "text-foreground font-medium"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {label}
+            </Link>
+          ))}
+          <a
+            href={GITHUB_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-sm py-2.5 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Github className="w-3.5 h-3.5" />
+            GitHub
+          </a>
+          <Link
+            to="/login"
+            onClick={() => setMobileOpen(false)}
+            className="text-sm py-2.5 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Log in
+          </Link>
+        </nav>
+      )}
     </header>
   );
 }
