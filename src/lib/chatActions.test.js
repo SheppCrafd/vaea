@@ -15,6 +15,8 @@ globalThis.localStorage = makeLocalStorage();
 
 const { executeAction, executeActionSequence, DESTRUCTIVE_ACTIONS } = await import("./chatActions.js");
 const { localDb } = await import("./localDb.js");
+const { writeKey, removeKey } = await import("./deviceStorage.js");
+const { VAULT_CONNECTION_KEY } = await import("./vaultConnection.js");
 
 beforeEach(() => {
   globalThis.localStorage.clear();
@@ -129,7 +131,7 @@ describe("chatActions: WRITE_VAULT_NOTE", () => {
   });
 
   it("writes to the connected repo using the stored token", async () => {
-    globalThis.localStorage.setItem("vaea_external_vault", JSON.stringify({ owner: "me", repo: "vault", branch: "main", token: "t" }));
+    await writeKey(VAULT_CONNECTION_KEY, { owner: "me", repo: "vault", branch: "main", token: "t" });
     globalThis.fetch
       .mockResolvedValueOnce({ ok: false, status: 404 })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ content: { sha: "abc" }, commit: { html_url: "https://github.com/me/vault/commit/abc" } }) });
@@ -138,6 +140,6 @@ describe("chatActions: WRITE_VAULT_NOTE", () => {
 
     expect(toolResult.vaultNote.path).toBe("Daily/2026-07-22.md");
     expect(toolResult.vaultNote.commitUrl).toBe("https://github.com/me/vault/commit/abc");
-    globalThis.localStorage.removeItem("vaea_external_vault");
+    await removeKey(VAULT_CONNECTION_KEY);
   });
 });

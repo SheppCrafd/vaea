@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Github, Loader2, TriangleAlert, Unlink } from "lucide-react";
 import { loadVaultConnection, saveVaultConnection, clearVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
 import { testVaultConnection } from "@/lib/githubApi";
+
+const DEFAULT_CONNECTION = { owner: "", repo: "", branch: "main", token: "" };
 
 const FIELDS = [
   { key: "owner", label: "GitHub username / org", placeholder: "e.g. octocat" },
@@ -15,9 +17,20 @@ const FIELDS = [
 // vaultConnection.js for storage and githubApi.js for the actual GitHub
 // calls this makes.
 export default function ExternalVaultSection() {
-  const [connection, setConnection] = useState(loadVaultConnection);
-  const [status, setStatus] = useState(isVaultConnected(loadVaultConnection()) ? "saved" : "idle"); // idle | testing | ok | error | saved
+  const [connection, setConnection] = useState(DEFAULT_CONNECTION);
+  const [status, setStatus] = useState("idle"); // idle | testing | ok | error | saved
   const [error, setError] = useState("");
+  const [hasStoredConnection, setHasStoredConnection] = useState(false);
+
+  useEffect(() => {
+    loadVaultConnection().then((loaded) => {
+      setConnection(loaded);
+      if (isVaultConnected(loaded)) {
+        setStatus("saved");
+        setHasStoredConnection(true);
+      }
+    });
+  }, []);
 
   const handleChange = (key, value) => {
     setConnection((prev) => ({ ...prev, [key]: value }));
@@ -31,7 +44,8 @@ export default function ExternalVaultSection() {
       const { defaultBranch } = await testVaultConnection(connection);
       const withBranch = { ...connection, branch: connection.branch || defaultBranch || "main" };
       setConnection(withBranch);
-      saveVaultConnection(withBranch);
+      await saveVaultConnection(withBranch);
+      setHasStoredConnection(true);
       setStatus("ok");
     } catch (err) {
       setStatus("error");
@@ -39,9 +53,10 @@ export default function ExternalVaultSection() {
     }
   };
 
-  const handleDisconnect = () => {
-    clearVaultConnection();
-    setConnection({ owner: "", repo: "", branch: "main", token: "" });
+  const handleDisconnect = async () => {
+    await clearVaultConnection();
+    setConnection(DEFAULT_CONNECTION);
+    setHasStoredConnection(false);
     setStatus("idle");
   };
 
@@ -104,7 +119,7 @@ export default function ExternalVaultSection() {
           {status === "testing" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Github className="w-3.5 h-3.5" />}
           {status === "testing" ? "Connecting…" : "Connect"}
         </button>
-        {isVaultConnected(loadVaultConnection()) && (
+        {hasStoredConnection && (
           <button
             type="button"
             onClick={handleDisconnect}

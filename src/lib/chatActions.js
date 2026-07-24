@@ -311,14 +311,14 @@ export async function executeAction(action, args) {
     }
 
     case "SET_AI_IDENTITY": {
-      const current = loadAiIdentity();
+      const current = await loadAiIdentity();
       const updated = { ...current, ...args };
-      saveAiIdentity(updated);
+      await saveAiIdentity(updated);
       return { toolResult: { identity: updated } };
     }
 
     case "WRITE_VAULT_NOTE": {
-      const connection = loadVaultConnection();
+      const connection = await loadVaultConnection();
       if (!isVaultConnected(connection)) throw new Error("No external vault connected — set one up in Settings.");
       const result = await writeVaultFile({
         owner: connection.owner,

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { RotateCcw, Check } from "lucide-react";
 import { listSnapshots, restoreSnapshot } from "@/lib/backupSnapshots";
 import { confirmThen } from "@/lib/entityUtils";
@@ -21,9 +21,13 @@ function summarizeCounts(counts) {
 // import (see backupSnapshots.js / chatActions.js), so this section is only
 // for browsing and restoring one — nothing to configure.
 export default function BackupRestoreSection() {
-  const [snapshots, setSnapshots] = useState(listSnapshots);
+  const [snapshots, setSnapshots] = useState([]);
   const [restoringId, setRestoringId] = useState(null);
   const [justRestoredId, setJustRestoredId] = useState(null);
+
+  useEffect(() => {
+    listSnapshots().then(setSnapshots);
+  }, []);
 
   const handleRestore = (id) => {
     confirmThen(
@@ -32,7 +36,7 @@ export default function BackupRestoreSection() {
         setRestoringId(id);
         try {
           await restoreSnapshot(id);
-          setSnapshots(listSnapshots());
+          setSnapshots(await listSnapshots());
           setJustRestoredId(id);
           setTimeout(() => setJustRestoredId(null), 2000);
         } finally {

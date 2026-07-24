@@ -47,3 +47,4 @@ base44/.app.jsonc
 # from a cloned repo — see src/lib/localDb.js and README.md's "Local data
 # storage" section. Never committed; this is per-clone user data, not source.
 /data
+.vercel

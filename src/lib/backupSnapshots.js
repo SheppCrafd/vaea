@@ -3,27 +3,28 @@
 // version control of its own, and the existing UNDO_LAST_ACTION only pops a
 // single action from in-memory state (gone on reload) — nothing protected
 // against a bad multi-step AI plan or a bad CSV bulk-import. This snapshots
-// every collection to localStorage before either of those run, and lets a
-// user restore one from Settings.
+// every collection to deviceStorage before either of those run, and lets a
+// user restore one from Settings. Same backend as localDb.js (real files in
+// FSA mode, in-memory + manual export otherwise) — never localStorage.
 import { localDb } from "@/lib/localDb";
+import { readKey, writeKey, removeKey } from "@/lib/deviceStorage";
 
 const COLLECTIONS = ["areas", "products", "projects", "tasks", "stakeholders", "departments", "projectNotes"];
 const INDEX_KEY = "vaea_backups_index";
 const SNAPSHOT_PREFIX = "vaea_backup_";
 const MAX_SNAPSHOTS = 8;
 
-function readIndex() {
+async function readIndex() {
   try {
-    const raw = localStorage.getItem(INDEX_KEY);
-    return raw ? JSON.parse(raw) : [];
+    return (await readKey(INDEX_KEY)) ?? [];
   } catch {
     return [];
   }
 }
 
-function writeIndex(index) {
+async function writeIndex(index) {
   try {
-    localStorage.setItem(INDEX_KEY, JSON.stringify(index));
+    await writeKey(INDEX_KEY, index);
   } catch {
     // best-effort — a failed index write just means this snapshot won't be listed
   }
@@ -41,19 +42,21 @@ export async function createSnapshot(label) {
     const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const created_at = new Date().toISOString();
 
-    localStorage.setItem(SNAPSHOT_PREFIX + id, JSON.stringify(data));
+    await writeKey(SNAPSHOT_PREFIX + id, data);
 
-    const index = [{ id, label, created_at, counts }, ...readIndex()];
+    const index = [{ id, label, created_at, counts }, ...(await readIndex())];
     const kept = index.slice(0, MAX_SNAPSHOTS);
     const dropped = index.slice(MAX_SNAPSHOTS);
-    dropped.forEach((entry) => {
-      try {
-        localStorage.removeItem(SNAPSHOT_PREFIX + entry.id);
-      } catch {
-        // best-effort — an orphaned snapshot blob just sits unused
-      }
-    });
-    writeIndex(kept);
+    await Promise.all(
+      dropped.map(async (entry) => {
+        try {
+          await removeKey(SNAPSHOT_PREFIX + entry.id);
+        } catch {
+          // best-effort — an orphaned snapshot blob just sits unused
+        }
+      })
+    );
+    await writeIndex(kept);
     return id;
   } catch {
     return null;
@@ -61,7 +64,7 @@ export async function createSnapshot(label) {
 }
 
 // Newest first — what Settings' backup list renders directly.
-export function listSnapshots() {
+export async function listSnapshots() {
   return readIndex();
 }
 
@@ -69,9 +72,8 @@ export function listSnapshots() {
 // a fresh "before restore" snapshot of the *current* state first, so
 // restoring is itself undoable instead of a one-way door.
 export async function restoreSnapshot(id) {
-  const raw = localStorage.getItem(SNAPSHOT_PREFIX + id);
-  if (!raw) throw new Error("Backup not found — it may have been pruned.");
-  const data = JSON.parse(raw);
+  const data = await readKey(SNAPSHOT_PREFIX + id);
+  if (!data) throw new Error("Backup not found — it may have been pruned.");
 
   await createSnapshot("Before restore (auto)");
 

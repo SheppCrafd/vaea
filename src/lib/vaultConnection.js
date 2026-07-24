@@ -6,7 +6,11 @@
 // is sent to aiChatStream transiently, per-request, only when a vault
 // tool actually needs it — never stored server-side. See
 // ExternalVaultSection.jsx for the disclosure shown where this is set.
-const STORAGE_KEY = "vaea_external_vault";
+// Backed by deviceStorage (real files in FSA mode, in-memory + manual
+// export otherwise) — this token never sits in localStorage/IndexedDB.
+import { readKey, writeKey, removeKey } from "@/lib/deviceStorage";
+
+export const VAULT_CONNECTION_KEY = "vaea_external_vault";
 
 const DEFAULTS = {
   owner: "",
@@ -15,27 +19,26 @@ const DEFAULTS = {
   token: "",
 };
 
-export function loadVaultConnection() {
+export async function loadVaultConnection() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { ...DEFAULTS };
-    return { ...DEFAULTS, ...JSON.parse(raw) };
+    const stored = await readKey(VAULT_CONNECTION_KEY);
+    return { ...DEFAULTS, ...(stored || {}) };
   } catch {
     return { ...DEFAULTS };
   }
 }
 
-export function saveVaultConnection(connection) {
+export async function saveVaultConnection(connection) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...DEFAULTS, ...connection }));
+    await writeKey(VAULT_CONNECTION_KEY, { ...DEFAULTS, ...connection });
   } catch {
     // best-effort — the connection just won't survive a reload
   }
 }
 
-export function clearVaultConnection() {
+export async function clearVaultConnection() {
   try {
-    localStorage.removeItem(STORAGE_KEY);
+    await removeKey(VAULT_CONNECTION_KEY);
   } catch {
     // best-effort
   }
@@ -43,4 +46,25 @@ export function clearVaultConnection() {
 
 export function isVaultConnected(connection) {
   return !!(connection?.owner && connection?.repo && connection?.token);
+}
+
+// Pre-existing browser-storage copy from before device storage existed —
+// read once so a returning user doesn't lose their token. Cleared by
+// DeviceStorageGate only once the data is durably persisted to the new
+// backend (a real file, or a successful manual export).
+export function readLegacyLocalStorageVaultConnection() {
+  try {
+    const raw = localStorage.getItem(VAULT_CONNECTION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearLegacyLocalStorageVaultConnection() {
+  try {
+    localStorage.removeItem(VAULT_CONNECTION_KEY);
+  } catch {
+    // best-effort
+  }
 }

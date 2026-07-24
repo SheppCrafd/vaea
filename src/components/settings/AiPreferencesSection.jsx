@@ -1,6 +1,6 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Check, Download, Upload } from "lucide-react";
-import { loadAiIdentity, saveAiIdentity } from "@/lib/aiPreferences";
+import { loadAiIdentity, saveAiIdentity, DEFAULTS as IDENTITY_DEFAULTS } from "@/lib/aiPreferences";
 
 const FIELDS = [
   { key: "name", label: "Name", placeholder: "E.g., Copilot, Anvil, Scout...", rows: 1 },
@@ -15,15 +15,19 @@ const FIELDS = [
 // writes these fields with the SET_AI_IDENTITY tool — same staged/confirm
 // mechanism as everything else it does).
 export default function AiPreferencesSection() {
-  const [identity, setIdentity] = useState(loadAiIdentity);
+  const [identity, setIdentity] = useState(IDENTITY_DEFAULTS);
   const [justSaved, setJustSaved] = useState(false);
   const [importError, setImportError] = useState("");
   const fileInputRef = useRef(null);
 
+  useEffect(() => {
+    loadAiIdentity().then(setIdentity);
+  }, []);
+
   const handleChange = (key, value) => setIdentity((prev) => ({ ...prev, [key]: value }));
 
-  const handleSave = () => {
-    saveAiIdentity(identity);
+  const handleSave = async () => {
+    await saveAiIdentity(identity);
     setJustSaved(true);
     setTimeout(() => setJustSaved(false), 1500);
   };
@@ -54,7 +58,7 @@ export default function AiPreferencesSection() {
         FIELDS.map(({ key }) => [key, typeof parsed[key] === "string" ? parsed[key] : identity[key]])
       );
       setIdentity(imported);
-      saveAiIdentity(imported);
+      await saveAiIdentity(imported);
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 1500);
     } catch {

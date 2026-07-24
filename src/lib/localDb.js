@@ -10,24 +10,82 @@
 //   folder in the cloned repo, read/written through vite-localdb-plugin.js's
 //   dev-server middleware. Lets a developer running `npm run dev`/`npm run
 //   preview` open their own data as plain files.
-// - localStorage (everywhere else — production build, the base44-hosted
+// - deviceStorage (everywhere else — production build, the base44-hosted
 //   preview, the standalone .bat/.exe distributions): none of those have a
-//   Node process behind them to serve the file-backed API, so this is the
-//   fallback that keeps the app fully functional without one.
+//   Node process behind them to serve the file-backed API. deviceStorage
+//   itself is never browser storage — see its own header — so entity data
+//   never lands in localStorage/IndexedDB regardless of which context the
+//   app is running in. DeviceStorageGate (App.jsx) blocks all rendering
+//   that could reach this module until deviceStorage reports ready, so
+//   nothing here ever reads before a backend is actually connected.
 // Both stores expose the exact same shape below; nothing outside this file
 // needs to know or care which one is actually active.
 
+import { readKey, writeKey, seedManual, supportsFileSystemAccess } from "@/lib/deviceStorage";
+
 const COLLECTIONS = ["areas", "products", "projects", "tasks", "stakeholders", "departments", "projectNotes"];
 
-const STORAGE_PREFIX = "vaea_db_";
 const FILE_API_PREFIX = "/__localdb/";
+
+// Pre-existing browser-storage copy of entity data from before device
+// storage existed (old prefix from when the app was named Portfolio
+// Tracker, or the vaea_db_ prefix used up through the localStorage-fallback
+// era) — read once so a returning user doesn't lose it, never written to
+// again. Callers clear it only once the data has been durably persisted to
+// the new backend (see DeviceStorageGate).
+const LEGACY_STORAGE_PREFIXES = ["vaea_db_", "portfolio_tracker_db_"];
+
+export function readLegacyLocalStorageData() {
+  const found = {};
+  let any = false;
+  COLLECTIONS.forEach((name) => {
+    for (const prefix of LEGACY_STORAGE_PREFIXES) {
+      const raw = localStorage.getItem(prefix + name);
+      if (raw) {
+        try {
+          found[name] = JSON.parse(raw);
+          any = true;
+          break;
+        } catch {
+          // corrupt entry — skip it
+        }
+      }
+    }
+  });
+  return any ? found : null;
+}
+
+export function clearLegacyLocalStorageData() {
+  COLLECTIONS.forEach((name) => {
+    LEGACY_STORAGE_PREFIXES.forEach((prefix) => {
+      try {
+        localStorage.removeItem(prefix + name);
+      } catch {
+        // best-effort
+      }
+    });
+  });
+}
+
+// Writes legacy data straight into whichever deviceStorage backend is
+// active — real files in FSA mode, the in-memory manual store (and marks it
+// loaded/dirty) otherwise — called by DeviceStorageGate right after a
+// backend becomes available, before anything else reads a collection.
+export async function seedCollections(data) {
+  const entries = COLLECTIONS.filter((name) => data[name]).map((name) => [name, data[name]]);
+  if (supportsFileSystemAccess) {
+    for (const [name, items] of entries) await writeKey(name, items);
+  } else {
+    seedManual(entries);
+  }
+}
 
 // A single shared probe, not one per collection — if the dev-server
 // middleware isn't there, it isn't there for any collection. Memoized so
 // every caller (every collection, every read) awaits the same in-flight
 // check instead of each re-probing independently.
 let fileBackedModePromise = null;
-function isFileBackedModeAvailable() {
+export function isFileBackedModeAvailable() {
   if (!fileBackedModePromise) {
     fileBackedModePromise = fetch(`${FILE_API_PREFIX}__probe`)
       .then((res) => (res.ok ? res.json() : Promise.reject()))
@@ -61,8 +119,7 @@ async function loadCollection(name) {
       }
     } else {
       try {
-        const raw = localStorage.getItem(STORAGE_PREFIX + name);
-        items = raw ? JSON.parse(raw) : [];
+        items = (await readKey(name)) ?? [];
       } catch {
         items = [];
       }
@@ -97,7 +154,7 @@ async function writeCollection(name, items) {
       body: JSON.stringify(items),
     });
   } else {
-    localStorage.setItem(STORAGE_PREFIX + name, JSON.stringify(items));
+    await writeKey(name, items);
   }
   cache.set(name, items);
   emit(name);
