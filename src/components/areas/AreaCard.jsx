@@ -1,5 +1,5 @@
-import { Trash2, Expand } from "lucide-react";
-import { useDroppable } from "@dnd-kit/core";
+import { Trash2, Expand, GripVertical } from "lucide-react";
+import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { useUpdateArea, useDeleteArea } from "@/hooks/useAreas";
 import { useAllTasks } from "@/hooks/useTasks";
 import { useEditableField } from "@/hooks/useEditableField";
@@ -26,6 +26,27 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
 
   const { setNodeRef, isOver } = useDroppable({ id: area.id, data: { type: "area", id: area.id } });
 
+  // Draggable so Areas can be dragged to reorder the whole list (their only
+  // possible "rearrange" — unlike Products/Projects, there's no parent
+  // level above an Area to move into). A second, whole-card droppable
+  // (distinct from the "Direct Projects" box above, which stays scoped to
+  // accepting a dropped Project) so dropping an Area anywhere on another
+  // Area's card — not just that one small box — reorders them; it shares
+  // the same { type: "area", id } shape, so useGlobalDragEnd doesn't need
+  // to know which of the two actually caught the drop.
+  const { attributes, listeners, setNodeRef: setDragRef, isDragging } = useDraggable({
+    id: `area-drag-${area.id}`,
+    data: { type: "area", id: area.id, title: area.title },
+  });
+  const { setNodeRef: setCardDropRef, isOver: isCardOver } = useDroppable({
+    id: `area-drop-${area.id}`,
+    data: { type: "area", id: area.id },
+  });
+  const setCardRefs = (node) => {
+    setDragRef(node);
+    setCardDropRef(node);
+  };
+
   const { value: title, handleInput, handleBlur: handleTitleBlur, handleKeyDown: handleTitleKeyDown } = useEditableField(
     area.title,
     (value) => updateArea.mutate({ id: area.id, data: { title: value } })
@@ -46,9 +67,22 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
   const areaTasks = allTasks.filter((t) => areaProjectIds.includes(t.project_id));
 
   return (
-    <article className="relative z-10 bg-card border border-border rounded-xl shadow-md p-5 break-inside-avoid flex flex-col gap-4">
+    <article
+      ref={setCardRefs}
+      style={{ opacity: isDragging ? 0.4 : 1 }}
+      className={`relative z-10 bg-card border rounded-xl shadow-md p-5 break-inside-avoid flex flex-col gap-4 transition-colors ${isCardOver ? "ring-2 ring-primary ring-offset-1 border-primary" : "border-border"}`}
+    >
 
       <div className="relative">
+        <div
+          className="absolute top-0 left-0 z-20 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-0.5"
+          aria-label="Drag to reorder area"
+          title="Drag to reorder"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="w-4 h-4" />
+        </div>
         <div className="absolute top-0 right-0 flex items-center gap-1 z-20">
           <button
             onClick={onExpand}
@@ -69,7 +103,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
         </div>
 
         <h3
-          className="font-heading font-semibold text-lg pr-16 outline-none focus:ring-1 focus:ring-primary/40 rounded break-words min-w-0"
+          className="font-heading font-semibold text-lg pl-6 pr-16 outline-none focus:ring-1 focus:ring-primary/40 rounded break-words min-w-0"
           contentEditable
           suppressContentEditableWarning
           onInput={handleInput}

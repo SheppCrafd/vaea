@@ -1,7 +1,11 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { localDb } from "@/lib/localDb";
+import { useAreas } from "@/hooks/useAreas";
 import { useProjects, useUpdateProject } from "@/hooks/useProjects";
 import { useProducts, useUpdateProduct } from "@/hooks/useProducts";
 import { useAllTasks, useUpdateTask } from "@/hooks/useTasks";
 import { useUpdateStakeholder } from "@/hooks/useStakeholders";
+import { sortByPosition, reorderPositions } from "@/lib/entityUtils";
 
 function withStakeholder(currentIds, stakeholderId) {
   const ids = currentIds || [];
@@ -15,6 +19,8 @@ function withStakeholder(currentIds, stakeholderId) {
 // elements just need to tag themselves with { type, id, ... } and never
 // have to know about each other.
 export function useGlobalDragEnd() {
+  const queryClient = useQueryClient();
+  const { data: areas = [] } = useAreas();
   const { data: projects = [] } = useProjects();
   const { data: products = [] } = useProducts();
   const { data: tasks = [] } = useAllTasks();
@@ -74,6 +80,60 @@ export function useGlobalDragEnd() {
             data: { parent_product_id: null, parent_area_id: overData.id },
           });
         }
+      }
+      return;
+    }
+
+    // Areas have no parent to move between — the only thing "drag to
+    // rearrange" can mean for one is reordering the whole list. Reuses
+    // AreaCard's existing "area" droppable (already there for a Project
+    // dropped in to become a direct child) rather than adding a second one;
+    // useGlobalDragEnd only ever branches on the ACTIVE drag's type, so the
+    // same drop target already works for both.
+    if (activeData.type === "area") {
+      if (overData.type !== "area" || overData.id === activeData.id) return;
+      const orderedIds = sortByPosition(areas).map((a) => a.id);
+      const positions = reorderPositions(orderedIds, activeData.id, overData.id);
+      const changedIds = Object.keys(positions).filter((id) => {
+        const area = areas.find((a) => a.id === id);
+        return area && (area.position ?? null) !== positions[id];
+      });
+      if (changedIds.length) {
+        localDb.areas
+          .updateMany(changedIds, (item) => ({ position: positions[item.id] }))
+          .then(() => queryClient.invalidateQueries({ queryKey: ["areas"] }));
+      }
+      return;
+    }
+
+    // A Product dropped on another Product reorders within that product's
+    // own area (or moves there first, if it came from a different one,
+    // landing right where it was dropped rather than just tacked onto the
+    // end) — one computation covers both, since "already in that area" is
+    // just the case where parent_area_id doesn't actually change. Dropped
+    // directly on an Area instead (not on one of its Products), it moves
+    // there appended at the end, same as a Project dropped on an Area does.
+    if (activeData.type === "product") {
+      const product = products.find((p) => p.id === activeData.id);
+      if (!product) return;
+
+      if (overData.type === "product" && overData.id !== product.id) {
+        const targetProduct = products.find((p) => p.id === overData.id);
+        if (!targetProduct) return;
+        const targetAreaId = targetProduct.parent_area_id;
+        const siblingIds = sortByPosition(products.filter((p) => p.parent_area_id === targetAreaId && p.id !== product.id)).map((p) => p.id);
+        const positions = reorderPositions([...siblingIds, product.id], product.id, targetProduct.id);
+        localDb.products
+          .updateMany(Object.keys(positions), (item) => (
+            item.id === product.id
+              ? { position: positions[item.id], parent_area_id: targetAreaId }
+              : { position: positions[item.id] }
+          ))
+          .then(() => queryClient.invalidateQueries({ queryKey: ["products"] }));
+      } else if (overData.type === "area" && overData.id !== product.parent_area_id) {
+        const siblings = sortByPosition(products.filter((p) => p.parent_area_id === overData.id));
+        const nextPosition = siblings.length ? Math.max(...siblings.map((p, i) => p.position ?? i)) + 1 : 0;
+        updateProduct.mutate({ id: product.id, data: { parent_area_id: overData.id, position: nextPosition } });
       }
     }
   };

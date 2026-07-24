@@ -6,6 +6,7 @@ import { useProducts } from "@/hooks/useProducts";
 import { useProjects } from "@/hooks/useProjects";
 import { useFilter } from "@/lib/FilterContext";
 import { useCardView } from "@/lib/CardViewContext";
+import { sortByPosition } from "@/lib/entityUtils";
 import AreaCard from "@/components/areas/AreaCard";
 import AreaModal from "@/components/areas/AreaModal";
 import CreateModal from "@/components/modals/CreateModal";
@@ -79,14 +80,14 @@ export default function Dashboard() {
   // area, or a search-param change). Memoizing this also gives each AreaCard
   // stable prop references across unrelated re-renders.
   const visibleAreas = useMemo(
-    () => areas.filter((a) => !excludedIds.includes(a.id)),
+    () => sortByPosition(areas.filter((a) => !excludedIds.includes(a.id))),
     [areas, excludedIds]
   );
 
   const areaViewModels = useMemo(
     () =>
       visibleAreas.map((area) => {
-        const areaProducts = products.filter((p) => p.parent_area_id === area.id);
+        const areaProducts = sortByPosition(products.filter((p) => p.parent_area_id === area.id));
 
         const productsWithProjects = areaProducts.map((product) => ({
           ...product,

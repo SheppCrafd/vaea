@@ -1,6 +1,6 @@
 import { useState, lazy, Suspense } from "react";
-import { DndContext, DragOverlay, closestCenter } from "@dnd-kit/core";
-import { Archive, FolderKanban, Plus, Filter, PanelLeft, PanelLeftClose, PanelRight, PanelRightClose } from "lucide-react";
+import { DndContext, DragOverlay, pointerWithin } from "@dnd-kit/core";
+import { Archive, Boxes, FolderKanban, Package, Plus, Filter, PanelLeft, PanelLeftClose, PanelRight, PanelRightClose } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Sidebar from "@/components/layout/Sidebar";
 import LeftSidebar from "@/components/layout/LeftSidebar";
@@ -47,7 +47,17 @@ export default function AppShell({ children }) {
 
   return (
     <DndContext
-      collisionDetection={closestCenter}
+      // pointerWithin, not closestCenter: Area cards are now real drop
+      // targets much bigger than the Product/Project cards nested inside
+      // them (drag-to-reorder, see AreaCard.jsx/ProductCard.jsx) —
+      // closestCenter picks whichever droppable's CENTER is numerically
+      // closest to the dragged item, regardless of whether the pointer is
+      // anywhere near it, which resolved a drop "on Area1" to a Product
+      // nested three levels away in testing. pointerWithin only considers
+      // droppables the pointer is actually over, tie-broken toward the
+      // smaller/more-nested one — exactly "drop on the specific card under
+      // the cursor," which is what every one of these interactions means.
+      collisionDetection={pointerWithin}
       onDragStart={(e) => setActiveDragData(e.active.data.current || null)}
       onDragEnd={(e) => {
         handleDragEnd(e);
@@ -161,6 +171,18 @@ export default function AppShell({ children }) {
           <div className="flex items-center gap-2 bg-background border border-primary rounded-lg shadow-2xl px-3 py-2 text-sm font-semibold font-heading max-w-xs cursor-grabbing">
             <FolderKanban className="w-4 h-4 shrink-0 text-primary" />
             <span className="truncate">{activeDragData.title || "Project"}</span>
+          </div>
+        )}
+        {activeDragData?.type === "product" && (
+          <div className="flex items-center gap-2 bg-background border border-primary rounded-lg shadow-2xl px-3 py-2 text-sm font-semibold font-heading max-w-xs cursor-grabbing">
+            <Package className="w-4 h-4 shrink-0 text-primary" />
+            <span className="truncate">{activeDragData.title || "Product"}</span>
+          </div>
+        )}
+        {activeDragData?.type === "area" && (
+          <div className="flex items-center gap-2 bg-background border border-primary rounded-lg shadow-2xl px-3 py-2 text-sm font-semibold font-heading max-w-xs cursor-grabbing">
+            <Boxes className="w-4 h-4 shrink-0 text-primary" />
+            <span className="truncate">{activeDragData.title || "Area"}</span>
           </div>
         )}
         {activeDragData?.type === "stakeholder" && (

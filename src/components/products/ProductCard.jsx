@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useDroppable } from "@dnd-kit/core";
-import { Expand, Trash2 } from "lucide-react";
+import { useDraggable, useDroppable } from "@dnd-kit/core";
+import { Expand, Trash2, GripVertical } from "lucide-react";
 import { useFilter } from "@/lib/FilterContext";
 import { useStakeholders } from "@/hooks/useStakeholders";
 import { useProjects } from "@/hooks/useProjects";
@@ -32,7 +32,21 @@ export default function ProductCard({ product, forceFullProjects = false }) {
 
   const projects = allProjects.filter((p) => p.parent_product_id === product.id && !excludedIds.includes(p.id));
 
-  const { setNodeRef, isOver } = useDroppable({ id: product.id, data: { type: "product", id: product.id } });
+  const { setNodeRef: setDropRef, isOver } = useDroppable({ id: `product-drop-${product.id}`, data: { type: "product", id: product.id } });
+  // Draggable so a Product can be dragged to reorder within its Area, or
+  // dropped on a Product/Area in a different one to move there — the exact
+  // same mechanic Projects already have onto Products/Areas, one level up
+  // (see useGlobalDragEnd.js). The whole card is both the drag source and
+  // the existing drop target (a Project being reparented onto this Product),
+  // same dual-ref pattern ProjectCard already uses.
+  const { attributes, listeners, setNodeRef: setDragRef, isDragging } = useDraggable({
+    id: product.id,
+    data: { type: "product", id: product.id, title: product.title },
+  });
+  const setNodeRef = (node) => {
+    setDropRef(node);
+    setDragRef(node);
+  };
 
   // Only the Product's own direct stakeholders, only the "products"
   // category — a match shouldn't cascade up from a child Project's own
@@ -66,8 +80,18 @@ export default function ProductCard({ product, forceFullProjects = false }) {
     <div
       ref={setNodeRef}
       data-product-card={product.id}
-      className={`relative z-10 bg-muted/40 border border-border/70 rounded-xl p-4 overflow-hidden ${sizingClass} ${isMatched ? "bg-primary/10 ring-1 ring-primary/30" : ""} ${isOver ? "ring-2 ring-primary ring-offset-1" : ""}`}
+      style={{ opacity: isDragging ? 0.4 : 1 }}
+      className={`relative z-10 bg-muted/40 border border-border/70 rounded-xl p-4 overflow-hidden transition-colors ${sizingClass} ${isMatched ? "bg-primary/10 ring-1 ring-primary/30" : ""} ${isOver ? "ring-2 ring-primary ring-offset-1" : ""}`}
     >
+      <div
+        className="absolute top-3 left-3 z-20 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+        aria-label="Drag to reorder product"
+        title="Drag to reorder"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="w-4 h-4" />
+      </div>
       <div className="absolute top-3 right-3 flex items-center gap-1 z-20">
         <button
           onClick={() => setIsDetailOpen(true)}
@@ -86,8 +110,8 @@ export default function ProductCard({ product, forceFullProjects = false }) {
           <Trash2 className="w-4 h-4" />
         </button>
       </div>
-      
-      <div className="relative z-[1] min-w-0 pr-12">
+
+      <div className="relative z-[1] min-w-0 pr-12 pl-6">
         <h3
           className="font-heading font-semibold break-words min-w-0 outline-none focus:ring-1 focus:ring-primary/40 rounded cursor-text"
           contentEditable

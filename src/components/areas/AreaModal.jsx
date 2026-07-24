@@ -5,6 +5,7 @@ import { useAreas, useUpdateArea } from "@/hooks/useAreas";
 import { useProducts } from "@/hooks/useProducts";
 import { useProjects } from "@/hooks/useProjects";
 import { useFilter } from "@/lib/FilterContext";
+import { sortByPosition } from "@/lib/entityUtils";
 import EditableText from "@/components/shared/EditableText";
 import CustomFieldsSection from "@/components/shared/CustomFieldsSection";
 import ProductCard from "@/components/products/ProductCard";
@@ -22,7 +23,7 @@ export default function AreaModal({ area, onClose }) {
   // custom fields) show up immediately instead of only after reopening.
   const liveArea = allAreas.find((a) => a.id === area.id) || area;
 
-  const products = allProducts.filter((p) => p.parent_area_id === area.id && !excludedIds.includes(p.id));
+  const products = sortByPosition(allProducts.filter((p) => p.parent_area_id === area.id && !excludedIds.includes(p.id)));
   const standaloneProjects = allProjects.filter(
     (p) => p.parent_area_id === area.id && !p.parent_product_id && !excludedIds.includes(p.id)
   );
