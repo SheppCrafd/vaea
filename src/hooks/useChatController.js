@@ -5,7 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { localDb } from "@/lib/localDb";
 import { executeAction, executeActionSequence, describeToolCall, describePlan, stripToolLog, DESTRUCTIVE_ACTIONS, NON_EXECUTABLE_ACTIONS } from "@/lib/chatActions";
 import { loadAiIdentity, DEFAULTS as IDENTITY_DEFAULTS } from "@/lib/aiPreferences";
-import { loadAiProviderConfig, isByokConfigured } from "@/lib/aiProviderConfig";
+import { loadAiProviderConfig, isByokConfigured, isLocalBridgeConfigured } from "@/lib/aiProviderConfig";
 import { runByokChat } from "@/lib/llm/byokChat";
 import { loadVaultConnection } from "@/lib/vaultConnection";
 import { usePositionedMenu } from "@/hooks/usePositionedMenu";
@@ -193,7 +193,7 @@ export function useChatController({ activeProjectId } = {}) {
     // this point (chatActions.js, confirm/undo, tool-log rendering) needs
     // to know or care which path answered.
     const providerConfig = await loadAiProviderConfig();
-    if (isByokConfigured(providerConfig)) {
+    if (isByokConfigured(providerConfig) || isLocalBridgeConfigured(providerConfig)) {
       return runByokChat({
         providerConfig,
         contextArgs: {

@@ -72,6 +72,17 @@ export const PROVIDERS = {
       { id: "grok-4-fast", label: "Grok 4 Fast" },
     ],
   },
+  // No API key, no HTTP call at all — the request/reply round-trip happens
+  // through two folders on disk instead (see localBridgeStorage.js /
+  // localBridgeAdapter.js), for an enterprise's own on-prem or air-gapped
+  // model. AiModelSection.jsx shows a folder-connect UI for this provider
+  // instead of the key/model fields the other BYOK providers get.
+  "local-bridge": {
+    id: "local-bridge",
+    label: "Backdoor Mode",
+    adapter: "local-bridge",
+    description: "Your own local/on-prem model, via file polling",
+  },
 };
 
 export const PROVIDER_LIST = Object.values(PROVIDERS);

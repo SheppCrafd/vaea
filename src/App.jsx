@@ -29,6 +29,7 @@ import LoginPage from '@/pages/marketing/LoginPage';
 const ChatPage = lazy(() => import('@/pages/ChatPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const VaultSetupGuidePage = lazy(() => import('@/pages/VaultSetupGuidePage'));
+const BackdoorModeSetupGuidePage = lazy(() => import('@/pages/BackdoorModeSetupGuidePage'));
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -92,6 +93,7 @@ const AuthenticatedApp = () => {
               <Route path="chat" element={<ChatPage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="settings/vault-setup" element={<VaultSetupGuidePage />} />
+              <Route path="settings/backdoor-setup" element={<BackdoorModeSetupGuidePage />} />
               {/* Add your page Route elements here */}
               <Route index element={<AppShell><Dashboard /></AppShell>} />
               <Route path="*" element={<AppShell><PageNotFound /></AppShell>} />

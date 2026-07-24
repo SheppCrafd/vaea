@@ -1,5 +1,17 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { runByokChat } from "./byokChat.js";
+
+vi.mock("./localBridgeStorage.js", () => ({
+  getBridgeStatus: vi.fn(),
+  writeRequestFile: vi.fn(async () => {}),
+  pollForResponseFile: vi.fn(),
+}));
+
+import { getBridgeStatus, writeRequestFile, pollForResponseFile } from "./localBridgeStorage.js";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 const baseContextArgs = {
   activeProjectId: null,
@@ -54,5 +66,29 @@ describe("runByokChat: end-to-end against a mocked provider response", () => {
 
     expect(result.reply).toBe("I'll archive Q1 Newsletter.");
     expect(result.actions).toEqual([{ action: "ARCHIVE_PROJECT", args: { project_id: "p1" } }]);
+  });
+});
+
+describe("runByokChat: local-bridge (Backdoor Mode) dispatch", () => {
+  it("rejects when the bridge folder isn't connected, without ever writing a request file", async () => {
+    getBridgeStatus.mockResolvedValueOnce("disconnected");
+    await expect(
+      runByokChat({ providerConfig: { provider: "local-bridge" }, contextArgs: baseContextArgs })
+    ).rejects.toThrow("Connect your Backdoor Mode folder");
+    expect(writeRequestFile).not.toHaveBeenCalled();
+  });
+
+  it("needs no API key or model — a connected folder is enough", async () => {
+    getBridgeStatus.mockResolvedValueOnce("connected");
+    pollForResponseFile.mockResolvedValueOnce({
+      content: [{ type: "tool_use", id: "toolu_1", name: "ARCHIVE_PROJECT", input: { project_id: "p1" } }],
+    });
+    pollForResponseFile.mockResolvedValueOnce({ content: [{ type: "text", text: "I'll archive Q1 Newsletter." }] });
+
+    const result = await runByokChat({ providerConfig: { provider: "local-bridge" }, contextArgs: baseContextArgs });
+
+    expect(result.reply).toBe("I'll archive Q1 Newsletter.");
+    expect(result.actions).toEqual([{ action: "ARCHIVE_PROJECT", args: { project_id: "p1" } }]);
+    expect(writeRequestFile).toHaveBeenCalledTimes(2);
   });
 });

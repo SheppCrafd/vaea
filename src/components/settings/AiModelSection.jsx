@@ -1,7 +1,16 @@
 import { useEffect, useState } from "react";
-import { Check, Eye, EyeOff } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Check, Eye, EyeOff, FolderCog, Loader2, TriangleAlert, Unlink, ChevronRight } from "lucide-react";
 import { loadAiProviderConfig, saveAiProviderConfig, DEFAULTS as PROVIDER_DEFAULTS } from "@/lib/aiProviderConfig";
 import { PROVIDERS, PROVIDER_LIST } from "@/lib/llm/providers";
+import {
+  supportsFileSystemAccess as bridgeSupported,
+  getBridgeStatus,
+  getRememberedFolderName as getRememberedBridgeFolderName,
+  connectBridgeFolder,
+  reconnectBridgeFolder,
+  disconnectBridgeFolder,
+} from "@/lib/llm/localBridgeStorage";
 
 // Which model actually answers Vaea Chat — Vaea's own hosted default, or a
 // provider the user brings their own API key for. A BYOK key is used
@@ -20,6 +29,8 @@ export default function AiModelSection() {
 
   const provider = PROVIDERS[config.provider] || PROVIDERS.base44;
   const isByok = provider.id !== "base44";
+  const isLocalBridge = provider.id === "local-bridge";
+  const isKeyBased = isByok && !isLocalBridge;
 
   const persist = async (next) => {
     setConfig(next);
@@ -52,7 +63,8 @@ export default function AiModelSection() {
       <p className="text-xs text-muted-foreground mb-4">
         Vaea Chat answers using its own built-in model by default. Bring your own API key instead to use Claude,
         ChatGPT, Gemini, or Grok directly — your key is sent from this browser straight to that provider, never
-        through Vaea's own servers.
+        through Vaea's own servers. Or pick Backdoor Mode to route every prompt to your own local/on-prem model
+        through a folder on this device — no network call at all.
       </p>
 
       <div className="flex flex-col gap-3">
@@ -71,7 +83,7 @@ export default function AiModelSection() {
           </select>
         </div>
 
-        {isByok && (
+        {isKeyBased && (
           <>
             <div>
               <p className="text-sm font-medium mb-1.5">Model</p>
@@ -113,14 +125,142 @@ export default function AiModelSection() {
                 </a>
               </p>
             </div>
-
-            <p className="text-xs text-muted-foreground">
-              Web search, attachment reading, and the external notes vault only work with Vaea's built-in model —
-              not yet available with a bring-your-own-key provider.
-            </p>
           </>
         )}
+
+        {isLocalBridge && <BackdoorModeConnect />}
+
+        {isByok && (
+          <p className="text-xs text-muted-foreground">
+            Web search, attachment reading, and Vaea Vault only work with Vaea's built-in model —
+            not yet available with {isLocalBridge ? "Backdoor Mode" : "a bring-your-own-key provider"}.
+          </p>
+        )}
       </div>
+    </div>
+  );
+}
+
+// Folder-connect UI for "Backdoor Mode" — no key or model to enter here;
+// instead the user grants access to a folder Vaea writes prompts/ and
+// responses/ into (localBridgeStorage.js), and their own local watcher
+// script (see the setup guide) answers by polling it. Deliberately mirrors
+// ExternalVaultSection.jsx's connect/disconnect button pattern.
+function BackdoorModeConnect() {
+  const [status, setStatus] = useState("checking");
+  const [folderName, setFolderName] = useState(null);
+  const [error, setError] = useState("");
+
+  const refresh = async () => {
+    const s = await getBridgeStatus();
+    setStatus(s);
+    if (s === "needs-permission") setFolderName(await getRememberedBridgeFolderName());
+  };
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  const handleConnect = async () => {
+    setError("");
+    try {
+      await connectBridgeFolder();
+      await refresh();
+    } catch (err) {
+      if (err.name !== "AbortError") setError("Couldn't get access to that folder. Try again.");
+    }
+  };
+
+  const handleReconnect = async () => {
+    setError("");
+    try {
+      await reconnectBridgeFolder();
+      await refresh();
+    } catch {
+      setError("Permission wasn't granted. Try again, or choose a different folder.");
+    }
+  };
+
+  const handleDisconnect = async () => {
+    await disconnectBridgeFolder();
+    setFolderName(null);
+    await refresh();
+  };
+
+  if (!bridgeSupported) {
+    return (
+      <p className="flex items-start gap-1.5 text-xs text-destructive">
+        <TriangleAlert className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+        Backdoor Mode needs direct folder access, which this browser doesn't support — use Chrome or Edge on desktop instead.
+      </p>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <p className="text-sm font-medium">Bridge folder</p>
+        {status === "connected" && (
+          <span className="flex items-center gap-1 text-[11px] text-primary font-medium">
+            <Check className="w-3.5 h-3.5" /> Connected
+          </span>
+        )}
+      </div>
+      <p className="text-xs text-muted-foreground mb-3">
+        Every prompt is written to a <span className="font-terminal">prompts/</span> folder on this device and read
+        back from a <span className="font-terminal">responses/</span> folder next to it — nothing is sent over the
+        network. Your own local script watches that folder and answers using your company's model.
+      </p>
+
+      {status === "connected" && (
+        <button
+          type="button"
+          onClick={handleDisconnect}
+          className="flex items-center gap-1.5 text-xs px-3 py-2 border border-input rounded-md hover:bg-accent transition-colors text-muted-foreground"
+        >
+          <Unlink className="w-3.5 h-3.5" /> Disconnect
+        </button>
+      )}
+
+      {status === "needs-permission" && (
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleReconnect}
+            className="flex items-center gap-1.5 text-sm px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md transition-colors shadow-sm"
+          >
+            <FolderCog className="w-3.5 h-3.5" /> Resume access to "{folderName}"
+          </button>
+          <button type="button" onClick={handleConnect} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2">
+            Use a different folder
+          </button>
+        </div>
+      )}
+
+      {status === "disconnected" && (
+        <button
+          type="button"
+          onClick={handleConnect}
+          className="flex items-center gap-1.5 text-sm px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md transition-colors shadow-sm"
+        >
+          <FolderCog className="w-3.5 h-3.5" /> Choose a folder
+        </button>
+      )}
+
+      {status === "checking" && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+
+      {error && (
+        <p className="flex items-start gap-1.5 text-xs text-destructive mt-3">
+          <TriangleAlert className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {error}
+        </p>
+      )}
+
+      <Link
+        to="/settings/backdoor-setup"
+        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 mt-3 w-fit"
+      >
+        Set up your local watcher script <ChevronRight className="w-3 h-3" />
+      </Link>
     </div>
   );
 }

@@ -10,9 +10,12 @@ import { Check, Copy } from "lucide-react";
 //
 // `code`: one command (or "# comment") per line. Comments render dimmed
 // with no prompt; blank lines are spacing; everything else gets a `$ `
-// prompt. Copy sends the exact text shown, comments included — what you
-// see is what lands on the clipboard.
-export default function TerminalBlock({ title = "terminal", code }) {
+// prompt (unless `showPrompt` is false, for a real source file being shown
+// rather than a sequence of commands to run — see
+// BackdoorModeSetupGuidePage.jsx's watcher script for that case). Copy
+// sends the exact text shown, comments included — what you see is what
+// lands on the clipboard.
+export default function TerminalBlock({ title = "terminal", code, showPrompt = true }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -57,6 +60,7 @@ export default function TerminalBlock({ title = "terminal", code }) {
             const isBlank = line.trim() === "";
             if (isBlank) return <div key={i}>&nbsp;</div>;
             if (isComment) return <div key={i} className="text-white/35">{line}</div>;
+            if (!showPrompt) return <div key={i} className="text-white/90 whitespace-pre">{line}</div>;
             return (
               <div key={i} className="text-white/90">
                 <span className="text-primary select-none">$ </span>

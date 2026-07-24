@@ -1,0 +1,197 @@
+// Folder-based transport for "Backdoor Mode" (src/lib/llm/localBridgeAdapter.js)
+// — an enterprise's own on-prem/local model answers Vaea Chat by watching a
+// folder on disk instead of this browser calling an HTTP API. Same File
+// System Access primitive as deviceStorage.js (a folder the user grants
+// access to once, the handle persisted in IndexedDB so a return visit only
+// needs a one-click permission re-grant), but a completely separate handle
+// and folder — this is a request/response transport, not app data, so it
+// deliberately doesn't share deviceStorage.js's store or its dirHandle.
+//
+// Layout inside the chosen folder, created automatically on first connect:
+//   prompts/<requestId>-r<round>.json    — written by this browser
+//   responses/<requestId>-r<round>.json  — written by the user's own local
+//                                          watcher script (see
+//                                          BackdoorModeSetupGuidePage.jsx for
+//                                          the file contract and a sample
+//                                          script)
+
+export const supportsFileSystemAccess =
+  typeof window !== "undefined" && typeof window.showDirectoryPicker === "function";
+
+const HANDLE_DB_NAME = "vaea-backdoor-bridge";
+const HANDLE_STORE = "handles";
+const HANDLE_KEY = "directory";
+
+function openHandleDb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(HANDLE_DB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(HANDLE_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function getStoredHandle() {
+  try {
+    const db = await openHandleDb();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(HANDLE_STORE, "readonly");
+      const req = tx.objectStore(HANDLE_STORE).get(HANDLE_KEY);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function setStoredHandle(handle) {
+  try {
+    const db = await openHandleDb();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(HANDLE_STORE, "readwrite");
+      tx.objectStore(HANDLE_STORE).put(handle, HANDLE_KEY);
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch {
+    // best-effort — worst case the user re-picks the folder next visit
+  }
+}
+
+async function clearStoredHandle() {
+  try {
+    const db = await openHandleDb();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(HANDLE_STORE, "readwrite");
+      tx.objectStore(HANDLE_STORE).delete(HANDLE_KEY);
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch {
+    // best-effort
+  }
+}
+
+// Must be called from a user-gesture handler (click) — the permission
+// prompt this can trigger is spec'd to require one.
+async function ensurePermission(handle) {
+  const opts = { mode: "readwrite" };
+  if ((await handle.queryPermission(opts)) === "granted") return true;
+  return (await handle.requestPermission(opts)) === "granted";
+}
+
+let rootHandle = null; // set once connected/reconnected this session
+let promptsHandle = null;
+let responsesHandle = null;
+const statusListeners = new Set();
+
+function notify() {
+  statusListeners.forEach((fn) => fn());
+}
+
+export function subscribeStatus(fn) {
+  statusListeners.add(fn);
+  return () => statusListeners.delete(fn);
+}
+
+// 'connected'         — folder is live and writable this session
+// 'needs-permission'  — a remembered folder exists but needs a re-grant click
+// 'disconnected'      — no folder ever chosen, or not supported in this browser
+export async function getBridgeStatus() {
+  if (!supportsFileSystemAccess) return "disconnected";
+  if (rootHandle) return "connected";
+  const stored = await getStoredHandle();
+  return stored ? "needs-permission" : "disconnected";
+}
+
+export async function getRememberedFolderName() {
+  const stored = await getStoredHandle();
+  return stored?.name ?? null;
+}
+
+async function openSubfolders(handle) {
+  promptsHandle = await handle.getDirectoryHandle("prompts", { create: true });
+  responsesHandle = await handle.getDirectoryHandle("responses", { create: true });
+}
+
+// Must be called from a click handler — showDirectoryPicker requires a user
+// gesture.
+export async function connectBridgeFolder() {
+  const handle = await window.showDirectoryPicker({ mode: "readwrite" });
+  await openSubfolders(handle);
+  rootHandle = handle;
+  await setStoredHandle(handle);
+  notify();
+  return handle;
+}
+
+// Must be called from a click handler — the underlying requestPermission
+// call requires a user gesture.
+export async function reconnectBridgeFolder() {
+  const stored = await getStoredHandle();
+  if (!stored) throw new Error("No remembered Backdoor Mode folder to reconnect to.");
+  const granted = await ensurePermission(stored);
+  if (!granted) throw new Error("Permission to the folder was not granted.");
+  await openSubfolders(stored);
+  rootHandle = stored;
+  notify();
+  return stored;
+}
+
+export async function disconnectBridgeFolder() {
+  rootHandle = null;
+  promptsHandle = null;
+  responsesHandle = null;
+  await clearStoredHandle();
+  notify();
+}
+
+function requireConnected() {
+  if (!promptsHandle || !responsesHandle) {
+    throw new Error("Backdoor Mode folder isn't connected — go to Settings -> AI Model and connect it first.");
+  }
+}
+
+function fileNameFor(requestId, round) {
+  return `${requestId}-r${round}.json`;
+}
+
+export async function writeRequestFile(requestId, round, data) {
+  requireConnected();
+  const fh = await promptsHandle.getFileHandle(fileNameFor(requestId, round), { create: true });
+  const writable = await fh.createWritable();
+  await writable.write(JSON.stringify(data, null, 2));
+  await writable.close();
+}
+
+async function readResponseFileIfPresent(requestId, round) {
+  try {
+    const fh = await responsesHandle.getFileHandle(fileNameFor(requestId, round), { create: false });
+    const file = await fh.getFile();
+    const text = await file.text();
+    return text ? JSON.parse(text) : null;
+  } catch (err) {
+    if (err.name === "NotFoundError") return null;
+    throw err;
+  }
+}
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Polls responses/<requestId>-r<round>.json every `intervalMs` until it
+// appears (written by the user's own local watcher script) or `timeoutMs`
+// elapses. A malformed (non-JSON) response file surfaces immediately as a
+// thrown error rather than being silently treated as "not there yet".
+export async function pollForResponseFile(requestId, round, { intervalMs = 5000, timeoutMs = 10 * 60 * 1000 } = {}) {
+  requireConnected();
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    const data = await readResponseFileIfPresent(requestId, round);
+    if (data) return data;
+    await sleep(intervalMs);
+  }
+  throw new Error(
+    `No response appeared in responses/${fileNameFor(requestId, round)} within ${Math.round(timeoutMs / 1000)}s — is your local watcher script running?`
+  );
+}

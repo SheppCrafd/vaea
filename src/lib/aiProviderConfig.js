@@ -43,3 +43,12 @@ export async function clearAiProviderConfig() {
 export function isByokConfigured(config) {
   return !!(config?.provider && config.provider !== "base44" && config.apiKey && config.model);
 }
+
+// "Backdoor Mode" (src/lib/llm/localBridgeAdapter.js) has no key or model to
+// pick — selecting the provider is enough here, since whether the folder
+// itself is actually connected is checked live (async, FSA permission
+// state) inside runByokChat, the same way an expired key would only surface
+// as a real request failure rather than being validated up front.
+export function isLocalBridgeConfigured(config) {
+  return config?.provider === "local-bridge";
+}
