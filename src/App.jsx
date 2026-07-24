@@ -5,13 +5,15 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
-import { AuthProvider, useAuth, hasAttemptedAuthRedirect, markAuthRedirectAttempted } from '@/lib/AuthContext';
+import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import LoginScreen from '@/components/auth/LoginScreen';
 import ScrollToTop from './components/ScrollToTop';
 import { HighlightProvider } from '@/lib/HighlightContext';
 import { FilterProvider } from '@/lib/FilterContext';
 import { CardViewProvider } from '@/lib/CardViewContext';
 import ErrorBoundary from '@/components/shared/ErrorBoundary';
+import DeviceStorageGate from '@/components/shared/DeviceStorageGate';
 import AppShell from '@/components/layout/AppShell';
 import Header from '@/components/layout/Header';
 import Dashboard from '@/pages/Dashboard';
@@ -27,7 +29,7 @@ const VaultSetupGuidePage = lazy(() => import('@/pages/VaultSetupGuidePage'));
 // Add page imports here
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -43,33 +45,14 @@ const AuthenticatedApp = () => {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
-      // Auto-redirect to Base44's hosted login, but only once per tab
-      // session (see hasAttemptedAuthRedirect's comment in AuthContext.jsx)
-      // — a stale/invalid token that survives the login round-trip would
-      // otherwise bounce forever between this app and Base44's login page.
-      if (!hasAttemptedAuthRedirect()) {
-        markAuthRedirectAttempted();
-        navigateToLogin();
-        return null;
-      }
-      return (
-        <div className="fixed inset-0 flex items-center justify-center bg-background px-4">
-          <div className="max-w-sm text-center space-y-3">
-            <p className="text-sm font-medium">Couldn't sign you in automatically</p>
-            <p className="text-xs text-muted-foreground">
-              Sign-in is required to use this app. If this keeps happening, try again in a moment.
-            </p>
-            <div className="flex items-center justify-center gap-2 pt-1">
-              <button
-                onClick={() => { markAuthRedirectAttempted(); navigateToLogin(); }}
-                className="text-sm px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md transition-colors"
-              >
-                Try again
-              </button>
-            </div>
-          </div>
-        </div>
-      );
+      // Used to auto-redirect to Base44's hosted /login — but that page
+      // route only serves a real login form for apps built through Base44's
+      // own builder UI. Vaea is a custom Vite build (site deploy), so /login
+      // just reloads this SPA, which immediately hits auth_required again —
+      // a dead end (or, before the old loop-guard, an infinite bounce). See
+      // Decisions/Vaea - Full-App Login Gate Restored.md. LoginScreen signs
+      // in via real Base44 API routes instead, which don't have this problem.
+      return <LoginScreen />;
     }
   }
 
@@ -81,22 +64,24 @@ const AuthenticatedApp = () => {
   // Routes rather than inside AppShell, for the same "works everywhere"
   // reason.
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
-      <Header />
-      <div className="flex-1 min-h-0">
-        <Suspense fallback={null}>
-          <CommandPalette />
-          <Routes>
-            <Route path="/chat" element={<ChatPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/settings/vault-setup" element={<VaultSetupGuidePage />} />
-            {/* Add your page Route elements here */}
-            <Route path="/" element={<AppShell><Dashboard /></AppShell>} />
-            <Route path="*" element={<AppShell><PageNotFound /></AppShell>} />
-          </Routes>
-        </Suspense>
+    <DeviceStorageGate>
+      <div className="h-screen flex flex-col overflow-hidden">
+        <Header />
+        <div className="flex-1 min-h-0">
+          <Suspense fallback={null}>
+            <CommandPalette />
+            <Routes>
+              <Route path="/chat" element={<ChatPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/settings/vault-setup" element={<VaultSetupGuidePage />} />
+              {/* Add your page Route elements here */}
+              <Route path="/" element={<AppShell><Dashboard /></AppShell>} />
+              <Route path="*" element={<AppShell><PageNotFound /></AppShell>} />
+            </Routes>
+          </Suspense>
+        </div>
       </div>
-    </div>
+    </DeviceStorageGate>
   );
 };
 

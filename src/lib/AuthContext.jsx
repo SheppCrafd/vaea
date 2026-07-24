@@ -5,40 +5,6 @@ import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 
 const AuthContext = createContext();
 
-// One-shot guard against auto-redirecting to Base44's hosted login more than
-// once per tab session. Without this, a token that round-trips through
-// /login but still fails checkUserAuth() (expired immediately, scoped to
-// the wrong app, whatever) sets authError back to 'auth_required' on the
-// next mount, which re-triggers the same automatic redirect — an infinite
-// bounce between this app and Base44's login page. This is exactly the
-// failure mode hit and reverted on 2026-07-22. sessionStorage (not a
-// module-level variable) survives the full-page navigation a redirect is.
-const REDIRECT_ATTEMPTED_KEY = "vaea_auth_redirect_attempted";
-
-export const hasAttemptedAuthRedirect = () => {
-  try {
-    return sessionStorage.getItem(REDIRECT_ATTEMPTED_KEY) === "true";
-  } catch {
-    return false;
-  }
-};
-
-export const markAuthRedirectAttempted = () => {
-  try {
-    sessionStorage.setItem(REDIRECT_ATTEMPTED_KEY, "true");
-  } catch {
-    // best-effort — worst case the guard just doesn't persist
-  }
-};
-
-const clearAuthRedirectAttempted = () => {
-  try {
-    sessionStorage.removeItem(REDIRECT_ATTEMPTED_KEY);
-  } catch {
-    // best-effort
-  }
-};
-
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -83,8 +49,7 @@ export const AuthProvider = ({ children }) => {
           // the full dashboard. Per AGENTS.md, login is required for the
           // whole app (restored from pre-fork history at the user's
           // explicit request) — so this is the same auth_required path a
-          // stale token takes, letting App.jsx's existing (loop-guarded,
-          // see hasAttemptedAuthRedirect above) redirect handle it.
+          // stale token takes, letting App.jsx's LoginScreen handle it.
           setIsLoadingAuth(false);
           setIsAuthenticated(false);
           setAuthChecked(true);
@@ -145,7 +110,6 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
       setAuthChecked(true);
-      clearAuthRedirectAttempted();
     } catch (error) {
       console.error('User auth check failed:', error);
       setIsLoadingAuth(false);
@@ -165,19 +129,29 @@ export const AuthProvider = ({ children }) => {
   const logout = (shouldRedirect = true) => {
     setUser(null);
     setIsAuthenticated(false);
-    
+
     if (shouldRedirect) {
-      // Use the SDK's logout method which handles token cleanup and redirect
-      base44.auth.logout(window.location.href);
+      // Same target Zmanim Today's Settings.jsx uses (base44.auth.logout("/"))
+      // — land back on the app root logged out, not wherever the click
+      // happened to be (settings/chat/etc).
+      base44.auth.logout("/");
     } else {
       // Just remove the token without redirect
       base44.auth.logout();
     }
   };
 
+  // redirectToLogin() targets Base44's hosted /login page route, which only
+  // serves a real login form for apps built through Base44's own builder —
+  // Vaea is a custom Vite build (site deploy), so that route just reloads
+  // this SPA instead of showing a login form (see LoginScreen.jsx for the
+  // full writeup). loginWithProvider() hits a real API route instead, which
+  // works regardless of hosting. This is the one-click fallback used outside
+  // the main LoginScreen (e.g. the mid-chat sign-in prompt) — LoginScreen
+  // itself calls base44.auth.loginWithProvider/loginViaEmailPassword
+  // directly so it can offer the full provider/email picker.
   const navigateToLogin = () => {
-    // Use the SDK's redirectToLogin method
-    base44.auth.redirectToLogin(window.location.href);
+    base44.auth.loginWithProvider('google', window.location.pathname + window.location.search);
   };
 
   return (

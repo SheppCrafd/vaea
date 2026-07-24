@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LogOut, LogIn, AlertTriangle } from "lucide-react";
+import { LogOut, LogIn, AlertTriangle, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import Avatar from "@/components/shared/Avatar";
@@ -8,6 +8,15 @@ import DeleteAccountDialog from "@/components/settings/DeleteAccountDialog";
 export default function AccountSection() {
   const { user, isAuthenticated, logout, navigateToLogin } = useAuth();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  // Same shape as Zmanim Today's Settings.jsx handleLogout: a loading state
+  // set right before the call, since base44.auth.logout()'s redirect can
+  // take a moment to actually navigate away.
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    await logout();
+  };
 
   // The dashboard itself works fully signed-out (all data is local — see
   // AuthContext.jsx) so this used to render as if `user` were always
@@ -45,9 +54,9 @@ export default function AccountSection() {
             {user?.full_name && <p className="text-xs text-muted-foreground truncate">{user.email}</p>}
           </div>
         </div>
-        <Button variant="outline" onClick={() => logout()} className="gap-2 shrink-0">
-          <LogOut className="w-4 h-4" />
-          Log out
+        <Button variant="outline" onClick={handleLogout} disabled={loggingOut} className="gap-2 shrink-0">
+          {loggingOut ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
+          {loggingOut ? "Logging out…" : "Log out"}
         </Button>
       </div>
 

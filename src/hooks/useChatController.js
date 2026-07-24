@@ -1,10 +1,10 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { MessageCircle, Bot, Sparkles, HelpCircle, Smile } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { localDb } from "@/lib/localDb";
 import { executeAction, executeActionSequence, DESTRUCTIVE_ACTIONS, NON_EXECUTABLE_ACTIONS } from "@/lib/chatActions";
-import { loadAiIdentity } from "@/lib/aiPreferences";
+import { loadAiIdentity, DEFAULTS as IDENTITY_DEFAULTS } from "@/lib/aiPreferences";
 import { loadVaultConnection } from "@/lib/vaultConnection";
 import { usePositionedMenu } from "@/hooks/usePositionedMenu";
 import { useCreateChatSession } from "@/hooks/useChatSessions";
@@ -89,8 +89,12 @@ export function useChatController({ activeProjectId } = {}) {
   const [resolvingId, setResolvingId] = useState(null);
   const [actionHistory, setActionHistory] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(() => readStorage(SESSION_STORAGE_KEY));
-  const [aiIdentity, setAiIdentity] = useState(loadAiIdentity);
+  const [aiIdentity, setAiIdentity] = useState(IDENTITY_DEFAULTS);
   const [authPromptVisible, setAuthPromptVisible] = useState(false);
+
+  useEffect(() => {
+    loadAiIdentity().then(setAiIdentity);
+  }, []);
 
   const fileInputRef = useRef(null);
   const queryClient = useQueryClient();
@@ -101,12 +105,12 @@ export function useChatController({ activeProjectId } = {}) {
   const createMessage = useCreateChatMessage();
   const updateMessage = useUpdateChatMessage();
 
-  const invalidateAppQueries = () => {
+  const invalidateAppQueries = async () => {
     APP_QUERY_KEYS.forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
-    // SET_AI_IDENTITY writes straight to localStorage (chatActions.js), same
-    // as every other action — re-read it so the header's displayed name
+    // SET_AI_IDENTITY writes straight through deviceStorage (chatActions.js),
+    // same as every other action — re-read it so the header's displayed name
     // updates immediately after "/setup" runs, not just on next reload.
-    setAiIdentity(loadAiIdentity());
+    setAiIdentity(await loadAiIdentity());
   };
 
   const chooseIcon = (choice) => {
@@ -174,11 +178,11 @@ export function useChatController({ activeProjectId } = {}) {
       // axios envelope, so the actual `{reply, actions}` is response.data.
       const response = await base44.functions.invoke("aiChatStream", {
         ...payload,
-        aiIdentity: loadAiIdentity(),
+        aiIdentity: await loadAiIdentity(),
         // Sent transiently, per-request, so the vault_* tools can use it for
         // this one turn — never stored server-side, same guarantee as the
         // rest of this payload (see ExternalVaultSection.jsx's disclosure).
-        externalVault: loadVaultConnection(),
+        externalVault: await loadVaultConnection(),
         areas: areas.filter((a) => !a.deleted_at),
         products: products.filter((p) => !p.deleted_at),
         projects: projectsActive,
@@ -207,7 +211,7 @@ export function useChatController({ activeProjectId } = {}) {
     const { type, ...args } = last;
     try {
       await executeAction(type, args);
-      invalidateAppQueries();
+      await invalidateAppQueries();
     } catch {
       // best-effort — surfaced via the assistant's own reply already
     }
@@ -285,7 +289,7 @@ export function useChatController({ activeProjectId } = {}) {
       }
 
       await createMessage.mutateAsync({ session_id: sessionId, role: "assistant", content: reply });
-      invalidateAppQueries();
+      await invalidateAppQueries();
     } catch (error) {
       await createMessage.mutateAsync({ session_id: sessionId, role: "assistant", content: `⚠️ Error: ${error.message}` });
     } finally {
@@ -305,7 +309,7 @@ export function useChatController({ activeProjectId } = {}) {
       // message's existing values through so nothing's missing.
       await updateMessage.mutateAsync({ id: message.id, data: { session_id: message.session_id, role: message.role, content: message.content, pending_action: null } });
       await createMessage.mutateAsync({ session_id: message.session_id, role: "assistant", content: message.pending_action.confirmMessage || "Done." });
-      invalidateAppQueries();
+      await invalidateAppQueries();
     } catch (error) {
       await createMessage.mutateAsync({ session_id: message.session_id, role: "assistant", content: `⚠️ Couldn't complete that: ${error.message}` });
     } finally {
@@ -325,7 +329,12 @@ export function useChatController({ activeProjectId } = {}) {
   };
 
   const dismissAuthPrompt = () => setAuthPromptVisible(false);
-  const signInForChat = () => base44.auth.redirectToLogin(window.location.href);
+  // redirectToLogin() targets Base44's hosted /login page route, which
+  // doesn't work for this app's deployment (see LoginScreen.jsx) —
+  // loginWithProvider() hits a real API route instead. One-click Google
+  // default, since this is a small inline recovery prompt, not the full
+  // provider/email picker LoginScreen shows for the main auth gate.
+  const signInForChat = () => base44.auth.loginWithProvider('google', window.location.pathname + window.location.search);
 
   return {
     input, setInput,
