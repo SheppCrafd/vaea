@@ -1,6 +1,8 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, FolderOpen, GitBranch, Github, ArrowRight, KeyRound, Settings, Search, PenLine, Wrench } from "lucide-react";
+import { ArrowLeft, FolderOpen, GitBranch, Github, ArrowRight, KeyRound, Settings, Search, PenLine, Wrench, Check, Download, RefreshCw } from "lucide-react";
 import TerminalBlock from "@/components/settings/TerminalBlock";
+import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
 
 const BUILD_STEPS = [
   {
@@ -114,7 +116,77 @@ const USES = [
   },
 ];
 
+// Shown instead of the generic "build one from scratch" flow when Settings
+// -> Vaea Vault already has a real connection — the exact gap the from-
+// scratch guide below doesn't cover: getting a repo that already exists
+// (whatever its history) open in Obsidian on THIS device, using the real
+// owner/repo/branch already connected rather than a <placeholder>.
+function ConnectedVaultWalkthrough({ connection }) {
+  const cloneUrl = `https://github.com/${connection.owner}/${connection.repo}.git`;
+  return (
+    <div className="mb-14 rounded-xl border border-primary/30 bg-primary/5 p-6">
+      <p className="flex items-center gap-1.5 text-xs font-medium text-primary uppercase tracking-wider mb-1">
+        <Check className="w-3.5 h-3.5" /> Already connected
+      </p>
+      <p className="text-sm text-muted-foreground mb-5">
+        Settings → Vaea Vault is already pointed at{" "}
+        <span className="font-terminal text-xs text-foreground">{connection.owner}/{connection.repo}</span>{" "}
+        (branch <span className="font-terminal text-xs text-foreground">{connection.branch}</span>). Vaea itself
+        reads and writes it straight over the GitHub API — nothing to install for that. What's left is getting
+        <em> you</em> a real, editable copy of the same notes on this device.
+      </p>
+
+      <ol className="relative mb-6">
+        <div className="absolute left-[15px] top-2 bottom-2 w-px bg-border" aria-hidden="true" />
+        {[
+          { Icon: Download, title: "Clone it", body: "Pulls down whatever's already in the repo — existing notes, or nothing yet if Vaea created it empty." },
+          { Icon: FolderOpen, title: "Open it in Obsidian", body: <>Install Obsidian from <strong className="text-foreground">obsidian.md</strong> if you haven't, then <strong className="text-foreground">"Open folder as vault"</strong> and point it at the folder you just cloned.</> },
+          { Icon: RefreshCw, title: "Keep it in sync", body: "Vaea writes on its own schedule (chat, \"/vault-log\"), your clone doesn't see that automatically — pull before you start editing, push once you're done, same as working alongside any other collaborator." },
+        ].map(({ Icon, title, body }, i) => (
+          <li key={title} className="relative pl-11 pb-6 last:pb-0">
+            <span className="absolute left-0 top-0 w-8 h-8 rounded-full border border-border bg-card flex items-center justify-center text-primary">
+              <Icon className="w-3.5 h-3.5" />
+            </span>
+            <h3 className="font-heading font-semibold text-sm mb-1">{i + 1}. {title}</h3>
+            <div className="text-sm text-muted-foreground leading-relaxed">{body}</div>
+          </li>
+        ))}
+      </ol>
+
+      <TerminalBlock
+        title="connect-obsidian"
+        code={`# 1. Clone the repo Vaea is already connected to
+git clone ${cloneUrl}
+cd ${connection.repo}
+
+# 3a. Whenever you come back to edit locally
+git pull
+
+# 3b. After editing in Obsidian
+git add .
+git commit -m "Update notes"
+git push`}
+      />
+
+      <p className="text-sm text-muted-foreground leading-relaxed mt-6">
+        Never used this repo with Obsidian before, or want to change the folder structure — <span className="font-terminal text-xs text-foreground">/Projects</span>,{" "}
+        <span className="font-terminal text-xs text-foreground">/Decisions</span>,{" "}
+        <span className="font-terminal text-xs text-foreground">/Daily</span>, etc — Part 1 below still applies, it just
+        starts from step 2 since the repo and connection already exist.
+      </p>
+    </div>
+  );
+}
+
 export default function VaultSetupGuidePage() {
+  const [connection, setConnection] = useState(null);
+
+  useEffect(() => {
+    loadVaultConnection().then(setConnection);
+  }, []);
+
+  const connected = isVaultConnected(connection);
+
   return (
     <div className="h-full overflow-y-auto bg-background">
       <div className="border-b border-border bg-card sticky top-0 z-10">
@@ -154,6 +226,8 @@ export default function VaultSetupGuidePage() {
             </div>
           ))}
         </div>
+
+        {connected && <ConnectedVaultWalkthrough connection={connection} />}
 
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">Part 1 · Build the vault</p>
 
@@ -209,7 +283,14 @@ git push -u origin main`}
         </p>
 
         <div className="mt-14 pt-10 border-t border-border">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">Part 2 · Connect it to Vaea</p>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Part 2 · Connect it to Vaea</p>
+            {connected && (
+              <span className="flex items-center gap-1 text-[11px] text-primary font-medium">
+                <Check className="w-3.5 h-3.5" /> Already done
+              </span>
+            )}
+          </div>
           <ol className="relative mb-10">
             <div className="absolute left-[15px] top-2 bottom-2 w-px bg-border" aria-hidden="true" />
             {CONNECT_STEPS.map((step, i) => (
