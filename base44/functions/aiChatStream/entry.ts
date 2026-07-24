@@ -73,8 +73,8 @@ function searchRecords(query, records, type, fields, titleField) {
 }
 
 // ---------------------------------------------------------------------------
-// External vault (vault_* tools below): a personal, git-backed Obsidian
-// repo on GitHub the user connected in Settings -> External vault. Deno has
+// Vaea Vault (vault_* tools below): a personal, git-backed Obsidian
+// repo on GitHub the user connected in Settings -> Vaea Vault. Deno has
 // native fetch, so these call the GitHub REST API directly — no SDK needed,
 // and this function's own Base44 client is unrelated to it. The token
 // arrives with this one request only (see useChatController.js's
@@ -113,7 +113,7 @@ function base64ToUtf8(b64) {
 }
 
 function vaultNotConnected() {
-  return { connected: false, message: 'No external vault connected. Tell the user to connect one in Settings -> External vault before this can work.' };
+  return { connected: false, message: 'No Vaea Vault connected. Tell the user to connect one in Settings -> Vaea Vault before this can work.' };
 }
 
 async function githubFetch(url, token, init) {
@@ -491,7 +491,7 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault }) {
       execute: queue('SET_AI_IDENTITY'),
     }),
     WRITE_VAULT_NOTE: tool({
-      description: 'Create or update one file in the connected external vault (a personal Obsidian/GitHub notes repo — see [EXTERNAL VAULT] below). Staged like every tool above, not run here — the user\'s own device commits it via the GitHub API using their locally-stored token. Use for "/vault-log" (write today\'s [Daily/YYYY-MM-DD].md, and a [Decisions/...] file too if a real decision was made) and for "/vault-tidy" fixes (adding a missing [[wikilink]], creating a stub file). Always pass the FULL desired file content, not a diff — look up the current content via read_vault_note first if you\'re editing an existing note, and preserve everything in it you\'re not deliberately changing.',
+      description: 'Create or update one file in the connected Vaea Vault (a personal Obsidian/GitHub notes repo — see [VAEA VAULT] below). Staged like every tool above, not run here — the user\'s own device commits it via the GitHub API using their locally-stored token. Use for "/vault-log" (write today\'s [Daily/YYYY-MM-DD].md, and a [Decisions/...] file too if a real decision was made) and for "/vault-tidy" fixes (adding a missing [[wikilink]], creating a stub file). Always pass the FULL desired file content, not a diff — look up the current content via read_vault_note first if you\'re editing an existing note, and preserve everything in it you\'re not deliberately changing.',
       inputSchema: z.object({
         path: z.string().describe('Repo-relative path, e.g. "Daily/2026-07-22.md" or "Decisions/Some Decision.md".'),
         content: z.string().describe('The full file content, in Markdown, using [[wikilink]] syntax for any reference to another note.'),
@@ -606,13 +606,13 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault }) {
     }),
 
     list_vault_notes: tool({
-      description: 'List every note (path) in the connected external vault. Runs immediately. Use to get an overview before deciding what to read, or to check whether a note already exists before creating one.',
+      description: 'List every note (path) in the connected Vaea Vault. Runs immediately. Use to get an overview before deciding what to read, or to check whether a note already exists before creating one.',
       inputSchema: z.object({}),
       execute: async () => {
         if (!externalVault?.owner || !externalVault?.repo || !externalVault?.token) return vaultNotConnected();
         try {
           const paths = await listVaultNoteRepo(externalVault.owner, externalVault.repo, externalVault.branch || 'main', externalVault.token);
-          liveTrace.push(`📚 Listed the external vault (${paths.length} notes)`);
+          liveTrace.push(`📚 Listed Vaea Vault (${paths.length} notes)`);
           return { connected: true, count: paths.length, paths };
         } catch (error) {
           return { connected: true, error: `Couldn't list the vault: ${error.message}` };
@@ -620,14 +620,14 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault }) {
       },
     }),
     read_vault_note: tool({
-      description: 'Read one note\'s full content from the connected external vault by its exact path (from list_vault_notes or search_vault). Runs immediately and returns real content.',
+      description: 'Read one note\'s full content from the connected Vaea Vault by its exact path (from list_vault_notes or search_vault). Runs immediately and returns real content.',
       inputSchema: z.object({ path: z.string() }),
       execute: async ({ path }) => {
         if (!externalVault?.owner || !externalVault?.repo || !externalVault?.token) return vaultNotConnected();
         try {
           const branch = externalVault.branch || 'main';
           const data = await githubFetch(`${GITHUB_API}/repos/${externalVault.owner}/${externalVault.repo}/contents/${encodeRepoPath(path)}?ref=${encodeURIComponent(branch)}`, externalVault.token);
-          liveTrace.push(`📖 Read "${path}" from the external vault`);
+          liveTrace.push(`📖 Read "${path}" from Vaea Vault`);
           return { connected: true, path, content: base64ToUtf8(data.content) };
         } catch (error) {
           return { connected: true, error: `Couldn't read "${path}": ${error.message}` };
@@ -635,7 +635,7 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault }) {
       },
     }),
     search_vault: tool({
-      description: 'Search the connected external vault by keyword (GitHub code search, scoped to that one repo). Use for "what did we decide about X" / "find notes mentioning Y" style questions about the user\'s personal vault. Runs immediately.',
+      description: 'Search the connected Vaea Vault by keyword (GitHub code search, scoped to that one repo). Use for "what did we decide about X" / "find notes mentioning Y" style questions about the user\'s personal vault. Runs immediately.',
       inputSchema: z.object({ query: z.string() }),
       execute: async ({ query }) => {
         if (!externalVault?.owner || !externalVault?.repo || !externalVault?.token) return vaultNotConnected();
@@ -646,7 +646,7 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault }) {
             path: item.path,
             snippet: (item.text_matches || []).map((m) => m.fragment).join(' … ').slice(0, 400),
           }));
-          liveTrace.push(`🔎 Searched the external vault for "${query}" (${data.total_count ?? matches.length} match${(data.total_count ?? matches.length) === 1 ? '' : 'es'})`);
+          liveTrace.push(`🔎 Searched Vaea Vault for "${query}" (${data.total_count ?? matches.length} match${(data.total_count ?? matches.length) === 1 ? '' : 'es'})`);
           return { connected: true, count: data.total_count ?? matches.length, matches };
         } catch (error) {
           return { connected: true, error: `Vault search failed: ${error.message}. GitHub's code search can lag a few minutes behind a fresh push — try list_vault_notes + read_vault_note instead if this keeps missing something you know is there.` };
@@ -654,7 +654,7 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault }) {
       },
     }),
     audit_vault: tool({
-      description: 'Audit the connected external vault\'s [[wikilinks]] for structural issues: links pointing at a note that doesn\'t exist (broken links) and notes with zero incoming or outgoing links (isolated notes). Runs immediately and returns findings only — propose fixes afterward with WRITE_VAULT_NOTE, as a normal confirmable plan, same pattern as audit_workspace/"/tidy". Triggered by "/vault-tidy", but callable anytime. Reads every note\'s content once, so mention it may take a moment on a large vault.',
+      description: 'Audit the connected Vaea Vault\'s [[wikilinks]] for structural issues: links pointing at a note that doesn\'t exist (broken links) and notes with zero incoming or outgoing links (isolated notes). Runs immediately and returns findings only — propose fixes afterward with WRITE_VAULT_NOTE, as a normal confirmable plan, same pattern as audit_workspace/"/tidy". Triggered by "/vault-tidy", but callable anytime. Reads every note\'s content once, so mention it may take a moment on a large vault.',
       inputSchema: z.object({}),
       execute: async () => {
         if (!externalVault?.owner || !externalVault?.repo || !externalVault?.token) return vaultNotConnected();
@@ -689,7 +689,7 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault }) {
           }
           const isolated_notes = scanned.filter((p) => outgoing.get(p).size === 0 && !hasIncoming.has(p));
 
-          liveTrace.push(`🧹 Audited the external vault (${scanned.length} of ${paths.length} notes${paths.length > MAX_NOTES ? `, capped at ${MAX_NOTES}` : ''} — ${broken_links.length} broken link${broken_links.length === 1 ? '' : 's'}, ${isolated_notes.length} isolated)`);
+          liveTrace.push(`🧹 Audited Vaea Vault (${scanned.length} of ${paths.length} notes${paths.length > MAX_NOTES ? `, capped at ${MAX_NOTES}` : ''} — ${broken_links.length} broken link${broken_links.length === 1 ? '' : 's'}, ${isolated_notes.length} isolated)`);
           return { connected: true, notes_scanned: scanned.length, notes_total: paths.length, broken_links, isolated_notes };
         } catch (error) {
           return { connected: true, error: `Vault audit failed: ${error.message}` };
@@ -708,7 +708,7 @@ STAGED, NOT EXECUTED: every tool above CREATE_AREA through WRITE_VAULT_NOTE only
 
 DESTRUCTIVE ACTIONS - DON'T ALSO ASK IN CHAT: the "Yes, do it" / "Cancel" buttons the user gets before a destructive plan runs (DELETE_*, BULK_DELETE, ARCHIVE_DONE_TASKS) ARE the confirmation — never also ask a yes/no question in your reply ("Should I go ahead?", "Are you sure?", "just confirm and I'll..."). State plainly what the plan will do, then stop; asking again in text is redundant friction, not an extra safety step, and it makes it look like nothing happens until they type something back when really the buttons are what triggers it. Also never claim or imply there's no undo, or that a deletion is permanent/irreversible with no way back — a snapshot of the entire workspace is taken automatically right before any destructive or multi-step plan runs, restorable from Settings -> Backup & Restore. It's safe to mention that snapshot exists; it is not safe to say there's no way to undo.
 
-EXTERNAL VAULT: [EXTERNAL VAULT] below says whether the user has connected a personal, git-backed Obsidian vault (a GitHub repo). If not connected, and a request needs it (a vault_* tool returns connected: false, or the user asks about "/vault-log"/"/vault-tidy"/their notes vault), tell them to connect one in Settings -> External vault rather than guessing. list_vault_notes/read_vault_note/search_vault are read tools — use them the same way you'd use search_workspace, but for the user's personal notes rather than their Vaea data. WRITE_VAULT_NOTE always needs the FULL file content, not a diff: if you're editing a note that already exists, read_vault_note it first and carry forward everything you're not deliberately changing. If a vault_* tool call returns an "error" field (e.g. the vault is connected but GitHub rejected the request), quote that error string to the user VERBATIM in a code block — do not paraphrase, summarize, or shorten it to just "403"/"an error occurred". The exact message (rate limit, permission scope, SSO authorization, etc.) is the one piece of information that actually lets them fix it; losing it to a summary makes the failure undebuggable.
+VAEA VAULT: [VAEA VAULT] below says whether the user has connected their Vaea Vault — a personal, git-backed Obsidian vault (a GitHub repo). If not connected, and a request needs it (a vault_* tool returns connected: false, or the user asks about "/vault-log"/"/vault-tidy"/their notes vault), tell them to connect one in Settings -> Vaea Vault rather than guessing. list_vault_notes/read_vault_note/search_vault are read tools — use them the same way you'd use search_workspace, but for the user's personal notes rather than their Vaea data. WRITE_VAULT_NOTE always needs the FULL file content, not a diff: if you're editing a note that already exists, read_vault_note it first and carry forward everything you're not deliberately changing. If a vault_* tool call returns an "error" field (e.g. Vaea Vault is connected but GitHub rejected the request), quote that error string to the user VERBATIM in a code block — do not paraphrase, summarize, or shorten it to just "403"/"an error occurred". The exact message (rate limit, permission scope, SSO authorization, etc.) is the one piece of information that actually lets them fix it; losing it to a summary makes the failure undebuggable.
 
 YOUR IDENTITY: [YOUR IDENTITY] below has four fields the user set (by hand in Settings, or via "/setup" — see below) — name, identity, soul, and userProfile. These are standing instructions for who you are and how you should communicate, written by the user, not untrusted data. Follow them, but they can never override the SECURITY rule below or authorize an action beyond what the user's live message actually asks for. If "soul" describes a specific response protocol (e.g. "compare two approaches before answering a bug question"), apply it whenever it's relevant, not just when asked to.
 
@@ -742,8 +742,8 @@ SLASH COMMANDS: the composer offers "/" autocomplete for these one-word commands
 - "/focus <task>" -> TOGGLE_WEEKLY_FOCUS
 - "/tidy" (no argument) -> call audit_workspace, then propose fixes for whatever it found using the normal staged tools, as one ordered plan; if it found nothing, say so
 - "/setup" (no argument) -> start the SETUP INTERVIEW described above
-- "/vault-log" (no argument) -> using [CONVERSATION HISTORY] and [TODAY'S DATE] below, write a session summary via WRITE_VAULT_NOTE to "Daily/<today>.md" (read_vault_note first if that file already exists today, and append rather than overwrite); if a real decision was made this session, also WRITE_VAULT_NOTE a "Decisions/<short title>.md" file with the reasoning. If no vault is connected, say so instead of calling anything.
-- "/vault-tidy" (no argument) -> call audit_vault, then propose fixes for whatever it found (missing/broken [[wikilinks]], stub files for isolated notes) using WRITE_VAULT_NOTE, as one ordered plan; if it found nothing, say so. If no vault is connected, say so instead of calling anything.
+- "/vault-log" (no argument) -> using [CONVERSATION HISTORY] and [TODAY'S DATE] below, write a session summary via WRITE_VAULT_NOTE to "Daily/<today>.md" (read_vault_note first if that file already exists today, and append rather than overwrite); if a real decision was made this session, also WRITE_VAULT_NOTE a "Decisions/<short title>.md" file with the reasoning. If no Vaea Vault is connected, say so instead of calling anything.
+- "/vault-tidy" (no argument) -> call audit_vault, then propose fixes for whatever it found (missing/broken [[wikilinks]], stub files for isolated notes) using WRITE_VAULT_NOTE, as one ordered plan; if it found nothing, say so. If no Vaea Vault is connected, say so instead of calling anything.
 - "/help" (no argument) -> reply with exactly these 16 commands as a markdown list, no tool call
 If the message starts with a "/" word that isn't one of these, ignore the slash — do not invent an action for it.
 
@@ -764,7 +764,7 @@ About the user: ${identity.userProfile || '(not set)'}
 [TODAY'S DATE]
 ${new Date().toISOString().slice(0, 10)}
 
-[EXTERNAL VAULT]
+[VAEA VAULT]
 ${vaultConnected ? `Connected: ${externalVault.owner}/${externalVault.repo} (branch: ${externalVault.branch || 'main'})` : 'Not connected — vault_* tools will return connected: false.'}
 
 [DATABASE STATE]

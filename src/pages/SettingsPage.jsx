@@ -15,7 +15,7 @@ const SECTIONS = [
   { key: "ai", label: "AI Preferences", Component: AiPreferencesSection },
   { key: "ai-model", label: "AI Model", Component: AiModelSection },
   { key: "backup", label: "Backup & Restore", Component: BackupRestoreSection },
-  { key: "vault", label: "External Vault", Component: ExternalVaultSection },
+  { key: "vault", label: "Vaea Vault", Component: ExternalVaultSection },
   { key: "resources", label: "Resources", Component: ResourcesSection },
 ];
 

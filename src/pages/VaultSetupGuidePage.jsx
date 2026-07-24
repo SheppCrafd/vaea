@@ -78,7 +78,7 @@ const CONNECT_STEPS = [
     title: "Connect it in Vaea",
     body: (
       <>
-        In Vaea, open <strong className="text-foreground">Settings → External vault</strong> (or click the{" "}
+        In Vaea, open <strong className="text-foreground">Settings → Vaea Vault</strong> (or click the{" "}
         <Settings className="w-3.5 h-3.5 inline -mt-0.5" /> icon in chat for the same thing without leaving
         the conversation). Enter the GitHub username/org, the repo name, the branch (usually{" "}
         <span className="font-terminal text-xs text-foreground">main</span>), and the token from the step
@@ -123,22 +123,22 @@ export default function VaultSetupGuidePage() {
             <ArrowLeft className="w-3.5 h-3.5" />
             Settings
           </Link>
-          <h1 className="font-heading text-lg font-semibold">External Vault Setup</h1>
+          <h1 className="font-heading text-lg font-semibold">Vaea Vault Setup</h1>
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-6 py-10">
         {/* Hero */}
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-          Optional · separate from Vaea
+          Optional · your own Obsidian + GitHub vault
         </p>
         <h2 className="font-heading text-3xl font-semibold leading-tight mb-3">
-          Set up your own notes vault
+          Set up Vaea Vault
         </h2>
         <p className="text-muted-foreground leading-relaxed mb-8">
-          A personal, freeform space for decisions, things you learned, a running daily log — the notes that
-          don't fit a structured project tracker. Obsidian for writing, git and GitHub for keeping it safe —
-          and once it's connected, Vaea's assistant reads and writes it right alongside your workspace.
+          Vaea Vault is a personal, freeform space for decisions, things you learned, a running daily log — the
+          notes that don't fit a structured project tracker. Obsidian for writing, git and GitHub for keeping it
+          safe — and once it's connected, Vaea's assistant reads and writes it right alongside your workspace.
         </p>
 
         <div className="flex items-center justify-center gap-3 mb-12 py-6 rounded-xl border border-border bg-card">
@@ -242,7 +242,7 @@ git push -u origin main`}
         </div>
 
         <p className="text-sm text-muted-foreground leading-relaxed mt-12 pt-8 border-t border-border">
-          That's the whole thing — a real personal vault, and an assistant that actually reads and writes it.
+          That's Vaea Vault — a real personal vault, and an assistant that actually reads and writes it.
         </p>
       </div>
     </div>

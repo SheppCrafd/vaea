@@ -63,8 +63,8 @@ If you send a `/word` that isn't one of the commands below, it's simply treated 
 | `/focus <task>` | Mark a task as this week's focus |
 | `/tidy` | Audit the workspace for hygiene issues and propose fixes |
 | `/setup` | Interview you and set its own name/identity/soul (see below) |
-| `/vault-log` | Log this session to your connected external vault (see below) |
-| `/vault-tidy` | Audit your connected vault's wikilinks and propose fixes |
+| `/vault-log` | Log this session to your connected Vaea Vault (see below) |
+| `/vault-tidy` | Audit your connected Vaea Vault's wikilinks and propose fixes |
 | `/help` | List all available slash commands |
 
 The client-side list lives in `src/lib/chatCommands.js`; the matching server-side instructions (what each command maps to, and the "ignore anything not on this list" rule) live in `base44/functions/aiChatStream/entry.ts`.
@@ -82,9 +82,9 @@ Beyond full CRUD on every entity (areas/products/projects/tasks/stakeholders/dep
 
 The web search and file-reading calls are covered by the same one-request, nothing-persisted privacy guarantee as the rest of chat — see the Architecture section below.
 
-### External vault
+### Vaea Vault
 
-The assistant can also read and write a personal, git-backed Obsidian vault stored on GitHub — the same kind of connection a Claude Code + Obsidian setup gives a coding assistant, brought in-app instead of living in a CLI. **Settings → External vault**: connect a repo (owner, name, branch, and a personal access token — stored on this device, sent to Vaea's backend only for the moment a read tool actually runs, never persisted server-side). Never set one up before? **Settings → Resources → External vault setup guide** is a real in-app page (`src/pages/VaultSetupGuidePage.jsx`) walking through Obsidian + git + GitHub from scratch, ending in a real terminal-styled block (`src/components/settings/TerminalBlock.jsx`, prompt color follows your Appearance accent) with every command in order and a copy button.
+The assistant can also read and write Vaea Vault — a personal, git-backed Obsidian vault stored on GitHub — the same kind of connection a Claude Code + Obsidian setup gives a coding assistant, brought in-app instead of living in a CLI. **Settings → Vaea Vault**: connect a repo (owner, name, branch, and a personal access token — stored on this device, sent to Vaea's backend only for the moment a read tool actually runs, never persisted server-side). Never set one up before? **Settings → Resources → Vaea Vault setup guide** is a real in-app page (`src/pages/VaultSetupGuidePage.jsx`) walking through Obsidian + git + GitHub from scratch, ending in a real terminal-styled block (`src/components/settings/TerminalBlock.jsx`, prompt color follows your Appearance accent) with every command in order and a copy button.
 
 Once connected:
 - **Ask naturally** — `search_vault`, `read_vault_note`, and `list_vault_notes` are live tools (real GitHub Search/Contents API calls, results feed back into the model's next reasoning step) the assistant reaches for on its own, the in-app analog of a vault-crawler subagent.

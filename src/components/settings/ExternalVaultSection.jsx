@@ -11,11 +11,13 @@ const FIELDS = [
   { key: "branch", label: "Branch", placeholder: "main" },
 ];
 
-// Connects the Vaea assistant to an external, git-backed Obsidian vault it
-// can read from and write to — search it for context, log sessions to it
-// ("/vault-log"), audit and fix its wikilinks ("/vault-tidy"). See
-// vaultConnection.js for storage and githubApi.js for the actual GitHub
-// calls this makes.
+// "Vaea Vault" — connects the assistant to a personal, git-backed Obsidian
+// vault it can read from and write to — search it for context, log sessions
+// to it ("/vault-log"), audit and fix its wikilinks ("/vault-tidy"). It's
+// still the user's own external GitHub repo (Vaea just connects to it, the
+// same way it always has — this is a naming/branding change, not a new
+// storage location); see vaultConnection.js for connection storage and
+// githubApi.js for the actual GitHub calls this makes.
 export default function ExternalVaultSection() {
   const [connection, setConnection] = useState(DEFAULT_CONNECTION);
   const [status, setStatus] = useState("idle"); // idle | testing | ok | error | saved
@@ -65,7 +67,7 @@ export default function ExternalVaultSection() {
   return (
     <div className="bg-card border border-border rounded-xl p-6">
       <div className="flex items-center justify-between mb-1">
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">External vault</p>
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Vaea Vault</p>
         {connected && (
           <span className="flex items-center gap-1 text-[11px] text-primary font-medium">
             <Check className="w-3.5 h-3.5" /> Connected
@@ -73,8 +75,8 @@ export default function ExternalVaultSection() {
         )}
       </div>
       <p className="text-xs text-muted-foreground mb-4">
-        Let the assistant read and write a personal Obsidian vault stored on GitHub — pull in context, log
-        sessions, keep wikilinks and structure in shape. Reads run on the assistant's own turn; writes always
+        Vaea Vault lets the assistant read and write a personal Obsidian vault stored on GitHub — pull in context,
+        log sessions, keep wikilinks and structure in shape. Reads run on the assistant's own turn; writes always
         happen via a normal request, same as everything else it does. New to this?{" "}
         <a href="/settings/vault-setup" className="underline underline-offset-2 hover:text-foreground">Set one up first.</a>
       </p>

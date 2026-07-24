@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Bot, Fingerprint, Command, LockKeyhole, ArrowRight } from "lucide-react";
+import { Bot, Fingerprint, Command, LockKeyhole, ArrowRight, BookOpen, GitBranch, MessageCircle } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
 
 const HIGHLIGHTS = [
@@ -23,6 +23,24 @@ const HIGHLIGHTS = [
     icon: LockKeyhole,
     title: "Your stuff stays yours",
     body: "No account somewhere else quietly becoming another thing to manage. It all lives on your own device — signing in only unlocks Vaea Chat.",
+  },
+];
+
+const VAULT_REASONS = [
+  {
+    icon: BookOpen,
+    title: "Your notes, your app",
+    body: "Keep writing in Obsidian the way you already do — Vaea Vault just gets to read and write alongside you.",
+  },
+  {
+    icon: GitBranch,
+    title: "Backed up on every change",
+    body: "Every note is a real commit to your own GitHub account. Nothing to lose, and none of it stored on our servers.",
+  },
+  {
+    icon: MessageCircle,
+    title: "The assistant actually uses it",
+    body: "Ask what you decided last month and it'll go look, instead of you digging back through old notes yourself.",
   },
 ];
 
@@ -65,6 +83,35 @@ function AgentTranscript() {
   );
 }
 
+// The Vault section's own signature visual — deliberately not a repeat of
+// AgentTranscript's terminal chrome above: a file card (path + note content,
+// a [[wikilink]] rendered the way Obsidian would) instead of a command
+// transcript, so the two focal points read as related but distinct. The
+// commit strip at the bottom does real work, not just decoration — it's the
+// one visual that makes "backed up to your own GitHub, not stored by us"
+// land at a glance instead of requiring the reader to trust the copy alone.
+function VaultNoteMock() {
+  return (
+    <div className="w-full max-w-md mx-auto rounded-xl border border-border bg-card shadow-lg overflow-hidden">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+        <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
+        <span className="font-terminal text-[11px] text-muted-foreground">Daily/2026-07-24.md</span>
+      </div>
+      <div className="p-4 font-terminal text-[13px] leading-relaxed text-foreground">
+        <p># Today</p>
+        <p className="mt-2">Sorted Marketing, archived two stale projects.</p>
+        <p className="mt-2">
+          Decided to move launch prep under <span className="text-primary">[[Growth]]</span> instead of leaving it standalone.
+        </p>
+      </div>
+      <div className="flex items-center gap-1.5 px-4 py-2.5 border-t border-border bg-muted/40">
+        <GitBranch className="w-3 h-3 text-primary shrink-0" />
+        <span className="font-terminal text-[11px] text-muted-foreground">Committed to your GitHub — not ours</span>
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   useEffect(() => {
     document.title = "Vaea — for when you have too much going on";
@@ -76,7 +123,7 @@ export default function HomePage() {
         <div className="grid md:grid-cols-[1.15fr_1fr] gap-12 md:gap-16 items-center pb-16 sm:pb-24">
           <div>
             <p className="font-terminal text-xs uppercase tracking-widest text-primary mb-4">
-              For when it's all too much
+              For when it's all a bit too much
             </p>
             <h1 className="font-heading text-4xl sm:text-5xl font-semibold tracking-tight leading-[1.1]">
               There's a lot going on. Let's make it manageable.
@@ -128,6 +175,47 @@ export default function HomePage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t border-border bg-muted/30">
+        <div className="max-w-6xl mx-auto px-6 py-16 sm:py-20">
+          <div className="grid md:grid-cols-[1fr_1.15fr] gap-12 md:gap-16 items-center">
+            <VaultNoteMock />
+            <div>
+              <p className="font-terminal text-xs uppercase tracking-widest text-primary mb-4">
+                Vaea Vault · optional
+              </p>
+              <h2 className="font-heading text-2xl sm:text-3xl font-semibold tracking-tight leading-tight">
+                Already keeping notes somewhere? Bring them in too.
+              </h2>
+              <p className="mt-4 text-muted-foreground max-w-md">
+                Vaea Vault connects your own Obsidian notes — decisions, things you've learned, a running log of
+                what happened and why — right into the assistant. It reads them for context, and writes to them
+                when you ask.
+              </p>
+              <div className="mt-8 flex flex-col gap-5">
+                {VAULT_REASONS.map(({ icon: Icon, title, body }) => (
+                  <div key={title} className="flex gap-3">
+                    <div className="shrink-0 w-8 h-8 rounded-lg border border-border bg-card flex items-center justify-center">
+                      <Icon className="w-3.5 h-3.5 text-foreground" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium">{title}</h3>
+                      <p className="mt-0.5 text-sm text-muted-foreground">{body}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Link
+                to="/features"
+                className="mt-8 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                See how it connects
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
           </div>
         </div>
       </div>

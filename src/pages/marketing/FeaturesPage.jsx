@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import {
   Boxes, LayoutGrid, Command, FileSpreadsheet, Bot, Search, Fingerprint,
   Paperclip, ClipboardCheck, FolderCog, LockKeyhole, HardDrive, ArrowRight,
+  BookOpen, GitBranch, Wrench,
 } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
 
@@ -16,6 +17,16 @@ const GROUPS = [
       { icon: Search, title: "Looks things up for you", body: "If a task needs an answer it doesn't already have, it'll search the web instead of guessing." },
       { icon: Paperclip, title: "Reads what you hand it", body: "Drop a file into the chat and it actually reads it before deciding what to do." },
       { icon: ClipboardCheck, title: "Points out what's gone stale", body: "It can look through everything you've got and flag what hasn't been touched in a while, before it turns into another pile." },
+    ],
+  },
+  {
+    title: "Vaea Vault",
+    lede: "Optional: connect your own Obsidian notes and let the assistant read and write them too — decisions, things you've learned, a running daily log.",
+    items: [
+      { icon: BookOpen, title: "A personal notes vault, still yours", body: "A git-backed Obsidian vault on your own GitHub account — write the way you already do, nothing new to learn." },
+      { icon: Search, title: "Reads it for context, writes when you ask", body: "Ask what you decided last month and it goes and looks. Say \"/vault-log\" and it writes a real session summary as a commit." },
+      { icon: GitBranch, title: "Backed up on every change", body: "Every write is a real git commit to your own repo — recoverable from GitHub's own history, never something Vaea holds onto." },
+      { icon: Wrench, title: "Keeps it tidy", body: "\"/vault-tidy\" audits your notes' [[wikilinks]] for broken links and orphaned notes, then proposes fixes as a normal confirmable plan." },
     ],
   },
   {

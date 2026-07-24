@@ -341,7 +341,7 @@ export async function executeAction(action, args) {
 
     case "WRITE_VAULT_NOTE": {
       const connection = await loadVaultConnection();
-      if (!isVaultConnected(connection)) throw new Error("No external vault connected — set one up in Settings.");
+      if (!isVaultConnected(connection)) throw new Error("No Vaea Vault connected — set one up in Settings.");
       const result = await writeVaultFile({
         owner: connection.owner,
         repo: connection.repo,
