@@ -75,6 +75,7 @@ Beyond full CRUD on every entity (areas/products/projects/tasks/stakeholders/dep
 
 - **Search the web** for anything not in your local data (current events, a company's news) — runs for real, mid-conversation, and the result feeds back into its next step.
 - **Read an attached file's actual contents** (PDF, image, doc) and summarize or answer questions about it, not just treat it as an opaque filename.
+- **Read what a project's links actually point to** — a spec doc, a design file, a GitHub repo — instead of only knowing the label and URL text, so it can answer questions and take actions informed by what's really there.
 - **Search your own workspace** by keyword across every area/product/project/task/stakeholder/note (including archived) — a real search step instead of relying on it to read the full data dump itself.
 - **Audit the workspace** (`/tidy`) for hygiene issues — overdue/unowned projects, done-but-unarchived tasks, near-duplicate tasks, stakeholders missing a department, empty areas/products — then propose fixes as a normal confirmable plan. This only ever runs when you ask; there's no server-side data store for a true autonomous nightly pass to run against, so this is the deliberate, manually-triggered analog instead.
 - **Export any entity type to CSV** and switch the dashboard between Mini/Full card view, on request.

@@ -9,11 +9,12 @@
 // next turn.
 //
 // Deliberately NOT included here (base44-hosted chat only, for now):
-// web_search, analyze_attachment (need base44's own integrations), and the
-// WRITE_VAULT_NOTE/list_vault_notes/read_vault_note/search_vault/audit_vault
-// external-vault tools (need a client-side GitHub read layer that doesn't
-// exist yet — see githubApi.js). See systemPrompt.js's own note about this
-// gap, so a BYOK model is told the truth instead of pretending it can.
+// web_search, analyze_attachment, read_project_link (need base44's own
+// integrations), and the WRITE_VAULT_NOTE/list_vault_notes/read_vault_note/
+// search_vault/audit_vault external-vault tools (need a client-side GitHub
+// read layer that doesn't exist yet — see githubApi.js). See
+// systemPrompt.js's own note about this gap, so a BYOK model is told the
+// truth instead of pretending it can.
 const idDesc = (desc) => `${desc} — look this id up from [DATABASE STATE] by name/title; never invent one.`;
 const stakeholderIdsDesc = (desc) => `${desc} Pass the FULL desired array (not just additions/removals) — look up the entity's current value in [DATABASE STATE] and merge yourself.`;
 

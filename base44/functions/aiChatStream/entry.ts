@@ -540,6 +540,25 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault }) {
         }
       },
     }),
+    read_project_link: tool({
+      description: 'Read the real content at a URL from a project\'s "links" array (see [DATABASE STATE]) — a spec doc, a design file, a GitHub repo, a doc — instead of only seeing its label and URL text. Runs immediately and returns what\'s actually there, not a guess based on the URL/label alone. Use whenever a request needs to know what a linked resource actually says, not just that it exists.',
+      inputSchema: z.object({
+        url: z.string().describe('The exact URL from the project\'s links array — look it up in [DATABASE STATE] by the link\'s label, never invent one.'),
+        focus: z.string().optional().describe('What to focus the summary on, if the user asked about something specific.'),
+      }),
+      execute: async ({ url, focus }) => {
+        try {
+          const result = await base44.integrations.Core.InvokeLLM({
+            prompt: `Read the page at this URL and summarize its real content${focus ? `, focused on: ${focus}` : ''}. If the page can't be reached or read, say so plainly instead of guessing. URL: ${url}`,
+            add_context_from_internet: true,
+          });
+          liveTrace.push(`🔗 Read link: ${url}`);
+          return { result: typeof result === 'string' ? result : JSON.stringify(result) };
+        } catch (error) {
+          return { error: `Couldn't read that link: ${error.message}` };
+        }
+      },
+    }),
     search_workspace: tool({
       description: 'Search across all areas, products, projects (including archived), tasks (including archived), stakeholders, and notes for a keyword — use this for "what did we decide about X" / "find every task mentioning Y" style requests instead of scanning [DATABASE STATE] yourself.',
       inputSchema: z.object({ query: z.string() }),
@@ -704,7 +723,7 @@ function buildInstructions() {
 
 CRITICAL MAPPING RULE: when a tool needs an id, look it up from [DATABASE STATE] by the name/title the user gave. Never invent an id or pass a name where an id is expected.
 
-STAGED, NOT EXECUTED: every tool above CREATE_AREA through WRITE_VAULT_NOTE only STAGES a change — it does not happen until this response is returned and the user's own device runs it (immediately if safe, or after they click "Yes, do it" if destructive). Never phrase your final reply as if you already performed one of these — describe it prospectively ("I'll ...", "This will ..."), not as already done ("Done", "Created", "Logged"). The tools below that (web_search, analyze_attachment, search_workspace, audit_workspace, list_vault_notes, read_vault_note, search_vault, audit_vault) are the opposite: they run immediately and really did just happen, so you CAN describe their results in the past tense — but audit_workspace/audit_vault only ever surface findings, they never fix anything themselves; any fix still has to go through the normal staged tools above, as its own confirmable plan.
+STAGED, NOT EXECUTED: every tool above CREATE_AREA through WRITE_VAULT_NOTE only STAGES a change — it does not happen until this response is returned and the user's own device runs it (immediately if safe, or after they click "Yes, do it" if destructive). Never phrase your final reply as if you already performed one of these — describe it prospectively ("I'll ...", "This will ..."), not as already done ("Done", "Created", "Logged"). The tools below that (web_search, analyze_attachment, read_project_link, search_workspace, audit_workspace, list_vault_notes, read_vault_note, search_vault, audit_vault) are the opposite: they run immediately and really did just happen, so you CAN describe their results in the past tense — but audit_workspace/audit_vault only ever surface findings, they never fix anything themselves; any fix still has to go through the normal staged tools above, as its own confirmable plan.
 
 DESTRUCTIVE ACTIONS - DON'T ALSO ASK IN CHAT: the "Yes, do it" / "Cancel" buttons the user gets before a destructive plan runs (DELETE_*, BULK_DELETE, ARCHIVE_DONE_TASKS) ARE the confirmation — never also ask a yes/no question in your reply ("Should I go ahead?", "Are you sure?", "just confirm and I'll..."). State plainly what the plan will do, then stop; asking again in text is redundant friction, not an extra safety step, and it makes it look like nothing happens until they type something back when really the buttons are what triggers it. Also never claim or imply there's no undo, or that a deletion is permanent/irreversible with no way back — a snapshot of the entire workspace is taken automatically right before any destructive or multi-step plan runs, restorable from Settings -> Backup & Restore. It's safe to mention that snapshot exists; it is not safe to say there's no way to undo.
 
