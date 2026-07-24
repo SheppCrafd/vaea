@@ -256,7 +256,7 @@ function BackdoorModeConnect() {
       )}
 
       <Link
-        to="/settings/backdoor-setup"
+        to="/app/settings/backdoor-setup"
         className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 mt-3 w-fit"
       >
         Set up your local watcher script <ChevronRight className="w-3 h-3" />

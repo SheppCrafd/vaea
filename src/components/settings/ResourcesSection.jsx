@@ -10,7 +10,7 @@ export default function ResourcesSection() {
     <div className="bg-card border border-border rounded-xl p-6">
       <p className="text-xs font-medium text-muted-foreground mb-4 uppercase tracking-wider">Resources</p>
       <Link
-        to="/settings/vault-setup"
+        to="/app/settings/vault-setup"
         className="flex items-center justify-between gap-3 -mx-2 px-2 py-1.5 rounded-lg hover:bg-accent/50 transition-colors group"
       >
         <div className="flex items-center gap-3 min-w-0">

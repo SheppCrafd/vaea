@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Check, Github, Loader2, TriangleAlert, Unlink } from "lucide-react";
 import { loadVaultConnection, saveVaultConnection, clearVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
 import { testVaultConnection } from "@/lib/githubApi";
@@ -78,7 +79,7 @@ export default function ExternalVaultSection() {
         Vaea Vault lets the assistant read and write a personal Obsidian vault stored on GitHub — pull in context,
         log sessions, keep wikilinks and structure in shape. Reads run on the assistant's own turn; writes always
         happen via a normal request, same as everything else it does. New to this?{" "}
-        <a href="/settings/vault-setup" className="underline underline-offset-2 hover:text-foreground">Set one up first.</a>
+        <Link to="/app/settings/vault-setup" className="underline underline-offset-2 hover:text-foreground">Set one up first.</Link>
       </p>
 
       <div className="flex flex-col gap-3 mb-4">
