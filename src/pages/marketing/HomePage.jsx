@@ -91,15 +91,17 @@ function AgentTranscript() {
         <p className="text-foreground">
           <span className="text-primary">{'>'}</span> Marketing's a mess and I don't have time to sort it, can you clean it up
         </p>
+                <p className="mt-3 text-foreground">
+          Staging that now. Once that goes through, it'll be a lot easier to see what we're actually working on. What's next on the cleanup list? We still have those ownership and department gaps to sort out if you want to keep rolling.
+          </p>
         <div className="mt-3 space-y-1 text-muted-foreground">
-          <p>Looking through all 14 things in Marketing...</p>
-          <p>Archived "Q1 Newsletter" — nobody's touched it in 6 weeks</p>
-          <p>Moved "Landing Page Copy" over to Growth, where it belongs</p>
-          <p>Archived "Old Brand Deck"</p>
+          <p>plan · reviewing 14 projects across 3 products</p>
+          <p>tool call · archive_project("Q1 Newsletter")</p>
+          <p>tool call · move_project("Landing Page Copy" → Growth)</p>
+          <p>tool call · archive_project("Old Brand Deck")</p>
         </div>
         <p className="mt-3 text-foreground">
-          Archived 2, moved 1. Marketing's down to 11 active projects —
-          want the same pass on Ops?
+          Done.
           <span className="inline-block w-[7px] h-[13px] bg-primary/70 align-middle ml-0.5" />
         </p>
       </div>
