@@ -126,6 +126,7 @@ export default function ChatPage() {
             resolvingId={chat.resolvingId}
             onConfirm={chat.handleConfirm}
             onCancel={chat.handleCancel}
+            newMessageIds={chat.newMessageIds}
           />
 
           {chat.attachedFile && (

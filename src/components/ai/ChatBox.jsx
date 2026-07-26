@@ -132,6 +132,7 @@ export default function ChatBox({ activeProjectId }) {
             resolvingId={chat.resolvingId}
             onConfirm={chat.handleConfirm}
             onCancel={chat.handleCancel}
+            newMessageIds={chat.newMessageIds}
           />
 
           {chat.attachedFile && (

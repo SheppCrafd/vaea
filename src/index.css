@@ -248,9 +248,8 @@
 }
 
 /* Each live "plan ·" / "tool call ·" line fades/lifts in the moment it's
-   appended (see useChatController.js's liveSteps) — same motion as
-   .chat-message-content's cascade, but driven by a real state update per
-   step instead of a fixed per-child delay. */
+   appended (see useChatController.js's liveSteps), driven by a real state
+   update per step rather than a fixed per-child delay. */
 .chat-step-reveal {
   animation: chat-fade-in-line 0.25s ease forwards;
 }
@@ -263,27 +262,3 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-.chat-message-content > * {
-  opacity: 0;
-  animation: chat-fade-in-line 0.35s ease forwards;
-}
-.chat-message-content > *:nth-child(1) { animation-delay: 0ms; }
-.chat-message-content > *:nth-child(2) { animation-delay: 80ms; }
-.chat-message-content > *:nth-child(3) { animation-delay: 160ms; }
-.chat-message-content > *:nth-child(4) { animation-delay: 240ms; }
-.chat-message-content > *:nth-child(5) { animation-delay: 320ms; }
-.chat-message-content > *:nth-child(6) { animation-delay: 400ms; }
-.chat-message-content > *:nth-child(7) { animation-delay: 480ms; }
-.chat-message-content > *:nth-child(n+8) { animation-delay: 560ms; }
-
-.chat-message-content li {
-  opacity: 0;
-  animation: chat-fade-in-line 0.35s ease forwards;
-}
-.chat-message-content li:nth-child(1) { animation-delay: 0ms; }
-.chat-message-content li:nth-child(2) { animation-delay: 70ms; }
-.chat-message-content li:nth-child(3) { animation-delay: 140ms; }
-.chat-message-content li:nth-child(4) { animation-delay: 210ms; }
-.chat-message-content li:nth-child(5) { animation-delay: 280ms; }
-.chat-message-content li:nth-child(6) { animation-delay: 350ms; }
-.chat-message-content li:nth-child(n+7) { animation-delay: 420ms; }

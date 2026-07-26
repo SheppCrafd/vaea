@@ -107,6 +107,16 @@ export function useChatController({ activeProjectId } = {}) {
   const [activeSessionId, setActiveSessionId] = useState(() => readStorage(SESSION_STORAGE_KEY));
   const [aiIdentity, setAiIdentity] = useState(IDENTITY_DEFAULTS);
   const [authPromptVisible, setAuthPromptVisible] = useState(false);
+  // IDs of assistant messages actually created during this mounted session's
+  // live send/confirm/cancel flow — ChatMessageList uses this to type out
+  // only a message that just arrived, never one loaded from chat history on
+  // mount (this state starts empty on every fresh mount, so history is never
+  // retroactively marked "new").
+  const [newMessageIds, setNewMessageIds] = useState(() => new Set());
+  const markMessageNew = (id) => {
+    if (!id) return;
+    setNewMessageIds((prev) => new Set(prev).add(id));
+  };
 
   useEffect(() => {
     loadAiIdentity().then(setAiIdentity);
@@ -308,7 +318,8 @@ export function useChatController({ activeProjectId } = {}) {
         if (actions[0]?.action === "UNDO_LAST_ACTION") {
           await runUndo();
         }
-        await createMessage.mutateAsync({ session_id: sessionId, role: "assistant", content: reply });
+        const created = await createMessage.mutateAsync({ session_id: sessionId, role: "assistant", content: reply });
+        markMessageNew(created.id);
         return;
       }
 
@@ -353,13 +364,15 @@ export function useChatController({ activeProjectId } = {}) {
       const toolLog = [describePlan(executable), ...results.map(describeToolCall)].join("\n");
       const content = `\`\`\`tool-log\n${toolLog}\n\`\`\`\n${reply}`;
       setLiveSteps([]);
-      await createMessage.mutateAsync({
+      const created = await createMessage.mutateAsync({
         session_id: sessionId, role: "assistant", content,
         tool_log_detail: { plan: executable, steps: results },
       });
+      markMessageNew(created.id);
       await invalidateAppQueries();
     } catch (error) {
-      await createMessage.mutateAsync({ session_id: sessionId, role: "assistant", content: `⚠️ Error: ${error.message}` });
+      const created = await createMessage.mutateAsync({ session_id: sessionId, role: "assistant", content: `⚠️ Error: ${error.message}` });
+      markMessageNew(created.id);
     } finally {
       setIsComputing(false);
       setLiveSteps([]);
@@ -390,13 +403,15 @@ export function useChatController({ activeProjectId } = {}) {
       // — confirmMessage used to just be that same `reply` string again).
       const toolLog = [describePlan(actions), ...results.map(describeToolCall)].join("\n");
       setLiveSteps([]);
-      await createMessage.mutateAsync({
+      const created = await createMessage.mutateAsync({
         session_id: message.session_id, role: "assistant", content: `\`\`\`tool-log\n${toolLog}\n\`\`\`\nDone.`,
         tool_log_detail: { plan: actions, steps: results },
       });
+      markMessageNew(created.id);
       await invalidateAppQueries();
     } catch (error) {
-      await createMessage.mutateAsync({ session_id: message.session_id, role: "assistant", content: `⚠️ Couldn't complete that: ${error.message}` });
+      const created = await createMessage.mutateAsync({ session_id: message.session_id, role: "assistant", content: `⚠️ Couldn't complete that: ${error.message}` });
+      markMessageNew(created.id);
     } finally {
       setIsComputing(false);
       setResolvingId(null);
@@ -408,7 +423,8 @@ export function useChatController({ activeProjectId } = {}) {
     setResolvingId(message.id);
     try {
       await updateMessage.mutateAsync({ id: message.id, data: { session_id: message.session_id, role: message.role, content: message.content, pending_action: null } });
-      await createMessage.mutateAsync({ session_id: message.session_id, role: "assistant", content: "Okay, cancelled." });
+      const created = await createMessage.mutateAsync({ session_id: message.session_id, role: "assistant", content: "Okay, cancelled." });
+      markMessageNew(created.id);
     } finally {
       setResolvingId(null);
     }
@@ -426,6 +442,7 @@ export function useChatController({ activeProjectId } = {}) {
     input, setInput,
     isComputing,
     liveSteps,
+    newMessageIds,
     aiIdentity,
     attachedFile, setAttachedFile,
     isUploadingAttachment,

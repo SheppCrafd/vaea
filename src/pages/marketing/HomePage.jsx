@@ -1,6 +1,9 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Bot, Fingerprint, Command, LockKeyhole, ArrowRight, BookOpen, GitBranch, MessageCircle } from "lucide-react";
+import {
+  Bot, Fingerprint, Command, LockKeyhole, ArrowRight, BookOpen, GitBranch, MessageCircle,
+  Search, Package, FolderKanban, ListTodo, Boxes, LayoutGrid, FolderCog,
+} from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Reveal, GlowOrb } from "./effects";
@@ -55,6 +58,27 @@ const HIGHLIGHTS = [
   },
 ];
 
+// Verbatim from FeaturesPage's own "Organize" group — reused here rather
+// than paraphrased, so this section's claims stay identical to the ones
+// already reviewed for tone/accuracy there.
+const ORGANIZE_ITEMS = [
+  {
+    icon: Boxes,
+    title: "Everything nests inside something bigger",
+    body: "A big area of your life or work, broken down into smaller pieces, broken down into the actual tasks — nothing just floating on its own with no home.",
+  },
+  {
+    icon: LayoutGrid,
+    title: "See as much or as little as you need",
+    body: "Zoom out for a quick scan of everything at once, or zoom in when one thing needs your full attention.",
+  },
+  {
+    icon: FolderCog,
+    title: "Click in without losing your place",
+    body: "Open something bigger and what's inside it opens right there with it — no separate page to load, no hunting for your way back.",
+  },
+];
+
 const VAULT_REASONS = [
   {
     icon: BookOpen,
@@ -86,7 +110,7 @@ const VAULT_REASONS = [
 // shoot, so the app's own real UI, lit like one, is the hero shot instead.
 function AgentTranscript() {
   return (
-    <div className={`relative w-full max-w-lg mx-auto rounded-2xl overflow-hidden ${glassPanel}`}>
+    <div className={`relative w-full max-w-3xl mx-auto rounded-2xl overflow-hidden ${glassPanel}`}>
       <div className="flex items-center gap-1.5 px-5 py-3.5 border-b border-white/10">
         <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
         <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
@@ -124,7 +148,7 @@ function AgentTranscript() {
 // land at a glance instead of requiring the reader to trust the copy alone.
 function VaultNoteMock() {
   return (
-    <div className={`relative w-full max-w-lg mx-auto rounded-2xl overflow-hidden ${glassPanel}`}>
+    <div className={`relative w-full max-w-3xl mx-auto rounded-2xl overflow-hidden ${glassPanel}`}>
       <div className="flex items-center gap-2 px-5 py-3.5 border-b border-white/10">
         <BookOpen className="w-3.5 h-3.5 text-white/40" />
         <span className="font-terminal text-[11px] text-white/40">Daily/2026-07-24.md</span>
@@ -139,6 +163,87 @@ function VaultNoteMock() {
       <div className="flex items-center gap-1.5 px-5 py-3 border-t border-white/10 bg-white/[0.02]">
         <GitBranch className="w-3 h-3 text-[#46BAD1] shrink-0" />
         <span className="font-terminal text-[11px] text-white/40">Committed to your GitHub — not ours</span>
+      </div>
+    </div>
+  );
+}
+
+// The Chat section's second visual: the real global search/quick-action
+// palette (Ctrl/Cmd+K, see src/components/command/CommandPalette.jsx),
+// reproduced with its actual chrome — same icon-per-result-type mapping
+// (Package/FolderKanban/ListTodo), the same "↑↓ navigate · ↵ open · ctrl+↵
+// new tab" hint row, the same Esc kbd — rather than the dark-glass treatment
+// the other mockups use, since this is showing real light-mode app UI, not
+// standing in for product photography. Reuses the same fictional workspace
+// (Growth, Landing Page Copy) the hero's transcript already established.
+function CommandDemo() {
+  const results = [
+    { Icon: Package, title: "Growth", subtitle: "Product" },
+    { Icon: FolderKanban, title: "Landing Page Copy", subtitle: "in Growth" },
+    { Icon: ListTodo, title: "Write header copy", subtitle: "Landing Page Copy" },
+  ];
+  return (
+    <div className="w-full max-w-xl mx-auto rounded-xl border border-border bg-card shadow-2xl overflow-hidden text-left">
+      <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border">
+        <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+        <span className="flex-1 text-sm">growth</span>
+        <kbd className="shrink-0 text-[10px] font-mono text-muted-foreground border border-border rounded px-1.5 py-0.5">Esc</kbd>
+      </div>
+      <div className="py-1.5">
+        {results.map(({ Icon, title, subtitle }, i) => (
+          <div key={title} className={`flex items-center gap-3 px-4 py-2 ${i === 0 ? "bg-secondary" : ""}`}>
+            <Icon className="w-4 h-4 shrink-0 text-muted-foreground" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-medium truncate">{title}</span>
+              <span className="block text-xs text-muted-foreground truncate">{subtitle}</span>
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center gap-3 px-4 py-2 border-t border-border text-[10px] text-muted-foreground">
+        <span className="flex items-center gap-1"><kbd className="font-mono border border-border rounded px-1 py-0.5">↑↓</kbd> navigate</span>
+        <span className="flex items-center gap-1"><kbd className="font-mono border border-border rounded px-1 py-0.5">↵</kbd> open</span>
+        <span className="flex items-center gap-1"><kbd className="font-mono border border-border rounded px-1 py-0.5">ctrl+↵</kbd> new tab</span>
+      </div>
+    </div>
+  );
+}
+
+// The Organize section's visual: the real Area → Product → Project nesting,
+// each level using its actual elevation treatment from the app's own design
+// system (Area: bg-card + shadow-md; Product: recessed bg-muted/40, no
+// shadow of its own; Project: pops back to bg-card — see AreaCard.jsx/
+// ProductCard.jsx and the Visual Design Refresh decision), not an invented
+// layout. Task status dots use the app's real --status-* colors from
+// index.css.
+function HierarchyDemo() {
+  return (
+    <div className="w-full max-w-xl mx-auto rounded-xl bg-card border border-border shadow-md p-5 text-left">
+      <p className="text-sm font-semibold flex items-center gap-2">
+        <Boxes className="w-4 h-4 text-muted-foreground" />
+        Growth
+      </p>
+      <div className="mt-3 rounded-xl bg-muted/40 border border-border/70 p-4">
+        <p className="text-sm font-medium flex items-center gap-2">
+          <Package className="w-3.5 h-3.5 text-muted-foreground" />
+          Website Relaunch
+        </p>
+        <div className="mt-3 rounded-lg bg-card border border-border shadow-sm p-3">
+          <p className="text-sm font-medium flex items-center gap-2">
+            <FolderKanban className="w-3.5 h-3.5 text-muted-foreground" />
+            Landing Page Copy
+          </p>
+          <div className="mt-2.5 space-y-1.5">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: "#4caf50" }} />
+              Write header copy
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: "#ff9800" }} />
+              Draft CTA variants
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -185,7 +290,7 @@ export default function HomePage() {
 
       {/* Vaea Chat — product section, light */}
       <div className="relative bg-background">
-        <div className="max-w-5xl mx-auto px-6 py-24 sm:py-32">
+        <div className="max-w-6xl mx-auto px-6 py-24 sm:py-32">
           <Reveal className="text-center max-w-2xl mx-auto">
             <p className={`${eyebrowOnLight} mb-4`}>Vaea Chat</p>
             <h2 className="font-heading text-3xl sm:text-4xl font-semibold tracking-tight leading-tight">
@@ -197,7 +302,11 @@ export default function HomePage() {
             </Link>
           </Reveal>
 
-          <Reveal delay={150} className="mt-16 grid sm:grid-cols-2 gap-5">
+          <Reveal delay={150} className="mt-14 max-w-3xl mx-auto rounded-[2.5rem] bg-gradient-to-b from-muted/70 to-muted/10 p-10 sm:p-16">
+            <CommandDemo />
+          </Reveal>
+
+          <Reveal delay={250} className="mt-14 grid sm:grid-cols-2 gap-5 max-w-4xl mx-auto">
             {HIGHLIGHTS.map(({ icon: Icon, title, body }) => (
               <div key={title} className={`flex gap-4 p-5 rounded-2xl ${glassTileLight}`}>
                 <div className="shrink-0 w-10 h-10 rounded-xl bg-background border border-border/70 flex items-center justify-center shadow-sm">
@@ -206,6 +315,42 @@ export default function HomePage() {
                 <div>
                   <h3 className="font-medium">{title}</h3>
                   <p className="mt-1 text-sm text-muted-foreground">{body}</p>
+                </div>
+              </div>
+            ))}
+          </Reveal>
+        </div>
+      </div>
+
+      {/* Organize — product section, light, straight after Chat (two light
+          sections back to back is fine — Apple doesn't strictly alternate
+          every section either); the nested-hierarchy demo is the visual */}
+      <div className="relative bg-muted/20 border-t border-border/60">
+        <div className="max-w-4xl mx-auto px-6 py-24 sm:py-28 text-center">
+          <Reveal>
+            <p className={`${eyebrowOnLight} mb-4`}>Organize</p>
+            <h2 className="font-heading text-3xl sm:text-4xl font-semibold tracking-tight leading-tight">
+              Everything nests inside something bigger
+            </h2>
+            <p className="mt-4 text-muted-foreground max-w-lg mx-auto">
+              A big area of your life or work, broken down into smaller pieces, broken down into
+              the actual tasks — nothing just floating on its own with no home.
+            </p>
+          </Reveal>
+
+          <Reveal delay={150} className="mt-14 max-w-3xl mx-auto rounded-[2.5rem] bg-gradient-to-b from-card to-background border border-border/60 p-10 sm:p-16 shadow-sm">
+            <HierarchyDemo />
+          </Reveal>
+
+          <Reveal delay={250} className="mt-12 grid sm:grid-cols-2 gap-6 text-left max-w-2xl mx-auto">
+            {ORGANIZE_ITEMS.slice(1).map(({ icon: Icon, title, body }) => (
+              <div key={title} className="flex gap-3">
+                <div className="shrink-0 w-8 h-8 rounded-lg bg-card border border-border/70 flex items-center justify-center shadow-sm">
+                  <Icon className="w-3.5 h-3.5 text-foreground" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium">{title}</h3>
+                  <p className="mt-0.5 text-sm text-muted-foreground">{body}</p>
                 </div>
               </div>
             ))}

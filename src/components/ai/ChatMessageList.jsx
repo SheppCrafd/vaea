@@ -57,6 +57,56 @@ function makeMarkdownComponents(toolLogDetail, onOpenDetail) {
   };
 }
 
+// A persisted message's content is `` ```tool-log\n...\n``` `` + the reply
+// text, when the turn executed actions (see useChatController.js). That
+// tool-log block already had its own live line-by-line reveal (liveSteps,
+// .chat-step-reveal) before this message ever existed, so only the reply
+// portion should type out — replaying the tool-log lines a second time here
+// would be redundant. Plain replies (no actions) have no prefix at all.
+const TOOL_LOG_PREFIX_RE = /^```tool-log\n[\s\S]*?\n```\n/;
+function splitToolLogPrefix(content) {
+  const match = content.match(TOOL_LOG_PREFIX_RE);
+  if (!match) return { prefix: "", reply: content };
+  return { prefix: match[0], reply: content.slice(match[0].length) };
+}
+
+// Reveals `fullText` a character at a time when `enabled`; otherwise (a
+// message loaded from chat history, not one that just arrived) it's shown
+// in full immediately, with no animation at all. Duration scales with
+// length but is capped, so a long reply still finishes typing quickly
+// rather than crawling. Runs once per mount only — a message's content
+// never changes after it's created, so there's nothing to re-trigger on.
+function useTypewriter(fullText, enabled) {
+  const [shownLength, setShownLength] = useState(enabled ? 0 : fullText.length);
+  const finishedRef = useRef(!enabled);
+
+  useEffect(() => {
+    if (!enabled || finishedRef.current) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setShownLength(fullText.length);
+      finishedRef.current = true;
+      return;
+    }
+    let raf;
+    const start = performance.now();
+    const duration = Math.min(1800, Math.max(300, fullText.length * 10));
+    const tick = (now) => {
+      const progress = Math.min(1, (now - start) / duration);
+      setShownLength(Math.floor(progress * fullText.length));
+      if (progress < 1) {
+        raf = requestAnimationFrame(tick);
+      } else {
+        finishedRef.current = true;
+      }
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return { shown: fullText.slice(0, shownLength), isTyping: enabled && !finishedRef.current };
+}
+
 // One assistant message, split out so its `useMemo` can keep `components`
 // referentially stable across re-renders that don't actually change this
 // message (e.g. every keystroke in the send box re-rendering the whole
@@ -65,11 +115,14 @@ function makeMarkdownComponents(toolLogDetail, onOpenDetail) {
 // component *type* each time — React can't reconcile a changed component
 // type in place, so it unmounted and remounted the whole rendered message
 // instead, replaying the tool-log lines' fade-in every single keystroke.
-function ChatAssistantMessage({ m, onOpenDetail }) {
+function ChatAssistantMessage({ m, onOpenDetail, isNew }) {
   const components = useMemo(() => makeMarkdownComponents(m.tool_log_detail, onOpenDetail), [m.tool_log_detail, onOpenDetail]);
+  const { prefix, reply } = useMemo(() => splitToolLogPrefix(m.content), [m.content]);
+  const { shown, isTyping } = useTypewriter(reply, isNew);
   return (
-    <div className="chat-message-content text-foreground">
-      <ReactMarkdown urlTransform={sanitizeUrl} components={components}>{m.content}</ReactMarkdown>
+    <div className="text-foreground">
+      <ReactMarkdown urlTransform={sanitizeUrl} components={components}>{prefix + shown}</ReactMarkdown>
+      {isTyping && <span className="inline-block w-[7px] h-[13px] bg-primary/70 align-middle ml-0.5 chat-cursor-blink" />}
     </div>
   );
 }
@@ -81,7 +134,7 @@ function ChatAssistantMessage({ m, onOpenDetail }) {
 // register as the marketing site's hero mockup, not a decorative match: it's
 // the one place real assistant output belongs (see --font-terminal in
 // index.css).
-export default function ChatMessageList({ messages, isComputing, liveSteps, iconChoice, hasMore, onLoadMore, resolvingId, onConfirm, onCancel }) {
+export default function ChatMessageList({ messages, isComputing, liveSteps, iconChoice, hasMore, onLoadMore, resolvingId, onConfirm, onCancel, newMessageIds }) {
   const containerRef = useRef(null);
   const [openDetail, setOpenDetail] = useState(null);
 
@@ -119,7 +172,7 @@ export default function ChatMessageList({ messages, isComputing, liveSteps, icon
               <span className="text-primary">{'>'}</span> {m.content}
             </p>
           ) : (
-            <ChatAssistantMessage m={m} onOpenDetail={setOpenDetail} />
+            <ChatAssistantMessage m={m} onOpenDetail={setOpenDetail} isNew={newMessageIds?.has(m.id) ?? false} />
           )}
           {m.pending_action && (
             <div className="mt-1.5 flex gap-2 justify-start">
