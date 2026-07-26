@@ -71,7 +71,7 @@ export default function HowItWorksPage() {
               Ready to get it off your plate?
             </h2>
             <div className="mt-8">
-              <Link to="/login" className={pillOnDark}>
+              <Link to="/signup" className={pillOnDark}>
                 Get started
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>

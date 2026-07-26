@@ -148,6 +148,11 @@ export default function LoginScreen() {
         </div>
 
         <p className="text-center text-xs text-muted-foreground">
+          New here?{" "}
+          <Link to={`/signup${searchParams.get("from") ? `?from=${searchParams.get("from")}` : ""}`} className="underline hover:text-foreground transition-colors">
+            Create an account
+          </Link>
+          {" · "}
           <Link to="/" className="underline hover:text-foreground transition-colors">Back to home</Link>
         </p>
       </div>

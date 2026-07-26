@@ -98,7 +98,7 @@ function HeroSection() {
             it up when you ask, instead of one more list you have to maintain yourself.
           </p>
           <div className="mt-9 flex flex-wrap items-center justify-center gap-5">
-            <Link to="/login" className={pillOnDark}>
+            <Link to="/signup" className={pillOnDark}>
               Get started
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
@@ -320,7 +320,7 @@ export default function HomePage() {
           <Reveal>
             <h2 className={displayL}>Ready to get it out of your head?</h2>
             <div className="mt-8">
-              <Link to="/login" className={pillOnDark}>
+              <Link to="/signup" className={pillOnDark}>
                 Get started
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>

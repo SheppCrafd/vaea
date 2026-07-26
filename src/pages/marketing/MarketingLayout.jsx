@@ -70,7 +70,7 @@ function NavBar() {
             Log in
           </Link>
           <Link
-            to="/login"
+            to="/signup"
             className="text-sm px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md transition-colors shadow-sm"
           >
             Sign up
@@ -118,6 +118,13 @@ function NavBar() {
             className="text-sm py-2.5 text-muted-foreground hover:text-foreground transition-colors"
           >
             Log in
+          </Link>
+          <Link
+            to="/signup"
+            onClick={() => setMobileOpen(false)}
+            className="text-sm py-2.5 font-medium text-foreground transition-colors"
+          >
+            Sign up
           </Link>
         </nav>
       )}

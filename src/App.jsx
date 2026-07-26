@@ -21,6 +21,7 @@ import HomePage from '@/pages/marketing/HomePage';
 import FeaturesPage from '@/pages/marketing/FeaturesPage';
 import HowItWorksPage from '@/pages/marketing/HowItWorksPage';
 import LoginPage from '@/pages/marketing/LoginPage';
+import SignUpPage from '@/pages/marketing/SignUpPage';
 // /chat and /settings are code-split out of the main bundle — they're
 // reached only by an explicit click (never on first load), so there's no
 // reason to make every visitor download and parse their code (react-markdown,
@@ -118,7 +119,7 @@ function App() {
                   <ScrollToTop />
                   <ErrorBoundary>
                     {/* The public marketing site (/, /features, /how-it-works,
-                        /login) renders completely outside AuthenticatedApp —
+                        /login, /signup) renders completely outside AuthenticatedApp —
                         real, unauthenticated, scrollable content, not just
                         past a lenient auth check. The actual product lives
                         under /app/*, gated by AuthenticatedApp as before. */}
@@ -127,6 +128,7 @@ function App() {
                       <Route path="/features" element={<FeaturesPage />} />
                       <Route path="/how-it-works" element={<HowItWorksPage />} />
                       <Route path="/login" element={<LoginPage />} />
+                      <Route path="/signup" element={<SignUpPage />} />
                       <Route path="/app/*" element={<AuthenticatedApp />} />
                       <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
