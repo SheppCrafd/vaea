@@ -5,11 +5,15 @@
     "key": {
       "type": "string"
     },
-    // Deliberately untyped — this mirrors deviceStorage.js's own generic
-    // key/value contract, and the values stored under different keys are a
-    // mix of arrays (areas/products/projects/tasks/...) and plain objects
-    // (AI identity, the vault connection), not a single shape.
-    "value": {}
+    // Typed "object" only because base44's schema validator requires a
+    // type string — no nested properties/items declared, so it's unenforced
+    // at runtime. Mirrors deviceStorage.js's own generic key/value contract;
+    // the values stored under different keys are actually a mix of arrays
+    // (areas/products/projects/tasks/...) and plain objects (AI identity,
+    // the vault connection), not a single shape.
+    "value": {
+      "type": "object"
+    }
   },
   "required": [
     "key",

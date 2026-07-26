@@ -10,6 +10,13 @@
 // every other caller of that module's functions don't need to know or care
 // this backend exists — deviceStorage.js is the only thing that imports
 // this file, dispatching to it when the user has chosen "cloud" storage.
+//
+// AppData.value is schema-typed "object" (base44 requires some type, and
+// enforces it as a real dict at write time), but real values are a mix of
+// arrays (tasks/projects/areas/...) and plain objects (AI identity, vault
+// connection). So every value is wrapped in a one-key envelope going in and
+// unwrapped coming out, keeping the column honestly object-shaped while
+// `value` stays whatever-shaped to every caller of this module.
 import { base44 } from "@/api/base44Client";
 
 // AppData row ids, once looked up, so a second write to the same key updates
@@ -28,15 +35,16 @@ export async function readKey(key) {
   const rows = await base44.entities.AppData.filter({ key });
   if (rows.length === 0) return null;
   rowIdCache.set(key, rows[0].id);
-  return rows[0].value ?? null;
+  return rows[0].value?.data ?? null;
 }
 
 export async function writeKey(key, value) {
+  const envelope = { data: value };
   const id = await findRowId(key);
   if (id) {
-    await base44.entities.AppData.update(id, { value });
+    await base44.entities.AppData.update(id, { value: envelope });
   } else {
-    const row = await base44.entities.AppData.create({ key, value });
+    const row = await base44.entities.AppData.create({ key, value: envelope });
     rowIdCache.set(key, row.id);
   }
 }
