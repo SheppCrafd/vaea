@@ -6,6 +6,8 @@ import {
   BookOpen, GitBranch, Wrench,
 } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
+import { Reveal, GlowOrb } from "./effects";
+import { darkSectionBg, darkText, pillOnDark, eyebrowOnDark } from "./theme";
 
 const GROUPS = [
   {
@@ -63,29 +65,37 @@ export default function FeaturesPage() {
 
   return (
     <MarketingLayout>
-      <div className="max-w-4xl mx-auto px-6 pt-16 sm:pt-20 pb-8">
-        <p className="font-terminal text-xs uppercase tracking-widest text-muted-foreground mb-4">Features</p>
-        <h1 className="font-heading text-4xl sm:text-5xl font-semibold tracking-tight leading-[1.1]">
-          Everything that's piling up, finally somewhere it can't get lost.
-        </h1>
-        <p className="mt-5 text-lg text-muted-foreground max-w-xl">
-          No pricing plans to compare, no limit on how much you throw at it — this is a
-          personal system built to catch everything and then get out of your way.
-        </p>
+      <div className={`relative overflow-hidden ${darkSectionBg} ${darkText}`}>
+        <GlowOrb className="w-[520px] h-[520px] -top-56 left-1/2 -translate-x-1/2" />
+        <div className="relative max-w-3xl mx-auto px-6 pt-24 sm:pt-32 pb-20 sm:pb-28 text-center">
+          <Reveal>
+            <p className={`${eyebrowOnDark} mb-4`}>Features</p>
+            <h1 className="font-heading text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight leading-[1.08]">
+              Everything that's piling up, finally somewhere it can't get lost.
+            </h1>
+            <p className="mt-5 text-lg text-white/60 max-w-xl mx-auto leading-relaxed">
+              No pricing plans to compare, no limit on how much you throw at it — this is a
+              personal system built to catch everything and then get out of your way.
+            </p>
+          </Reveal>
+        </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-6 pb-16 sm:pb-24">
+      <div className="max-w-4xl mx-auto px-6 py-16 sm:py-20">
         {GROUPS.map((group, i) => (
-          <div key={group.title} className={`py-10 sm:py-12 ${i > 0 ? "border-t border-border" : ""}`}>
+          <Reveal key={group.title} as="div" className={`py-10 sm:py-12 ${i > 0 ? "border-t border-border" : ""}`}>
             <div className="sm:grid sm:grid-cols-[220px_1fr] sm:gap-10">
               <div className="mb-6 sm:mb-0">
                 <h2 className="font-heading text-xl font-semibold tracking-tight">{group.title}</h2>
                 <p className="mt-2 text-sm text-muted-foreground">{group.lede}</p>
               </div>
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {group.items.map(({ icon: Icon, title, body }) => (
-                  <div key={title} className="flex gap-4">
-                    <div className="shrink-0 w-9 h-9 rounded-lg border border-border bg-card flex items-center justify-center">
+                  <div
+                    key={title}
+                    className="flex gap-4 p-4 -mx-4 rounded-xl transition-colors hover:bg-gradient-to-r hover:from-muted/50 hover:to-transparent"
+                  >
+                    <div className="shrink-0 w-9 h-9 rounded-lg bg-gradient-to-b from-card to-muted/60 border border-border/70 shadow-sm flex items-center justify-center">
                       <Icon className="w-4 h-4 text-foreground" />
                     </div>
                     <div>
@@ -96,28 +106,28 @@ export default function FeaturesPage() {
                 ))}
               </div>
             </div>
-          </div>
+          </Reveal>
         ))}
       </div>
 
-      <div className="border-t border-border">
-        <div className="max-w-6xl mx-auto px-6 py-16 sm:py-20 text-center">
-          <h2 className="font-heading text-2xl sm:text-3xl font-semibold tracking-tight">
-            See it come together
-          </h2>
-          <p className="mt-3 text-muted-foreground">Three steps from overwhelmed to organized.</p>
-          <div className="mt-6 flex items-center justify-center gap-4 flex-wrap">
-            <Link
-              to="/how-it-works"
-              className="inline-flex items-center gap-1.5 text-sm px-5 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md transition-colors"
-            >
-              How it works
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-            <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Or sign in directly
-            </Link>
-          </div>
+      <div className={`relative overflow-hidden ${darkSectionBg} ${darkText}`}>
+        <GlowOrb className="w-[480px] h-[480px] -bottom-52 left-1/2 -translate-x-1/2" />
+        <div className="relative max-w-3xl mx-auto px-6 py-24 sm:py-28 text-center">
+          <Reveal>
+            <h2 className="font-heading text-3xl sm:text-4xl font-semibold tracking-tight">
+              See it come together
+            </h2>
+            <p className="mt-3 text-white/60">Three steps from overwhelmed to organized.</p>
+            <div className="mt-8 flex items-center justify-center gap-5 flex-wrap">
+              <Link to="/how-it-works" className={pillOnDark}>
+                How it works
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+              <Link to="/login" className="text-sm text-white/60 hover:text-white transition-colors">
+                Or sign in directly
+              </Link>
+            </div>
+          </Reveal>
         </div>
       </div>
     </MarketingLayout>

@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
+import { Reveal, GlowOrb } from "./effects";
+import { darkSectionBg, darkText, pillOnDark, eyebrowOnDark } from "./theme";
 
 const STEPS = [
   {
@@ -25,24 +27,29 @@ export default function HowItWorksPage() {
 
   return (
     <MarketingLayout>
-      <div className="max-w-3xl mx-auto px-6 pt-16 sm:pt-20 pb-8">
-        <p className="font-terminal text-xs uppercase tracking-widest text-muted-foreground mb-4">How it works</p>
-        <h1 className="font-heading text-4xl sm:text-5xl font-semibold tracking-tight leading-[1.1]">
-          From overwhelmed to organized in three steps.
-        </h1>
+      <div className={`relative overflow-hidden ${darkSectionBg} ${darkText}`}>
+        <GlowOrb className="w-[520px] h-[520px] -top-56 left-1/2 -translate-x-1/2" />
+        <div className="relative max-w-3xl mx-auto px-6 pt-24 sm:pt-32 pb-20 sm:pb-28 text-center">
+          <Reveal>
+            <p className={`${eyebrowOnDark} mb-4`}>How it works</p>
+            <h1 className="font-heading text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight leading-[1.08]">
+              From overwhelmed to organized in three steps.
+            </h1>
+          </Reveal>
+        </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-6 pb-16 sm:pb-20">
+      <div className="max-w-3xl mx-auto px-6 py-16 sm:py-20">
         {STEPS.map(({ title, body }, i) => (
-          <div key={title} className={`flex gap-6 sm:gap-8 py-8 ${i > 0 ? "border-t border-border" : ""}`}>
-            <span className="font-heading text-4xl sm:text-5xl font-semibold text-primary/15 select-none leading-none shrink-0 w-12 sm:w-16">
+          <Reveal key={title} delay={i * 100} className={`flex gap-6 sm:gap-8 py-8 ${i > 0 ? "border-t border-border" : ""}`}>
+            <span className="font-heading text-4xl sm:text-5xl font-semibold text-[#46BAD1]/25 select-none leading-none shrink-0 w-12 sm:w-16">
               {String(i + 1).padStart(2, "0")}
             </span>
             <div>
               <h2 className="font-heading text-xl font-semibold tracking-tight">{title}</h2>
               <p className="mt-2 text-muted-foreground max-w-lg">{body}</p>
             </div>
-          </div>
+          </Reveal>
         ))}
 
         <div className="pt-8 border-t border-border">
@@ -54,20 +61,20 @@ export default function HowItWorksPage() {
         </div>
       </div>
 
-      <div className="border-t border-border">
-        <div className="max-w-6xl mx-auto px-6 py-16 sm:py-20 text-center">
-          <h2 className="font-heading text-2xl sm:text-3xl font-semibold tracking-tight">
-            Ready to get it off your plate?
-          </h2>
-          <div className="mt-6">
-            <Link
-              to="/login"
-              className="inline-flex items-center gap-1.5 text-sm px-5 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md transition-colors"
-            >
-              Get started
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
+      <div className={`relative overflow-hidden ${darkSectionBg} ${darkText}`}>
+        <GlowOrb className="w-[480px] h-[480px] -bottom-52 left-1/2 -translate-x-1/2" />
+        <div className="relative max-w-3xl mx-auto px-6 py-24 sm:py-32 text-center">
+          <Reveal>
+            <h2 className="font-heading text-3xl sm:text-4xl font-semibold tracking-tight">
+              Ready to get it off your plate?
+            </h2>
+            <div className="mt-8">
+              <Link to="/login" className={pillOnDark}>
+                Get started
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </Reveal>
         </div>
       </div>
     </MarketingLayout>
