@@ -112,7 +112,7 @@ function TaskRow({ task, allStakeholders, isMatched, updateTask, onToggleTopThre
         <EditableText
           value={task.description}
           onSave={(v) => updateTask.mutate({ id: task.id, data: { description: v } })}
-          className="text-xs"
+          className={`text-xs ${isTaskDone(task) ? "line-through text-muted-foreground/70" : ""}`}
         />
       </td>
       <td className="p-2">

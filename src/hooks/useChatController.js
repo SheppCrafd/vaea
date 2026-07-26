@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { MessageCircle, Bot, Sparkles, HelpCircle, Smile } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -11,6 +11,7 @@ import { loadVaultConnection } from "@/lib/vaultConnection";
 import { usePositionedMenu } from "@/hooks/usePositionedMenu";
 import { useCreateChatSession } from "@/hooks/useChatSessions";
 import { useChatMessages, useCreateChatMessage, useUpdateChatMessage } from "@/hooks/useChatMessages";
+import { useAiIdentity } from "@/hooks/useAiIdentity";
 
 // Icon component references only (no JSX here) so this can stay a plain .js
 // module — actual rendering happens in ChatIcon.jsx.
@@ -105,7 +106,10 @@ export function useChatController({ activeProjectId } = {}) {
   // (which carries the same lines, permanently) is created.
   const [liveSteps, setLiveSteps] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(() => readStorage(SESSION_STORAGE_KEY));
-  const [aiIdentity, setAiIdentity] = useState(IDENTITY_DEFAULTS);
+  // Cached via react-query (useAiIdentity.js) rather than local state read
+  // once on mount — this is what lets a name saved in Settings reach an
+  // already-mounted chat header immediately, instead of only after a reload.
+  const { data: aiIdentity = IDENTITY_DEFAULTS } = useAiIdentity();
   const [authPromptVisible, setAuthPromptVisible] = useState(false);
   // IDs of assistant messages actually created during this mounted session's
   // live send/confirm/cancel flow — ChatMessageList uses this to type out
@@ -117,10 +121,6 @@ export function useChatController({ activeProjectId } = {}) {
     if (!id) return;
     setNewMessageIds((prev) => new Set(prev).add(id));
   };
-
-  useEffect(() => {
-    loadAiIdentity().then(setAiIdentity);
-  }, []);
 
   const fileInputRef = useRef(null);
   const queryClient = useQueryClient();
@@ -134,9 +134,10 @@ export function useChatController({ activeProjectId } = {}) {
   const invalidateAppQueries = async () => {
     APP_QUERY_KEYS.forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
     // SET_AI_IDENTITY writes straight through deviceStorage (chatActions.js),
-    // same as every other action — re-read it so the header's displayed name
-    // updates immediately after "/setup" runs, not just on next reload.
-    setAiIdentity(await loadAiIdentity());
+    // same as every other action — invalidate the cached identity so the
+    // header's displayed name updates immediately after "/setup" runs, not
+    // just on next reload.
+    queryClient.invalidateQueries({ queryKey: ["aiIdentity"] });
   };
 
   const chooseIcon = (choice) => {

@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Check, Download, Upload } from "lucide-react";
-import { loadAiIdentity, saveAiIdentity, DEFAULTS as IDENTITY_DEFAULTS } from "@/lib/aiPreferences";
+import { DEFAULTS as IDENTITY_DEFAULTS } from "@/lib/aiPreferences";
+import { useAiIdentity, useSaveAiIdentity } from "@/hooks/useAiIdentity";
 
 const FIELDS = [
   { key: "name", label: "Name", placeholder: "Vaea Chat (default) — or give it a name of your own", rows: 1 },
@@ -15,19 +16,24 @@ const FIELDS = [
 // writes these fields with the SET_AI_IDENTITY tool — same staged/confirm
 // mechanism as everything else it does).
 export default function AiPreferencesSection() {
+  // Cached via react-query (useAiIdentity.js), shared with useChatController —
+  // saving here invalidates that shared cache, so an already-mounted chat
+  // header picks up a new name immediately instead of only after a reload.
+  const { data: savedIdentity, isSuccess } = useAiIdentity();
+  const saveIdentity = useSaveAiIdentity();
   const [identity, setIdentity] = useState(IDENTITY_DEFAULTS);
   const [justSaved, setJustSaved] = useState(false);
   const [importError, setImportError] = useState("");
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    loadAiIdentity().then(setIdentity);
-  }, []);
+    if (isSuccess) setIdentity(savedIdentity);
+  }, [isSuccess, savedIdentity]);
 
   const handleChange = (key, value) => setIdentity((prev) => ({ ...prev, [key]: value }));
 
   const handleSave = async () => {
-    await saveAiIdentity(identity);
+    await saveIdentity.mutateAsync(identity);
     setJustSaved(true);
     setTimeout(() => setJustSaved(false), 1500);
   };
@@ -58,7 +64,7 @@ export default function AiPreferencesSection() {
         FIELDS.map(({ key }) => [key, typeof parsed[key] === "string" ? parsed[key] : identity[key]])
       );
       setIdentity(imported);
-      await saveAiIdentity(imported);
+      await saveIdentity.mutateAsync(imported);
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 1500);
     } catch {

@@ -89,8 +89,8 @@ function HeroSection() {
         <Reveal className="text-center max-w-3xl mx-auto">
           <p className={`${eyebrowOnDark} mb-5`}>For when it&apos;s all a bit too much</p>
           <h1 className={displayXL}>
-            There&apos;s a lot going on.
-            <br className="hidden sm:block" /> Let&apos;s make it manageable.
+            From overwhelmed
+            <br className="hidden sm:block" /> to organized.
           </h1>
           <p className="mt-6 text-lg sm:text-xl text-white/60 max-w-xl mx-auto leading-relaxed">
             Vaea gives every project, task, and stray &quot;I should really deal with that&quot;
@@ -267,7 +267,7 @@ function VaultSection() {
 
 export default function HomePage() {
   useEffect(() => {
-    document.title = "Vaea — for when you have too much going on";
+    document.title = "Vaea — from overwhelmed to organized";
   }, []);
 
   return (
