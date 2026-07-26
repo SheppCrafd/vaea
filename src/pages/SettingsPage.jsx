@@ -5,6 +5,7 @@ import AppearanceSection from "@/components/settings/AppearanceSection";
 import AiPreferencesSection from "@/components/settings/AiPreferencesSection";
 import AiModelSection from "@/components/settings/AiModelSection";
 import BackupRestoreSection from "@/components/settings/BackupRestoreSection";
+import StorageSection from "@/components/settings/StorageSection";
 import ExternalVaultSection from "@/components/settings/ExternalVaultSection";
 import ResourcesSection from "@/components/settings/ResourcesSection";
 import { useAppStore } from "@/lib/store";
@@ -14,6 +15,7 @@ const SECTIONS = [
   { key: "appearance", label: "Appearance", Component: AppearanceSection },
   { key: "ai", label: "AI Preferences", Component: AiPreferencesSection },
   { key: "ai-model", label: "AI Model", Component: AiModelSection },
+  { key: "storage", label: "Data Storage", Component: StorageSection },
   { key: "backup", label: "Backup & Restore", Component: BackupRestoreSection },
   { key: "vault", label: "Vaea Vault", Component: ExternalVaultSection },
   { key: "resources", label: "Resources", Component: ResourcesSection },

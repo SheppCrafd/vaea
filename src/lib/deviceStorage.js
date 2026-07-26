@@ -4,7 +4,8 @@
 // lands as real files on the user's disk instead of inside the browser, even
 // when they're just on the hosted site with no cloned repo.
 //
-// Two backends, chosen once by capability, not per session:
+// Three backends. Which one is active is a user choice (see storage mode
+// below), not just capability-detected:
 // - File System Access (Chromium desktop only — window.showDirectoryPicker):
 //   a folder the user grants access to once; each key is written as
 //   `${key}.json` inside it, same shape as the dev file-backed store's
@@ -17,12 +18,60 @@
 //   exported JSON file to start, and exports an updated one to save. This is
 //   the only way to guarantee zero browser storage on browsers with no real
 //   filesystem API at all.
+// - Cloud (cloudStorage.js): data lives in a Base44-hosted entity instead of
+//   this device, scoped to the signed-in user — the deliberate exception to
+//   "nothing leaves the device," picked explicitly (DeviceStorageGate's
+//   first-run choice, or switched later in Settings), never silently.
 //
 // Callers never branch on which backend is active for reads/writes — only
-// the connection UI (DeviceStorageGate) cares, via getStatus/subscribeStatus.
+// the connection UI (DeviceStorageGate/StorageSection) cares, via
+// getStatus/subscribeStatus and getStorageMode.
+
+import * as cloudStorage from "@/lib/cloudStorage";
+import { appParams } from "@/lib/app-params";
 
 export const supportsFileSystemAccess =
   typeof window !== "undefined" && typeof window.showDirectoryPicker === "function";
+
+// Which backend readKey/writeKey/getStatus dispatch to — 'device' (FSA or
+// manual, chosen by capability as before) or 'cloud'. This has to live
+// outside every backend it's choosing between, so — like app-params.js's own
+// session token — it's the one other deliberate exception to "no app data in
+// browser storage": it isn't data, it's which storage holds the data.
+// Defaults to 'device' for anyone who hasn't explicitly chosen 'cloud' yet,
+// which is every pre-existing user — this backend was added after the fact,
+// and must not change behavior for anyone who never sees the new choice
+// screen (see DeviceStorageGate's hasStorageModeBeenChosen usage).
+const STORAGE_MODE_KEY = "vaea_storage_mode";
+
+export function hasStorageModeBeenChosen() {
+  try {
+    return localStorage.getItem(STORAGE_MODE_KEY) != null;
+  } catch {
+    return false;
+  }
+}
+
+export function getStorageMode() {
+  try {
+    return localStorage.getItem(STORAGE_MODE_KEY) || "device";
+  } catch {
+    return "device";
+  }
+}
+
+export function setStorageMode(mode) {
+  try {
+    localStorage.setItem(STORAGE_MODE_KEY, mode);
+  } catch {
+    // best-effort — worst case the choice doesn't survive a reload
+  }
+  notify();
+}
+
+function isCloudMode() {
+  return getStorageMode() === "cloud";
+}
 
 const HANDLE_DB_NAME = "vaea-device-storage";
 const HANDLE_STORE = "handles";
@@ -107,12 +156,23 @@ export function subscribeStatus(fn) {
   return () => statusListeners.delete(fn);
 }
 
-// 'connected'         — FSA mode, folder is live and writable this session
-// 'needs-permission'  — FSA mode, a remembered folder exists but needs a re-grant click
-// 'disconnected'      — FSA mode, no folder ever chosen
-// 'manual-ready'      — manual mode, an import or "start fresh" has happened this session
-// 'manual-needed'     — manual mode, nothing loaded yet
+// 'cloud-connected'   — cloud mode, a real session token is present
+// 'cloud-needs-auth'  — cloud mode chosen, but nobody's signed in yet
+// 'connected'         — device mode/FSA, folder is live and writable this session
+// 'needs-permission'  — device mode/FSA, a remembered folder exists but needs a re-grant click
+// 'disconnected'      — device mode/FSA, no folder ever chosen
+// 'manual-ready'      — device mode/manual, an import or "start fresh" has happened this session
+// 'manual-needed'     — device mode/manual, nothing loaded yet
 export async function getStatus() {
+  if (isCloudMode()) {
+    // A lightweight presence check, not a live validity check — mirrors
+    // AuthContext.jsx's own optimism (token present -> assume authenticated
+    // until an actual API call proves otherwise). A stale/expired token
+    // surfaces as a real failure the first time readKey/writeKey below
+    // actually calls out, same as any other authenticated request in this
+    // app.
+    return appParams.token ? "cloud-connected" : "cloud-needs-auth";
+  }
   if (supportsFileSystemAccess) {
     if (dirHandle) return "connected";
     const stored = await getStoredHandle();
@@ -226,7 +286,12 @@ async function fileHandleFor(key, { create }) {
   return dirHandle.getFileHandle(`${key}.json`, { create });
 }
 
-export async function readKey(key) {
+// The FSA/manual logic itself, exported directly under its own name too —
+// used by storageMigration.js to read *from* the device backend specifically
+// while switching to cloud, regardless of which mode is currently active
+// (readKey/writeKey below would just recurse into whichever mode is current,
+// which is no good mid-switch).
+export async function readDeviceKey(key) {
   if (supportsFileSystemAccess) {
     if (!dirHandle) throw new Error("Device folder not connected.");
     try {
@@ -242,7 +307,7 @@ export async function readKey(key) {
   return manualStore.has(key) ? manualStore.get(key) : null;
 }
 
-export async function writeKey(key, value) {
+export async function writeDeviceKey(key, value) {
   if (supportsFileSystemAccess) {
     if (!dirHandle) throw new Error("Device folder not connected.");
     const fh = await fileHandleFor(key, { create: true });
@@ -256,7 +321,17 @@ export async function writeKey(key, value) {
   notify();
 }
 
-export async function removeKey(key) {
+export async function readKey(key) {
+  if (isCloudMode()) return cloudStorage.readKey(key);
+  return readDeviceKey(key);
+}
+
+export async function writeKey(key, value) {
+  if (isCloudMode()) return cloudStorage.writeKey(key, value);
+  return writeDeviceKey(key, value);
+}
+
+export async function removeDeviceKey(key) {
   if (supportsFileSystemAccess) {
     if (!dirHandle) throw new Error("Device folder not connected.");
     try {
@@ -269,6 +344,11 @@ export async function removeKey(key) {
   manualStore.delete(key);
   manualDirty = true;
   notify();
+}
+
+export async function removeKey(key) {
+  if (isCloudMode()) return cloudStorage.removeKey(key);
+  return removeDeviceKey(key);
 }
 
 // Marks every currently-connected key as durably persisted — called after a

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Save } from "lucide-react";
+import { Save, Cloud, HardDrive } from "lucide-react";
+import { Link } from "react-router-dom";
 import {
   supportsFileSystemAccess,
   getStatus,
@@ -12,6 +13,8 @@ import {
   loadSnapshotFile,
   startFreshManual,
   writeKey,
+  hasStorageModeBeenChosen,
+  setStorageMode,
 } from "@/lib/deviceStorage";
 import {
   isFileBackedModeAvailable,
@@ -74,21 +77,72 @@ export default function DeviceStorageGate({ children }) {
         if (!cancelled) setPhase("ready");
         return;
       }
+      if (!hasStorageModeBeenChosen()) {
+        // Don't show the cloud-vs-device choice to someone who already has
+        // device storage connected from before this choice existed —
+        // getStatus() defaults to 'device' semantics when no mode is
+        // stored yet, so this checks exactly what they'd already see.
+        // Adopt it silently instead of re-asking.
+        const deviceStatus = await getStatus();
+        if (cancelled) return;
+        if (deviceStatus === "connected" || deviceStatus === "manual-ready") {
+          setStorageMode("device");
+          setPhase("ready");
+          return;
+        }
+        setPhase("choose-mode");
+        return;
+      }
       const status = await getStatus();
       if (cancelled) return;
-      if (status === "connected" || status === "manual-ready") {
+      if (status === "cloud-connected" || status === "connected" || status === "manual-ready") {
         setPhase("ready");
         return;
       }
       if (status === "needs-permission") {
         setFolderName(await getRememberedFolderName());
       }
-      setPhase(status); // 'disconnected' | 'needs-permission' | 'manual-needed'
+      setPhase(status); // 'cloud-needs-auth' | 'disconnected' | 'needs-permission' | 'manual-needed'
     })();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  // First-run (or explicit) choice of "cloud" — writes any pre-existing
+  // browser-storage data straight into the cloud backend (writeKey is
+  // mode-aware, so this just works once setStorageMode below has run),
+  // rather than reusing finishConnecting()/seedCollections(), which branch
+  // on FSA-vs-manual capability, not on storage mode, and would wrongly
+  // fall into the in-memory manual store for a Firefox/Safari user who
+  // picked cloud.
+  async function handleChooseCloud() {
+    setError(null);
+    setStorageMode("cloud");
+    const status = await getStatus();
+    if (status === "cloud-needs-auth") {
+      setPhase("cloud-needs-auth");
+      return;
+    }
+    const legacy = readAllLegacyData();
+    if (legacy) {
+      if (legacy.entities) {
+        for (const [name, items] of Object.entries(legacy.entities)) await writeKey(name, items);
+      }
+      if (legacy.identity) await writeKey(AI_IDENTITY_KEY, legacy.identity);
+      if (legacy.vault) await writeKey(VAULT_CONNECTION_KEY, legacy.vault);
+      clearAllLegacyData();
+    }
+    setPhase("ready");
+  }
+
+  async function handleChooseDevice() {
+    setError(null);
+    setStorageMode("device");
+    const status = await getStatus();
+    if (status === "needs-permission") setFolderName(await getRememberedFolderName());
+    setPhase(status);
+  }
 
   // Warn on tab close if a manual-mode session has changes that were never
   // exported — the only place this data exists is this tab's memory.
@@ -198,9 +252,78 @@ export default function DeviceStorageGate({ children }) {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-background px-4">
       <div className="max-w-sm w-full text-center space-y-4">
+        {phase === "choose-mode" && (
+          <>
+            <p className="text-sm font-medium">Where should your data live?</p>
+            <p className="text-xs text-muted-foreground">
+              Either way, your chat conversations stay with your account's login provider — this choice is just for
+              your areas, products, projects, and tasks.
+            </p>
+            <div className="flex flex-col gap-2.5 pt-1 text-left">
+              <button
+                onClick={handleChooseCloud}
+                className="flex items-start gap-3 text-left px-4 py-3 border border-input rounded-lg hover:bg-accent hover:border-primary/40 transition-colors"
+              >
+                <Cloud className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
+                <span>
+                  <span className="block text-sm font-medium">Save on cloud</span>
+                  <span className="block text-xs text-muted-foreground mt-0.5">
+                    Synced to your account, available on any device you sign into.
+                  </span>
+                </span>
+              </button>
+              <button
+                onClick={handleChooseDevice}
+                className="flex items-start gap-3 text-left px-4 py-3 border border-input rounded-lg hover:bg-accent hover:border-primary/40 transition-colors"
+              >
+                <HardDrive className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
+                <span>
+                  <span className="block text-sm font-medium">Secure device storage</span>
+                  <span className="block text-xs text-muted-foreground mt-0.5">
+                    Stays only on this device, never uploaded anywhere.
+                  </span>
+                </span>
+              </button>
+            </div>
+            <p className="text-[11px] text-muted-foreground/70">
+              You can change this later in Settings → Data Storage.
+            </p>
+          </>
+        )}
+
+        {phase === "cloud-needs-auth" && (
+          <>
+            <p className="text-sm font-medium">Sign in to save on cloud</p>
+            <p className="text-xs text-muted-foreground">
+              Cloud storage is tied to your account, so it can find your data again on any device — you'll need to
+              sign in first.
+            </p>
+            <div className="flex flex-col items-center gap-2 pt-1">
+              <Link
+                to="/login?from=/app"
+                className="text-sm px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md transition-colors"
+              >
+                Sign in
+              </Link>
+              <Link
+                to="/signup?from=/app"
+                className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+              >
+                Or create an account
+              </Link>
+              <button
+                onClick={handleChooseDevice}
+                className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 mt-1"
+              >
+                Use secure device storage instead
+              </button>
+            </div>
+          </>
+        )}
+
         {phase === "disconnected" && (
           <>
-            <p className="text-sm font-medium">Choose where to keep your data</p>
+            <p className="text-sm font-medium">Connect your device folder</p>
             <p className="text-xs text-muted-foreground">
               Vaea stores everything as plain files on this device — nothing is sent to a server. Pick or create a folder to use.
             </p>

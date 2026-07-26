@@ -1,0 +1,23 @@
+// Copies every key this app actually stores from one deviceStorage backend
+// to another — used when switching "where data lives" (Settings' Data
+// Storage section, and DeviceStorageGate picking up cloud data once a
+// device backend becomes available after a cloud->device switch). Not used
+// for the pre-existing localStorage legacy migration (DeviceStorageGate.jsx
+// has its own narrower readAllLegacyData/seedCollections for that, since
+// that's a one-time carry-forward from before any of these backends
+// existed, not a live switch between two already-working ones).
+import { localDb } from "@/lib/localDb";
+import { AI_IDENTITY_KEY } from "@/lib/aiPreferences";
+import { VAULT_CONNECTION_KEY } from "@/lib/vaultConnection";
+
+const ALL_KEYS = [...Object.keys(localDb), AI_IDENTITY_KEY, VAULT_CONNECTION_KEY];
+
+// { read, write } pairs, not the mode-dispatching readKey/writeKey exports —
+// those would just recurse into whichever backend is *currently* active,
+// which during a switch is exactly the ambiguity this needs to avoid.
+export async function copyAllKeys({ read, write }) {
+  for (const key of ALL_KEYS) {
+    const value = await read(key);
+    if (value != null) await write(key, value);
+  }
+}

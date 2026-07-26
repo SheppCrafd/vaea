@@ -1,0 +1,32 @@
+{
+  "name": "AppData",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string"
+    },
+    // Deliberately untyped — this mirrors deviceStorage.js's own generic
+    // key/value contract, and the values stored under different keys are a
+    // mix of arrays (areas/products/projects/tasks/...) and plain objects
+    // (AI identity, the vault connection), not a single shape.
+    "value": {}
+  },
+  "required": [
+    "key",
+    "value"
+  ],
+  "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}
