@@ -12,34 +12,36 @@ const GITHUB_URL = "https://github.com/SheppCrafd/vaea";
 function Logo() {
   return (
     <Link to="/" className="flex items-center gap-2 shrink-0">
-      <div className="w-7 h-7 rounded-full ring-1 ring-border shadow-sm overflow-hidden">
+      <div className="w-8 h-8 rounded-full border border-border shadow-sm overflow-hidden">
         <img src="/android-chrome-512x512.png" alt="" className="w-full h-full object-cover" />
       </div>
-      <span className="font-terminal text-[15px] font-bold tracking-tight">Vaea</span>
+      <span className="font-terminal text-base font-bold tracking-tight">Vaea</span>
     </Link>
   );
 }
 
-// A minimal, always-light glass strip — Apple's own global nav stays a thin
-// translucent bar regardless of what's scrolling underneath it (dark hero,
-// light section, product photo); it doesn't invert to match. Kept
-// theme-adaptive (bg-background) rather than hardcoded, so it still tracks
-// the user's light/dark preference the way the rest of the app does.
+// The frosted sticky bar: the original proportions (h-16, full-size logo and
+// nav, square-cornered Sign up) with a real glass build on top of the flat
+// alpha it used to have — a vertical falloff rather than one uniform
+// translucency, plus a hairline highlight along the top edge where light
+// would catch a pane. Stays theme-adaptive (bg-background) rather than
+// hardcoded dark, so it tracks the user's light/dark preference and reads
+// the same whether a dark band or a light section is scrolling underneath.
 function NavBar() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border/60 bg-background/70 backdrop-blur-xl supports-[backdrop-filter]:bg-background/50">
-      <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between gap-6">
-        <div className="flex items-center gap-9">
+    <header className="sticky top-0 z-30 border-b border-border/70 bg-gradient-to-b from-background/85 to-background/60 backdrop-blur-xl supports-[backdrop-filter]:from-background/70 supports-[backdrop-filter]:to-background/45 shadow-[inset_0_1px_0_0_hsl(var(--card)/0.7),0_1px_12px_-6px_hsl(200_30%_12%/0.25)]">
+      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between gap-6">
+        <div className="flex items-center gap-8">
           <Logo />
-          <nav className="hidden sm:flex items-center gap-7">
+          <nav className="hidden sm:flex items-center gap-6">
             {NAV_LINKS.map(({ to, label }) => (
               <Link
                 key={to}
                 to={to}
-                className={`text-[13px] tracking-wide transition-colors ${
+                className={`text-sm transition-colors ${
                   location.pathname === to
                     ? "text-foreground font-medium"
                     : "text-muted-foreground hover:text-foreground"
@@ -52,7 +54,7 @@ function NavBar() {
               href={GITHUB_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-[13px] tracking-wide text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <Github className="w-3.5 h-3.5" />
               GitHub
@@ -63,13 +65,13 @@ function NavBar() {
         <div className="flex items-center gap-3 shrink-0">
           <Link
             to="/login"
-            className="hidden sm:inline text-[13px] text-muted-foreground hover:text-foreground transition-colors px-2"
+            className="hidden sm:inline text-sm text-muted-foreground hover:text-foreground transition-colors px-2"
           >
             Log in
           </Link>
           <Link
             to="/login"
-            className="text-[13px] px-4 py-[7px] bg-foreground hover:bg-foreground/85 text-background font-medium rounded-full transition-colors"
+            className="text-sm px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md transition-colors shadow-sm"
           >
             Sign up
           </Link>
@@ -78,7 +80,7 @@ function NavBar() {
             onClick={() => setMobileOpen((v) => !v)}
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
             aria-expanded={mobileOpen}
-            className="sm:hidden flex items-center justify-center w-9 h-9 rounded-full border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors -mr-1"
+            className="sm:hidden flex items-center justify-center w-9 h-9 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors -mr-1"
           >
             {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
           </button>

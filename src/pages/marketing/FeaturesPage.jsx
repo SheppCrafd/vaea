@@ -6,8 +6,8 @@ import {
   BookOpen, GitBranch, Wrench,
 } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
-import { Reveal, GlowOrb } from "./effects";
-import { darkSectionBg, darkText, pillOnDark, eyebrowOnDark } from "./theme";
+import { Reveal, StageLight, Grain } from "./effects";
+import { darkSectionBg, darkText, darkTopEdge, pillOnDark, eyebrowOnDark, displayXL, displayL } from "./theme";
 
 const GROUPS = [
   {
@@ -65,21 +65,22 @@ export default function FeaturesPage() {
 
   return (
     <MarketingLayout>
-      <div className={`relative overflow-hidden ${darkSectionBg} ${darkText}`}>
-        <GlowOrb className="w-[520px] h-[520px] -top-56 left-1/2 -translate-x-1/2" />
+      <section className={`relative overflow-hidden ${darkSectionBg} ${darkText} ${darkTopEdge}`}>
+        <StageLight />
+        <Grain />
         <div className="relative max-w-3xl mx-auto px-6 pt-24 sm:pt-32 pb-20 sm:pb-28 text-center">
           <Reveal>
             <p className={`${eyebrowOnDark} mb-4`}>Features</p>
-            <h1 className="font-heading text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight leading-[1.08]">
+            <h1 className={displayXL}>
               Everything that's piling up, finally somewhere it can't get lost.
             </h1>
-            <p className="mt-5 text-lg text-white/60 max-w-xl mx-auto leading-relaxed">
+            <p className="mt-6 text-lg text-white/60 max-w-xl mx-auto leading-relaxed">
               No pricing plans to compare, no limit on how much you throw at it — this is a
               personal system built to catch everything and then get out of your way.
             </p>
           </Reveal>
         </div>
-      </div>
+      </section>
 
       <div className="max-w-4xl mx-auto px-6 py-16 sm:py-20">
         {GROUPS.map((group, i) => (
@@ -110,11 +111,12 @@ export default function FeaturesPage() {
         ))}
       </div>
 
-      <div className={`relative overflow-hidden ${darkSectionBg} ${darkText}`}>
-        <GlowOrb className="w-[480px] h-[480px] -bottom-52 left-1/2 -translate-x-1/2" />
+      <section className={`relative overflow-hidden ${darkSectionBg} ${darkText} ${darkTopEdge}`}>
+        <StageLight />
+        <Grain />
         <div className="relative max-w-3xl mx-auto px-6 py-24 sm:py-28 text-center">
           <Reveal>
-            <h2 className="font-heading text-3xl sm:text-4xl font-semibold tracking-tight">
+            <h2 className={displayL}>
               See it come together
             </h2>
             <p className="mt-3 text-white/60">Three steps from overwhelmed to organized.</p>
@@ -129,7 +131,7 @@ export default function FeaturesPage() {
             </div>
           </Reveal>
         </div>
-      </div>
+      </section>
     </MarketingLayout>
   );
 }

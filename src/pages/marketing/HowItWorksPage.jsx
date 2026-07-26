@@ -2,8 +2,8 @@ import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
-import { Reveal, GlowOrb } from "./effects";
-import { darkSectionBg, darkText, pillOnDark, eyebrowOnDark } from "./theme";
+import { Reveal, StageLight, Grain } from "./effects";
+import { darkSectionBg, darkText, darkTopEdge, pillOnDark, eyebrowOnDark, displayXL, displayL } from "./theme";
 
 const STEPS = [
   {
@@ -27,17 +27,18 @@ export default function HowItWorksPage() {
 
   return (
     <MarketingLayout>
-      <div className={`relative overflow-hidden ${darkSectionBg} ${darkText}`}>
-        <GlowOrb className="w-[520px] h-[520px] -top-56 left-1/2 -translate-x-1/2" />
+      <section className={`relative overflow-hidden ${darkSectionBg} ${darkText} ${darkTopEdge}`}>
+        <StageLight />
+        <Grain />
         <div className="relative max-w-3xl mx-auto px-6 pt-24 sm:pt-32 pb-20 sm:pb-28 text-center">
           <Reveal>
             <p className={`${eyebrowOnDark} mb-4`}>How it works</p>
-            <h1 className="font-heading text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight leading-[1.08]">
+            <h1 className={displayXL}>
               From overwhelmed to organized in three steps.
             </h1>
           </Reveal>
         </div>
-      </div>
+      </section>
 
       <div className="max-w-3xl mx-auto px-6 py-16 sm:py-20">
         {STEPS.map(({ title, body }, i) => (
@@ -61,11 +62,12 @@ export default function HowItWorksPage() {
         </div>
       </div>
 
-      <div className={`relative overflow-hidden ${darkSectionBg} ${darkText}`}>
-        <GlowOrb className="w-[480px] h-[480px] -bottom-52 left-1/2 -translate-x-1/2" />
+      <section className={`relative overflow-hidden ${darkSectionBg} ${darkText} ${darkTopEdge}`}>
+        <StageLight />
+        <Grain />
         <div className="relative max-w-3xl mx-auto px-6 py-24 sm:py-32 text-center">
           <Reveal>
-            <h2 className="font-heading text-3xl sm:text-4xl font-semibold tracking-tight">
+            <h2 className={displayL}>
               Ready to get it off your plate?
             </h2>
             <div className="mt-8">
@@ -76,7 +78,7 @@ export default function HowItWorksPage() {
             </div>
           </Reveal>
         </div>
-      </div>
+      </section>
     </MarketingLayout>
   );
 }

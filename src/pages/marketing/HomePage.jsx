@@ -1,15 +1,20 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import {
-  Bot, Fingerprint, Command, LockKeyhole, ArrowRight, BookOpen, GitBranch, MessageCircle,
-  Search, Package, FolderKanban, ListTodo, Boxes, LayoutGrid, FolderCog,
-} from "lucide-react";
+import { ArrowRight, BookOpen, GitBranch, MessageCircle, HardDrive, LockKeyhole, Sparkles } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
-import { Reveal, GlowOrb } from "./effects";
+import { Reveal, StageLight, Grain, useTimeline } from "./effects";
 import {
-  darkSectionBg, darkText, glassPanel, glassTileLight,
+  ChatFilm, CHAT_PHASES, CHAT_CAPTIONS,
+  PaletteFilm, PALETTE_PHASES,
+  NestFilm, NEST_PHASES,
+  VaultFilm, VAULT_PHASES,
+  IdentityFilm, IDENTITY_PHASES,
+} from "./demos";
+import {
+  darkSectionBg, darkText, darkTopEdge, lightStage,
   pillOnDark, linkOnDark, linkOnLight, eyebrowOnDark, eyebrowOnLight,
+  displayXL, displayL, displayM,
 } from "./theme";
 
 const FAQS = [
@@ -35,50 +40,6 @@ const FAQS = [
   },
 ];
 
-const HIGHLIGHTS = [
-  {
-    icon: Bot,
-    title: "Tell it what's piling up — it handles it",
-    body: "\"Archive anything I haven't touched in a month\" or \"this project's a mess, sort it out.\" Vaea Chat plans the actual changes and makes them — it doesn't just hand you another to-do about your to-dos.",
-  },
-  {
-    icon: Fingerprint,
-    title: "Give it a name and a personality",
-    body: "So it feels like something helping you, not one more form to fill out. Set its name, role, and tone yourself, or just chat with it for a minute and let it work out a personality that fits.",
-  },
-  {
-    icon: Command,
-    title: "Just start typing",
-    body: "When there's a lot going on, you shouldn't have to remember where you filed it. One search box finds it — or does it — instead of you hunting through menus.",
-  },
-  {
-    icon: LockKeyhole,
-    title: "Your stuff stays yours",
-    body: "No account somewhere else quietly becoming another thing to manage. It all lives on your own device — signing in only unlocks Vaea Chat.",
-  },
-];
-
-// Verbatim from FeaturesPage's own "Organize" group — reused here rather
-// than paraphrased, so this section's claims stay identical to the ones
-// already reviewed for tone/accuracy there.
-const ORGANIZE_ITEMS = [
-  {
-    icon: Boxes,
-    title: "Everything nests inside something bigger",
-    body: "A big area of your life or work, broken down into smaller pieces, broken down into the actual tasks — nothing just floating on its own with no home.",
-  },
-  {
-    icon: LayoutGrid,
-    title: "See as much or as little as you need",
-    body: "Zoom out for a quick scan of everything at once, or zoom in when one thing needs your full attention.",
-  },
-  {
-    icon: FolderCog,
-    title: "Click in without losing your place",
-    body: "Open something bigger and what's inside it opens right there with it — no separate page to load, no hunting for your way back.",
-  },
-];
-
 const VAULT_REASONS = [
   {
     icon: BookOpen,
@@ -97,155 +58,210 @@ const VAULT_REASONS = [
   },
 ];
 
-// The hero's signature visual: a real transcript shape, not a chat-bubble
-// mockup — this is what the agent actually does (works through a list, then
-// takes real actions, then a plain-language result), rendered in the same
-// terminal font/register the app already reserves for real command output
-// (see --font-terminal in index.css). Kept in plain English on purpose —
-// the real in-app transcript shows the literal function-style tool calls
-// (chatActions.js's describeToolCall), but that reads as code, not as
-// something a first-time, non-technical visitor should have to parse.
-// Glass treatment + the shared cursor-blink keyframe stand in for the
-// product photography Apple would use here — there's no physical device to
-// shoot, so the app's own real UI, lit like one, is the hero shot instead.
-function AgentTranscript() {
+const QUIET_TRUTHS = [
+  { icon: HardDrive, title: "It lives on your device", body: "Real files in a folder you picked — not an account somewhere else." },
+  { icon: LockKeyhole, title: "Signing in only unlocks chat", body: "Organizing, editing, importing all work whether you're signed in or not." },
+  { icon: Sparkles, title: "Free, with no plans to compare", body: "No tiers, no usage limits to keep an eye on." },
+];
+
+// A dark full-bleed band. The gradient, the directional stage light, and the
+// grain are one unit — used together everywhere so every dark section on the
+// site is lit the same way.
+function DarkBand({ children, light = true, className = "" }) {
   return (
-    <div className={`relative w-full max-w-3xl mx-auto rounded-2xl overflow-hidden ${glassPanel}`}>
-      <div className="flex items-center gap-1.5 px-5 py-3.5 border-b border-white/10">
-        <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
-        <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
-        <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
-        <span className="ml-2 font-terminal text-[11px] text-white/40">Vaea Chat</span>
-      </div>
-      <div className="p-5 font-terminal text-[13px] leading-relaxed">
-        <p className="text-white/90">
-          <span className="text-[#46BAD1]">{'>'}</span> Marketing's a mess and I don't have time to sort it, can you clean it up
-        </p>
-        <p className="mt-3 text-white/90">
-          Staging that now. Once that goes through, it'll be a lot easier to see what we're actually working on. What's next on the cleanup list? We still have those ownership and department gaps to sort out if you want to keep rolling.
-        </p>
-        <div className="mt-3 space-y-1 text-white/40">
-          <p>plan · reviewing 14 projects across 3 products</p>
-          <p>tool call · archive_project("Q1 Newsletter")</p>
-          <p>tool call · move_project("Landing Page Copy" → Growth)</p>
-          <p>tool call · archive_project("Old Brand Deck")</p>
-        </div>
-        <p className="mt-3 text-white/90">
-          Done.
-          <span className="inline-block w-[7px] h-[13px] bg-[#46BAD1]/70 align-middle ml-0.5 chat-cursor-blink" />
-        </p>
-      </div>
-    </div>
+    <section className={`relative overflow-hidden ${darkSectionBg} ${darkText} ${darkTopEdge} ${className}`}>
+      {light && <StageLight />}
+      <Grain />
+      <div className="relative">{children}</div>
+    </section>
   );
 }
 
-// The Vault section's own signature visual — deliberately not a repeat of
-// AgentTranscript's terminal chrome above: a file card (path + note content,
-// a [[wikilink]] rendered the way Obsidian would) instead of a command
-// transcript, so the two focal points read as related but distinct. The
-// commit strip at the bottom does real work, not just decoration — it's the
-// one visual that makes "backed up to your own GitHub, not stored by us"
-// land at a glance instead of requiring the reader to trust the copy alone.
-function VaultNoteMock() {
-  return (
-    <div className={`relative w-full max-w-3xl mx-auto rounded-2xl overflow-hidden ${glassPanel}`}>
-      <div className="flex items-center gap-2 px-5 py-3.5 border-b border-white/10">
-        <BookOpen className="w-3.5 h-3.5 text-white/40" />
-        <span className="font-terminal text-[11px] text-white/40">Daily/2026-07-24.md</span>
-      </div>
-      <div className="p-5 font-terminal text-[13px] leading-relaxed text-white/90 text-left">
-        <p># Today</p>
-        <p className="mt-2">Sorted Marketing, archived two stale projects.</p>
-        <p className="mt-2">
-          Decided to move launch prep under <span className="text-[#46BAD1]">[[Growth]]</span> instead of leaving it standalone.
-        </p>
-      </div>
-      <div className="flex items-center gap-1.5 px-5 py-3 border-t border-white/10 bg-white/[0.02]">
-        <GitBranch className="w-3 h-3 text-[#46BAD1] shrink-0" />
-        <span className="font-terminal text-[11px] text-white/40">Committed to your GitHub — not ours</span>
-      </div>
-    </div>
-  );
-}
+// The hero. Its film and the three captions beneath it run off one clock, so
+// each caption lights up exactly while the frame it describes is on screen —
+// the page teaches the product by narrating a real session as it plays.
+function HeroSection() {
+  const { ref, step } = useTimeline(CHAT_PHASES);
 
-// The Chat section's second visual: the real global search/quick-action
-// palette (Ctrl/Cmd+K, see src/components/command/CommandPalette.jsx),
-// reproduced with its actual chrome — same icon-per-result-type mapping
-// (Package/FolderKanban/ListTodo), the same "↑↓ navigate · ↵ open · ctrl+↵
-// new tab" hint row, the same Esc kbd — rather than the dark-glass treatment
-// the other mockups use, since this is showing real light-mode app UI, not
-// standing in for product photography. Reuses the same fictional workspace
-// (Growth, Landing Page Copy) the hero's transcript already established.
-function CommandDemo() {
-  const results = [
-    { Icon: Package, title: "Growth", subtitle: "Product" },
-    { Icon: FolderKanban, title: "Landing Page Copy", subtitle: "in Growth" },
-    { Icon: ListTodo, title: "Write header copy", subtitle: "Landing Page Copy" },
-  ];
   return (
-    <div className="w-full max-w-xl mx-auto rounded-xl border border-border bg-card shadow-2xl overflow-hidden text-left">
-      <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border">
-        <Search className="w-4 h-4 text-muted-foreground shrink-0" />
-        <span className="flex-1 text-sm">growth</span>
-        <kbd className="shrink-0 text-[10px] font-mono text-muted-foreground border border-border rounded px-1.5 py-0.5">Esc</kbd>
-      </div>
-      <div className="py-1.5">
-        {results.map(({ Icon, title, subtitle }, i) => (
-          <div key={title} className={`flex items-center gap-3 px-4 py-2 ${i === 0 ? "bg-secondary" : ""}`}>
-            <Icon className="w-4 h-4 shrink-0 text-muted-foreground" />
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-medium truncate">{title}</span>
-              <span className="block text-xs text-muted-foreground truncate">{subtitle}</span>
-            </span>
-          </div>
-        ))}
-      </div>
-      <div className="flex items-center gap-3 px-4 py-2 border-t border-border text-[10px] text-muted-foreground">
-        <span className="flex items-center gap-1"><kbd className="font-mono border border-border rounded px-1 py-0.5">↑↓</kbd> navigate</span>
-        <span className="flex items-center gap-1"><kbd className="font-mono border border-border rounded px-1 py-0.5">↵</kbd> open</span>
-        <span className="flex items-center gap-1"><kbd className="font-mono border border-border rounded px-1 py-0.5">ctrl+↵</kbd> new tab</span>
-      </div>
-    </div>
-  );
-}
-
-// The Organize section's visual: the real Area → Product → Project nesting,
-// each level using its actual elevation treatment from the app's own design
-// system (Area: bg-card + shadow-md; Product: recessed bg-muted/40, no
-// shadow of its own; Project: pops back to bg-card — see AreaCard.jsx/
-// ProductCard.jsx and the Visual Design Refresh decision), not an invented
-// layout. Task status dots use the app's real --status-* colors from
-// index.css.
-function HierarchyDemo() {
-  return (
-    <div className="w-full max-w-xl mx-auto rounded-xl bg-card border border-border shadow-md p-5 text-left">
-      <p className="text-sm font-semibold flex items-center gap-2">
-        <Boxes className="w-4 h-4 text-muted-foreground" />
-        Growth
-      </p>
-      <div className="mt-3 rounded-xl bg-muted/40 border border-border/70 p-4">
-        <p className="text-sm font-medium flex items-center gap-2">
-          <Package className="w-3.5 h-3.5 text-muted-foreground" />
-          Website Relaunch
-        </p>
-        <div className="mt-3 rounded-lg bg-card border border-border shadow-sm p-3">
-          <p className="text-sm font-medium flex items-center gap-2">
-            <FolderKanban className="w-3.5 h-3.5 text-muted-foreground" />
-            Landing Page Copy
+    <DarkBand>
+      <div ref={ref} className="max-w-6xl mx-auto px-6 pt-28 sm:pt-36 pb-24 sm:pb-32">
+        <Reveal className="text-center max-w-3xl mx-auto">
+          <p className={`${eyebrowOnDark} mb-5`}>For when it&apos;s all a bit too much</p>
+          <h1 className={displayXL}>
+            There&apos;s a lot going on.
+            <br className="hidden sm:block" /> Let&apos;s make it manageable.
+          </h1>
+          <p className="mt-6 text-lg sm:text-xl text-white/60 max-w-xl mx-auto leading-relaxed">
+            Vaea gives every project, task, and stray &quot;I should really deal with that&quot;
+            one real place to live — and an AI that actually files, sorts, and cleans
+            it up when you ask, instead of one more list you have to maintain yourself.
           </p>
-          <div className="mt-2.5 space-y-1.5">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: "#4caf50" }} />
-              Write header copy
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: "#ff9800" }} />
-              Draft CTA variants
-            </div>
+          <div className="mt-9 flex flex-wrap items-center justify-center gap-5">
+            <Link to="/login" className={pillOnDark}>
+              Get started
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+            <Link to="/how-it-works" className={linkOnDark}>
+              See how it works
+            </Link>
           </div>
+          <p className="mt-5 text-xs text-white/35">Free. Data stays on your device either way.</p>
+        </Reveal>
+
+        <Reveal delay={150} className="mt-16 sm:mt-20 max-w-3xl mx-auto">
+          <ChatFilm step={step} />
+        </Reveal>
+
+        <div className="mt-12 grid sm:grid-cols-3 gap-8 max-w-4xl mx-auto text-left">
+          {CHAT_CAPTIONS.map(({ title, body, from, to }) => {
+            const active = step >= from && step <= to;
+            return (
+              <div
+                key={title}
+                className={`border-l pl-4 transition-all duration-300 ${
+                  active ? "border-[#46BAD1]/70" : "border-white/10"
+                }`}
+              >
+                <h3 className={`text-sm font-medium transition-colors duration-300 ${active ? "text-white" : "text-white/45"}`}>
+                  {title}
+                </h3>
+                <p className={`mt-1 text-sm transition-colors duration-300 ${active ? "text-white/65" : "text-white/30"}`}>
+                  {body}
+                </p>
+              </div>
+            );
+          })}
         </div>
       </div>
-    </div>
+    </DarkBand>
+  );
+}
+
+function PaletteSection() {
+  const { ref, step } = useTimeline(PALETTE_PHASES);
+
+  return (
+    <section className="relative bg-background border-t border-border/60">
+      <div ref={ref} className="max-w-6xl mx-auto px-6 py-24 sm:py-32">
+        <div className="grid lg:grid-cols-[0.85fr_1.15fr] gap-12 lg:gap-16 items-center">
+          <Reveal>
+            <p className={`${eyebrowOnLight} mb-4`}>Find anything</p>
+            <h2 className={displayL}>Just start typing.</h2>
+            <p className="mt-5 text-muted-foreground leading-relaxed max-w-md">
+              When there&apos;s a lot going on, you shouldn&apos;t have to remember where you filed
+              something. One box finds it — or does it — instead of you clicking through
+              menu after menu to get there.
+            </p>
+            <Link to="/features" className={`mt-6 inline-flex items-center gap-1.5 ${linkOnLight}`}>
+              See all features
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </Reveal>
+
+          <Reveal delay={120} className={`${lightStage} p-6 sm:p-12`}>
+            <PaletteFilm step={step} />
+          </Reveal>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function NestSection() {
+  const { ref, step } = useTimeline(NEST_PHASES);
+
+  return (
+    <section className="relative bg-muted/25 border-t border-border/60">
+      <div ref={ref} className="max-w-6xl mx-auto px-6 py-24 sm:py-32">
+        <div className="grid lg:grid-cols-[1.15fr_0.85fr] gap-12 lg:gap-16 items-center">
+          <Reveal delay={120} className={`${lightStage} p-6 sm:p-12 lg:order-1 order-2`}>
+            <NestFilm step={step} />
+          </Reveal>
+
+          <Reveal className="lg:order-2 order-1">
+            <p className={`${eyebrowOnLight} mb-4`}>Organize</p>
+            <h2 className={displayL}>Everything nests inside something bigger.</h2>
+            <p className="mt-5 text-muted-foreground leading-relaxed max-w-md">
+              A big area of your life or work, broken down into smaller pieces, broken down
+              into the actual tasks — nothing just floating on its own with no home. Open
+              something and what&apos;s inside it opens right there with it, so you never lose
+              your place.
+            </p>
+          </Reveal>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// Deliberately unlit — no StageLight here, so this band sits visibly dimmer
+// than the hero and the vault around it. The light app window floating on it
+// is the only thing that catches light, which is the whole point of the
+// section: the thing you're configuring is the assistant itself.
+function IdentitySection() {
+  const { ref, step } = useTimeline(IDENTITY_PHASES);
+
+  return (
+    <DarkBand light={false}>
+      <div ref={ref} className="max-w-6xl mx-auto px-6 py-24 sm:py-32">
+        <div className="grid lg:grid-cols-[0.85fr_1.15fr] gap-12 lg:gap-16 items-center">
+          <Reveal>
+            <p className={`${eyebrowOnDark} mb-4`}>Make it yours</p>
+            <h2 className={displayL}>Give it a name and a personality.</h2>
+            <p className="mt-5 text-white/60 leading-relaxed max-w-md">
+              So it feels like something helping you, not one more form to fill out. Set its
+              name, role, and tone yourself — or just chat with it for a minute and let it
+              work out a personality that fits.
+            </p>
+          </Reveal>
+
+          <Reveal delay={120}>
+            <IdentityFilm step={step} />
+          </Reveal>
+        </div>
+      </div>
+    </DarkBand>
+  );
+}
+
+function VaultSection() {
+  const { ref, step } = useTimeline(VAULT_PHASES);
+
+  return (
+    <DarkBand>
+      <div ref={ref} className="max-w-4xl mx-auto px-6 py-24 sm:py-32 text-center">
+        <Reveal>
+          <p className={`${eyebrowOnDark} mb-4`}>Vaea Vault · optional</p>
+          <h2 className={`${displayL} max-w-2xl mx-auto`}>
+            Already keeping notes somewhere? Bring them in too.
+          </h2>
+          <p className="mt-5 text-white/60 max-w-lg mx-auto leading-relaxed">
+            Vaea Vault connects your own Obsidian notes — decisions, things you&apos;ve learned, a
+            running log of what happened and why — right into the assistant. It reads them for
+            context, and writes to them when you ask.
+          </p>
+        </Reveal>
+
+        <Reveal delay={120} className="mt-14 max-w-2xl mx-auto">
+          <VaultFilm step={step} />
+        </Reveal>
+
+        <Reveal delay={200} className="mt-14 grid sm:grid-cols-3 gap-8 text-left max-w-3xl mx-auto">
+          {VAULT_REASONS.map(({ icon: Icon, title, body }) => (
+            <div key={title} className="flex gap-3">
+              <div className="shrink-0 w-8 h-8 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center">
+                <Icon className="w-3.5 h-3.5 text-white/80" />
+              </div>
+              <div>
+                <h3 className="text-sm font-medium">{title}</h3>
+                <p className="mt-0.5 text-sm text-white/50">{body}</p>
+              </div>
+            </div>
+          ))}
+        </Reveal>
+      </div>
+    </DarkBand>
   );
 }
 
@@ -256,96 +272,18 @@ export default function HomePage() {
 
   return (
     <MarketingLayout>
-      {/* Hero — the thesis, styled like a product page's opening screen */}
-      <div className={`relative overflow-hidden ${darkSectionBg} ${darkText}`}>
-        <GlowOrb className="w-[640px] h-[640px] -top-72 left-1/2 -translate-x-1/2" />
-        <div className="relative max-w-4xl mx-auto px-6 pt-28 sm:pt-36 text-center">
-          <Reveal>
-            <p className={`${eyebrowOnDark} mb-5`}>For when it's all a bit too much</p>
-            <h1 className="font-heading text-5xl sm:text-6xl md:text-7xl font-semibold tracking-tight leading-[1.05]">
-              There's a lot going on.
-              <br className="hidden sm:block" /> Let's make it manageable.
-            </h1>
-            <p className="mt-6 text-lg sm:text-xl text-white/60 max-w-xl mx-auto leading-relaxed">
-              Vaea gives every project, task, and stray "I should really deal with that"
-              one real place to live — and an AI that actually files, sorts, and cleans
-              it up when you ask, instead of one more list you have to maintain yourself.
-            </p>
-            <div className="mt-9 flex flex-wrap items-center justify-center gap-5">
-              <Link to="/login" className={pillOnDark}>
-                Get started
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-              <Link to="/how-it-works" className={linkOnDark}>
-                See how it works
-              </Link>
-            </div>
-            <p className="mt-5 text-xs text-white/35">Free. Data stays on your device either way.</p>
-          </Reveal>
-        </div>
-        <Reveal delay={150} className="relative px-6 pt-16 pb-24 sm:pt-20 sm:pb-32">
-          <AgentTranscript />
-        </Reveal>
-      </div>
+      <HeroSection />
+      <PaletteSection />
+      <NestSection />
+      <IdentitySection />
+      <VaultSection />
 
-      {/* Vaea Chat — product section, light */}
-      <div className="relative bg-background">
-        <div className="max-w-6xl mx-auto px-6 py-24 sm:py-32">
-          <Reveal className="text-center max-w-2xl mx-auto">
-            <p className={`${eyebrowOnLight} mb-4`}>Vaea Chat</p>
-            <h2 className="font-heading text-3xl sm:text-4xl font-semibold tracking-tight leading-tight">
-              What that actually looks like
-            </h2>
-            <Link to="/features" className={`mt-5 inline-flex items-center gap-1.5 ${linkOnLight}`}>
-              See all features
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </Reveal>
-
-          <Reveal delay={150} className="mt-14 max-w-3xl mx-auto rounded-[2.5rem] bg-gradient-to-b from-muted/70 to-muted/10 p-10 sm:p-16">
-            <CommandDemo />
-          </Reveal>
-
-          <Reveal delay={250} className="mt-14 grid sm:grid-cols-2 gap-5 max-w-4xl mx-auto">
-            {HIGHLIGHTS.map(({ icon: Icon, title, body }) => (
-              <div key={title} className={`flex gap-4 p-5 rounded-2xl ${glassTileLight}`}>
-                <div className="shrink-0 w-10 h-10 rounded-xl bg-background border border-border/70 flex items-center justify-center shadow-sm">
-                  <Icon className="w-4 h-4 text-foreground" />
-                </div>
-                <div>
-                  <h3 className="font-medium">{title}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{body}</p>
-                </div>
-              </div>
-            ))}
-          </Reveal>
-        </div>
-      </div>
-
-      {/* Organize — product section, light, straight after Chat (two light
-          sections back to back is fine — Apple doesn't strictly alternate
-          every section either); the nested-hierarchy demo is the visual */}
-      <div className="relative bg-muted/20 border-t border-border/60">
-        <div className="max-w-4xl mx-auto px-6 py-24 sm:py-28 text-center">
-          <Reveal>
-            <p className={`${eyebrowOnLight} mb-4`}>Organize</p>
-            <h2 className="font-heading text-3xl sm:text-4xl font-semibold tracking-tight leading-tight">
-              Everything nests inside something bigger
-            </h2>
-            <p className="mt-4 text-muted-foreground max-w-lg mx-auto">
-              A big area of your life or work, broken down into smaller pieces, broken down into
-              the actual tasks — nothing just floating on its own with no home.
-            </p>
-          </Reveal>
-
-          <Reveal delay={150} className="mt-14 max-w-3xl mx-auto rounded-[2.5rem] bg-gradient-to-b from-card to-background border border-border/60 p-10 sm:p-16 shadow-sm">
-            <HierarchyDemo />
-          </Reveal>
-
-          <Reveal delay={250} className="mt-12 grid sm:grid-cols-2 gap-6 text-left max-w-2xl mx-auto">
-            {ORGANIZE_ITEMS.slice(1).map(({ icon: Icon, title, body }) => (
+      <section className="relative bg-background border-t border-border/60">
+        <div className="max-w-5xl mx-auto px-6 py-20">
+          <Reveal className="grid sm:grid-cols-3 gap-8">
+            {QUIET_TRUTHS.map(({ icon: Icon, title, body }) => (
               <div key={title} className="flex gap-3">
-                <div className="shrink-0 w-8 h-8 rounded-lg bg-card border border-border/70 flex items-center justify-center shadow-sm">
+                <div className="shrink-0 w-8 h-8 rounded-lg bg-gradient-to-b from-card to-muted/60 border border-border/70 shadow-sm flex items-center justify-center">
                   <Icon className="w-3.5 h-3.5 text-foreground" />
                 </div>
                 <div>
@@ -356,58 +294,15 @@ export default function HomePage() {
             ))}
           </Reveal>
         </div>
-      </div>
+      </section>
 
-      {/* Vaea Vault — product section, dark, bookends the hero's treatment */}
-      <div className={`relative overflow-hidden ${darkSectionBg} ${darkText}`}>
-        <GlowOrb className="w-[560px] h-[560px] top-1/3 -right-52" />
-        <div className="relative max-w-4xl mx-auto px-6 py-24 sm:py-32 text-center">
-          <Reveal>
-            <p className={`${eyebrowOnDark} mb-4`}>Vaea Vault · optional</p>
-            <h2 className="font-heading text-3xl sm:text-4xl font-semibold tracking-tight leading-tight max-w-xl mx-auto">
-              Already keeping notes somewhere? Bring them in too.
-            </h2>
-            <p className="mt-4 text-white/60 max-w-lg mx-auto leading-relaxed">
-              Vaea Vault connects your own Obsidian notes — decisions, things you've learned, a running log of
-              what happened and why — right into the assistant. It reads them for context, and writes to them
-              when you ask.
-            </p>
-            <Link to="/features" className={`mt-6 inline-flex items-center gap-1.5 ${linkOnDark}`}>
-              See how it connects
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </Reveal>
-
-          <Reveal delay={150} className="mt-14">
-            <VaultNoteMock />
-          </Reveal>
-
-          <Reveal delay={250} className="mt-14 grid sm:grid-cols-3 gap-8 text-left max-w-3xl mx-auto">
-            {VAULT_REASONS.map(({ icon: Icon, title, body }) => (
-              <div key={title} className="flex gap-3">
-                <div className="shrink-0 w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
-                  <Icon className="w-3.5 h-3.5 text-white/80" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium">{title}</h3>
-                  <p className="mt-0.5 text-sm text-white/50">{body}</p>
-                </div>
-              </div>
-            ))}
-          </Reveal>
-        </div>
-      </div>
-
-      {/* FAQ — light, restrained */}
-      <div className="relative bg-background">
+      <section className="relative bg-muted/25 border-t border-border/60">
         <div className="max-w-2xl mx-auto px-6 py-24 sm:py-28">
           <Reveal className="text-center">
             <p className={`${eyebrowOnLight} mb-4`}>FAQ</p>
-            <h2 className="font-heading text-3xl sm:text-4xl font-semibold tracking-tight">
-              Before you're sold, the honest questions
-            </h2>
+            <h2 className={displayM}>Before you&apos;re sold, the honest questions</h2>
           </Reveal>
-          <Reveal delay={150} className="mt-10 rounded-2xl p-2 sm:p-4 bg-gradient-to-b from-card to-muted/50 border border-border/70 shadow-sm">
+          <Reveal delay={120} className={`mt-10 ${lightStage} p-2 sm:p-5`}>
             <Accordion type="single" collapsible>
               {FAQS.map(({ q, a }) => (
                 <AccordionItem key={q} value={q}>
@@ -418,16 +313,12 @@ export default function HomePage() {
             </Accordion>
           </Reveal>
         </div>
-      </div>
+      </section>
 
-      {/* Final CTA — dark, bookends the hero */}
-      <div className={`relative overflow-hidden ${darkSectionBg} ${darkText}`}>
-        <GlowOrb className="w-[520px] h-[520px] -bottom-56 left-1/2 -translate-x-1/2" />
-        <div className="relative max-w-3xl mx-auto px-6 py-24 sm:py-32 text-center">
+      <DarkBand>
+        <div className="max-w-3xl mx-auto px-6 py-24 sm:py-32 text-center">
           <Reveal>
-            <h2 className="font-heading text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight">
-              Ready to get it out of your head?
-            </h2>
+            <h2 className={displayL}>Ready to get it out of your head?</h2>
             <div className="mt-8">
               <Link to="/login" className={pillOnDark}>
                 Get started
@@ -436,7 +327,7 @@ export default function HomePage() {
             </div>
           </Reveal>
         </div>
-      </div>
+      </DarkBand>
     </MarketingLayout>
   );
 }
