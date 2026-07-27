@@ -7,7 +7,9 @@ import { executeAction, executeActionSequence, describeToolCall, describePlan, s
 import { loadAiIdentity, DEFAULTS as IDENTITY_DEFAULTS } from "@/lib/aiPreferences";
 import { loadAiProviderConfig, isByokConfigured, isLocalBridgeConfigured } from "@/lib/aiProviderConfig";
 import { runByokChat } from "@/lib/llm/byokChat";
-import { loadVaultConnection } from "@/lib/vaultConnection";
+import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
+import { fetchVaultOverview } from "@/lib/githubApi";
+import { matchesProtocolTrigger } from "@/lib/protocolReminder";
 import { usePositionedMenu } from "@/hooks/usePositionedMenu";
 import { useCreateChatSession } from "@/hooks/useChatSessions";
 import { useChatMessages, useCreateChatMessage, useUpdateChatMessage } from "@/hooks/useChatMessages";
@@ -133,6 +135,15 @@ export function useChatController({ activeProjectId } = {}) {
 
   const fileInputRef = useRef(null);
   const queryClient = useQueryClient();
+  // Force-loaded vault context (vault.md-style summary, priority-marked
+  // notes, recently-touched notes — see githubApi.js's fetchVaultOverview)
+  // fetched once per chat session, not once per message; a real GitHub
+  // crawl isn't free, and the whole point is matching a Claude Code
+  // SessionStart hook's "fires once per session" shape, not re-running it
+  // on every turn. Keyed by session id so a brand new session (or coming
+  // back to this ref after switching sessions) refetches, but sending a
+  // second message in the same session reuses the cached copy.
+  const vaultOverviewCacheRef = useRef({ sessionId: null, overview: null });
 
   const iconPicker = usePositionedMenu();
   const createSession = useCreateChatSession();
@@ -235,6 +246,7 @@ export function useChatController({ activeProjectId } = {}) {
           userText: payload.message,
           conversationHistory: payload.conversationHistory,
           aiIdentity: await loadAiIdentity(),
+          protocolReminderRequested: payload.protocolReminderRequested,
           areas: areas.filter((a) => !a.deleted_at),
           products: products.filter((p) => !p.deleted_at),
           projects: projectsActive,
@@ -246,6 +258,26 @@ export function useChatController({ activeProjectId } = {}) {
           notes,
         },
       });
+    }
+
+    const externalVault = await loadVaultConnection();
+
+    // Force-loaded vault context — the Vaea analog of a Claude Code CLI's
+    // own SessionStart hook (see [[Claude Code Vault System]] in the
+    // connected vault itself, if this is that vault): fetched once per
+    // session and cached, not once per message. GitHub calls happen here,
+    // client-side, using the same locally-stored token every other vault
+    // read/write already trusts (see githubApi.js) — never server-side, and
+    // best-effort throughout, so a fetch failure just means less context,
+    // never a visible error.
+    let vaultOverview = null;
+    if (isVaultConnected(externalVault)) {
+      if (vaultOverviewCacheRef.current.sessionId === payload.sessionId) {
+        vaultOverview = vaultOverviewCacheRef.current.overview;
+      } else {
+        vaultOverview = await fetchVaultOverview(externalVault).catch(() => null);
+        vaultOverviewCacheRef.current = { sessionId: payload.sessionId, overview: vaultOverview };
+      }
     }
 
     try {
@@ -260,7 +292,12 @@ export function useChatController({ activeProjectId } = {}) {
         // Sent transiently, per-request, so the vault_* tools can use it for
         // this one turn — never stored server-side, same guarantee as the
         // rest of this payload (see ExternalVaultSection.jsx's disclosure).
-        externalVault: await loadVaultConnection(),
+        externalVault,
+        vaultOverview,
+        // Mirrors the CLI's own UserPromptSubmit hook (see protocolReminder.js) —
+        // decided client-side from the user's own just-typed message, not
+        // re-derived here.
+        protocolReminderRequested: payload.protocolReminderRequested,
         areas: areas.filter((a) => !a.deleted_at),
         products: products.filter((p) => !p.deleted_at),
         projects: projectsActive,
@@ -330,7 +367,10 @@ export function useChatController({ activeProjectId } = {}) {
         .map((m) => `${m.role.toUpperCase()}: ${stripToolLog(m.content)}`)
         .join("\n");
 
-      const data = await invokeAssistant({ message: userText, conversationHistory, activeProjectId });
+      const data = await invokeAssistant({
+        message: userText, conversationHistory, activeProjectId, sessionId,
+        protocolReminderRequested: matchesProtocolTrigger(userText),
+      });
       // ChatMessage.content is a required field on Base44's side — never
       // forward a falsy reply from aiChatStream (a stale deploy, a model
       // hiccup) straight into a create call, or the write gets rejected

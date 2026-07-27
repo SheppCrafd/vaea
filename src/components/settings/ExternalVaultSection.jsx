@@ -77,8 +77,12 @@ export default function ExternalVaultSection() {
       </div>
       <p className="text-xs text-muted-foreground mb-4">
         Vaea Vault lets the assistant read and write a personal Obsidian vault stored on GitHub — pull in context,
-        log sessions, keep wikilinks and structure in shape. Reads run on the assistant's own turn; writes always
-        happen via a normal request, same as everything else it does. New to this?{" "}
+        log sessions, keep wikilinks and structure in shape. On-demand reads run on the assistant's own turn mid-
+        conversation; writes always happen via a normal request, same as everything else it does. It also pulls a
+        lightweight overview once when a chat session opens — <span className="font-terminal">vault.md</span> if your
+        vault has one, any note marked <span className="font-terminal">**Priority: high**</span>, and a handful of
+        recently-changed notes — so the assistant already has real vault context before it decides whether to search
+        for anything. New to this?{" "}
         <Link to="/app/settings/vault-setup" className="underline underline-offset-2 hover:text-foreground">Set one up first.</Link>
       </p>
 
@@ -106,8 +110,10 @@ export default function ExternalVaultSection() {
           />
           <p className="text-xs text-muted-foreground mt-1.5">
             Needs read/write access to the one repo above (a fine-grained token scoped to just it is safest).
-            Stored on this device only — but sent to Vaea's backend for the moment a read happens, so the
-            assistant can act on what it finds, the same way your workspace data already is.
+            Stored on this device only. It's sent to Vaea's backend for the moment an on-demand read happens
+            mid-conversation, so the assistant can act on what it finds, the same way your workspace data already
+            is — but the once-per-session overview above is fetched directly from this browser to GitHub instead,
+            never touching Vaea's backend at all.
           </p>
         </div>
       </div>

@@ -33,6 +33,89 @@ export function base64ToUtf8(b64) {
   return decodeURIComponent(escape(atob(b64)));
 }
 
+// Reads one file's raw content via the Contents API, tolerant of it not
+// existing — used by fetchVaultOverview below. Not exported alongside
+// writeVaultFile's own existence check since that one needs the sha too;
+// this one only ever needs the content.
+async function readVaultFile({ owner, repo, branch, token, path }) {
+  const url = `${API_BASE}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodePath(path)}?ref=${encodeURIComponent(branch)}`;
+  const res = await fetch(url, { headers: headers(token) });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return base64ToUtf8(data.content);
+}
+
+const MAX_PRIORITY_NOTES = 5;
+const MAX_RECENT_NOTES = 9;
+const MAX_COMMITS_SCANNED = 15;
+
+// Same "**Priority: high**" convention a connected personal vault might
+// already use for its own important notes — found via GitHub code search
+// rather than reading every file in the vault, the same way search_vault
+// (entry.ts) already searches note content instead of scanning it all.
+async function fetchPriorityNotes({ owner, repo, branch, token }) {
+  const q = `"Priority: high" repo:${owner}/${repo}`;
+  const res = await fetch(`${API_BASE}/search/code?q=${encodeURIComponent(q)}`, { headers: headers(token) });
+  if (!res.ok) return [];
+  const data = await res.json();
+  const paths = (data.items || [])
+    .filter((item) => item.path.endsWith(".md"))
+    .slice(0, MAX_PRIORITY_NOTES)
+    .map((item) => item.path);
+  const contents = await Promise.all(paths.map((path) => readVaultFile({ owner, repo, branch, token, path }).catch(() => null)));
+  return paths.map((path, i) => ({ path, content: contents[i] })).filter((n) => n.content);
+}
+
+// No single GitHub endpoint lists "N most recently modified files" — walks
+// the commit list newest-first, reading each commit's own changed-files
+// list (only the single-commit endpoint includes that, not the list one),
+// until enough distinct markdown paths are collected or MAX_COMMITS_SCANNED
+// is reached, whichever comes first. Bounded on both sides so a big, chatty
+// commit history can't turn "load recent context" into an unbounded crawl.
+async function fetchRecentNotes({ owner, repo, branch, token }) {
+  const listRes = await fetch(
+    `${API_BASE}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/commits?sha=${encodeURIComponent(branch)}&per_page=${MAX_COMMITS_SCANNED}`,
+    { headers: headers(token) }
+  );
+  if (!listRes.ok) return [];
+  const commits = await listRes.json();
+
+  const seen = new Set();
+  for (const commit of commits) {
+    if (seen.size >= MAX_RECENT_NOTES) break;
+    const detailRes = await fetch(`${API_BASE}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/commits/${commit.sha}`, { headers: headers(token) });
+    if (!detailRes.ok) continue;
+    const detail = await detailRes.json();
+    for (const file of detail.files || []) {
+      if (seen.size >= MAX_RECENT_NOTES) break;
+      if (file.status !== "removed" && file.filename.endsWith(".md")) seen.add(file.filename);
+    }
+  }
+
+  const paths = [...seen];
+  const contents = await Promise.all(paths.map((path) => readVaultFile({ owner, repo, branch, token, path }).catch(() => null)));
+  return paths.map((path, i) => ({ path, content: contents[i] })).filter((n) => n.content);
+}
+
+// Force-loaded vault context — the Vaea analog of a Claude Code CLI's own
+// SessionStart hook: fetched once per chat session (useChatController.js
+// caches it, keyed by session, rather than re-fetching every message) and
+// sent to the model unconditionally in every turn's prompt from then on,
+// the same way [DATABASE STATE] already is — not left to the model's own
+// discretion to decide whether to go read the vault. Everything here is
+// best-effort: a vault with no vault.md, no priority-marked notes, or a
+// GitHub call that fails just yields less context, never an error the user
+// sees — this is enrichment on top of the on-demand vault_* tools, not a
+// required capability those tools depend on.
+export async function fetchVaultOverview({ owner, repo, branch, token }) {
+  const [summary, priorityNotes, recentNotes] = await Promise.all([
+    readVaultFile({ owner, repo, branch, token, path: "vault.md" }).catch(() => null),
+    fetchPriorityNotes({ owner, repo, branch, token }).catch(() => []),
+    fetchRecentNotes({ owner, repo, branch, token }).catch(() => []),
+  ]);
+  return { summary, priorityNotes, recentNotes };
+}
+
 // GET /repos/{owner}/{repo} — used by ExternalVaultSection's "Test
 // connection" button. Returns the repo's default branch so the form can
 // offer to fill in "branch" when the user leaves it blank.

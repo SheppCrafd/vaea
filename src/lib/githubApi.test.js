@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { base64ToUtf8, utf8ToBase64, testVaultConnection, writeVaultFile } from "./githubApi.js";
+import { base64ToUtf8, utf8ToBase64, testVaultConnection, writeVaultFile, fetchVaultOverview } from "./githubApi.js";
 
 describe("githubApi: base64 round-trip handles real UTF-8, not just ASCII", () => {
   it("round-trips plain text", () => {
@@ -115,5 +115,58 @@ describe("githubApi: writeVaultFile", () => {
 
     const getUrl = globalThis.fetch.mock.calls[0][0];
     expect(getUrl).toBe("https://api.github.com/repos/me/vault/contents/Decisions/A%20Real%20Decision.md?ref=main");
+  });
+});
+
+describe("githubApi: fetchVaultOverview", () => {
+  const contentResponse = (text) => ({ ok: true, json: async () => ({ content: utf8ToBase64(text) }) });
+
+  beforeEach(() => {
+    globalThis.fetch = vi.fn(async (url) => {
+      const u = String(url);
+      if (u.includes("/contents/vault.md")) return contentResponse("# Vault Summary\nrolling summary content");
+      if (u.includes("/search/code")) {
+        return { ok: true, json: async () => ({ items: [{ path: "Decisions/Important.md" }, { path: "notignored.png" }] }) };
+      }
+      if (u.includes("/contents/Decisions/Important.md")) return contentResponse("# Important\npriority content");
+      if (u.includes("/commits?")) {
+        return { ok: true, json: async () => [{ sha: "c1" }, { sha: "c2" }] };
+      }
+      if (u.endsWith("/commits/c1")) {
+        return { ok: true, json: async () => ({ files: [{ filename: "Daily/2026-07-27.md", status: "modified" }] }) };
+      }
+      if (u.endsWith("/commits/c2")) {
+        return { ok: true, json: async () => ({ files: [{ filename: "removed.md", status: "removed" }, { filename: "vault.md", status: "modified" }] }) };
+      }
+      if (u.includes("/contents/Daily/2026-07-27.md")) return contentResponse("# Today\nrecent content");
+      return { ok: false, status: 404 };
+    });
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("fetches vault.md, priority-marked notes, and recently-touched notes together", async () => {
+    const overview = await fetchVaultOverview({ owner: "me", repo: "vault", branch: "main", token: "t" });
+    expect(overview.summary).toBe("# Vault Summary\nrolling summary content");
+    expect(overview.priorityNotes).toEqual([{ path: "Decisions/Important.md", content: "# Important\npriority content" }]);
+    expect(overview.recentNotes.map((n) => n.path)).toContain("Daily/2026-07-27.md");
+    // vault.md itself gets touched by recent commits in a real vault (the
+    // nightly Routine rewrites it) but is already surfaced as `summary` —
+    // no requirement to dedupe here, just confirming the removed file never
+    // shows up.
+    expect(overview.recentNotes.some((n) => n.path === "removed.md")).toBe(false);
+  });
+
+  it("is fully best-effort — a missing vault.md and a failed search still return whatever else is available", async () => {
+    globalThis.fetch = vi.fn(async (url) => {
+      const u = String(url);
+      if (u.includes("/contents/vault.md")) return { ok: false, status: 404 };
+      if (u.includes("/search/code")) return { ok: false, status: 403 };
+      if (u.includes("/commits?")) return { ok: false, status: 500 };
+      return { ok: false, status: 404 };
+    });
+    const overview = await fetchVaultOverview({ owner: "me", repo: "vault", branch: "main", token: "t" });
+    expect(overview).toEqual({ summary: null, priorityNotes: [], recentNotes: [] });
   });
 });
