@@ -335,7 +335,7 @@ export function useChatController({ activeProjectId } = {}) {
     });
     if (streamError) throw new Error(streamError);
     if (!finalPayload) throw new Error("The assistant's response ended unexpectedly.");
-    return { reply: finalPayload.reply, actions: finalPayload.actions, liveTrace: finalPayload.liveTrace };
+    return { reply: finalPayload.reply, reasoning: finalPayload.reasoning, actions: finalPayload.actions, liveTrace: finalPayload.liveTrace };
   };
 
   const runUndo = async () => {
@@ -417,6 +417,14 @@ export function useChatController({ activeProjectId } = {}) {
       // hiccup) straight into a create call, or the write gets rejected
       // with a 422 ("Field required") instead of showing the user anything.
       const reply = data.reply || "Done.";
+      // The full multi-round narrative (deliberation included) — distinct
+      // from `reply` (just the last round's own text) since a real user
+      // caught these two being the exact same string: the plan line's own
+      // modal used to show `reply` too, which is already fully visible in
+      // the chat bubble right above it, making the click pointless. Falls
+      // back to `reply` itself so a single-round turn (nothing to separate
+      // out) or an old cached response shape still shows something.
+      const reasoning = data.reasoning || reply;
       const actions = data.actions || [];
       // Read tools (web_search, analyze_attachment, read_project_link,
       // search_workspace, audit_workspace, the vault_* readers) already ran
@@ -505,12 +513,13 @@ export function useChatController({ activeProjectId } = {}) {
       await createMessage.mutateAsync(
         {
           session_id: sessionId, role: "assistant", content,
-          // `reply` carried alongside the structured plan/steps data so the
-          // plan line's own click-to-inspect modal can show the model's
-          // real narration (its own natural-language reasoning, already
-          // streamed live above) instead of a structured action breakdown —
-          // see ChatToolLogDetail.jsx.
-          tool_log_detail: { liveTrace, plan: executable, steps: results, reply },
+          // `reasoning` (the full multi-round narrative, NOT the same string
+          // as `content`'s own `reply`) carried alongside the structured
+          // plan/steps data so the plan line's own click-to-inspect modal
+          // shows the model's real deliberation instead of either a
+          // structured action breakdown or a pointless echo of what's
+          // already visible in the chat bubble — see ChatToolLogDetail.jsx.
+          tool_log_detail: { liveTrace, plan: executable, steps: results, reasoning },
         },
         skipTypewriter
       );

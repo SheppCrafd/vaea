@@ -18,16 +18,20 @@ import { sanitizeUrl } from "@/lib/sanitizeUrl";
 // useChatController.js) is what makes a given line clickable — the fenced
 // block's line order always matches tool_log_detail: liveTrace entries
 // first, then the plan line, then one line per executed step.
-// The plan line's own detail is a distinct shape ({reply, actions}, both
+// The plan line's own detail is a distinct shape ({reasoning, actions}, both
 // optional) from every other line's — ChatToolLogDetail.jsx renders it as
-// the model's real natural-language reasoning (already streamed live above)
-// when `reply` is there, falling back to the structured action breakdown
-// for a message persisted before that field existed.
+// the model's real natural-language deliberation (every round's own text,
+// not just the final one — see useChatController.js) when `reasoning` is
+// there, falling back to the structured action breakdown for a message
+// persisted before that field existed. Deliberately NOT the message's own
+// `reply` (already fully visible in the chat bubble right above this line)
+// — showing that again here would just be a pointless echo of something
+// already on screen.
 export function detailForLogLine(toolLogDetail, i) {
   const liveTrace = toolLogDetail?.liveTrace || [];
   if (i < liveTrace.length) return liveTrace[i]?.detail;
   const j = i - liveTrace.length;
-  if (j === 0) return { reply: toolLogDetail?.reply, actions: toolLogDetail?.plan };
+  if (j === 0) return { reasoning: toolLogDetail?.reasoning, actions: toolLogDetail?.plan };
   return toolLogDetail?.steps?.[j - 1];
 }
 

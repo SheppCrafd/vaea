@@ -20,7 +20,7 @@ describe("detailForLogLine", () => {
   const toolLogDetail = {
     liveTrace: [{ label: 'search_workspace("q")', detail: { count: 1 } }],
     plan: [{ action: "CREATE_AREA" }],
-    reply: "I'll add that area for you.",
+    reasoning: "I'll check the workspace first.\n\nI'll add that area for you.",
     steps: [{ action: "CREATE_AREA", toolResult: { area: { title: "A" } } }],
   };
 
@@ -28,8 +28,8 @@ describe("detailForLogLine", () => {
     expect(detailForLogLine(toolLogDetail, 0)).toEqual({ count: 1 });
   });
 
-  it("maps the line right after live-trace lines to {reply, actions} — the plan line's natural-language detail", () => {
-    expect(detailForLogLine(toolLogDetail, 1)).toEqual({ reply: toolLogDetail.reply, actions: toolLogDetail.plan });
+  it("maps the line right after live-trace lines to {reasoning, actions} — the plan line's natural-language detail, distinct from the message's own reply", () => {
+    expect(detailForLogLine(toolLogDetail, 1)).toEqual({ reasoning: toolLogDetail.reasoning, actions: toolLogDetail.plan });
   });
 
   it("maps later lines to their own executed step", () => {
@@ -37,12 +37,12 @@ describe("detailForLogLine", () => {
   });
 
   it("works with no live trace at all (plan is line 0)", () => {
-    const detail = { plan: [{ action: "CREATE_AREA" }], reply: "Done.", steps: [{ action: "CREATE_AREA" }] };
-    expect(detailForLogLine(detail, 0)).toEqual({ reply: detail.reply, actions: detail.plan });
+    const detail = { plan: [{ action: "CREATE_AREA" }], reasoning: "Done.", steps: [{ action: "CREATE_AREA" }] };
+    expect(detailForLogLine(detail, 0)).toEqual({ reasoning: detail.reasoning, actions: detail.plan });
     expect(detailForLogLine(detail, 1)).toBe(detail.steps[0]);
   });
 
-  it("still returns {reply: undefined, actions: undefined} for a message persisted before tool_log_detail carried them", () => {
-    expect(detailForLogLine(undefined, 0)).toEqual({ reply: undefined, actions: undefined });
+  it("still returns {reasoning: undefined, actions: undefined} for a message persisted before tool_log_detail carried them", () => {
+    expect(detailForLogLine(undefined, 0)).toEqual({ reasoning: undefined, actions: undefined });
   });
 });

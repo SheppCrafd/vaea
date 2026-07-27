@@ -16,9 +16,10 @@ describe("localBridgeAdapter: file-based round loop", () => {
   it("writes round 0, and returns the model's text when there are no tool_use blocks", async () => {
     pollForResponseFile.mockResolvedValueOnce({ content: [{ type: "text", text: "Just a reply." }] });
 
-    const reply = await callLocalBridge({ systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn() });
+    const { reply, reasoning } = await callLocalBridge({ systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn() });
 
     expect(reply).toBe("Just a reply.");
+    expect(reasoning).toBe("Just a reply.");
     expect(writeRequestFile).toHaveBeenCalledTimes(1);
     const [requestId, round, body] = writeRequestFile.mock.calls[0];
     expect(round).toBe(0);
@@ -37,12 +38,15 @@ describe("localBridgeAdapter: file-based round loop", () => {
       .mockResolvedValueOnce({ content: [{ type: "text", text: "Found it." }] });
 
     const runTool = vi.fn(() => ({ count: 1 }));
-    const reply = await callLocalBridge({ systemPrompt: "s", contextPrompt: "c", tools: [], runTool });
+    const { reply, reasoning } = await callLocalBridge({ systemPrompt: "s", contextPrompt: "c", tools: [], runTool });
 
-    // Both rounds' own text now carry through — "Let me check that." was
-    // real thinking the model produced before calling the tool, not just
-    // filler to discard; see THINK OUT LOUD AS YOU GO.
-    expect(reply).toBe("Let me check that.\n\nFound it.");
+    // `reply` is only the last round's own text; `reasoning` carries both
+    // rounds' — "Let me check that." was real thinking the model produced
+    // before calling the tool (see THINK OUT LOUD AS YOU GO), which belongs
+    // in the plan's own natural-language detail, not doubled into the
+    // chat-facing reply too.
+    expect(reply).toBe("Found it.");
+    expect(reasoning).toBe("Let me check that.\n\nFound it.");
     expect(runTool).toHaveBeenCalledWith("search_workspace", { query: "growth" });
     expect(writeRequestFile).toHaveBeenCalledTimes(2);
 

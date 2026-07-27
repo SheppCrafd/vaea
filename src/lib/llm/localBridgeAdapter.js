@@ -20,6 +20,11 @@ function newRequestId() {
   return `req-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+// Returns {reply, reasoning} for one turn — `reply` is just the last
+// round's own text (the actual conversational answer), `reasoning` is every
+// round's own text joined (the full deliberation, self-corrections
+// included) — see anthropicAdapter.js's matching comment for why these
+// need to be two different strings, not the same one returned twice.
 export async function callLocalBridge({ systemPrompt, contextPrompt, tools, runTool, pollIntervalMs = DEFAULT_POLL_INTERVAL_MS }) {
   const requestId = newRequestId();
   const messages = [{ role: "user", content: contextPrompt }];
@@ -27,8 +32,7 @@ export async function callLocalBridge({ systemPrompt, contextPrompt, tools, runT
   // the model produced as it worked through the request (see THINK OUT LOUD
   // AS YOU GO in systemPrompt.js): "I'll check the workspace first...",
   // then after results come back, "Found two matches, now creating the
-  // plan...". Discarding every round but the last one was throwing that
-  // away entirely.
+  // plan...".
   const thinking = [];
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
@@ -44,7 +48,10 @@ export async function callLocalBridge({ systemPrompt, contextPrompt, tools, runT
     if (roundText) thinking.push(roundText);
 
     if (toolUseBlocks.length === 0) {
-      return thinking.join("\n\n") || "I couldn't come up with a reply — could you rephrase?";
+      return {
+        reply: thinking[thinking.length - 1] || "I couldn't come up with a reply — could you rephrase?",
+        reasoning: thinking.join("\n\n"),
+      };
     }
 
     messages.push({ role: "assistant", content });

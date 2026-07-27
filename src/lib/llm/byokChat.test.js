@@ -163,7 +163,7 @@ describe("runByokChat: end-to-end against a mocked provider response", () => {
     }));
 
     const events = [];
-    await runByokChat({
+    const result = await runByokChat({
       providerConfig: { provider: "anthropic", model: "claude-sonnet-5", apiKey: "sk-ant-test" },
       contextArgs: { ...baseContextArgs, userText: "what do we have on growth" },
       onEvent: (e) => events.push(e),
@@ -172,6 +172,15 @@ describe("runByokChat: end-to-end against a mocked provider response", () => {
     expect(events).toContainEqual({ type: "thinking-delta", text: "Let me check." });
     expect(events.some((e) => e.type === "tool-call" && e.label.startsWith('search_workspace("growth")'))).toBe(true);
     expect(events).toContainEqual({ type: "thinking-delta", text: "Found one match." });
+
+    // reply (chat-facing) is ONLY the final round's own text; reasoning
+    // (the plan modal's own detail) is every round's own text, including
+    // the earlier "Let me check." deliberation — these must NOT be the
+    // same string, or the modal is just a pointless echo of the chat
+    // bubble, which is exactly what a real user caught.
+    expect(result.reply).toBe("Found one match.");
+    expect(result.reasoning).toBe("Let me check.\n\nFound one match.");
+    expect(result.reasoning).not.toBe(result.reply);
   });
 });
 
@@ -237,7 +246,7 @@ describe("runByokChat: local-bridge (Backdoor Mode) dispatch", () => {
     expect(body.messages[0].content).toContain("[PROTOCOL REMINDER]");
   });
 
-  it("with onEvent: paced-replays liveTrace then the reply text as the same event vocabulary real streaming uses, without ever touching the file contract", async () => {
+  it("with onEvent: paced-replays liveTrace then the reasoning text as the same event vocabulary real streaming uses, without ever touching the file contract", async () => {
     getBridgeStatus.mockResolvedValueOnce("connected");
     pollForResponseFile
       .mockResolvedValueOnce({ content: [{ type: "tool_use", id: "toolu_1", name: "search_workspace", input: { query: "growth" } }] })
@@ -259,9 +268,9 @@ describe("runByokChat: local-bridge (Backdoor Mode) dispatch", () => {
     const thinkingEvents = events.filter((e) => e.type === "thinking-delta");
     expect(toolCallEvents).toHaveLength(1);
     expect(toolCallEvents[0].label).toMatch(/^search_workspace\("growth"\)/);
-    // Tool-call reveal happens entirely before any reply text starts.
+    // Tool-call reveal happens entirely before any reasoning text starts.
     expect(events.indexOf(toolCallEvents[0])).toBeLessThan(events.indexOf(thinkingEvents[0]));
-    expect(thinkingEvents.map((e) => e.text).join("")).toBe(result.reply);
+    expect(thinkingEvents.map((e) => e.text).join("")).toBe(result.reasoning);
   });
 
   it("without onEvent: resolves exactly as before, no pacing delay incurred", async () => {
@@ -270,5 +279,25 @@ describe("runByokChat: local-bridge (Backdoor Mode) dispatch", () => {
 
     const result = await runByokChat({ providerConfig: { provider: "local-bridge" }, contextArgs: baseContextArgs });
     expect(result.reply).toBe("Here's what I found.");
+  });
+
+  it("keeps reply (last round only) and reasoning (every round, deliberation included) as two different strings, same as every other provider", async () => {
+    getBridgeStatus.mockResolvedValueOnce("connected");
+    pollForResponseFile
+      .mockResolvedValueOnce({
+        content: [
+          { type: "text", text: "Let me check." },
+          { type: "tool_use", id: "toolu_1", name: "search_workspace", input: { query: "growth" } },
+        ],
+      })
+      .mockResolvedValueOnce({ content: [{ type: "text", text: "Found one match." }] });
+
+    const result = await runByokChat({
+      providerConfig: { provider: "local-bridge" },
+      contextArgs: { ...baseContextArgs, userText: "what do we have on growth" },
+    });
+
+    expect(result.reply).toBe("Found one match.");
+    expect(result.reasoning).toBe("Let me check.\n\nFound one match.");
   });
 });

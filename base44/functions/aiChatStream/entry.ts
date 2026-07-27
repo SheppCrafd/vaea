@@ -991,16 +991,35 @@ Deno.serve(async (req) => {
           // byokChat.js's simulateLiveReveal) for the identical underlying
           // reason: the transport under this path can't actually stream.
           const result = await agent.generate({ prompt: contextPrompt });
-          const thinking = result.steps.map((step) => step.text?.trim()).filter(Boolean).join('\n\n');
-          const reply = thinking || "I couldn't come up with a reply — could you rephrase?";
+          const stepTexts = result.steps.map((step) => step.text?.trim()).filter(Boolean);
+          // `reasoning` is every round's own text, in order — "I'll check
+          // the workspace first...", then "Found two matches, now creating
+          // the plan...", genuine deliberation including any real
+          // self-correction, not just the destination. `reply` is ONLY the
+          // last round's own text — the actual conversational answer, the
+          // thing that belongs in the chat transcript without needing to
+          // click anything. These used to be the same string (the full
+          // joined narrative used as both the chat bubble AND the plan
+          // modal's own detail) — a real user caught that as "the plan is
+          // VERBATIM the text in chat," rightly pointless, since a click
+          // that reveals nothing you couldn't already see is no different
+          // from no click at all. A single-round turn (a plain reply, no
+          // tool calls) legitimately has reply === reasoning — there's no
+          // earlier deliberation to separate out — and that's fine.
+          const reasoning = stepTexts.join('\n\n');
+          const reply = stepTexts[stepTexts.length - 1] || "I couldn't come up with a reply — could you rephrase?";
 
-          // Word-sized paced chunks, duration capped the same way
+          // Word-sized paced chunks of the FULL reasoning (every round,
+          // not just the final one) — this is what streams live, the same
+          // "watch it think" experience real streaming gives base44-hosted
+          // when the gateway does support it. Duration capped the same way
           // ChatMessageList.jsx's own useTypewriter caps itself, so a long
           // reply doesn't turn into a multi-second wait — see
           // byokChat.js's simulateLiveReveal for the client-side twin of
           // this same pacing formula.
-          const words = reply.match(/\S+\s*/g) || [reply];
-          const perWordDelayMs = Math.min(1800, Math.max(300, reply.length * 8)) / words.length;
+          const liveText = reasoning || reply;
+          const words = liveText.match(/\S+\s*/g) || [liveText];
+          const perWordDelayMs = Math.min(1800, Math.max(300, liveText.length * 8)) / words.length;
           for (const word of words) {
             emit({ type: 'thinking-delta', text: word });
             await new Promise((resolve) => setTimeout(resolve, perWordDelayMs));
@@ -1012,7 +1031,7 @@ Deno.serve(async (req) => {
           // action-log treatment a staged mutation's own steps get (see
           // useChatController.js), rather than plain text silently folded
           // into the reply.
-          emit({ type: 'done', reply, actions: plan, liveTrace });
+          emit({ type: 'done', reply, reasoning, actions: plan, liveTrace });
         } catch (error) {
           // Never let the stream just die silently on a mid-generation
           // failure (rate limit, provider error, a thrown 'error' stream

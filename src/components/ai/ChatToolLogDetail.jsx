@@ -89,20 +89,26 @@ function ActionBlock({ step }) {
   );
 }
 
-// The plan line's own detail — the model's real narration for this turn
-// (the same text that already streamed live above the transcript, or once
-// it's persisted, the message's own reply), rendered as genuine prose: no
-// template, no per-step breakdown, just the model's own words for why it's
-// doing what it's doing. ChatMessageList.jsx's detailForLogLine builds this
-// shape ({reply, actions}) specifically for the plan line; every other
-// line's own detail (a live tool call's result, an executed step's
-// args/toolResult) stays the structured, factual view below — this is only
-// for the one line that used to show "what" as a labeled-field dump when
-// what the user actually wanted there was "why," in the model's own voice.
-function PlanReasoning({ reply, actions }) {
-  if (!reply) {
-    // A message persisted before tool_log_detail carried `reply` at all —
-    // fall back to the old structured breakdown rather than showing nothing.
+// The plan line's own detail — the model's real deliberation for this turn:
+// every round's own text, not just the final one (see useChatController.js
+// and, e.g., anthropicAdapter.js's `reasoning` for how this is built),
+// rendered as genuine prose: no template, no per-step breakdown, just the
+// model's own words for why it's doing what it's doing — "I'll check X
+// first... found two matches, so I'll do Y instead... now I'll..." — the
+// deliberation, not the destination. Deliberately NOT the message's own
+// `reply` — that's already fully visible in the chat bubble immediately
+// above this line; showing it again here was a real bug a user caught
+// ("the plan is VERBATIM the text in chat"), since a click revealing
+// nothing new is worse than no click at all. ChatMessageList.jsx's
+// detailForLogLine builds this shape ({reasoning, actions}) specifically
+// for the plan line; every other line's own detail (a live tool call's
+// result, an executed step's args/toolResult) stays the structured,
+// factual view below.
+function PlanReasoning({ reasoning, actions }) {
+  if (!reasoning) {
+    // A message persisted before tool_log_detail carried `reasoning` at
+    // all — fall back to the old structured breakdown rather than showing
+    // nothing.
     return (
       <div>
         {(actions || []).map((step, i) => (
@@ -113,19 +119,19 @@ function PlanReasoning({ reply, actions }) {
   }
   return (
     <div className="space-y-2 [&_p]:mb-2 [&_p:last-child]:mb-0">
-      <ReactMarkdown urlTransform={sanitizeUrl}>{reply}</ReactMarkdown>
+      <ReactMarkdown urlTransform={sanitizeUrl}>{reasoning}</ReactMarkdown>
     </div>
   );
 }
 
-// Real shapes `data` arrives in: the plan line's own {reply, actions} (see
+// Real shapes `data` arrives in: the plan line's own {reasoning, actions} (see
 // PlanReasoning above), an already-executed step ({action, args,
 // toolResult}), or a live tool call's own arbitrary result (search matches,
 // a note's content, audit findings) — anything else just renders as plain
 // fields.
 function DetailBody({ data }) {
-  if (data && typeof data === "object" && ("reply" in data) && ("actions" in data)) {
-    return <PlanReasoning reply={data.reply} actions={data.actions} />;
+  if (data && typeof data === "object" && ("reasoning" in data) && ("actions" in data)) {
+    return <PlanReasoning reasoning={data.reasoning} actions={data.actions} />;
   }
   if (Array.isArray(data)) {
     return (

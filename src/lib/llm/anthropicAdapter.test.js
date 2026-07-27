@@ -71,7 +71,7 @@ describe("anthropicAdapter: tool-call loop (streamed)", () => {
 
     const runTool = vi.fn(() => ({ count: 1, matches: [{ id: "a1", title: "Growth" }] }));
 
-    const reply = await callAnthropic({
+    const { reply, reasoning } = await callAnthropic({
       apiKey: "sk-ant-test",
       model: "claude-sonnet-5",
       systemPrompt: "system",
@@ -80,10 +80,14 @@ describe("anthropicAdapter: tool-call loop (streamed)", () => {
       runTool,
     });
 
-    // Both rounds' own text now carry through — "Let me check that." was
-    // real thinking the model produced before calling the tool, not just
-    // filler to discard; see THINK OUT LOUD AS YOU GO.
-    expect(reply).toBe("Let me check that.\n\nFound it — Growth already exists.");
+    // `reply` is only the LAST round's own text — the actual conversational
+    // answer. `reasoning` is every round's own text joined — "Let me check
+    // that." was real thinking the model produced before calling the tool,
+    // not just filler to discard (see THINK OUT LOUD AS YOU GO) — but it
+    // belongs in the plan detail's own natural-language view, not doubled
+    // into the chat-facing reply too.
+    expect(reply).toBe("Found it — Growth already exists.");
+    expect(reasoning).toBe("Let me check that.\n\nFound it — Growth already exists.");
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(runTool).toHaveBeenCalledWith("search_workspace", { query: "growth" });
 
@@ -104,18 +108,20 @@ describe("anthropicAdapter: tool-call loop (streamed)", () => {
   it("fires onEvent with each text_delta live, as it streams in — not just the final joined text", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => streamResponse(roundEvents([{ type: "text", text: "Just a reply." }]))));
     const events = [];
-    const reply = await callAnthropic({
+    const { reply, reasoning } = await callAnthropic({
       apiKey: "k", model: "m", systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn(),
       onEvent: (e) => events.push(e),
     });
     expect(reply).toBe("Just a reply.");
+    expect(reasoning).toBe("Just a reply.");
     expect(events).toEqual([{ type: "thinking-delta", text: "Just a reply." }]);
   });
 
-  it("returns text directly when the first response has no tool_use blocks", async () => {
+  it("returns the same text for both reply and reasoning when there's only one round (nothing to separate out)", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => streamResponse(roundEvents([{ type: "text", text: "Just a reply." }]))));
-    const reply = await callAnthropic({ apiKey: "k", model: "m", systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn() });
+    const { reply, reasoning } = await callAnthropic({ apiKey: "k", model: "m", systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn() });
     expect(reply).toBe("Just a reply.");
+    expect(reasoning).toBe("Just a reply.");
   });
 
   it("surfaces the provider's own error message on a non-2xx response", async () => {

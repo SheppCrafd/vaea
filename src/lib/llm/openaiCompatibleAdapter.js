@@ -66,6 +66,11 @@ async function streamOnce({ baseUrl, apiKey, model, messages, tools, onEvent }) 
   return { choices: [{ message: { role: "assistant", content: content || null, ...(tool_calls.length ? { tool_calls } : {}) } }] };
 }
 
+// Returns {reply, reasoning} for one turn — `reply` is just the last
+// round's own text (the actual conversational answer), `reasoning` is every
+// round's own text joined (the full deliberation, self-corrections
+// included) — see anthropicAdapter.js's matching comment for why these
+// need to be two different strings, not the same one returned twice.
 export async function callOpenAiCompatible({ baseUrl, apiKey, model, systemPrompt, contextPrompt, tools, runTool, onEvent }) {
   const messages = [
     { role: "system", content: systemPrompt },
@@ -75,9 +80,8 @@ export async function callOpenAiCompatible({ baseUrl, apiKey, model, systemPromp
   // the model produced as it worked through the request (see THINK OUT LOUD
   // AS YOU GO in systemPrompt.js): "I'll check the workspace first...",
   // then after results come back, "Found two matches, now creating the
-  // plan...". Discarding every round but the last one was throwing that
-  // away entirely. Now streamed live via onEvent as each round's text
-  // actually arrives, not just collected here for the final joined string.
+  // plan...". Now streamed live via onEvent as each round's text actually
+  // arrives, not just collected here for the final joined string.
   const thinking = [];
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
@@ -88,7 +92,10 @@ export async function callOpenAiCompatible({ baseUrl, apiKey, model, systemPromp
     if (roundText) thinking.push(roundText);
 
     if (!message.tool_calls?.length) {
-      return thinking.join("\n\n") || "I couldn't come up with a reply — could you rephrase?";
+      return {
+        reply: thinking[thinking.length - 1] || "I couldn't come up with a reply — could you rephrase?",
+        reasoning: thinking.join("\n\n"),
+      };
     }
 
     messages.push(message);

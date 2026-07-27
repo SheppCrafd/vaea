@@ -61,7 +61,7 @@ describe("openaiCompatibleAdapter: tool-call loop (streamed)", () => {
 
     const runTool = vi.fn(() => ({ count: 1, matches: [{ id: "a1", title: "Growth" }] }));
 
-    const reply = await callOpenAiCompatible({
+    const { reply, reasoning } = await callOpenAiCompatible({
       baseUrl: "https://api.openai.com/v1",
       apiKey: "sk-test",
       model: "gpt-5",
@@ -72,6 +72,7 @@ describe("openaiCompatibleAdapter: tool-call loop (streamed)", () => {
     });
 
     expect(reply).toBe("Found it — Growth already exists.");
+    expect(reasoning).toBe("Found it — Growth already exists.");
     expect(calls[0].url).toBe("https://api.openai.com/v1/chat/completions");
     expect(calls[0].body.stream).toBe(true);
     expect(runTool).toHaveBeenCalledWith("search_workspace", { query: "growth" });
@@ -96,30 +97,37 @@ describe("openaiCompatibleAdapter: tool-call loop (streamed)", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    const reply = await callOpenAiCompatible({
+    const { reply, reasoning } = await callOpenAiCompatible({
       baseUrl: "https://api.openai.com/v1", apiKey: "sk-test", model: "gpt-5",
       systemPrompt: "system", contextPrompt: "context", tools: [], runTool: vi.fn(() => ({ count: 1 })),
     });
 
-    expect(reply).toBe("Let me check that.\n\nFound it — Growth already exists.");
+    // `reply` is only the last round's own text; `reasoning` is every
+    // round's own text joined — the two used to be the same string, which
+    // is what a real user caught as the plan modal being a verbatim echo
+    // of the chat bubble.
+    expect(reply).toBe("Found it — Growth already exists.");
+    expect(reasoning).toBe("Let me check that.\n\nFound it — Growth already exists.");
   });
 
   it("fires onEvent with each content fragment live, as it streams in", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => streamResponse(roundChunks({ content: "Just a reply." }))));
     const events = [];
-    const reply = await callOpenAiCompatible({
+    const { reply, reasoning } = await callOpenAiCompatible({
       baseUrl: "https://api.openai.com/v1", apiKey: "k", model: "gpt-5", systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn(),
       onEvent: (e) => events.push(e),
     });
     expect(reply).toBe("Just a reply.");
+    expect(reasoning).toBe("Just a reply.");
     expect(events.map((e) => e.text).join("")).toBe("Just a reply.");
     expect(events.every((e) => e.type === "thinking-delta")).toBe(true);
   });
 
-  it("returns content directly when there are no tool_calls", async () => {
+  it("returns the same text for both reply and reasoning when there's only one round (nothing to separate out)", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => streamResponse(roundChunks({ content: "Just a reply." }))));
-    const reply = await callOpenAiCompatible({ baseUrl: "https://api.x.ai/v1", apiKey: "k", model: "grok-4", systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn() });
+    const { reply, reasoning } = await callOpenAiCompatible({ baseUrl: "https://api.x.ai/v1", apiKey: "k", model: "grok-4", systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn() });
     expect(reply).toBe("Just a reply.");
+    expect(reasoning).toBe("Just a reply.");
   });
 
   it("surfaces the provider's own error message on a non-2xx response", async () => {
@@ -161,7 +169,7 @@ describe("openaiCompatibleAdapter: tool-call loop (streamed)", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
     const runTool = vi.fn(() => ({ ok: true }));
-    const reply = await callOpenAiCompatible({ baseUrl: "https://api.openai.com/v1", apiKey: "k", model: "gpt-5", systemPrompt: "s", contextPrompt: "c", tools: [], runTool });
+    const { reply } = await callOpenAiCompatible({ baseUrl: "https://api.openai.com/v1", apiKey: "k", model: "gpt-5", systemPrompt: "s", contextPrompt: "c", tools: [], runTool });
     expect(reply).toBe("Handled the bad call.");
     expect(runTool).toHaveBeenCalledWith("search_workspace", {});
   });

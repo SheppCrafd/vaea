@@ -70,18 +70,24 @@ async function streamOnce({ apiKey, model, systemPrompt, messages, tools, onEven
   };
 }
 
-// Runs the full plan-then-tools loop for one turn and returns the final
-// reply text — `runTool` (toolRunner.js) is what actually stages/executes
-// each call.
+// Runs the full plan-then-tools loop for one turn and returns
+// {reply, reasoning} — `runTool` (toolRunner.js) is what actually
+// stages/executes each call.
 export async function callAnthropic({ apiKey, model, systemPrompt, contextPrompt, tools, runTool, onEvent }) {
   const messages = [{ role: "user", content: contextPrompt }];
   // Every round's own text — not just the final round's — is real thinking
   // the model produced as it worked through the request (see THINK OUT LOUD
   // AS YOU GO in systemPrompt.js): "I'll check the workspace first...",
   // then after results come back, "Found two matches, now creating the
-  // plan...". Discarding every round but the last one was throwing that
-  // away entirely. Now streamed live via onEvent as each round's text
-  // actually arrives, not just collected here for the final joined string.
+  // plan...". Streamed live via onEvent as each round's text actually
+  // arrives; also collected here as `thinking` so the caller gets both the
+  // full multi-round narrative (`reasoning` — real deliberation, including
+  // any self-correction) AND just the last round's own text (`reply` — the
+  // actual conversational answer). These used to be collapsed into one
+  // string returned as the reply, which is what a real user was pointing at
+  // saying "the plan is VERBATIM the text in chat" — the chat bubble and
+  // the plan-detail modal literally showed the identical string, since both
+  // read from the same joined blob.
   const thinking = [];
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
@@ -92,7 +98,10 @@ export async function callAnthropic({ apiKey, model, systemPrompt, contextPrompt
     if (roundText) thinking.push(roundText);
 
     if (toolUseBlocks.length === 0) {
-      return thinking.join("\n\n") || "I couldn't come up with a reply — could you rephrase?";
+      return {
+        reply: thinking[thinking.length - 1] || "I couldn't come up with a reply — could you rephrase?",
+        reasoning: thinking.join("\n\n"),
+      };
     }
 
     messages.push({ role: "assistant", content });
