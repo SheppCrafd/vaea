@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import { useChatController } from "@/hooks/useChatController";
 import { useChatSessions } from "@/hooks/useChatSessions";
 import { useSlashCommand } from "@/hooks/useSlashCommand";
+import { useChatInputHistory } from "@/hooks/useChatInputHistory";
 import { useAppStore } from "@/lib/store";
 import ChatIcon from "@/components/ai/ChatIcon";
 import ChatIconPicker from "@/components/ai/ChatIconPicker";
@@ -35,6 +36,7 @@ export default function ChatPage() {
   const { data: sessions = [] } = useChatSessions();
   const messageInputRef = useRef(null);
   const slashCommand = useSlashCommand(chat.input, chat.setInput);
+  const inputHistory = useChatInputHistory({ messages: chat.chatState.messages, input: chat.input, setInput: chat.setInput });
 
   return (
     <div className="h-full flex overflow-hidden bg-background">
@@ -159,7 +161,10 @@ export default function ChatPage() {
                   ref={messageInputRef}
                   value={chat.input}
                   onChange={(e) => chat.setInput(e.target.value)}
-                  onKeyDown={slashCommand.handleKeyDown}
+                  onKeyDown={(e) => {
+                    slashCommand.handleKeyDown(e);
+                    if (!e.defaultPrevented) inputHistory.handleKeyDown(e);
+                  }}
                   placeholder={`Message ${chat.aiIdentity.name || "Vaea Chat"}...`}
                   className="flex-1 min-w-0 font-terminal text-sm bg-transparent outline-none"
                   disabled={chat.isComputing}

@@ -4,6 +4,7 @@ import { X, Plus, ChevronLeft, Paperclip, Maximize2, Info, Settings } from "luci
 import { useChatController } from "@/hooks/useChatController";
 import { useWindowGeometry } from "@/hooks/useWindowGeometry";
 import { useSlashCommand } from "@/hooks/useSlashCommand";
+import { useChatInputHistory } from "@/hooks/useChatInputHistory";
 import ChatIcon from "@/components/ai/ChatIcon";
 import ChatIconPicker from "@/components/ai/ChatIconPicker";
 import ChatMessageList from "@/components/ai/ChatMessageList";
@@ -30,6 +31,7 @@ export default function ChatBox({ activeProjectId }) {
   const chat = useChatController({ activeProjectId });
   const { geometry, startMove, startResize } = useWindowGeometry();
   const slashCommand = useSlashCommand(chat.input, chat.setInput);
+  const inputHistory = useChatInputHistory({ messages: chat.chatState.messages, input: chat.input, setInput: chat.setInput });
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -163,7 +165,10 @@ export default function ChatBox({ activeProjectId }) {
                   ref={messageInputRef}
                   value={chat.input}
                   onChange={(e) => chat.setInput(e.target.value)}
-                  onKeyDown={slashCommand.handleKeyDown}
+                  onKeyDown={(e) => {
+                    slashCommand.handleKeyDown(e);
+                    if (!e.defaultPrevented) inputHistory.handleKeyDown(e);
+                  }}
                   placeholder="E.g., Hello... / PLease add... / File a report for..."
                   className="flex-1 min-w-0 font-terminal text-sm bg-transparent outline-none"
                   disabled={chat.isComputing}
