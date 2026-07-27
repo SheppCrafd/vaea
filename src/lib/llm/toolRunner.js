@@ -4,12 +4,28 @@ import { DESTRUCTIVE_ACTIONS } from "@/lib/chatActions";
 
 export const MAX_ACTIONS_PER_REQUEST = 60;
 
+// Builds the {label, detail} entry a real (non-staged) tool call's own
+// result becomes — same shape aiChatStream/entry.ts's trace() pushes onto
+// its own liveTrace, so ChatMessageList renders both providers' live calls
+// identically. Only search_workspace/audit_workspace exist in BYOK mode
+// (see NOT AVAILABLE IN THIS MODE in systemPrompt.js).
+function describeLiveResult(name, args, result) {
+  if (name === "search_workspace") {
+    return { label: `search_workspace("${args.query}") — ${result.count} match${result.count === 1 ? "" : "es"}`, detail: { query: args.query, ...result } };
+  }
+  if (name === "audit_workspace") {
+    const total = Object.values(result).reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0);
+    return { label: `audit_workspace() — ${total} finding${total === 1 ? "" : "s"}`, detail: result };
+  }
+  return null;
+}
+
 // One tool runner per request, closed over that request's own accumulating
-// `plan` array — shared by both adapters (anthropicAdapter.js,
+// `plan` and `liveTrace` arrays — shared by both adapters (anthropicAdapter.js,
 // openaiCompatibleAdapter.js) since a tool call's *meaning* (stage vs. run
 // for real) doesn't depend on which provider is asking. Mirrors
-// aiChatStream/entry.ts's buildTools()' queue() for the staged half.
-export function makeToolRunner({ plan, dataset }) {
+// aiChatStream/entry.ts's buildTools()' queue()/trace() for both halves.
+export function makeToolRunner({ plan, liveTrace = [], dataset }) {
   return function runTool(name, args) {
     if (STAGED_TOOL_NAMES.has(name)) {
       if (plan.length >= MAX_ACTIONS_PER_REQUEST) {
@@ -48,6 +64,9 @@ export function makeToolRunner({ plan, dataset }) {
         ...(temp_id ? { temp_id_registered: temp_id, hint: `Reference this record later as "$${temp_id}" wherever an id is needed for it.` } : {}),
       };
     }
-    return runLocalTool(name, args || {}, dataset);
+    const result = runLocalTool(name, args || {}, dataset);
+    const entry = describeLiveResult(name, args || {}, result);
+    if (entry) liveTrace.push(entry);
+    return result;
   };
 }

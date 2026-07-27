@@ -17,16 +17,28 @@ const sanitizeUrl = (url) => {
   return "";
 };
 
-// Fenced ```tool-log blocks are how useChatController.js encodes the real
-// actions a plan executed (see describeToolCall in chatActions.js) — render
-// each line the same dim, unbulleted way the marketing site's hero mockup
-// shows a tool call, instead of react-markdown's default <pre><code> box.
+// Fenced ```tool-log blocks are how useChatController.js encodes everything
+// real the assistant actually did this turn — every live (already-executed)
+// tool call, then the plan tally, then each executed mutation step (see
+// describeToolCall in chatActions.js and buildLoggedContent in
+// useChatController.js) — rendered the same dim, unbulleted way the
+// marketing site's hero mockup shows a tool call, instead of react-markdown's
+// default <pre><code> box.
 //
 // Built per-message (not a module constant) because each message's own
-// tool_log_detail (the plan's real actions/args and each step's resolved
-// args + toolResult, persisted by useChatController.js) is what makes a
-// given line clickable — the fenced block's line order always matches
-// tool_log_detail 1:1: line 0 is the plan, line i>=1 is steps[i-1].
+// tool_log_detail (every live call's real args/result, the plan's real
+// actions/args, and each step's resolved args + toolResult, persisted by
+// useChatController.js) is what makes a given line clickable — the fenced
+// block's line order always matches tool_log_detail: liveTrace entries
+// first, then the plan line, then one line per executed step.
+export function detailForLogLine(toolLogDetail, i) {
+  const liveTrace = toolLogDetail?.liveTrace || [];
+  if (i < liveTrace.length) return liveTrace[i]?.detail;
+  const j = i - liveTrace.length;
+  if (j === 0) return toolLogDetail?.plan;
+  return toolLogDetail?.steps?.[j - 1];
+}
+
 function makeMarkdownComponents(toolLogDetail, onOpenDetail) {
   return {
     pre: ({ children }) => <>{children}</>,
@@ -36,7 +48,7 @@ function makeMarkdownComponents(toolLogDetail, onOpenDetail) {
         return (
           <div className="my-1.5 space-y-0.5 text-muted-foreground">
             {lines.map((line, i) => {
-              const data = i === 0 ? toolLogDetail?.plan : toolLogDetail?.steps?.[i - 1];
+              const data = detailForLogLine(toolLogDetail, i);
               if (!data) return <p key={i}>{line}</p>;
               return (
                 <button
@@ -57,17 +69,22 @@ function makeMarkdownComponents(toolLogDetail, onOpenDetail) {
   };
 }
 
-// A persisted message's content is `` ```tool-log\n...\n``` `` + the reply
-// text, when the turn executed actions (see useChatController.js). That
-// tool-log block already had its own live line-by-line reveal (liveSteps,
+// A persisted message's content is the reply text + a trailing
+// `` \n\n```tool-log\n...\n``` `` block, when the turn did anything real
+// (see useChatController.js's buildLoggedContent) — the reply reads as the
+// assistant's own account of *why*, so it's the headline; the tool-log is
+// concrete supporting detail underneath it, not the other way around (it
+// used to lead, which read more like a JSON dump than an answer). That
+// block already had its own live line-by-line reveal (liveSteps,
 // .chat-step-reveal) before this message ever existed, so only the reply
 // portion should type out — replaying the tool-log lines a second time here
-// would be redundant. Plain replies (no actions) have no prefix at all.
-const TOOL_LOG_PREFIX_RE = /^```tool-log\n[\s\S]*?\n```\n/;
-function splitToolLogPrefix(content) {
-  const match = content.match(TOOL_LOG_PREFIX_RE);
-  if (!match) return { prefix: "", reply: content };
-  return { prefix: match[0], reply: content.slice(match[0].length) };
+// would be redundant. A plain reply with nothing behind it has no suffix at
+// all.
+const TOOL_LOG_SUFFIX_RE = /\n\n```tool-log\n[\s\S]*?```$/;
+export function splitToolLogSuffix(content) {
+  const match = content.match(TOOL_LOG_SUFFIX_RE);
+  if (!match) return { reply: content, suffix: "" };
+  return { reply: content.slice(0, match.index), suffix: match[0] };
 }
 
 // Reveals `fullText` a character at a time when `enabled`; otherwise (a
@@ -117,11 +134,15 @@ function useTypewriter(fullText, enabled) {
 // instead, replaying the tool-log lines' fade-in every single keystroke.
 function ChatAssistantMessage({ m, onOpenDetail, isNew }) {
   const components = useMemo(() => makeMarkdownComponents(m.tool_log_detail, onOpenDetail), [m.tool_log_detail, onOpenDetail]);
-  const { prefix, reply } = useMemo(() => splitToolLogPrefix(m.content), [m.content]);
+  const { reply, suffix } = useMemo(() => splitToolLogSuffix(m.content), [m.content]);
   const { shown, isTyping } = useTypewriter(reply, isNew);
+  // The reply types out first; the tool-log detail (if any) appears in full,
+  // un-animated, only once typing finishes — it already had its own separate
+  // live reveal (liveSteps) while the turn was actually running, so it just
+  // needs to land, not type out a second time.
   return (
     <div className="text-foreground">
-      <ReactMarkdown urlTransform={sanitizeUrl} components={components}>{prefix + shown}</ReactMarkdown>
+      <ReactMarkdown urlTransform={sanitizeUrl} components={components}>{shown + (isTyping ? "" : suffix)}</ReactMarkdown>
       {isTyping && <span className="inline-block w-[7px] h-[13px] bg-primary/70 align-middle ml-0.5 chat-cursor-blink" />}
     </div>
   );

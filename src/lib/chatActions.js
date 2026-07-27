@@ -525,10 +525,12 @@ export function describePlan(actions) {
 // calling tools — a classic in-context-imitation failure, not a size/token
 // problem (it happened even with properly-sized 5-item batches). The
 // [DATABASE STATE] block sent fresh every turn already reflects whatever
-// those past steps really did, so the plain-English reply that follows the
-// fence (always present — reply/"Done." is never blank) is all history
-// actually needs to carry forward.
-const TOOL_LOG_FENCE = /^```tool-log\n[\s\S]*?\n```\n?/;
+// those past steps really did, so the plain-English reply (always present —
+// reply/"Done." is never blank) is all history actually needs to carry
+// forward. The fence is a trailing block now, not a leading one — see
+// useChatController.js's own comment for why the reply reads as the
+// headline and the tool-log as supporting detail underneath it.
+const TOOL_LOG_FENCE = /\n\n```tool-log\n[\s\S]*?```$/;
 export function stripToolLog(content) {
   return content.replace(TOOL_LOG_FENCE, "").trim();
 }

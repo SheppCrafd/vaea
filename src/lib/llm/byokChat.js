@@ -39,6 +39,7 @@ export async function runByokChat({ providerConfig, contextArgs }) {
   }
 
   const plan = [];
+  const liveTrace = [];
   const dataset = {
     areas: contextArgs.areas,
     products: contextArgs.products,
@@ -49,7 +50,7 @@ export async function runByokChat({ providerConfig, contextArgs }) {
     stakeholders: contextArgs.stakeholders,
     notes: contextArgs.notes,
   };
-  const runTool = makeToolRunner({ plan, dataset });
+  const runTool = makeToolRunner({ plan, liveTrace, dataset });
 
   const systemPrompt = buildInstructions({ maxActionsPerRequest: MAX_ACTIONS_PER_REQUEST });
   const contextPrompt = buildContextPrompt(contextArgs);
@@ -66,5 +67,5 @@ export async function runByokChat({ providerConfig, contextArgs }) {
         tools: toOpenAiCompatibleTools(), runTool,
       });
 
-  return { reply, actions: plan };
+  return { reply, actions: plan, liveTrace };
 }

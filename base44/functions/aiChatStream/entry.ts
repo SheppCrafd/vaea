@@ -187,6 +187,17 @@ async function listVaultNoteRepo(owner, repo, branch, token) {
 // doesn't bother spelling out for every record), and externalVault (for the
 // vault_* tools below, connecting to a personal GitHub-hosted notes repo).
 function buildTools({ base44, plan, liveTrace, dataset, externalVault }) {
+  // Every live (already-executed) tool call gets pushed here as {label,
+  // detail} — same shape a client-side executed mutation step gets from
+  // describeToolCall (chatActions.js), so ChatMessageList can render both
+  // kinds of "things the assistant actually did" identically: a dim,
+  // clickable line, not text silently folded into the reply. `label`
+  // matches that same `fn("arg")`/`fn() — N things` convention; `detail` is
+  // whatever's worth inspecting if the user clicks the line.
+  function trace(label, detail) {
+    liveTrace.push({ label, detail });
+  }
+
   function queue(action) {
     return async (args) => {
       if (plan.length >= MAX_ACTIONS_PER_REQUEST) {
@@ -538,8 +549,9 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault }) {
       execute: async ({ query }) => {
         try {
           const result = await base44.integrations.Core.InvokeLLM({ prompt: query, add_context_from_internet: true });
-          liveTrace.push(`🔍 Searched the web: "${query}"`);
-          return { result: typeof result === 'string' ? result : JSON.stringify(result) };
+          const output = typeof result === 'string' ? result : JSON.stringify(result);
+          trace(`web_search("${query}")`, { query, result: output });
+          return { result: output };
         } catch (error) {
           return { error: `Web search failed: ${error.message}` };
         }
@@ -565,7 +577,7 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault }) {
               },
             },
           });
-          liveTrace.push(`📄 Read attachment contents (${file_url.split('/').pop()})`);
+          trace(`analyze_attachment("${file_url.split('/').pop()}")`, { file_url, focus, result: extracted });
           return extracted;
         } catch (error) {
           return { error: `Couldn't read that attachment: ${error.message}` };
@@ -584,8 +596,9 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault }) {
             prompt: `Read the page at this URL and summarize its real content${focus ? `, focused on: ${focus}` : ''}. If the page can't be reached or read, say so plainly instead of guessing. URL: ${url}`,
             add_context_from_internet: true,
           });
-          liveTrace.push(`🔗 Read link: ${url}`);
-          return { result: typeof result === 'string' ? result : JSON.stringify(result) };
+          const output = typeof result === 'string' ? result : JSON.stringify(result);
+          trace(`read_project_link("${url}")`, { url, focus, result: output });
+          return { result: output };
         } catch (error) {
           return { error: `Couldn't read that link: ${error.message}` };
         }
@@ -605,7 +618,7 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault }) {
           ...searchRecords(query, dataset.stakeholders, 'stakeholder', ['name', 'department'], 'name'),
           ...searchRecords(query, dataset.notes, 'note', ['content'], 'content'),
         ];
-        liveTrace.push(`🔎 Searched the workspace for "${query}" (${matches.length} match${matches.length === 1 ? '' : 'es'})`);
+        trace(`search_workspace("${query}") — ${matches.length} match${matches.length === 1 ? '' : 'es'}`, { query, count: matches.length, matches });
         return { count: matches.length, matches: matches.slice(0, 25) };
       },
     }),
@@ -651,7 +664,7 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault }) {
           .map((a) => ({ id: a.id, title: a.title }));
 
         const totalFindings = Object.values(findings).reduce((sum, arr) => sum + arr.length, 0);
-        liveTrace.push(`🧹 Audited the workspace (${totalFindings} finding${totalFindings === 1 ? '' : 's'})`);
+        trace(`audit_workspace() — ${totalFindings} finding${totalFindings === 1 ? '' : 's'}`, findings);
         return findings;
       },
     }),
@@ -663,7 +676,7 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault }) {
         if (!externalVault?.owner || !externalVault?.repo || !externalVault?.token) return vaultNotConnected();
         try {
           const paths = await listVaultNoteRepo(externalVault.owner, externalVault.repo, externalVault.branch || 'main', externalVault.token);
-          liveTrace.push(`📚 Listed Vaea Vault (${paths.length} notes)`);
+          trace(`list_vault_notes() — ${paths.length} note${paths.length === 1 ? '' : 's'}`, { paths });
           return { connected: true, count: paths.length, paths };
         } catch (error) {
           return { connected: true, error: `Couldn't list the vault: ${error.message}` };
@@ -678,8 +691,9 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault }) {
         try {
           const branch = externalVault.branch || 'main';
           const data = await githubFetch(`${GITHUB_API}/repos/${externalVault.owner}/${externalVault.repo}/contents/${encodeRepoPath(path)}?ref=${encodeURIComponent(branch)}`, externalVault.token);
-          liveTrace.push(`📖 Read "${path}" from Vaea Vault`);
-          return { connected: true, path, content: base64ToUtf8(data.content) };
+          const content = base64ToUtf8(data.content);
+          trace(`read_vault_note("${path}")`, { path, content });
+          return { connected: true, path, content };
         } catch (error) {
           return { connected: true, error: `Couldn't read "${path}": ${error.message}` };
         }
@@ -697,8 +711,9 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault }) {
             path: item.path,
             snippet: (item.text_matches || []).map((m) => m.fragment).join(' … ').slice(0, 400),
           }));
-          liveTrace.push(`🔎 Searched Vaea Vault for "${query}" (${data.total_count ?? matches.length} match${(data.total_count ?? matches.length) === 1 ? '' : 'es'})`);
-          return { connected: true, count: data.total_count ?? matches.length, matches };
+          const count = data.total_count ?? matches.length;
+          trace(`search_vault("${query}") — ${count} match${count === 1 ? '' : 'es'}`, { query, matches });
+          return { connected: true, count, matches };
         } catch (error) {
           return { connected: true, error: `Vault search failed: ${error.message}. GitHub's code search can lag a few minutes behind a fresh push — try list_vault_notes + read_vault_note instead if this keeps missing something you know is there.` };
         }
@@ -740,7 +755,7 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault }) {
           }
           const isolated_notes = scanned.filter((p) => outgoing.get(p).size === 0 && !hasIncoming.has(p));
 
-          liveTrace.push(`🧹 Audited Vaea Vault (${scanned.length} of ${paths.length} notes${paths.length > MAX_NOTES ? `, capped at ${MAX_NOTES}` : ''} — ${broken_links.length} broken link${broken_links.length === 1 ? '' : 's'}, ${isolated_notes.length} isolated)`);
+          trace(`audit_vault() — ${broken_links.length} broken link${broken_links.length === 1 ? '' : 's'}, ${isolated_notes.length} isolated`, { broken_links, isolated_notes });
           return { connected: true, notes_scanned: scanned.length, notes_total: paths.length, broken_links, isolated_notes };
         } catch (error) {
           return { connected: true, error: `Vault audit failed: ${error.message}` };
@@ -765,6 +780,8 @@ EXECUTION TIMING — how "staging"/confirmation actually works, and the wording 
 The tools below WRITE_VAULT_NOTE in the list (web_search, analyze_attachment, read_project_link, search_workspace, audit_workspace, list_vault_notes, read_vault_note, search_vault, audit_vault) are a different category entirely — they run for real, right here, inside this response, and you already have their real results by the time you reply. Describe THOSE in the past tense ("I searched...", "I found..."). audit_workspace/audit_vault only ever surface findings though — they never fix anything themselves; any fix still goes through the normal queued tools above, as its own plan (subject to the same destructive-or-not rule).
 
 CRITICAL MAPPING RULE: when a tool needs an id, look it up from [DATABASE STATE] by the name/title the user gave. Never invent an id or pass a name where an id is expected.
+
+GROUND YOUR PLAN IN REAL CONTEXT, DON'T JUST GUESS FROM A SUMMARY: [DATABASE STATE] is a trimmed projection, not everything real — a project's own "links" only show a label/URL, not what's actually at that link; [CONVERSATION HISTORY] is a plain transcript, not a search index; a project's own custom fields/notes aren't fully spelled out there either. Before committing to a plan for anything non-trivial or ambiguous — especially a request that references "that project's link", "what we discussed before", an attached file, or a past decision you'd need to actually go check — use the tool that would really answer it (read_project_link, search_workspace, analyze_attachment, or, if a Vaea Vault is connected, the vault_* readers) instead of guessing from what [DATABASE STATE] happens to summarize. These calls are real, run right here, and the user sees each one as a real step in what you did — treat reaching for one as a normal, expected part of planning a good answer, not an optional extra.
 
 VAEA VAULT: [VAEA VAULT] below says whether the user has connected their Vaea Vault — a personal, git-backed Obsidian vault (a GitHub repo). If not connected, and a request needs it (a vault_* tool returns connected: false, or the user asks about "/vault-log"/"/vault-tidy"/their notes vault), tell them to connect one in Settings -> Vaea Vault rather than guessing. list_vault_notes/read_vault_note/search_vault are read tools — use them the same way you'd use search_workspace, but for the user's personal notes rather than their Vaea data. WRITE_VAULT_NOTE always needs the FULL file content, not a diff: if you're editing a note that already exists, read_vault_note it first and carry forward everything you're not deliberately changing. If a vault_* tool call returns an "error" field (e.g. Vaea Vault is connected but GitHub rejected the request), quote that error string to the user VERBATIM in a code block — do not paraphrase, summarize, or shorten it to just "403"/"an error occurred". The exact message (rate limit, permission scope, SSO authorization, etc.) is the one piece of information that actually lets them fix it; losing it to a summary makes the failure undebuggable.
 
@@ -895,10 +912,14 @@ Deno.serve(async (req) => {
 
     const result = await agent.generate({ prompt: contextPrompt });
 
-    const traceBlock = liveTrace.length ? `${liveTrace.map((line) => `> ${line}`).join('\n')}\n\n` : '';
-    const reply = `${traceBlock}${result.text || "I couldn't come up with a reply — could you rephrase?"}`;
+    const reply = result.text || "I couldn't come up with a reply — could you rephrase?";
 
-    return Response.json({ reply, actions: plan });
+    // liveTrace ({label, detail}[]) used to be baked into `reply` as "> ..."
+    // prose lines — returned as its own field instead, so the client can
+    // render every live tool call the same real, clickable action-log
+    // treatment a staged mutation's own steps get (see useChatController.js),
+    // rather than plain text silently folded into the reply.
+    return Response.json({ reply, actions: plan, liveTrace });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

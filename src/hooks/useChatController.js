@@ -87,6 +87,15 @@ const STEP_REVEAL_DELAY_MS = 150;
 const MAX_PACED_STEPS = 6;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// The reply is the assistant's own account of *why* — it reads as the
+// headline. `lines` (live tool calls, the plan tally, each executed step)
+// is the concrete supporting detail underneath it, same relationship a
+// commit summary has to its own diff. No lines at all (a plain reply with
+// nothing behind it) means no tool-log block — most conversational replies.
+function buildLoggedContent(reply, lines) {
+  return lines.length ? `${reply}\n\n\`\`\`tool-log\n${lines.join("\n")}\n\`\`\`` : reply;
+}
+
 // Shared brains for the chat experience — session management, sending and
 // confirming/undoing assistant actions, icon persistence, attachments. Both
 // the floating chat widget (ChatBox) and the full-page chat (ChatPage) use
@@ -138,6 +147,20 @@ export function useChatController({ activeProjectId } = {}) {
     // header's displayed name updates immediately after "/setup" runs, not
     // just on next reload.
     queryClient.invalidateQueries({ queryKey: ["aiIdentity"] });
+  };
+
+  // Reveals each live (already-executed) tool call one at a time, the same
+  // paced illusion-of-liveness treatment a staged mutation's own steps get —
+  // these already ran for real server/BYOK-side by the time this response
+  // came back, so there's nothing to await here beyond the reveal pacing
+  // itself.
+  const revealLiveTrace = async (liveTrace) => {
+    if (!liveTrace.length) return;
+    const pace = liveTrace.length <= MAX_PACED_STEPS;
+    for (const entry of liveTrace) {
+      setLiveSteps((prev) => [...prev, entry.label]);
+      if (pace) await sleep(STEP_REVEAL_DELAY_MS);
+    }
   };
 
   const chooseIcon = (choice) => {
@@ -314,12 +337,32 @@ export function useChatController({ activeProjectId } = {}) {
       // with a 422 ("Field required") instead of showing the user anything.
       const reply = data.reply || "Done.";
       const actions = data.actions || [];
+      // Read tools (web_search, analyze_attachment, read_project_link,
+      // search_workspace, audit_workspace, the vault_* readers) already ran
+      // for real, server/BYOK-side, during this same turn — before this
+      // point the only trace of them was a "> ..." line silently baked into
+      // the reply text. Revealed and persisted the same way a staged
+      // mutation's own steps are (see revealLiveTrace below) so every kind
+      // of thing the assistant can do shows up as a real, clickable action
+      // line, not just the ones that write data.
+      const liveTrace = data.liveTrace || [];
+      // Guarantees revealLiveTrace's append-only updates start from a clean
+      // slate regardless of whatever the previous turn's own `finally`
+      // block left behind, rather than relying on that cleanup having
+      // already run.
+      setLiveSteps([]);
 
       if (actions.length === 0 || actions.every((a) => NON_EXECUTABLE_ACTIONS.has(a.action))) {
         if (actions[0]?.action === "UNDO_LAST_ACTION") {
           await runUndo();
         }
-        const created = await createMessage.mutateAsync({ session_id: sessionId, role: "assistant", content: reply });
+        await revealLiveTrace(liveTrace);
+        setLiveSteps([]);
+        const created = await createMessage.mutateAsync({
+          session_id: sessionId, role: "assistant",
+          content: buildLoggedContent(reply, liveTrace.map((l) => l.label)),
+          ...(liveTrace.length ? { tool_log_detail: { liveTrace } } : {}),
+        });
         markMessageNew(created.id);
         return;
       }
@@ -327,19 +370,24 @@ export function useChatController({ activeProjectId } = {}) {
       const executable = actions.filter((a) => !NON_EXECUTABLE_ACTIONS.has(a.action));
 
       if (executable.some((a) => DESTRUCTIVE_ACTIONS.has(a.action))) {
+        await revealLiveTrace(liveTrace);
+        setLiveSteps([]);
         await createMessage.mutateAsync({
-          session_id: sessionId, role: "assistant", content: reply,
+          session_id: sessionId, role: "assistant",
+          content: buildLoggedContent(reply, liveTrace.map((l) => l.label)),
           pending_action: { actions: executable },
+          ...(liveTrace.length ? { tool_log_detail: { liveTrace } } : {}),
         });
         return;
       }
 
-      // Reveal the plan, then each tool call, as it actually happens —
-      // executeActionSequence's onStep fires only once that step has really
-      // run. STEP_REVEAL_DELAY_MS just paces the *reveal* so a sub-frame
-      // localDb write is still readable; it doesn't fake anything that
-      // didn't happen.
-      setLiveSteps([describePlan(executable)]);
+      // Reveal any live tool calls first (they already happened), then the
+      // plan, then each mutation as it actually runs — executeActionSequence's
+      // onStep fires only once that step has really executed.
+      // STEP_REVEAL_DELAY_MS just paces the *reveal* so a sub-frame localDb
+      // write is still readable; it doesn't fake anything that didn't happen.
+      await revealLiveTrace(liveTrace);
+      setLiveSteps((prev) => [...prev, describePlan(executable)]);
       const paceReveal = executable.length <= MAX_PACED_STEPS;
       const results = await executeActionSequence(executable, {
         onStep: async (step) => {
@@ -357,17 +405,20 @@ export function useChatController({ activeProjectId } = {}) {
       }
 
       // A fenced ```tool-log block, parsed and styled by ChatMessageList —
-      // the same "plan · ..." / "tool call · fn(...)" transcript shape just
-      // shown live, now persisted so it survives a reload. tool_log_detail
-      // carries the real data behind each of those lines (the plan's own
-      // actions/args, and each step's resolved args + toolResult) so
-      // ChatMessageList can make a line clickable to reveal it verbatim.
-      const toolLog = [describePlan(executable), ...results.map(describeToolCall)].join("\n");
-      const content = `\`\`\`tool-log\n${toolLog}\n\`\`\`\n${reply}`;
+      // the same live-reveal lines just shown, now persisted so they survive
+      // a reload. tool_log_detail carries the real data behind each line
+      // (each live call's own args/result, the plan's own actions/args, and
+      // each step's resolved args + toolResult) so a line stays clickable to
+      // reveal it verbatim. Trails the reply now, not leads it — the reply
+      // is the assistant's own account of *why*, so it reads as the
+      // headline; the tool-log is the concrete supporting detail underneath
+      // it, the same relationship a commit summary has to its own diff.
+      const toolLog = [...liveTrace.map((l) => l.label), describePlan(executable), ...results.map(describeToolCall)];
+      const content = buildLoggedContent(reply, toolLog);
       setLiveSteps([]);
       const created = await createMessage.mutateAsync({
         session_id: sessionId, role: "assistant", content,
-        tool_log_detail: { plan: executable, steps: results },
+        tool_log_detail: { liveTrace, plan: executable, steps: results },
       });
       markMessageNew(created.id);
       await invalidateAppQueries();
@@ -411,10 +462,10 @@ export function useChatController({ activeProjectId } = {}) {
       // A distinct completion message with its own tool-log, not a repeat
       // of the pre-confirm `reply` text above it (that was the doubling bug
       // — confirmMessage used to just be that same `reply` string again).
-      const toolLog = [describePlan(actions), ...results.map(describeToolCall)].join("\n");
+      const toolLog = [describePlan(actions), ...results.map(describeToolCall)];
       setLiveSteps([]);
       const created = await createMessage.mutateAsync({
-        session_id: message.session_id, role: "assistant", content: `\`\`\`tool-log\n${toolLog}\n\`\`\`\nDone.`,
+        session_id: message.session_id, role: "assistant", content: buildLoggedContent("Done.", toolLog),
         tool_log_detail: { plan: actions, steps: results },
       });
       markMessageNew(created.id);

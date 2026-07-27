@@ -95,4 +95,27 @@ describe("toolRunner: local (non-staged) tools run for real against the dataset"
     expect(result.count).toBe(1);
     expect(result.matches[0]).toMatchObject({ type: "area", id: "a1" });
   });
+
+  it("records a real search_workspace/audit_workspace call onto liveTrace, the same live-action shape a staged step gets", () => {
+    // Read tools used to be invisible beyond their raw result feeding the
+    // model's next reasoning step — nothing surfaced them to the user as a
+    // real action the way a staged CREATE_*/BULK_CREATE step does. liveTrace
+    // is what ChatMessageList (via useChatController.js) now renders as a
+    // real, clickable "search_workspace(...)" line, same as create_area(...).
+    const plan = [];
+    const liveTrace = [];
+    const dataset = {
+      areas: [{ id: "a1", title: "Growth", description: "" }],
+      products: [], projects: [], archivedProjects: [], tasks: [], archivedTasks: [], stakeholders: [], notes: [],
+    };
+    const runTool = makeToolRunner({ plan, liveTrace, dataset });
+    runTool("search_workspace", { query: "growth" });
+    expect(liveTrace).toHaveLength(1);
+    expect(liveTrace[0].label).toBe('search_workspace("growth") — 1 match');
+    expect(liveTrace[0].detail.matches[0]).toMatchObject({ type: "area", id: "a1" });
+
+    runTool("audit_workspace", {});
+    expect(liveTrace).toHaveLength(2);
+    expect(liveTrace[1].label).toMatch(/^audit_workspace\(\) — \d+ findings?$/);
+  });
 });
