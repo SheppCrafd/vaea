@@ -7,19 +7,51 @@ import { callOpenAiCompatible } from "@/lib/llm/openaiCompatibleAdapter";
 import { callLocalBridge } from "@/lib/llm/localBridgeAdapter";
 import { getBridgeStatus } from "@/lib/llm/localBridgeStorage";
 
+// A short pause between each simulated "live" chunk shown for Backdoor
+// Mode — its file-polling transport can't stream mid-generation (see
+// callLocalBridge's own comment), so by the time we get here, `reply` and
+// `liveTrace` already fully exist. Replaying them through the exact same
+// onEvent sequence real streaming uses gives the same visual experience —
+// "the same, just not real time" — without touching localBridgeAdapter.js
+// or its documented file contract at all. Duration is capped the same way
+// ChatMessageList.jsx's own useTypewriter caps itself, so a long reply
+// doesn't turn into a multi-second wait.
+const SIMULATED_STEP_DELAY_MS = 150;
+const SIMULATED_TEXT_DURATION_MS = (text) => Math.min(1800, Math.max(300, text.length * 8));
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function simulateLiveReveal({ liveTrace, reply, onEvent }) {
+  for (const entry of liveTrace) {
+    onEvent({ type: "tool-call", label: entry.label, detail: entry.detail });
+    await sleep(SIMULATED_STEP_DELAY_MS);
+  }
+  // Word-sized chunks (not characters) — plenty granular to read as "typing
+  // live" without the overhead of a delay per character.
+  const chunks = reply.match(/\S+\s*/g) || [reply];
+  const perChunkDelay = SIMULATED_TEXT_DURATION_MS(reply) / chunks.length;
+  for (const chunk of chunks) {
+    onEvent({ type: "thinking-delta", text: chunk });
+    await sleep(perChunkDelay);
+  }
+}
+
 // The bring-your-own-key counterpart to useChatController.js's
 // invokeAssistant -> base44.functions.invoke("aiChatStream", ...) path.
 // Same contract in, same contract out ({reply, actions}) — chatActions.js,
 // the pending_action/confirm flow, tool-log rendering, undo, and snapshots
 // all stay exactly as they are; only *who decides the plan* changes.
 // contextArgs is the same shape useChatController already builds for the
-// base44 path (areas/products/.../aiIdentity/activeProjectId/etc).
+// base44 path (areas/products/.../aiIdentity/activeProjectId/etc). `onEvent`
+// (optional) fires {type:"thinking-delta"|"tool-call", ...} live, the same
+// vocabulary regardless of which provider answers — real streaming for
+// anthropic/openai-compatible, a paced simulation (see simulateLiveReveal
+// above) for local-bridge.
 // Despite the name, this also covers the "local-bridge" (Backdoor Mode)
 // provider even though it isn't really BYOK (no key, no HTTP call at all) —
 // it decides the plan client-side the same way every other non-base44
 // provider does, so it belongs in the same dispatch rather than a
 // parallel copy of this function.
-export async function runByokChat({ providerConfig, contextArgs }) {
+export async function runByokChat({ providerConfig, contextArgs, onEvent }) {
   const provider = PROVIDERS[providerConfig?.provider];
   if (!provider || !provider.adapter) {
     throw new Error(`Unknown AI provider "${providerConfig?.provider}" — check Settings -> AI Model.`);
@@ -50,7 +82,12 @@ export async function runByokChat({ providerConfig, contextArgs }) {
     stakeholders: contextArgs.stakeholders,
     notes: contextArgs.notes,
   };
-  const runTool = makeToolRunner({ plan, liveTrace, dataset });
+  // local-bridge never gets a live onEvent wired into its own tool runner —
+  // its whole round-trip only produces a real result once polling finishes,
+  // so there's nothing genuinely live to emit mid-call; see
+  // simulateLiveReveal below for how it still shows the same thing anyway.
+  const isLocalBridge = provider.adapter === "local-bridge";
+  const runTool = makeToolRunner({ plan, liveTrace, dataset, onEvent: isLocalBridge ? undefined : onEvent });
 
   const systemPrompt = buildInstructions({ maxActionsPerRequest: MAX_ACTIONS_PER_REQUEST });
   const contextPrompt = buildContextPrompt(contextArgs);
@@ -58,14 +95,18 @@ export async function runByokChat({ providerConfig, contextArgs }) {
   const reply = provider.adapter === "anthropic"
     ? await callAnthropic({
         apiKey: providerConfig.apiKey, model: providerConfig.model, systemPrompt, contextPrompt,
-        tools: toAnthropicTools(), runTool,
+        tools: toAnthropicTools(), runTool, onEvent,
       })
-    : provider.adapter === "local-bridge"
+    : isLocalBridge
     ? await callLocalBridge({ systemPrompt, contextPrompt, tools: toAnthropicTools(), runTool })
     : await callOpenAiCompatible({
         baseUrl: provider.baseUrl, apiKey: providerConfig.apiKey, model: providerConfig.model, systemPrompt, contextPrompt,
-        tools: toOpenAiCompatibleTools(), runTool,
+        tools: toOpenAiCompatibleTools(), runTool, onEvent,
       });
+
+  if (isLocalBridge && onEvent) {
+    await simulateLiveReveal({ liveTrace, reply, onEvent });
+  }
 
   return { reply, actions: plan, liveTrace };
 }

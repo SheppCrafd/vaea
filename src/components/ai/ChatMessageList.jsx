@@ -165,7 +165,7 @@ function ChatAssistantMessage({ m, onOpenDetail, isNew }) {
 // register as the marketing site's hero mockup, not a decorative match: it's
 // the one place real assistant output belongs (see --font-terminal in
 // index.css).
-export default function ChatMessageList({ messages, isComputing, liveSteps, iconChoice, hasMore, onLoadMore, resolvingId, onConfirm, onCancel, newMessageIds }) {
+export default function ChatMessageList({ messages, isComputing, liveSteps, streamingText, iconChoice, hasMore, onLoadMore, resolvingId, onConfirm, onCancel, newMessageIds }) {
   const containerRef = useRef(null);
   const [openDetail, setOpenDetail] = useState(null);
 
@@ -176,13 +176,15 @@ export default function ChatMessageList({ messages, isComputing, liveSteps, icon
   };
 
   // Always scrolls to the bottom on a new message (user's own or the
-  // assistant's reply) and also when the "thinking" animation appears, so
-  // it's never left out of view above the fold while the assistant works.
+  // assistant's reply), when the "thinking" animation appears, and as
+  // streamingText keeps growing live — otherwise the view stops following
+  // once liveSteps itself stops changing, even though the live reply text
+  // underneath it keeps growing well after that.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
-  }, [messages.length, isComputing]);
+  }, [messages.length, isComputing, streamingText]);
 
   return (
     <div
@@ -227,10 +229,22 @@ export default function ChatMessageList({ messages, isComputing, liveSteps, icon
       ))}
 
       {isComputing && (
-        <div className="text-muted-foreground space-y-0.5">
-          {(liveSteps || []).map((line, i) => (
-            <p key={i} className="chat-step-reveal">{line}</p>
-          ))}
+        <div className="space-y-0.5">
+          <div className="text-muted-foreground space-y-0.5">
+            {(liveSteps || []).map((line, i) => (
+              <p key={i} className="chat-step-reveal">{line}</p>
+            ))}
+          </div>
+          {/* The model's own narration, growing live as it actually arrives
+              (real network deltas for base44-hosted/BYOK, a paced simulation
+              for Backdoor Mode — see useChatController.js/byokChat.js).
+              Plain text, not markdown — mid-stream text can carry an
+              unclosed "**"/"[" that would render oddly; the final persisted
+              message renders the complete text through ReactMarkdown once
+              this is done. */}
+          {streamingText && (
+            <p className="text-foreground whitespace-pre-wrap">{streamingText}</p>
+          )}
           <p className="flex items-center gap-1.5">
             <ChatIcon iconChoice={iconChoice} className="w-3.5 h-3.5 text-primary chat-icon-computing" />
             <span className="inline-block w-[7px] h-[13px] bg-primary/70 chat-cursor-blink" />

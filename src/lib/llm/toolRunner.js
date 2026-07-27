@@ -25,7 +25,7 @@ function describeLiveResult(name, args, result) {
 // openaiCompatibleAdapter.js) since a tool call's *meaning* (stage vs. run
 // for real) doesn't depend on which provider is asking. Mirrors
 // aiChatStream/entry.ts's buildTools()' queue()/trace() for both halves.
-export function makeToolRunner({ plan, liveTrace = [], dataset }) {
+export function makeToolRunner({ plan, liveTrace = [], dataset, onEvent }) {
   return function runTool(name, args) {
     if (STAGED_TOOL_NAMES.has(name)) {
       if (plan.length >= MAX_ACTIONS_PER_REQUEST) {
@@ -66,7 +66,14 @@ export function makeToolRunner({ plan, liveTrace = [], dataset }) {
     }
     const result = runLocalTool(name, args || {}, dataset);
     const entry = describeLiveResult(name, args || {}, result);
-    if (entry) liveTrace.push(entry);
+    if (entry) {
+      liveTrace.push(entry);
+      // Emitted live, the instant this tool call actually finishes — mirrors
+      // entry.ts's own trace() (the base44-hosted equivalent), so a BYOK
+      // provider's live tool calls show up in the chat UI the same real
+      // moment they ran, not only once the whole multi-round loop is done.
+      onEvent?.({ type: "tool-call", label: entry.label, detail: entry.detail });
+    }
     return result;
   };
 }

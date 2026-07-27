@@ -7,6 +7,7 @@ import { executeAction, executeActionSequence, describeToolCall, describePlan, s
 import { loadAiIdentity, DEFAULTS as IDENTITY_DEFAULTS } from "@/lib/aiPreferences";
 import { loadAiProviderConfig, isByokConfigured, isLocalBridgeConfigured } from "@/lib/aiProviderConfig";
 import { runByokChat } from "@/lib/llm/byokChat";
+import { readNdjson } from "@/lib/llm/streamUtils";
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
 import { fetchVaultOverview } from "@/lib/githubApi";
 import { matchesProtocolTrigger } from "@/lib/protocolReminder";
@@ -116,6 +117,13 @@ export function useChatController({ activeProjectId } = {}) {
   // executeActionSequence's onStep). Cleared once the final message
   // (which carries the same lines, permanently) is created.
   const [liveSteps, setLiveSteps] = useState([]);
+  // The model's own narration, growing live as thinking-delta events arrive
+  // (invokeAssistant's onEvent) — real streaming for base44-hosted/BYOK, a
+  // paced simulation for Backdoor Mode (see byokChat.js's simulateLiveReveal).
+  // Reset to "" at the start of each send; once it holds anything, the final
+  // message (which carries the same text, permanently, as its `reply`)
+  // skips the typewriter — it was already shown appearing, live.
+  const [streamingText, setStreamingText] = useState("");
   const [activeSessionId, setActiveSessionId] = useState(() => readStorage(SESSION_STORAGE_KEY));
   // Cached via react-query (useAiIdentity.js) rather than local state read
   // once on mount — this is what lets a name saved in Settings reach an
@@ -160,20 +168,6 @@ export function useChatController({ activeProjectId } = {}) {
     queryClient.invalidateQueries({ queryKey: ["aiIdentity"] });
   };
 
-  // Reveals each live (already-executed) tool call one at a time, the same
-  // paced illusion-of-liveness treatment a staged mutation's own steps get —
-  // these already ran for real server/BYOK-side by the time this response
-  // came back, so there's nothing to await here beyond the reveal pacing
-  // itself.
-  const revealLiveTrace = async (liveTrace) => {
-    if (!liveTrace.length) return;
-    const pace = liveTrace.length <= MAX_PACED_STEPS;
-    for (const entry of liveTrace) {
-      setLiveSteps((prev) => [...prev, entry.label]);
-      if (pace) await sleep(STEP_REVEAL_DELAY_MS);
-    }
-  };
-
   const chooseIcon = (choice) => {
     setIconChoice(choice);
     writeStorage(ICON_STORAGE_KEY, JSON.stringify(choice));
@@ -215,8 +209,12 @@ export function useChatController({ activeProjectId } = {}) {
   // Your current local dataset is sent along with the message so the LLM
   // can see it, and the returned actions are executed here, against
   // localDb, via chatActions.js. Nothing about your projects/tasks/etc. is
-  // ever written back to Base44.
-  const invokeAssistant = async (payload) => {
+  // ever written back to Base44. `onEvent`, if provided, fires live as the
+  // model's own narration and any live tool call actually happen (real
+  // streaming for base44-hosted/BYOK, a paced simulation for Backdoor Mode —
+  // see byokChat.js) — always resolves to the same {reply, actions,
+  // liveTrace} shape regardless.
+  const invokeAssistant = async (payload, onEvent) => {
     const [areas, products, projects, allTasks, stakeholders, departments, notes] = await Promise.all([
       localDb.areas.list(),
       localDb.products.list(),
@@ -241,6 +239,7 @@ export function useChatController({ activeProjectId } = {}) {
     if (isByokConfigured(providerConfig) || isLocalBridgeConfigured(providerConfig)) {
       return runByokChat({
         providerConfig,
+        onEvent,
         contextArgs: {
           activeProjectId: payload.activeProjectId,
           userText: payload.message,
@@ -280,13 +279,18 @@ export function useChatController({ activeProjectId } = {}) {
       }
     }
 
-    try {
-      // base44.functions.invoke() runs on its own axios client, created with
-      // interceptResponses: false (see @base44/sdk/dist/client.js) — unlike
-      // every other SDK module, function calls never get unwrapped to their
-      // body or transformed into a Base44Error. `response` here is the full
-      // axios envelope, so the actual `{reply, actions}` is response.data.
-      const response = await base44.functions.invoke("aiChatStream", {
+    // base44.functions.invoke() runs on its own axios client (interceptResponses:
+    // false — see @base44/sdk/dist/client.js), buffered end-to-end: it can't
+    // hand back anything before the whole response body exists, which is
+    // exactly what a real-time "watch it think" stream needs to not be true.
+    // functions.fetch() is the SDK's own documented sibling for this —
+    // "streaming responses, like SSE" is its first listed use case — a plain
+    // native fetch() with the same auth headers .invoke() uses, returning a
+    // real Response whose body we read as it arrives.
+    const response = await base44.functions.fetch("/aiChatStream", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         ...payload,
         aiIdentity: await loadAiIdentity(),
         // Sent transiently, per-request, so the vault_* tools can use it for
@@ -307,16 +311,31 @@ export function useChatController({ activeProjectId } = {}) {
         stakeholders: stakeholders.filter((s) => !s.deleted_at),
         departments: departments.filter((d) => !d.deleted_at),
         notes,
-      });
-      return response.data;
-    } catch (error) {
-      // Same reason as above: this rejects as a plain AxiosError (no
-      // interceptor to transform it into a Base44Error), so the body our
-      // function actually returned on a non-2xx response — `{ error:
-      // error.message }` — lives at error.response.data, not error.data.
-      const serverMessage = error.response?.data?.error;
-      throw new Error(serverMessage || error.message);
+      }),
+    });
+
+    if (!response.ok) {
+      // A pre-flight failure (401 unauthenticated, 400 no message) is still
+      // a normal JSON body, same shape as before streaming — entry.ts only
+      // ever switches to its NDJSON stream once it's committed to a 200.
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body.error || `Request failed (${response.status}).`);
     }
+
+    let finalPayload = null;
+    let streamError = null;
+    await readNdjson(response, (event) => {
+      if (event.type === "thinking-delta" || event.type === "tool-call") {
+        onEvent?.(event);
+      } else if (event.type === "done") {
+        finalPayload = event;
+      } else if (event.type === "error") {
+        streamError = event.message;
+      }
+    });
+    if (streamError) throw new Error(streamError);
+    if (!finalPayload) throw new Error("The assistant's response ended unexpectedly.");
+    return { reply: finalPayload.reply, actions: finalPayload.actions, liveTrace: finalPayload.liveTrace };
   };
 
   const runUndo = async () => {
@@ -367,10 +386,32 @@ export function useChatController({ activeProjectId } = {}) {
         .map((m) => `${m.role.toUpperCase()}: ${stripToolLog(m.content)}`)
         .join("\n");
 
+      // Clean slate BEFORE invokeAssistant starts, not after — onEvent below
+      // fires live, DURING that call, so liveSteps/streamingText need to
+      // already be empty by the time the first event can possibly arrive,
+      // not just once the whole response is back.
+      setLiveSteps([]);
+      setStreamingText("");
+      // A plain closure variable, not state — read synchronously right
+      // after invokeAssistant resolves to decide whether the final message
+      // needs the typewriter treatment. (React state set inside onEvent
+      // wouldn't be readable here without going stale — this function's own
+      // `streamingText` binding is fixed to whatever it was when this
+      // render's handleSend closure was created.)
+      let liveThinkingShown = false;
+      const onEvent = (event) => {
+        if (event.type === "thinking-delta") {
+          liveThinkingShown = true;
+          setStreamingText((prev) => prev + event.text);
+        } else if (event.type === "tool-call") {
+          setLiveSteps((prev) => [...prev, event.label]);
+        }
+      };
+
       const data = await invokeAssistant({
         message: userText, conversationHistory, activeProjectId, sessionId,
         protocolReminderRequested: matchesProtocolTrigger(userText),
-      });
+      }, onEvent);
       // ChatMessage.content is a required field on Base44's side — never
       // forward a falsy reply from aiChatStream (a stale deploy, a model
       // hiccup) straight into a create call, or the write gets rejected
@@ -379,24 +420,26 @@ export function useChatController({ activeProjectId } = {}) {
       const actions = data.actions || [];
       // Read tools (web_search, analyze_attachment, read_project_link,
       // search_workspace, audit_workspace, the vault_* readers) already ran
-      // for real, server/BYOK-side, during this same turn — before this
-      // point the only trace of them was a "> ..." line silently baked into
-      // the reply text. Revealed and persisted the same way a staged
-      // mutation's own steps are (see revealLiveTrace below) so every kind
-      // of thing the assistant can do shows up as a real, clickable action
-      // line, not just the ones that write data.
+      // for real, server/BYOK-side, during this same turn, and — via onEvent
+      // above — were already shown live the instant each one finished, not
+      // just discoverable once the whole response was back. liveTrace is
+      // still persisted onto the final message below so every kind of thing
+      // the assistant can do stays a real, clickable action line after a
+      // reload too, not just the ones that write data.
       const liveTrace = data.liveTrace || [];
-      // Guarantees revealLiveTrace's append-only updates start from a clean
-      // slate regardless of whatever the previous turn's own `finally`
-      // block left behind, rather than relying on that cleanup having
-      // already run.
-      setLiveSteps([]);
+      // Skips markMessageNew (and so the typewriter) for the reply-bearing
+      // message below when its text was already shown live via
+      // streamingText — replaying the same text a second time, now via
+      // typewriter, would just be a redundant re-animation of something the
+      // user already watched appear. Falls back to the old
+      // mark-as-new/typewriter treatment on the rare turn that streamed no
+      // narration at all (e.g. a reply of just "Done.").
+      const skipTypewriter = liveThinkingShown ? {} : { onSuccess: (created) => markMessageNew(created.id) };
 
       if (actions.length === 0 || actions.every((a) => NON_EXECUTABLE_ACTIONS.has(a.action))) {
         if (actions[0]?.action === "UNDO_LAST_ACTION") {
           await runUndo();
         }
-        await revealLiveTrace(liveTrace);
         setLiveSteps([]);
         await createMessage.mutateAsync(
           {
@@ -404,7 +447,7 @@ export function useChatController({ activeProjectId } = {}) {
             content: buildLoggedContent(reply, liveTrace.map((l) => l.label)),
             ...(liveTrace.length ? { tool_log_detail: { liveTrace } } : {}),
           },
-          { onSuccess: (created) => markMessageNew(created.id) }
+          skipTypewriter
         );
         return;
       }
@@ -412,7 +455,6 @@ export function useChatController({ activeProjectId } = {}) {
       const executable = actions.filter((a) => !NON_EXECUTABLE_ACTIONS.has(a.action));
 
       if (executable.some((a) => DESTRUCTIVE_ACTIONS.has(a.action))) {
-        await revealLiveTrace(liveTrace);
         setLiveSteps([]);
         await createMessage.mutateAsync(
           {
@@ -421,17 +463,16 @@ export function useChatController({ activeProjectId } = {}) {
             pending_action: { actions: executable },
             ...(liveTrace.length ? { tool_log_detail: { liveTrace } } : {}),
           },
-          { onSuccess: (created) => markMessageNew(created.id) }
+          skipTypewriter
         );
         return;
       }
 
-      // Reveal any live tool calls first (they already happened), then the
+      // Any live tool calls already appeared live above (onEvent) — now the
       // plan, then each mutation as it actually runs — executeActionSequence's
       // onStep fires only once that step has really executed.
       // STEP_REVEAL_DELAY_MS just paces the *reveal* so a sub-frame localDb
       // write is still readable; it doesn't fake anything that didn't happen.
-      await revealLiveTrace(liveTrace);
       setLiveSteps((prev) => [...prev, describePlan(executable)]);
       const paceReveal = executable.length <= MAX_PACED_STEPS;
       const results = await executeActionSequence(executable, {
@@ -466,7 +507,7 @@ export function useChatController({ activeProjectId } = {}) {
           session_id: sessionId, role: "assistant", content,
           tool_log_detail: { liveTrace, plan: executable, steps: results },
         },
-        { onSuccess: (created) => markMessageNew(created.id) }
+        skipTypewriter
       );
       await invalidateAppQueries();
     } catch (error) {
@@ -486,6 +527,7 @@ export function useChatController({ activeProjectId } = {}) {
     } finally {
       setIsComputing(false);
       setLiveSteps([]);
+      setStreamingText("");
     }
   };
 
@@ -572,6 +614,7 @@ export function useChatController({ activeProjectId } = {}) {
     input, setInput,
     isComputing,
     liveSteps,
+    streamingText,
     newMessageIds,
     aiIdentity,
     attachedFile, setAttachedFile,

@@ -26,6 +26,48 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+// Both adapters now speak real SSE (stream: true) — these helpers build a
+// fetch Response whose body is a one-shot ReadableStream of Anthropic's or
+// the chat-completions API's own streaming event shape, reconstructing to
+// exactly the round each test wants without re-testing the SSE framing
+// itself (see anthropicAdapter.test.js / openaiCompatibleAdapter.test.js
+// for that).
+function anthropicStream(blocks) {
+  const events = [];
+  blocks.forEach((block, index) => {
+    if (block.type === "text") {
+      events.push({ type: "content_block_start", index, content_block: { type: "text", text: "" } });
+      events.push({ type: "content_block_delta", index, delta: { type: "text_delta", text: block.text } });
+    } else {
+      events.push({ type: "content_block_start", index, content_block: { type: "tool_use", id: block.id, name: block.name } });
+      events.push({ type: "content_block_delta", index, delta: { type: "input_json_delta", partial_json: JSON.stringify(block.input) } });
+    }
+    events.push({ type: "content_block_stop", index });
+  });
+  events.push({ type: "message_stop" });
+  const text = events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join("");
+  const encoder = new TextEncoder();
+  return {
+    ok: true, status: 200,
+    body: new ReadableStream({ start(controller) { controller.enqueue(encoder.encode(text)); controller.close(); } }),
+  };
+}
+
+function openAiStream({ content, toolCalls = [] }) {
+  const chunks = [];
+  if (content) chunks.push({ choices: [{ delta: { content } }] });
+  toolCalls.forEach((call, index) => {
+    chunks.push({ choices: [{ delta: { tool_calls: [{ index, id: call.id, function: { name: call.name, arguments: JSON.stringify(call.args) } }] } }] });
+  });
+  chunks.push({ choices: [{ delta: {}, finish_reason: toolCalls.length ? "tool_calls" : "stop" }] });
+  const text = chunks.map((c) => `data: ${JSON.stringify(c)}\n\n`).join("") + "data: [DONE]\n\n";
+  const encoder = new TextEncoder();
+  return {
+    ok: true, status: 200,
+    body: new ReadableStream({ start(controller) { controller.enqueue(encoder.encode(text)); controller.close(); } }),
+  };
+}
+
 describe("runByokChat: validation before ever making a request", () => {
   it("rejects an unknown provider", async () => {
     await expect(runByokChat({ providerConfig: { provider: "notreal" }, contextArgs: baseContextArgs })).rejects.toThrow('Unknown AI provider "notreal"');
@@ -49,14 +91,9 @@ describe("runByokChat: end-to-end against a mocked provider response", () => {
     vi.stubGlobal("fetch", vi.fn(async (url, init) => {
       const body = JSON.parse(init.body);
       if (!body.messages.some((m) => m.role === "user" && Array.isArray(m.content))) {
-        return {
-          ok: true,
-          json: async () => ({
-            content: [{ type: "tool_use", id: "toolu_1", name: "ARCHIVE_PROJECT", input: { project_id: "p1" } }],
-          }),
-        };
+        return anthropicStream([{ type: "tool_use", id: "toolu_1", name: "ARCHIVE_PROJECT", input: { project_id: "p1" } }]);
       }
-      return { ok: true, json: async () => ({ content: [{ type: "text", text: "I'll archive Q1 Newsletter." }] }) };
+      return anthropicStream([{ type: "text", text: "I'll archive Q1 Newsletter." }]);
     }));
 
     const result = await runByokChat({
@@ -75,9 +112,9 @@ describe("runByokChat: end-to-end against a mocked provider response", () => {
       // request Anthropic would receive, not just systemPrompt.js's own output.
       if (body.messages.length === 1) {
         expect(body.messages[0].content).toContain("[PROTOCOL REMINDER]");
-        return { ok: true, json: async () => ({ content: [{ type: "tool_use", id: "t1", name: "search_workspace", input: { query: "growth" } }] }) };
+        return anthropicStream([{ type: "tool_use", id: "t1", name: "search_workspace", input: { query: "growth" } }]);
       }
-      return { ok: true, json: async () => ({ content: [{ type: "text", text: "Found one match." }] }) };
+      return anthropicStream([{ type: "text", text: "Found one match." }]);
     }));
 
     const result = await runByokChat({
@@ -97,15 +134,10 @@ describe("runByokChat: end-to-end against a mocked provider response", () => {
       const userMsg = body.messages.find((m) => m.role === "user");
       if (body.messages.length === 2) {
         expect(userMsg.content).toContain("[PROTOCOL REMINDER]");
-        return {
-          ok: true,
-          json: async () => ({
-            choices: [{ message: { tool_calls: [{ id: "t1", function: { name: "search_workspace", arguments: JSON.stringify({ query: "growth" }) } } ] } }],
-          }),
-        };
+        return openAiStream({ toolCalls: [{ id: "t1", name: "search_workspace", args: { query: "growth" } }] });
       }
       expect(systemMsg).toBeTruthy();
-      return { ok: true, json: async () => ({ choices: [{ message: { content: "Found one match." } }] }) };
+      return openAiStream({ content: "Found one match." });
     }));
 
     const result = await runByokChat({
@@ -116,6 +148,30 @@ describe("runByokChat: end-to-end against a mocked provider response", () => {
     expect(result.reply).toBe("Found one match.");
     expect(result.liveTrace).toHaveLength(1);
     expect(result.liveTrace[0].label).toMatch(/^search_workspace\("growth"\)/);
+  });
+
+  it("fires onEvent live for both thinking-delta and tool-call, for a real (non-simulated) HTTP provider", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (_url, init) => {
+      const body = JSON.parse(init.body);
+      if (body.messages.length === 1) {
+        return anthropicStream([
+          { type: "text", text: "Let me check." },
+          { type: "tool_use", id: "t1", name: "search_workspace", input: { query: "growth" } },
+        ]);
+      }
+      return anthropicStream([{ type: "text", text: "Found one match." }]);
+    }));
+
+    const events = [];
+    await runByokChat({
+      providerConfig: { provider: "anthropic", model: "claude-sonnet-5", apiKey: "sk-ant-test" },
+      contextArgs: { ...baseContextArgs, userText: "what do we have on growth" },
+      onEvent: (e) => events.push(e),
+    });
+
+    expect(events).toContainEqual({ type: "thinking-delta", text: "Let me check." });
+    expect(events.some((e) => e.type === "tool-call" && e.label.startsWith('search_workspace("growth")'))).toBe(true);
+    expect(events).toContainEqual({ type: "thinking-delta", text: "Found one match." });
   });
 });
 
@@ -179,5 +235,40 @@ describe("runByokChat: local-bridge (Backdoor Mode) dispatch", () => {
 
     const [, , body] = writeRequestFile.mock.calls[0];
     expect(body.messages[0].content).toContain("[PROTOCOL REMINDER]");
+  });
+
+  it("with onEvent: paced-replays liveTrace then the reply text as the same event vocabulary real streaming uses, without ever touching the file contract", async () => {
+    getBridgeStatus.mockResolvedValueOnce("connected");
+    pollForResponseFile
+      .mockResolvedValueOnce({ content: [{ type: "tool_use", id: "toolu_1", name: "search_workspace", input: { query: "growth" } }] })
+      .mockResolvedValueOnce({ content: [{ type: "text", text: "Found one match." }] });
+
+    const events = [];
+    const result = await runByokChat({
+      providerConfig: { provider: "local-bridge" },
+      contextArgs: { ...baseContextArgs, userText: "what do we have on growth" },
+      onEvent: (e) => events.push(e),
+    });
+
+    // writeRequestFile/pollForResponseFile were called exactly as they
+    // always are — no protocol change, no onEvent threaded into the file
+    // contract itself.
+    expect(writeRequestFile).toHaveBeenCalledTimes(2);
+
+    const toolCallEvents = events.filter((e) => e.type === "tool-call");
+    const thinkingEvents = events.filter((e) => e.type === "thinking-delta");
+    expect(toolCallEvents).toHaveLength(1);
+    expect(toolCallEvents[0].label).toMatch(/^search_workspace\("growth"\)/);
+    // Tool-call reveal happens entirely before any reply text starts.
+    expect(events.indexOf(toolCallEvents[0])).toBeLessThan(events.indexOf(thinkingEvents[0]));
+    expect(thinkingEvents.map((e) => e.text).join("")).toBe(result.reply);
+  });
+
+  it("without onEvent: resolves exactly as before, no pacing delay incurred", async () => {
+    getBridgeStatus.mockResolvedValueOnce("connected");
+    pollForResponseFile.mockResolvedValueOnce({ content: [{ type: "text", text: "Here's what I found." }] });
+
+    const result = await runByokChat({ providerConfig: { provider: "local-bridge" }, contextArgs: baseContextArgs });
+    expect(result.reply).toBe("Here's what I found.");
   });
 });

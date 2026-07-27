@@ -118,4 +118,22 @@ describe("toolRunner: local (non-staged) tools run for real against the dataset"
     expect(liveTrace).toHaveLength(2);
     expect(liveTrace[1].label).toMatch(/^audit_workspace\(\) — \d+ findings?$/);
   });
+
+  it("emits a live tool-call event via onEvent the instant a live tool finishes, but never for a staged action", () => {
+    const plan = [];
+    const liveTrace = [];
+    const events = [];
+    const dataset = {
+      areas: [{ id: "a1", title: "Growth", description: "" }],
+      products: [], projects: [], archivedProjects: [], tasks: [], archivedTasks: [], stakeholders: [], notes: [],
+    };
+    const runTool = makeToolRunner({ plan, liveTrace, dataset, onEvent: (e) => events.push(e) });
+
+    runTool("CREATE_AREA", { title: "Marketing" });
+    expect(events).toHaveLength(0);
+
+    runTool("search_workspace", { query: "growth" });
+    expect(events).toHaveLength(1);
+    expect(events[0]).toEqual({ type: "tool-call", label: liveTrace[0].label, detail: liveTrace[0].detail });
+  });
 });

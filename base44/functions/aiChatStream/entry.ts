@@ -33,6 +33,16 @@ import { z } from 'npm:zod';
 // success" rule in buildInstructions(). Only `plan` entries the client
 // actually executes (immediately, or after a confirm click for anything
 // destructive) ever touch real data.
+//
+// Responds with a real-time stream (newline-delimited JSON, one event per
+// line — see the Deno.serve handler below), not one blocking JSON body: the
+// model's own "thinking out loud" text (THINK OUT LOUD AS YOU GO) and every
+// live tool call arrive as they actually happen, and useChatController.js
+// reads it via base44.functions.fetch() + a raw ReadableStream reader
+// (functions.invoke()'s buffered axios client can't stream). The final
+// event still carries the exact same {reply, actions, liveTrace} shape this
+// endpoint used to return outright, so nothing downstream of that (undo,
+// confirm, chatActions.js, tool-log persistence) needed to change.
 
 const MAX_ACTIONS_PER_REQUEST = 60;
 // Kept in sync with the client's chatActions.js, which enforces this for
@@ -186,16 +196,22 @@ async function listVaultNoteRepo(owner, repo, branch, token) {
 // from the request body, so these two tools can see fields the prompt
 // doesn't bother spelling out for every record), and externalVault (for the
 // vault_* tools below, connecting to a personal GitHub-hosted notes repo).
-function buildTools({ base44, plan, liveTrace, dataset, externalVault }) {
+function buildTools({ base44, plan, liveTrace, dataset, externalVault, emit }) {
   // Every live (already-executed) tool call gets pushed here as {label,
   // detail} — same shape a client-side executed mutation step gets from
   // describeToolCall (chatActions.js), so ChatMessageList can render both
   // kinds of "things the assistant actually did" identically: a dim,
   // clickable line, not text silently folded into the reply. `label`
   // matches that same `fn("arg")`/`fn() — N things` convention; `detail` is
-  // whatever's worth inspecting if the user clicks the line.
+  // whatever's worth inspecting if the user clicks the line. Also emitted
+  // live (if `emit` was provided — see the streaming Deno.serve handler
+  // below) the instant it happens, not just collected for the final `done`
+  // payload — this is what lets the client show a live tool call while the
+  // model is still going, the same real moment it actually ran, instead of
+  // only finding out about it once the whole response is back.
   function trace(label, detail) {
     liveTrace.push({ label, detail });
+    emit?.({ type: "tool-call", label, detail });
   }
 
   function queue(action) {
@@ -921,13 +937,6 @@ Deno.serve(async (req) => {
     // bother spelling out for every record (e.g. a task's is_weekly_focus).
     const dataset = { areas, products, projects, archivedProjects, tasks, archivedTasks, stakeholders, departments, notes };
 
-    const agent = new ToolLoopAgent({
-      model: models('automatic'),
-      instructions: buildInstructions(),
-      tools: buildTools({ base44, plan, liveTrace, dataset, externalVault }),
-      stopWhen: stepCountIs(40),
-    });
-
     const contextPrompt = buildContextPrompt({
       activeProjectId, areas, products, projects, archivedProjects,
       tasks, archivedTasks, stakeholders, departments, notes,
@@ -935,27 +944,92 @@ Deno.serve(async (req) => {
       vaultOverview, protocolReminderRequested,
     });
 
-    const result = await agent.generate({ prompt: contextPrompt });
+    // Streamed as newline-delimited JSON, one object per line — our own
+    // wire format, not the AI SDK's own UI-message-stream protocol, since we
+    // control both ends (this handler and useChatController.js's reader) and
+    // don't need that protocol's own client library. Each line is one of:
+    // {type:"thinking-delta", text}, {type:"tool-call", label, detail}
+    // (mirrors trace() above, emitted the instant a live tool call actually
+    // finishes), {type:"done", reply, actions, liveTrace} (the same payload
+    // this endpoint used to return as one blocking Response.json), or
+    // {type:"error", message}.
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        function emit(event) {
+          controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'));
+        }
+        try {
+          const agent = new ToolLoopAgent({
+            model: models('automatic'),
+            instructions: buildInstructions(),
+            tools: buildTools({ base44, plan, liveTrace, dataset, externalVault, emit }),
+            stopWhen: stepCountIs(40),
+          });
 
-    // result.text is only the FINAL step's text — every earlier round (the
-    // ones that ended in a tool call, not a plain reply) has its own real
-    // text too, and it was being silently discarded. That's exactly the
-    // model's own "thinking out loud" as it actually worked through the
-    // request — "I'll check the workspace first...", then after results
-    // come back, "Found two matches, now creating the plan..." — genuine
-    // reasoning in the model's own words, not a canned summary. Collecting
-    // every step's text (see THINK OUT LOUD AS YOU GO below, which asks the
-    // model to actually produce it) turns that back into real, visible
-    // narration instead of a single flat "Done" at the end.
-    const thinking = result.steps.map((step) => step.text?.trim()).filter(Boolean).join('\n\n');
-    const reply = thinking || "I couldn't come up with a reply — could you rephrase?";
+          const result = agent.stream({ prompt: contextPrompt });
 
-    // liveTrace ({label, detail}[]) used to be baked into `reply` as "> ..."
-    // prose lines — returned as its own field instead, so the client can
-    // render every live tool call the same real, clickable action-log
-    // treatment a staged mutation's own steps get (see useChatController.js),
-    // rather than plain text silently folded into the reply.
-    return Response.json({ reply, actions: plan, liveTrace });
+          // Every round's own text — not just the final round's — is real
+          // thinking the model produced as it worked through the request
+          // (see THINK OUT LOUD AS YOU GO below): "I'll check the workspace
+          // first...", then after results come back, "Found two matches,
+          // now creating the plan..." — genuine reasoning in the model's own
+          // words, streamed live as it's actually generated instead of only
+          // available once the whole response is back. `thinkingParts`
+          // accumulates the exact same text being emitted, so the final
+          // `done` event's `reply` is the same string the client already
+          // watched appear, not a second, separately-built copy of it. A
+          // round that produces no text at all (goes straight to a tool
+          // call — normal for a simple follow-up step) contributes nothing,
+          // same as the old `.filter(Boolean)` below did; the "\n\n" between
+          // rounds is only inserted lazily, right before a later round's
+          // first real text, so an empty round never leaves a stray blank
+          // line. One trade-off versus the old per-step `.trim()`: a round's
+          // own leading/trailing whitespace can't be trimmed after the fact
+          // once it's already been streamed to the client — negligible in
+          // practice, real models don't pad their own text like that.
+          const thinkingParts = [];
+          let roundStarted = false;
+          for await (const part of result.fullStream) {
+            if (part.type === 'start-step') {
+              roundStarted = false;
+            } else if (part.type === 'text-delta') {
+              if (!roundStarted && thinkingParts.length) {
+                thinkingParts.push('\n\n');
+                emit({ type: 'thinking-delta', text: '\n\n' });
+              }
+              roundStarted = true;
+              thinkingParts.push(part.text);
+              emit({ type: 'thinking-delta', text: part.text });
+            } else if (part.type === 'error') {
+              throw part.error instanceof Error ? part.error : new Error(String(part.error));
+            }
+          }
+
+          const thinking = thinkingParts.join('').trim();
+          const reply = thinking || "I couldn't come up with a reply — could you rephrase?";
+
+          // liveTrace ({label, detail}[]) used to be baked into `reply` as
+          // "> ..." prose lines — its own field instead, so the client can
+          // render every live tool call the same real, clickable
+          // action-log treatment a staged mutation's own steps get (see
+          // useChatController.js), rather than plain text silently folded
+          // into the reply.
+          emit({ type: 'done', reply, actions: plan, liveTrace });
+        } catch (error) {
+          // Never let the stream just die silently on a mid-generation
+          // failure (rate limit, provider error, a thrown 'error' stream
+          // part) — the client's reader is listening for exactly this event
+          // type to reject invokeAssistant's promise into the same error
+          // bubble a pre-flight failure above already shows.
+          emit({ type: 'error', message: error.message });
+        } finally {
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(stream, { headers: { 'Content-Type': 'application/x-ndjson' } });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

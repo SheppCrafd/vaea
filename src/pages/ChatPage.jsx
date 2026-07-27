@@ -122,6 +122,7 @@ export default function ChatPage() {
             messages={chat.chatState.messages}
             isComputing={chat.isComputing}
             liveSteps={chat.liveSteps}
+            streamingText={chat.streamingText}
             iconChoice={chat.iconChoice}
             hasMore={chat.chatState.hasMore}
             onLoadMore={chat.chatState.loadMore}
