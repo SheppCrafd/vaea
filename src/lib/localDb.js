@@ -160,6 +160,35 @@ async function writeCollection(name, items) {
   emit(name);
 }
 
+// Serializes every read-modify-write cycle (create/update/updateMany/
+// delete/replaceAll) per collection into one FIFO queue. Without this, two
+// callers racing on the same collection (a chat plan's own multi-step
+// executeActionSequence running at the same time as an ordinary UI mutation
+// — a drag-reorder, an inline title edit's onBlur, another hook entirely;
+// this app keeps Dashboard/Chat/Settings mounted as persistent tabs, not
+// separate page loads, so any of those really can fire while chat is
+// mid-plan) would both call readCollection and get the same cached array,
+// then each independently push their own writeCollection — a lost-update
+// race in File-Backed/manual mode, and in File System Access mode (real
+// user reports) two overlapping createWritable() streams on the very same
+// FileSystemFileHandle, which Chromium surfaces as: "An operation that
+// depends on state cached in an interface object was made but the state
+// had changed since it was read from disk." The "single-tab/single-writer"
+// assumption on loadCollection's own comment above is only true per
+// collection if writes to it are actually serialized — this is what makes
+// that true, rather than just asserted.
+const queues = new Map(); // name -> Promise (tail of that collection's queue)
+
+function withCollectionLock(name, fn) {
+  const prior = queues.get(name) || Promise.resolve();
+  // Never let one failed op wedge the queue for whoever's waiting behind it —
+  // each op still sees (and reports) its own real outcome via `result` below.
+  const settledPrior = prior.catch(() => {});
+  const result = settledPrior.then(fn);
+  queues.set(name, result.catch(() => {}));
+  return result;
+}
+
 const listeners = new Map(); // name -> Set<fn>
 
 function emit(name) {
@@ -181,15 +210,15 @@ function createCollection(name) {
     list: async () => readCollection(name),
     get: async (id) => (await readCollection(name)).find((item) => item.id === id) || null,
     filter: async (query = {}) => (await readCollection(name)).filter((item) => matches(item, query)),
-    create: async (data) => {
+    create: async (data) => withCollectionLock(name, async () => {
       const now = new Date().toISOString();
       const item = { id: crypto.randomUUID(), created_date: now, updated_date: now, ...data };
       const items = await readCollection(name);
       items.push(item);
       await writeCollection(name, items);
       return item;
-    },
-    update: async (id, patch) => {
+    }),
+    update: async (id, patch) => withCollectionLock(name, async () => {
       const items = await readCollection(name);
       const index = items.findIndex((item) => item.id === id);
       if (index === -1) throw new Error(`${name} record ${id} not found`);
@@ -197,7 +226,7 @@ function createCollection(name) {
       items[index] = updated;
       await writeCollection(name, items);
       return updated;
-    },
+    }),
     // Applies the same patch (or a per-item patch function) to every item
     // whose id is in `ids`, in a single read+write cycle instead of one
     // read+write per id. Used by cascade updates (e.g. deleting an Area
@@ -206,7 +235,7 @@ function createCollection(name) {
     // storage once per affected item. Unknown ids are silently ignored
     // (cascades always derive `ids` from a just-read filter, so this mirrors
     // that caller's own view of what exists).
-    updateMany: async (ids, patch) => {
+    updateMany: async (ids, patch) => withCollectionLock(name, async () => {
       if (!ids.length) return [];
       const idSet = new Set(ids);
       const now = new Date().toISOString();
@@ -219,20 +248,17 @@ function createCollection(name) {
       });
       await writeCollection(name, items);
       return updated;
-    },
-    delete: async (id) => {
+    }),
+    delete: async (id) => withCollectionLock(name, async () => {
       const items = await readCollection(name);
       await writeCollection(name, items.filter((item) => item.id !== id));
       return { id };
-    },
+    }),
     // Overwrites the entire collection with exactly the given items, no
     // per-item merge/timestamp logic — for restoring a prior snapshot
     // (backupSnapshots.js), where the point is putting the data back exactly
     // as it was, not running it back through create/update semantics.
-    replaceAll: async (items) => {
-      await writeCollection(name, items);
-      return items;
-    },
+    replaceAll: async (items) => withCollectionLock(name, () => writeCollection(name, items).then(() => items)),
     subscribe: (fn) => subscribe(name, fn),
   };
 }
