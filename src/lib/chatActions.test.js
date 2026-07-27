@@ -107,6 +107,37 @@ describe("chatActions: multi-step plans with temp_id placeholders", () => {
     await expect(executeAction("CREATE_PROJECT", { parent_area_id: "not-a-real-id", title: "Launch" })).rejects.toThrow(/doesn't exist/);
   });
 
+  it("BULK_CREATE items can reference a $temp_id registered by an earlier single CREATE_* step", async () => {
+    // Confirms the exact alternative the updated system-prompt guidance
+    // recommends: a batch that shares ONE new parent should tag that parent
+    // with its own individual CREATE_* + temp_id first, then a single
+    // BULK_CREATE's items can all reference it — resolvePlaceholders walks
+    // the whole step's args (including nested arrays) before execution, so
+    // this isn't special-cased to single CREATE_* calls the way the
+    // "temp_id only works for a single CREATE_* call" line might suggest;
+    // that line is about a BULK_CREATE step's OWN items never being
+    // individually re-referenceable afterward, not about BULK_CREATE being
+    // unable to consume a temp_id someone else already registered.
+    const steps = await executeActionSequence([
+      { action: "CREATE_AREA", args: { title: "Platform", description: "" }, temp_id: "area1" },
+      {
+        action: "BULK_CREATE",
+        args: {
+          entity_type: "product",
+          items: [
+            { parent_area_id: "$area1", title: "Core" },
+            { parent_area_id: "$area1", title: "Edge" },
+          ],
+        },
+      },
+    ]);
+
+    const area = steps[0].toolResult.area;
+    expect(steps[1].toolResult.count).toBe(2);
+    const products = await localDb.products.filter({ parent_area_id: area.id });
+    expect(products.map((p) => p.title).sort()).toEqual(["Core", "Edge"]);
+  });
+
   it("BULK_CREATE creates multiple records of the same type", async () => {
     const { toolResult: { area } } = await executeAction("CREATE_AREA", { title: "Area", description: "" });
     const { toolResult: { project } } = await executeAction("CREATE_PROJECT", { parent_area_id: area.id, title: "Project" });
