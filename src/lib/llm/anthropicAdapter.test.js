@@ -37,7 +37,10 @@ describe("anthropicAdapter: tool-call loop", () => {
       runTool,
     });
 
-    expect(reply).toBe("Found it — Growth already exists.");
+    // Both rounds' own text now carry through — "Let me check that." was
+    // real thinking the model produced before calling the tool, not just
+    // filler to discard; see THINK OUT LOUD AS YOU GO.
+    expect(reply).toBe("Let me check that.\n\nFound it — Growth already exists.");
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(runTool).toHaveBeenCalledWith("search_workspace", { query: "growth" });
 

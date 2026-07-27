@@ -27,14 +27,23 @@ export async function callOpenAiCompatible({ baseUrl, apiKey, model, systemPromp
     { role: "system", content: systemPrompt },
     { role: "user", content: contextPrompt },
   ];
+  // Every round's own text — not just the final round's — is real thinking
+  // the model produced as it worked through the request (see THINK OUT LOUD
+  // AS YOU GO in systemPrompt.js): "I'll check the workspace first...",
+  // then after results come back, "Found two matches, now creating the
+  // plan...". Discarding every round but the last one was throwing that
+  // away entirely.
+  const thinking = [];
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     const response = await callOnce({ baseUrl, apiKey, model, messages, tools });
     const message = response.choices?.[0]?.message;
     if (!message) throw new Error("Empty response from the model.");
+    const roundText = message.content?.trim();
+    if (roundText) thinking.push(roundText);
 
     if (!message.tool_calls?.length) {
-      return message.content?.trim() || "I couldn't come up with a reply — could you rephrase?";
+      return thinking.join("\n\n") || "I couldn't come up with a reply — could you rephrase?";
     }
 
     messages.push(message);

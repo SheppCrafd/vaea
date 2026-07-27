@@ -23,6 +23,13 @@ function newRequestId() {
 export async function callLocalBridge({ systemPrompt, contextPrompt, tools, runTool, pollIntervalMs = DEFAULT_POLL_INTERVAL_MS }) {
   const requestId = newRequestId();
   const messages = [{ role: "user", content: contextPrompt }];
+  // Every round's own text — not just the final round's — is real thinking
+  // the model produced as it worked through the request (see THINK OUT LOUD
+  // AS YOU GO in systemPrompt.js): "I'll check the workspace first...",
+  // then after results come back, "Found two matches, now creating the
+  // plan...". Discarding every round but the last one was throwing that
+  // away entirely.
+  const thinking = [];
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     await writeRequestFile(requestId, round, { round, system: systemPrompt, tools, messages });
@@ -33,9 +40,11 @@ export async function callLocalBridge({ systemPrompt, contextPrompt, tools, runT
       throw new Error(`Malformed response in responses/${requestId}-r${round}.json — expected a {"content": [...]} object.`);
     }
     const toolUseBlocks = content.filter((block) => block.type === "tool_use");
+    const roundText = content.filter((block) => block.type === "text").map((block) => block.text).join("\n").trim();
+    if (roundText) thinking.push(roundText);
 
     if (toolUseBlocks.length === 0) {
-      return content.filter((block) => block.type === "text").map((block) => block.text).join("\n").trim() || "I couldn't come up with a reply — could you rephrase?";
+      return thinking.join("\n\n") || "I couldn't come up with a reply — could you rephrase?";
     }
 
     messages.push({ role: "assistant", content });

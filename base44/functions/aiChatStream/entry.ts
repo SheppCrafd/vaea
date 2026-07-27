@@ -779,6 +779,8 @@ EXECUTION TIMING — how "staging"/confirmation actually works, and the wording 
 - Plan HAS at least one destructive action (even mixed with non-destructive ones — it's all-or-nothing): the user sees real "Yes, do it" / "Cancel" buttons, and ONLY THEN does anything actually run. Describe the whole plan in future tense ("This will delete ...", "This will archive ...") and stop there — the buttons ARE the confirmation, so never also ask a yes/no question in your reply text ("Should I go ahead?", "Are you sure?"). Also never claim or imply there's no undo, or that a deletion is permanent/irreversible — a snapshot of the entire workspace is taken automatically right before any destructive or multi-step plan runs, restorable from Settings -> Backup & Restore; it's safe to mention that snapshot exists, it is not safe to say there's no way back.
 The tools below WRITE_VAULT_NOTE in the list (web_search, analyze_attachment, read_project_link, search_workspace, audit_workspace, list_vault_notes, read_vault_note, search_vault, audit_vault) are a different category entirely — they run for real, right here, inside this response, and you already have their real results by the time you reply. Describe THOSE in the past tense ("I searched...", "I found..."). audit_workspace/audit_vault only ever surface findings though — they never fix anything themselves; any fix still goes through the normal queued tools above, as its own plan (subject to the same destructive-or-not rule).
 
+THINK OUT LOUD AS YOU GO: every round of this conversation — not just your final reply — is shown to the user as your own real thinking, not discarded. Before making tool calls in a given round, say a genuine sentence or two first: what you're about to do and why, specific to this actual request (e.g. "I'll check what's already in the workspace before adding anything new." or, once a search comes back, "That found two related areas — I'll add the new project under the existing one instead of creating a duplicate."). Keep it short — one or two real sentences, not a wall of text — and never generic filler ("Let me help you with that!"). Don't narrate the mechanics already covered above (don't say "queued"/"staged"/anything about confirmation) — this is about *why*, not about the plumbing. If a request is simple enough that there's nothing worth narrating, it's fine to go straight to the tool calls or a short plain reply.
+
 CRITICAL MAPPING RULE: when a tool needs an id, look it up from [DATABASE STATE] by the name/title the user gave. Never invent an id or pass a name where an id is expected.
 
 GROUND YOUR PLAN IN REAL CONTEXT, DON'T JUST GUESS FROM A SUMMARY: [DATABASE STATE] is a trimmed projection, not everything real — a project's own "links" only show a label/URL, not what's actually at that link; [CONVERSATION HISTORY] is a plain transcript, not a search index; a project's own custom fields/notes aren't fully spelled out there either. Before committing to a plan for anything non-trivial or ambiguous — especially a request that references "that project's link", "what we discussed before", an attached file, or a past decision you'd need to actually go check — use the tool that would really answer it (read_project_link, search_workspace, analyze_attachment, or, if a Vaea Vault is connected, the vault_* readers) instead of guessing from what [DATABASE STATE] happens to summarize. These calls are real, run right here, and the user sees each one as a real step in what you did — treat reaching for one as a normal, expected part of planning a good answer, not an optional extra.
@@ -935,7 +937,18 @@ Deno.serve(async (req) => {
 
     const result = await agent.generate({ prompt: contextPrompt });
 
-    const reply = result.text || "I couldn't come up with a reply — could you rephrase?";
+    // result.text is only the FINAL step's text — every earlier round (the
+    // ones that ended in a tool call, not a plain reply) has its own real
+    // text too, and it was being silently discarded. That's exactly the
+    // model's own "thinking out loud" as it actually worked through the
+    // request — "I'll check the workspace first...", then after results
+    // come back, "Found two matches, now creating the plan..." — genuine
+    // reasoning in the model's own words, not a canned summary. Collecting
+    // every step's text (see THINK OUT LOUD AS YOU GO below, which asks the
+    // model to actually produce it) turns that back into real, visible
+    // narration instead of a single flat "Done" at the end.
+    const thinking = result.steps.map((step) => step.text?.trim()).filter(Boolean).join('\n\n');
+    const reply = thinking || "I couldn't come up with a reply — could you rephrase?";
 
     // liveTrace ({label, detail}[]) used to be baked into `reply` as "> ..."
     // prose lines — returned as its own field instead, so the client can

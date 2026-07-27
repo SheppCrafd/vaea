@@ -39,7 +39,10 @@ describe("localBridgeAdapter: file-based round loop", () => {
     const runTool = vi.fn(() => ({ count: 1 }));
     const reply = await callLocalBridge({ systemPrompt: "s", contextPrompt: "c", tools: [], runTool });
 
-    expect(reply).toBe("Found it.");
+    // Both rounds' own text now carry through — "Let me check that." was
+    // real thinking the model produced before calling the tool, not just
+    // filler to discard; see THINK OUT LOUD AS YOU GO.
+    expect(reply).toBe("Let me check that.\n\nFound it.");
     expect(runTool).toHaveBeenCalledWith("search_workspace", { query: "growth" });
     expect(writeRequestFile).toHaveBeenCalledTimes(2);
 
