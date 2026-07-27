@@ -34,15 +34,22 @@ import { z } from 'npm:zod';
 // actually executes (immediately, or after a confirm click for anything
 // destructive) ever touch real data.
 //
-// Responds with a real-time stream (newline-delimited JSON, one event per
-// line — see the Deno.serve handler below), not one blocking JSON body: the
-// model's own "thinking out loud" text (THINK OUT LOUD AS YOU GO) and every
-// live tool call arrive as they actually happen, and useChatController.js
-// reads it via base44.functions.fetch() + a raw ReadableStream reader
-// (functions.invoke()'s buffered axios client can't stream). The final
-// event still carries the exact same {reply, actions, liveTrace} shape this
-// endpoint used to return outright, so nothing downstream of that (undo,
-// confirm, chatActions.js, tool-log persistence) needed to change.
+// Responds with a stream (newline-delimited JSON, one event per line — see
+// the Deno.serve handler below), not one blocking JSON body, and
+// useChatController.js reads it via base44.functions.fetch() + a raw
+// ReadableStream reader (functions.invoke()'s buffered axios client can't
+// stream). Every live tool call (buildTools()'s own execute() functions,
+// still run for real, right here) arrives genuinely live, the instant it
+// happens. The model's own narration text does NOT — base44's own AI
+// Gateway (models('automatic') below) doesn't support streamed completions,
+// so that text can only ever be generated as one complete block; it's
+// emitted as a paced replay of that already-complete string instead (the
+// same honest treatment Backdoor Mode gets, for the same underlying "this
+// transport can't really stream" reason — see byokChat.js's
+// simulateLiveReveal). The final event still carries the exact same
+// {reply, actions, liveTrace} shape this endpoint used to return outright,
+// so nothing downstream of that (undo, confirm, chatActions.js, tool-log
+// persistence) needed to change.
 
 const MAX_ACTIONS_PER_REQUEST = 60;
 // Kept in sync with the client's chatActions.js, which enforces this for
@@ -967,47 +974,37 @@ Deno.serve(async (req) => {
             stopWhen: stepCountIs(40),
           });
 
-          const result = agent.stream({ prompt: contextPrompt });
-
-          // Every round's own text — not just the final round's — is real
-          // thinking the model produced as it worked through the request
-          // (see THINK OUT LOUD AS YOU GO below): "I'll check the workspace
-          // first...", then after results come back, "Found two matches,
-          // now creating the plan..." — genuine reasoning in the model's own
-          // words, streamed live as it's actually generated instead of only
-          // available once the whole response is back. `thinkingParts`
-          // accumulates the exact same text being emitted, so the final
-          // `done` event's `reply` is the same string the client already
-          // watched appear, not a second, separately-built copy of it. A
-          // round that produces no text at all (goes straight to a tool
-          // call — normal for a simple follow-up step) contributes nothing,
-          // same as the old `.filter(Boolean)` below did; the "\n\n" between
-          // rounds is only inserted lazily, right before a later round's
-          // first real text, so an empty round never leaves a stray blank
-          // line. One trade-off versus the old per-step `.trim()`: a round's
-          // own leading/trailing whitespace can't be trimmed after the fact
-          // once it's already been streamed to the client — negligible in
-          // practice, real models don't pad their own text like that.
-          const thinkingParts = [];
-          let roundStarted = false;
-          for await (const part of result.fullStream) {
-            if (part.type === 'start-step') {
-              roundStarted = false;
-            } else if (part.type === 'text-delta') {
-              if (!roundStarted && thinkingParts.length) {
-                thinkingParts.push('\n\n');
-                emit({ type: 'thinking-delta', text: '\n\n' });
-              }
-              roundStarted = true;
-              thinkingParts.push(part.text);
-              emit({ type: 'thinking-delta', text: part.text });
-            } else if (part.type === 'error') {
-              throw part.error instanceof Error ? part.error : new Error(String(part.error));
-            }
-          }
-
-          const thinking = thinkingParts.join('').trim();
+          // base44's own AI Gateway (base44.aiGateway.connection(), the
+          // proxy behind models('automatic') below) does not support
+          // streamed completions yet — a real platform limitation, not a
+          // client-side bug: agent.stream() correctly resolves and reaches
+          // the actual HTTP call, which the gateway rejects outright with
+          // "Streaming responses are not supported yet." So the text itself
+          // can only ever arrive as one complete block, same as before this
+          // feature existed — agent.generate(), not agent.stream(). Tool
+          // calls are NOT affected by this: buildTools()'s own execute()
+          // functions still run for real, live, during this same call
+          // (trace()'s emit() above fires the instant each one finishes,
+          // genuinely live, same as it always did) — only the narration
+          // text below is a paced replay of an already-complete string, the
+          // same honest "not real-time" treatment Backdoor Mode gets (see
+          // byokChat.js's simulateLiveReveal) for the identical underlying
+          // reason: the transport under this path can't actually stream.
+          const result = await agent.generate({ prompt: contextPrompt });
+          const thinking = result.steps.map((step) => step.text?.trim()).filter(Boolean).join('\n\n');
           const reply = thinking || "I couldn't come up with a reply — could you rephrase?";
+
+          // Word-sized paced chunks, duration capped the same way
+          // ChatMessageList.jsx's own useTypewriter caps itself, so a long
+          // reply doesn't turn into a multi-second wait — see
+          // byokChat.js's simulateLiveReveal for the client-side twin of
+          // this same pacing formula.
+          const words = reply.match(/\S+\s*/g) || [reply];
+          const perWordDelayMs = Math.min(1800, Math.max(300, reply.length * 8)) / words.length;
+          for (const word of words) {
+            emit({ type: 'thinking-delta', text: word });
+            await new Promise((resolve) => setTimeout(resolve, perWordDelayMs));
+          }
 
           // liveTrace ({label, detail}[]) used to be baked into `reply` as
           // "> ..." prose lines — its own field instead, so the client can
