@@ -91,4 +91,43 @@ describe("runByokChat: local-bridge (Backdoor Mode) dispatch", () => {
     expect(result.actions).toEqual([{ action: "ARCHIVE_PROJECT", args: { project_id: "p1" } }]);
     expect(writeRequestFile).toHaveBeenCalledTimes(2);
   });
+
+  it("returns real liveTrace entries from a search_workspace call, same as every other provider", async () => {
+    // liveTrace is built by makeToolRunner (toolRunner.js), shared by every
+    // adapter — this confirms Backdoor Mode actually gets it too, not just
+    // Anthropic/OpenAI-compatible, since it's easy for a shared-plumbing
+    // feature like this to silently only get exercised by the one adapter
+    // whose own tests happen to cover it.
+    getBridgeStatus.mockResolvedValueOnce("connected");
+    pollForResponseFile
+      .mockResolvedValueOnce({
+        content: [{ type: "tool_use", id: "toolu_1", name: "search_workspace", input: { query: "growth" } }],
+      })
+      .mockResolvedValueOnce({ content: [{ type: "text", text: "Found one match." }] });
+
+    const result = await runByokChat({
+      providerConfig: { provider: "local-bridge" },
+      contextArgs: { ...baseContextArgs, userText: "what do we have on growth" },
+    });
+
+    expect(result.liveTrace).toHaveLength(1);
+    expect(result.liveTrace[0].label).toMatch(/^search_workspace\("growth"\)/);
+  });
+
+  it("carries the protocol reminder into the context prompt sent to the local watcher script", async () => {
+    // The reminder is client-decided (matchesProtocolTrigger, useChatController.js)
+    // and threaded through contextArgs.protocolReminderRequested — this
+    // confirms systemPrompt.js's buildContextPrompt actually renders it for
+    // Backdoor Mode too, not just the two HTTP-based adapters.
+    getBridgeStatus.mockResolvedValueOnce("connected");
+    pollForResponseFile.mockResolvedValueOnce({ content: [{ type: "text", text: "Here's what I found." }] });
+
+    await runByokChat({
+      providerConfig: { provider: "local-bridge" },
+      contextArgs: { ...baseContextArgs, userText: "there's a bug in the sync", protocolReminderRequested: true },
+    });
+
+    const [, , body] = writeRequestFile.mock.calls[0];
+    expect(body.messages[0].content).toContain("[PROTOCOL REMINDER]");
+  });
 });
