@@ -497,6 +497,20 @@ function entityTypeOfStep({ action, args }) {
   return null;
 }
 
+// How many real entities a single step actually represents — 1 for every
+// ordinary CREATE_*/UPDATE_*/etc. call, but a BULK_CREATE/BULK_DELETE step
+// is one tool call standing in for however many items/ids are actually
+// inside it (5 products in one BULK_CREATE call is 5 products, not 1).
+// Missing this was a real bug: a plan of one BULK_CREATE(2 areas) + one
+// BULK_CREATE(5 products) rendered as "plan · 2 steps across 1 area, 1
+// product" — flatly wrong, and a real user caught it by clicking the line
+// and comparing the summary against its own toolLogDetail JSON.
+function entityCountOfStep({ action, args }) {
+  if (action === "BULK_CREATE") return Array.isArray(args?.items) ? args.items.length : 1;
+  if (action === "BULK_DELETE") return Array.isArray(args?.ids) ? args.ids.length : 1;
+  return 1;
+}
+
 // The "plan · ..." line shown before a plan's steps run — tallies the real
 // entity types the plan's own actions touch (2 projects, 1 stakeholder),
 // not a canned summary, so it stays true even though nothing has executed yet.
@@ -505,7 +519,7 @@ export function describePlan(actions) {
   for (const step of actions) {
     const type = entityTypeOfStep(step);
     if (!type) continue;
-    counts[type] = (counts[type] || 0) + 1;
+    counts[type] = (counts[type] || 0) + entityCountOfStep(step);
   }
   const parts = Object.entries(counts).map(([type, n]) => `${n} ${type}${n === 1 ? "" : "s"}`);
   const stepWord = actions.length === 1 ? "step" : "steps";

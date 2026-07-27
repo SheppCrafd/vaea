@@ -13,7 +13,7 @@ function makeLocalStorage() {
 }
 globalThis.localStorage = makeLocalStorage();
 
-const { executeAction, executeActionSequence, stripToolLog, DESTRUCTIVE_ACTIONS } = await import("./chatActions.js");
+const { executeAction, executeActionSequence, stripToolLog, describePlan, DESTRUCTIVE_ACTIONS } = await import("./chatActions.js");
 const { localDb } = await import("./localDb.js");
 const { writeKey, removeKey } = await import("./deviceStorage.js");
 const { VAULT_CONNECTION_KEY } = await import("./vaultConnection.js");
@@ -260,6 +260,42 @@ describe("chatActions: WRITE_VAULT_NOTE", () => {
     expect(toolResult.vaultNote.path).toBe("Daily/2026-07-22.md");
     expect(toolResult.vaultNote.commitUrl).toBe("https://github.com/me/vault/commit/abc");
     await removeKey(VAULT_CONNECTION_KEY);
+  });
+});
+
+describe("chatActions: describePlan tallies real entity counts, not step counts", () => {
+  it("counts every item inside a BULK_CREATE, not just the one step", () => {
+    // Real bug, caught by a user clicking the "plan · ..." line and
+    // comparing it against the toolLogDetail JSON underneath: a plan of
+    // one BULK_CREATE(2 areas) + one BULK_CREATE(5 products) rendered as
+    // "plan · 2 steps across 1 area, 1 product" — the counts were literally
+    // "how many BULK_CREATE steps of this type", not "how many entities."
+    const actions = [
+      { action: "BULK_CREATE", args: { entity_type: "area", items: [{ title: "A" }, { title: "B" }] } },
+      { action: "BULK_CREATE", args: { entity_type: "product", items: [{ title: "1" }, { title: "2" }, { title: "3" }, { title: "4" }, { title: "5" }] } },
+    ];
+    expect(describePlan(actions)).toBe("plan · 2 steps across 2 areas, 5 products");
+  });
+
+  it("counts every id inside a BULK_DELETE the same way", () => {
+    const actions = [{ action: "BULK_DELETE", args: { entity_type: "task", ids: ["t1", "t2", "t3"] } }];
+    expect(describePlan(actions)).toBe("plan · 1 step across 3 tasks");
+  });
+
+  it("still counts ordinary single-entity actions as 1 each", () => {
+    const actions = [
+      { action: "CREATE_AREA", args: { title: "A" } },
+      { action: "CREATE_PRODUCT", args: { title: "P", parent_area_id: "a1" } },
+    ];
+    expect(describePlan(actions)).toBe("plan · 2 steps across 1 area, 1 product");
+  });
+
+  it("mixes a bulk step and a single step correctly in the same plan", () => {
+    const actions = [
+      { action: "CREATE_AREA", args: { title: "A" }, temp_id: "area1" },
+      { action: "BULK_CREATE", args: { entity_type: "product", items: [{ title: "1" }, { title: "2" }] } },
+    ];
+    expect(describePlan(actions)).toBe("plan · 2 steps across 1 area, 2 products");
   });
 });
 
