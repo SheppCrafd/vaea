@@ -67,6 +67,56 @@ describe("runByokChat: end-to-end against a mocked provider response", () => {
     expect(result.reply).toBe("I'll archive Q1 Newsletter.");
     expect(result.actions).toEqual([{ action: "ARCHIVE_PROJECT", args: { project_id: "p1" } }]);
   });
+
+  it("Anthropic: liveTrace and the protocol reminder both flow through the real Messages-API request/response shape", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (_url, init) => {
+      const body = JSON.parse(init.body);
+      // First round only: confirm the reminder actually reached the real
+      // request Anthropic would receive, not just systemPrompt.js's own output.
+      if (body.messages.length === 1) {
+        expect(body.messages[0].content).toContain("[PROTOCOL REMINDER]");
+        return { ok: true, json: async () => ({ content: [{ type: "tool_use", id: "t1", name: "search_workspace", input: { query: "growth" } }] }) };
+      }
+      return { ok: true, json: async () => ({ content: [{ type: "text", text: "Found one match." }] }) };
+    }));
+
+    const result = await runByokChat({
+      providerConfig: { provider: "anthropic", model: "claude-sonnet-5", apiKey: "sk-ant-test" },
+      contextArgs: { ...baseContextArgs, userText: "there's a bug with growth tracking", protocolReminderRequested: true },
+    });
+
+    expect(result.reply).toBe("Found one match.");
+    expect(result.liveTrace).toHaveLength(1);
+    expect(result.liveTrace[0].label).toMatch(/^search_workspace\("growth"\)/);
+  });
+
+  it("OpenAI-compatible (also covers Google/xAI — same adapter, only baseUrl differs): liveTrace and the protocol reminder both flow through the real chat-completions shape", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (_url, init) => {
+      const body = JSON.parse(init.body);
+      const systemMsg = body.messages.find((m) => m.role === "system");
+      const userMsg = body.messages.find((m) => m.role === "user");
+      if (body.messages.length === 2) {
+        expect(userMsg.content).toContain("[PROTOCOL REMINDER]");
+        return {
+          ok: true,
+          json: async () => ({
+            choices: [{ message: { tool_calls: [{ id: "t1", function: { name: "search_workspace", arguments: JSON.stringify({ query: "growth" }) } } ] } }],
+          }),
+        };
+      }
+      expect(systemMsg).toBeTruthy();
+      return { ok: true, json: async () => ({ choices: [{ message: { content: "Found one match." } }] }) };
+    }));
+
+    const result = await runByokChat({
+      providerConfig: { provider: "openai", model: "gpt-5", apiKey: "sk-test" },
+      contextArgs: { ...baseContextArgs, userText: "there's a bug with growth tracking", protocolReminderRequested: true },
+    });
+
+    expect(result.reply).toBe("Found one match.");
+    expect(result.liveTrace).toHaveLength(1);
+    expect(result.liveTrace[0].label).toMatch(/^search_workspace\("growth"\)/);
+  });
 });
 
 describe("runByokChat: local-bridge (Backdoor Mode) dispatch", () => {
