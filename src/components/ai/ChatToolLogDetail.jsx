@@ -1,5 +1,7 @@
 import { X } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import Portal from "@/lib/Portal";
+import { sanitizeUrl } from "@/lib/sanitizeUrl";
 
 // Backs the "click a tool-log line to see what it actually did" feature —
 // useChatController.js persists tool_log_detail (every live call's real
@@ -87,11 +89,44 @@ function ActionBlock({ step }) {
   );
 }
 
-// Three real shapes `data` arrives in: the whole plan (an array of not-yet-
-// run actions), one already-executed step ({action, args, toolResult}), or
-// a live tool call's own arbitrary result (search matches, a note's
-// content, audit findings) — anything else just renders as plain fields.
+// The plan line's own detail — the model's real narration for this turn
+// (the same text that already streamed live above the transcript, or once
+// it's persisted, the message's own reply), rendered as genuine prose: no
+// template, no per-step breakdown, just the model's own words for why it's
+// doing what it's doing. ChatMessageList.jsx's detailForLogLine builds this
+// shape ({reply, actions}) specifically for the plan line; every other
+// line's own detail (a live tool call's result, an executed step's
+// args/toolResult) stays the structured, factual view below — this is only
+// for the one line that used to show "what" as a labeled-field dump when
+// what the user actually wanted there was "why," in the model's own voice.
+function PlanReasoning({ reply, actions }) {
+  if (!reply) {
+    // A message persisted before tool_log_detail carried `reply` at all —
+    // fall back to the old structured breakdown rather than showing nothing.
+    return (
+      <div>
+        {(actions || []).map((step, i) => (
+          <ActionBlock key={i} step={step} />
+        ))}
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-2 [&_p]:mb-2 [&_p:last-child]:mb-0">
+      <ReactMarkdown urlTransform={sanitizeUrl}>{reply}</ReactMarkdown>
+    </div>
+  );
+}
+
+// Real shapes `data` arrives in: the plan line's own {reply, actions} (see
+// PlanReasoning above), an already-executed step ({action, args,
+// toolResult}), or a live tool call's own arbitrary result (search matches,
+// a note's content, audit findings) — anything else just renders as plain
+// fields.
 function DetailBody({ data }) {
+  if (data && typeof data === "object" && ("reply" in data) && ("actions" in data)) {
+    return <PlanReasoning reply={data.reply} actions={data.actions} />;
+  }
   if (Array.isArray(data)) {
     return (
       <div>

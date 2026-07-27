@@ -2,20 +2,7 @@ import { useRef, useEffect, useState, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import ChatIcon from "@/components/ai/ChatIcon";
 import ChatToolLogDetail from "@/components/ai/ChatToolLogDetail";
-
-// react-markdown's own default already allows only a safe set of protocols,
-// but the AI assistant's reply is composed partly from untrusted database
-// content (project titles, task descriptions, custom fields) that an
-// attacker could craft to include a `javascript:` or `data:` link. Pin the
-// allowed schemes explicitly here so a malicious link injected via prompt
-// indirection is stripped to "#" before it ever reaches a clickable anchor.
-const SAFE_URL = /^(https?:\/\/|mailto:|tel:|\/|#|[^:/?#]*($|[#?]))/i;
-const sanitizeUrl = (url) => {
-  if (typeof url !== "string") return "";
-  const trimmed = url.trim();
-  if (SAFE_URL.test(trimmed)) return url;
-  return "";
-};
+import { sanitizeUrl } from "@/lib/sanitizeUrl";
 
 // Fenced ```tool-log blocks are how useChatController.js encodes everything
 // real the assistant actually did this turn — every live (already-executed)
@@ -31,11 +18,16 @@ const sanitizeUrl = (url) => {
 // useChatController.js) is what makes a given line clickable — the fenced
 // block's line order always matches tool_log_detail: liveTrace entries
 // first, then the plan line, then one line per executed step.
+// The plan line's own detail is a distinct shape ({reply, actions}, both
+// optional) from every other line's — ChatToolLogDetail.jsx renders it as
+// the model's real natural-language reasoning (already streamed live above)
+// when `reply` is there, falling back to the structured action breakdown
+// for a message persisted before that field existed.
 export function detailForLogLine(toolLogDetail, i) {
   const liveTrace = toolLogDetail?.liveTrace || [];
   if (i < liveTrace.length) return liveTrace[i]?.detail;
   const j = i - liveTrace.length;
-  if (j === 0) return toolLogDetail?.plan;
+  if (j === 0) return { reply: toolLogDetail?.reply, actions: toolLogDetail?.plan };
   return toolLogDetail?.steps?.[j - 1];
 }
 
@@ -168,21 +160,31 @@ function ChatAssistantMessage({ m, onOpenDetail, isNew }) {
 export default function ChatMessageList({ messages, isComputing, liveSteps, streamingText, iconChoice, hasMore, onLoadMore, resolvingId, onConfirm, onCancel, newMessageIds }) {
   const containerRef = useRef(null);
   const [openDetail, setOpenDetail] = useState(null);
+  // Tracks whether the user was already at (or very near) the bottom right
+  // before this render's content grew — read at effect-run time below, not
+  // during the scroll handler itself, so a fast-scrolling streamed reply's
+  // own repeated scrollTop assignments don't fight with the value this
+  // decision is based on. Starts true: a brand new mount should follow.
+  const wasNearBottomRef = useRef(true);
 
   const handleScroll = () => {
     const el = containerRef.current;
     if (!el) return;
     if (el.scrollTop < 40 && hasMore) onLoadMore();
+    wasNearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
   };
 
-  // Always scrolls to the bottom on a new message (user's own or the
-  // assistant's reply), when the "thinking" animation appears, and as
-  // streamingText keeps growing live — otherwise the view stops following
-  // once liveSteps itself stops changing, even though the live reply text
-  // underneath it keeps growing well after that.
+  // Follows the bottom on a new message (user's own or the assistant's
+  // reply), when the "thinking" animation appears, and as streamingText
+  // keeps growing live — but only if the user was already reading near the
+  // bottom. A streamed reply can fire this many times a second; forcing
+  // scrollTop on every single delta regardless of where the user actually
+  // is reads as the view fighting them the moment they scroll up mid-stream
+  // to reread something — the standard chat-UI convention (and the fix) is
+  // to only auto-follow while they're already following.
   useEffect(() => {
     const el = containerRef.current;
-    if (!el) return;
+    if (!el || !wasNearBottomRef.current) return;
     el.scrollTop = el.scrollHeight;
   }, [messages.length, isComputing, streamingText]);
 
@@ -238,12 +240,20 @@ export default function ChatMessageList({ messages, isComputing, liveSteps, stre
           {/* The model's own narration, growing live as it actually arrives
               (real network deltas for base44-hosted/BYOK, a paced simulation
               for Backdoor Mode — see useChatController.js/byokChat.js).
-              Plain text, not markdown — mid-stream text can carry an
-              unclosed "**"/"[" that would render oddly; the final persisted
-              message renders the complete text through ReactMarkdown once
-              this is done. */}
+              Rendered through the same real markdown the final persisted
+              message uses (not raw text) so headings/bold/bullets already
+              look right while it's still growing, instead of showing raw
+              "**"/"*" characters that then visibly snap into their real
+              rendered form — a jarring, "sketchy"-looking discontinuity a
+              real user caught. An unclosed marker for the brief instant
+              before its own closing one streams in (e.g. "**Area" before
+              the second "**" arrives) is the one accepted trade-off —
+              react-markdown just shows it literally until closed, same as
+              any other streaming chat UI. */}
           {streamingText && (
-            <p className="text-foreground whitespace-pre-wrap">{streamingText}</p>
+            <div className="text-foreground [&_p]:mb-2 [&_p:last-child]:mb-0">
+              <ReactMarkdown urlTransform={sanitizeUrl}>{streamingText}</ReactMarkdown>
+            </div>
           )}
           <p className="flex items-center gap-1.5">
             <ChatIcon iconChoice={iconChoice} className="w-3.5 h-3.5 text-primary chat-icon-computing" />

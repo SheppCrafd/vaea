@@ -505,7 +505,12 @@ export function useChatController({ activeProjectId } = {}) {
       await createMessage.mutateAsync(
         {
           session_id: sessionId, role: "assistant", content,
-          tool_log_detail: { liveTrace, plan: executable, steps: results },
+          // `reply` carried alongside the structured plan/steps data so the
+          // plan line's own click-to-inspect modal can show the model's
+          // real narration (its own natural-language reasoning, already
+          // streamed live above) instead of a structured action breakdown —
+          // see ChatToolLogDetail.jsx.
+          tool_log_detail: { liveTrace, plan: executable, steps: results, reply },
         },
         skipTypewriter
       );

@@ -307,14 +307,47 @@ export async function readDeviceKey(key) {
   return manualStore.has(key) ? manualStore.get(key) : null;
 }
 
+// Our own writes to any one file are already fully serialized — see
+// asyncKeyLock.js's withKeyLock, one lock per collection/key, wrapping every
+// localDb.js mutation and this module's own writeKey/writeDeviceKey callers.
+// Despite that, real-world use still hits Chromium's own FSA implementation
+// throwing "An operation that depends on state cached in an interface object
+// was made but the state had changed since it was read from disk." on a
+// fresh createWritable() right after a *previous, already-closed* writable
+// for that same file — an internal FSA handle-caching quirk (observed in
+// practice on rapid back-to-back writes, e.g. a multi-step chat plan writing
+// the same collection several times in quick succession), not evidence of
+// an actual overlapping write on our side. A short bounded retry recovers
+// from this transient case invisibly; a genuine, persistent problem
+// (permission revoked, disk full, folder deleted) fails the same way on
+// every attempt and still surfaces after retries are exhausted.
+const FSA_WRITE_MAX_ATTEMPTS = 3;
+const FSA_WRITE_RETRY_DELAY_MS = 120;
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export async function withFsaRetry(fn, { attempts = FSA_WRITE_MAX_ATTEMPTS, delayMs = FSA_WRITE_RETRY_DELAY_MS } = {}) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      if (attempt < attempts) await sleep(delayMs * attempt);
+    }
+  }
+  throw lastError;
+}
+
 export async function writeDeviceKey(key, value) {
   if (supportsFileSystemAccess) {
     if (!dirHandle) throw new Error("Device folder not connected.");
-    const fh = await fileHandleFor(key, { create: true });
-    const writable = await fh.createWritable();
-    await writable.write(JSON.stringify(value, null, 2));
-    await writable.close();
-    return;
+    const body = JSON.stringify(value, null, 2);
+    return withFsaRetry(async () => {
+      const fh = await fileHandleFor(key, { create: true });
+      const writable = await fh.createWritable();
+      await writable.write(body);
+      await writable.close();
+    });
   }
   manualStore.set(key, value);
   manualDirty = true;
