@@ -52,6 +52,26 @@ describe("toolRunner: staged tools queue instead of executing", () => {
     expect(plan).toHaveLength(0);
   });
 
+  it("tells the model a non-destructive action runs immediately with no confirm step", () => {
+    // The tool's own returned note used to unconditionally say "Do not tell
+    // the user this already happened" for every action, contradicting the
+    // system instructions for the (far more common) non-destructive case —
+    // a real, verified contributor to the model describing plain creates as
+    // "queued"/"pending confirmation."
+    const plan = [];
+    const runTool = makeToolRunner({ plan, dataset: {} });
+    const result = runTool("CREATE_TASK", { project_id: "p1", description: "Do the thing" });
+    expect(result.note).toMatch(/runs automatically, immediately/);
+    expect(result.note).not.toMatch(/confirm click before this runs/);
+  });
+
+  it("tells the model a destructive action needs a real confirm click first", () => {
+    const plan = [];
+    const runTool = makeToolRunner({ plan, dataset: {} });
+    const result = runTool("DELETE_TASK", { task_id: "t1" });
+    expect(result.note).toMatch(/confirm click before this runs/);
+  });
+
   it("still queues a BULK_CREATE/BULK_DELETE at exactly the limit", () => {
     const plan = [];
     const runTool = makeToolRunner({ plan, dataset: {} });

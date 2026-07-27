@@ -32,7 +32,7 @@ const SESSION_STORAGE_KEY = "vaea_chat_active_session";
 // invalidation logic.
 const APP_QUERY_KEYS = [
   "areas", "products", "projects", "tasks", "allTasks", "archivedTasks",
-  "stakeholders", "projectNotes", "allProjectNotes", "archivedProjects", "project",
+  "stakeholders", "departments", "projectNotes", "allProjectNotes", "archivedProjects", "project",
 ];
 
 // localStorage can throw on read or write (private-browsing storage

@@ -1,5 +1,6 @@
 import { STAGED_TOOL_NAMES, MAX_BULK_ITEMS_PER_CALL } from "@/lib/llm/toolCatalog";
 import { runLocalTool } from "@/lib/llm/localTools";
+import { DESTRUCTIVE_ACTIONS } from "@/lib/chatActions";
 
 export const MAX_ACTIONS_PER_REQUEST = 60;
 
@@ -30,9 +31,20 @@ export function makeToolRunner({ plan, dataset }) {
       }
       const { temp_id, ...rest } = args || {};
       plan.push({ action: name, args: rest, ...(temp_id ? { temp_id } : {}) });
+      // Which note applies depends only on THIS action — not the same as
+      // knowing the whole plan's final timing, since a later tool call this
+      // same turn could still add a destructive action that makes the
+      // WHOLE plan wait on one confirm click (see EXECUTION TIMING in
+      // systemPrompt.js). Mirrors aiChatStream/entry.ts's queue() — this
+      // tool-result text is more immediate/salient to the model than the
+      // system instructions, so a single generic "don't say this happened"
+      // hedge here was actively contradicting the non-destructive case.
+      const note = DESTRUCTIVE_ACTIONS.has(name)
+        ? "Needs the user's own confirm click before this runs — nothing has happened yet. Describe it in future tense (\"This will ...\"), never as already done."
+        : "By itself this runs automatically, immediately once this response is returned, with no confirm step — but if this turn's plan also ends up including any destructive action elsewhere, the WHOLE plan waits for that one confirm click instead (see EXECUTION TIMING). Match your final reply's tense to the plan as a whole, not just this one call.";
       return {
         queued: true,
-        note: "Staged, not executed yet — this runs on the user's own device after this response is returned (immediately if safe, or after they confirm if destructive). Do not tell the user this already happened.",
+        note,
         ...(temp_id ? { temp_id_registered: temp_id, hint: `Reference this record later as "$${temp_id}" wherever an id is needed for it.` } : {}),
       };
     }

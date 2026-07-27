@@ -22,6 +22,7 @@
 // needs to know or care which one is actually active.
 
 import { readKey, writeKey, seedManual, supportsFileSystemAccess } from "@/lib/deviceStorage";
+import { withKeyLock } from "@/lib/asyncKeyLock";
 
 const COLLECTIONS = ["areas", "products", "projects", "tasks", "stakeholders", "departments", "projectNotes"];
 
@@ -161,32 +162,23 @@ async function writeCollection(name, items) {
 }
 
 // Serializes every read-modify-write cycle (create/update/updateMany/
-// delete/replaceAll) per collection into one FIFO queue. Without this, two
-// callers racing on the same collection (a chat plan's own multi-step
-// executeActionSequence running at the same time as an ordinary UI mutation
-// — a drag-reorder, an inline title edit's onBlur, another hook entirely;
-// this app keeps Dashboard/Chat/Settings mounted as persistent tabs, not
-// separate page loads, so any of those really can fire while chat is
-// mid-plan) would both call readCollection and get the same cached array,
-// then each independently push their own writeCollection — a lost-update
-// race in File-Backed/manual mode, and in File System Access mode (real
-// user reports) two overlapping createWritable() streams on the very same
-// FileSystemFileHandle, which Chromium surfaces as: "An operation that
-// depends on state cached in an interface object was made but the state
-// had changed since it was read from disk." The "single-tab/single-writer"
-// assumption on loadCollection's own comment above is only true per
+// delete/replaceAll) per collection into one FIFO queue (see asyncKeyLock.js
+// for the two real races this closes). Without this, two callers racing on
+// the same collection (a chat plan's own multi-step executeActionSequence
+// running at the same time as an ordinary UI mutation — a drag-reorder, an
+// inline title edit's onBlur, another hook entirely; this app keeps
+// Dashboard/Chat/Settings mounted as persistent tabs, not separate page
+// loads, so any of those really can fire while chat is mid-plan) would both
+// call readCollection and get the same cached array, then each
+// independently push their own writeCollection. The "single-tab/single-
+// writer" assumption on loadCollection's own comment above is only true per
 // collection if writes to it are actually serialized — this is what makes
-// that true, rather than just asserted.
-const queues = new Map(); // name -> Promise (tail of that collection's queue)
-
+// that true, rather than just asserted. Namespaced ("localDb:" prefix) since
+// the lock is keyed globally across every caller of withKeyLock, not just
+// this module's own collections (see SET_AI_IDENTITY in chatActions.js for
+// the other real caller).
 function withCollectionLock(name, fn) {
-  const prior = queues.get(name) || Promise.resolve();
-  // Never let one failed op wedge the queue for whoever's waiting behind it —
-  // each op still sees (and reports) its own real outcome via `result` below.
-  const settledPrior = prior.catch(() => {});
-  const result = settledPrior.then(fn);
-  queues.set(name, result.catch(() => {}));
-  return result;
+  return withKeyLock(`localDb:${name}`, fn);
 }
 
 const listeners = new Map(); // name -> Set<fn>

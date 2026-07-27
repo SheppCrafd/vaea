@@ -42,8 +42,28 @@ describe("chatActions: single actions write to localDb", () => {
     expect(areas[0].title).toBe("Work");
   });
 
+  it("two concurrent SET_AI_IDENTITY calls both merge in, instead of one clobbering the other", async () => {
+    // SET_AI_IDENTITY is a real read-modify-write cycle (load current ->
+    // merge in args -> save) over a single shared key, the same race shape
+    // localDb.js's collections have — without locking it, two calls fired
+    // close together (e.g. the "/setup" interview issuing one per turn, or
+    // a manual Settings save landing at the same moment) would both read
+    // the same starting identity and each write back only their own field,
+    // silently losing whichever one wrote first.
+    const pName = executeAction("SET_AI_IDENTITY", { name: "Vaea" });
+    const pIdentity = executeAction("SET_AI_IDENTITY", { identity: "A helpful assistant" });
+    await Promise.all([pName, pIdentity]);
+
+    const { loadAiIdentity } = await import("./aiPreferences.js");
+    const final = await loadAiIdentity();
+    expect(final.name).toBe("Vaea");
+    expect(final.identity).toBe("A helpful assistant");
+  });
+
   it("CREATE_TASK then UPDATE_TASK_STATUS actually changes status", async () => {
-    const { toolResult } = await executeAction("CREATE_TASK", { project_id: "p1", description: "Do the thing" });
+    const { toolResult: { area } } = await executeAction("CREATE_AREA", { title: "Area", description: "" });
+    const { toolResult: { project } } = await executeAction("CREATE_PROJECT", { parent_area_id: area.id, title: "Project" });
+    const { toolResult } = await executeAction("CREATE_TASK", { project_id: project.id, description: "Do the thing" });
     const taskId = toolResult.task.id;
     await executeAction("UPDATE_TASK_STATUS", { task_id: taskId, status: "IN_PROGRESS" });
     const task = await localDb.tasks.get(taskId);
@@ -105,6 +125,33 @@ describe("chatActions: multi-step plans with temp_id placeholders", () => {
   it("CREATE_PRODUCT/CREATE_PROJECT reject a parent id that doesn't exist", async () => {
     await expect(executeAction("CREATE_PRODUCT", { parent_area_id: "not-a-real-id", title: "Core" })).rejects.toThrow(/doesn't exist/);
     await expect(executeAction("CREATE_PROJECT", { parent_area_id: "not-a-real-id", title: "Launch" })).rejects.toThrow(/doesn't exist/);
+  });
+
+  it("CREATE_TASK/CREATE_NOTE/ARCHIVE_DONE_TASKS reject a project id that doesn't exist", async () => {
+    // Same bug class as CREATE_PRODUCT/CREATE_PROJECT above, just found
+    // later ("task making is broken too") — CREATE_TASK/CREATE_NOTE had no
+    // parent guard at all, so a bad/unresolved project_id silently created
+    // a task/note that could never render anywhere (every task/note list
+    // view filters strictly by project_id match).
+    await expect(executeAction("CREATE_TASK", { project_id: "not-a-real-id", description: "Do the thing" })).rejects.toThrow(/doesn't exist/);
+    await expect(executeAction("CREATE_NOTE", { project_id: "not-a-real-id", content: "A note" })).rejects.toThrow(/doesn't exist/);
+    await expect(executeAction("ARCHIVE_DONE_TASKS", { project_id: "not-a-real-id" })).rejects.toThrow(/doesn't exist/);
+    expect(await localDb.tasks.list()).toHaveLength(0);
+    expect(await localDb.projectNotes.list()).toHaveLength(0);
+  });
+
+  it("throws instead of silently creating an orphan task when a plan's temp_id never resolves", async () => {
+    // Mirrors the earlier CREATE_PRODUCT regression test, for the actual
+    // user-reported symptom this time: a chat plan creating a project and a
+    // task under it in the same turn, where the task's project_id
+    // referenced a $temp_id that was never actually registered.
+    await expect(
+      executeActionSequence([
+        { action: "CREATE_AREA", args: { title: "Platform", description: "" } },
+        { action: "CREATE_TASK", args: { project_id: "$project1", description: "Do the thing" } },
+      ])
+    ).rejects.toThrow(/doesn't exist/);
+    expect(await localDb.tasks.list()).toHaveLength(0);
   });
 
   it("BULK_CREATE items can reference a $temp_id registered by an earlier single CREATE_* step", async () => {

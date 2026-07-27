@@ -42,6 +42,22 @@ const MAX_ACTIONS_PER_REQUEST = 60;
 // MAX_ACTIONS_PER_REQUEST above only counts tool calls, not items inside one).
 const MAX_BULK_ITEMS_PER_CALL = 5;
 
+// Mirrors chatActions.js's own DESTRUCTIVE_ACTIONS set exactly — used below
+// so queue()'s own tool-result note (the text the model sees immediately
+// after calling a tool, closer and more salient to it than the system
+// instructions) tells the truth about THIS specific action instead of one
+// generic hedge ("Do not tell the user this already happened") applied to
+// every action regardless of whether it actually waits on a confirm click.
+// That single hedge was a real, verified contributor to the model
+// describing ordinary non-destructive plans as "queued"/"pending
+// confirmation" even after buildInstructions() below was corrected — a
+// tool's own return value is a more immediate signal than the system prompt.
+const DESTRUCTIVE_ACTIONS = new Set([
+  'DELETE_AREA', 'DELETE_PRODUCT', 'DELETE_PROJECT', 'DELETE_TASK',
+  'DELETE_STAKEHOLDER', 'DELETE_NOTE', 'DELETE_DEPARTMENT',
+  'ARCHIVE_DONE_TASKS', 'BULK_DELETE',
+]);
+
 function id(desc) {
   return z.string().describe(`${desc} — look this id up from [DATABASE STATE] by name/title; never invent one.`);
 }
@@ -192,9 +208,12 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault }) {
       }
       const { temp_id, ...rest } = args;
       plan.push({ action, args: rest, ...(temp_id ? { temp_id } : {}) });
+      const note = DESTRUCTIVE_ACTIONS.has(action)
+        ? 'Needs the user\'s own confirm click before this runs — nothing has happened yet. Describe it in future tense ("This will ..."), never as already done.'
+        : 'By itself this runs automatically, immediately once this response is returned, with no confirm step — but if this turn\'s plan also ends up including any destructive action elsewhere, the WHOLE plan waits for that one confirm click instead (see EXECUTION TIMING below). Match your final reply\'s tense to the plan as a whole, not just this one call.';
       return {
         queued: true,
-        note: "Staged, not executed yet — this runs on the user's own device after this response is returned (immediately if safe, or after they confirm if destructive). Do not tell the user this already happened.",
+        note,
         ...(temp_id ? { temp_id_registered: temp_id, hint: `Reference this record later as "$${temp_id}" wherever an id is needed for it.` } : {}),
       };
     };
