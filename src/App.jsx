@@ -8,6 +8,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
+import { useAccentTheme } from '@/hooks/useAccentTheme';
 import { HighlightProvider } from '@/lib/HighlightContext';
 import { FilterProvider } from '@/lib/FilterContext';
 import { CardViewProvider } from '@/lib/CardViewContext';
@@ -47,6 +48,17 @@ const AuthenticatedApp = () => {
     document.documentElement.classList.add('app-shell-locked');
     return () => document.documentElement.classList.remove('app-shell-locked');
   }, []);
+
+  // Applies the saved accent color to <html> on every real app load, not
+  // just when AppearanceSection happens to mount — previously this hook was
+  // only ever called from inside that Settings section, so a saved non-default
+  // accent silently stayed unapplied (looking exactly like the "slate"
+  // default) until the user actually opened Settings once per session and
+  // its effect ran for the first time. Theme mode (light/dark) never had
+  // this problem since ThemeProvider already wraps the whole app above.
+  // AppearanceSection still calls the same hook itself for its own picker
+  // UI/live preview; both instances read the same localStorage key.
+  useAccentTheme();
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
