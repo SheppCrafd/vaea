@@ -89,13 +89,13 @@ const STEP_REVEAL_DELAY_MS = 150;
 const MAX_PACED_STEPS = 6;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// The reply is the assistant's own account of *why* — it reads as the
-// headline. `lines` (live tool calls, the plan tally, each executed step)
-// is the concrete supporting detail underneath it, same relationship a
-// commit summary has to its own diff. No lines at all (a plain reply with
-// nothing behind it) means no tool-log block — most conversational replies.
+// `lines` (live tool calls, the plan tally, each executed step) lead, in
+// the same order they actually happened and the same order their own live
+// reveal (liveSteps) already showed them — the reply follows as the
+// plain-English wrap-up. No lines at all (a plain reply with nothing
+// behind it) means no tool-log block — most conversational replies.
 function buildLoggedContent(reply, lines) {
-  return lines.length ? `${reply}\n\n\`\`\`tool-log\n${lines.join("\n")}\n\`\`\`` : reply;
+  return lines.length ? `\`\`\`tool-log\n${lines.join("\n")}\n\`\`\`\n\n${reply}` : reply;
 }
 
 // Shared brains for the chat experience — session management, sending and
@@ -398,12 +398,14 @@ export function useChatController({ activeProjectId } = {}) {
         }
         await revealLiveTrace(liveTrace);
         setLiveSteps([]);
-        const created = await createMessage.mutateAsync({
-          session_id: sessionId, role: "assistant",
-          content: buildLoggedContent(reply, liveTrace.map((l) => l.label)),
-          ...(liveTrace.length ? { tool_log_detail: { liveTrace } } : {}),
-        });
-        markMessageNew(created.id);
+        await createMessage.mutateAsync(
+          {
+            session_id: sessionId, role: "assistant",
+            content: buildLoggedContent(reply, liveTrace.map((l) => l.label)),
+            ...(liveTrace.length ? { tool_log_detail: { liveTrace } } : {}),
+          },
+          { onSuccess: (created) => markMessageNew(created.id) }
+        );
         return;
       }
 
@@ -412,12 +414,15 @@ export function useChatController({ activeProjectId } = {}) {
       if (executable.some((a) => DESTRUCTIVE_ACTIONS.has(a.action))) {
         await revealLiveTrace(liveTrace);
         setLiveSteps([]);
-        await createMessage.mutateAsync({
-          session_id: sessionId, role: "assistant",
-          content: buildLoggedContent(reply, liveTrace.map((l) => l.label)),
-          pending_action: { actions: executable },
-          ...(liveTrace.length ? { tool_log_detail: { liveTrace } } : {}),
-        });
+        await createMessage.mutateAsync(
+          {
+            session_id: sessionId, role: "assistant",
+            content: buildLoggedContent(reply, liveTrace.map((l) => l.label)),
+            pending_action: { actions: executable },
+            ...(liveTrace.length ? { tool_log_detail: { liveTrace } } : {}),
+          },
+          { onSuccess: (created) => markMessageNew(created.id) }
+        );
         return;
       }
 
@@ -456,11 +461,13 @@ export function useChatController({ activeProjectId } = {}) {
       const toolLog = [...liveTrace.map((l) => l.label), describePlan(executable), ...results.map(describeToolCall)];
       const content = buildLoggedContent(reply, toolLog);
       setLiveSteps([]);
-      const created = await createMessage.mutateAsync({
-        session_id: sessionId, role: "assistant", content,
-        tool_log_detail: { liveTrace, plan: executable, steps: results },
-      });
-      markMessageNew(created.id);
+      await createMessage.mutateAsync(
+        {
+          session_id: sessionId, role: "assistant", content,
+          tool_log_detail: { liveTrace, plan: executable, steps: results },
+        },
+        { onSuccess: (created) => markMessageNew(created.id) }
+      );
       await invalidateAppQueries();
     } catch (error) {
       // A session token that expired mid-conversation (session already
@@ -471,8 +478,10 @@ export function useChatController({ activeProjectId } = {}) {
       if (error.status === 401 || error.status === 403) {
         setAuthPromptVisible(true);
       } else {
-        const created = await createMessage.mutateAsync({ session_id: sessionId, role: "assistant", content: `⚠️ Error: ${error.message}` });
-        markMessageNew(created.id);
+        await createMessage.mutateAsync(
+          { session_id: sessionId, role: "assistant", content: `⚠️ Error: ${error.message}` },
+          { onSuccess: (created) => markMessageNew(created.id) }
+        );
       }
     } finally {
       setIsComputing(false);
@@ -504,11 +513,13 @@ export function useChatController({ activeProjectId } = {}) {
       // — confirmMessage used to just be that same `reply` string again).
       const toolLog = [describePlan(actions), ...results.map(describeToolCall)];
       setLiveSteps([]);
-      const created = await createMessage.mutateAsync({
-        session_id: message.session_id, role: "assistant", content: buildLoggedContent("Done.", toolLog),
-        tool_log_detail: { plan: actions, steps: results },
-      });
-      markMessageNew(created.id);
+      await createMessage.mutateAsync(
+        {
+          session_id: message.session_id, role: "assistant", content: buildLoggedContent("Done.", toolLog),
+          tool_log_detail: { plan: actions, steps: results },
+        },
+        { onSuccess: (created) => markMessageNew(created.id) }
+      );
       await invalidateAppQueries();
     } catch (error) {
       // If executeActionSequence threw partway through (step 3 of 5 failed
@@ -525,8 +536,10 @@ export function useChatController({ activeProjectId } = {}) {
         // best-effort — worst case the message still shows stale
         // Confirm/Cancel buttons, no worse than before this fix
       }
-      const created = await createMessage.mutateAsync({ session_id: message.session_id, role: "assistant", content: `⚠️ Couldn't complete that: ${error.message}` });
-      markMessageNew(created.id);
+      await createMessage.mutateAsync(
+        { session_id: message.session_id, role: "assistant", content: `⚠️ Couldn't complete that: ${error.message}` },
+        { onSuccess: (created) => markMessageNew(created.id) }
+      );
     } finally {
       setIsComputing(false);
       setResolvingId(null);
@@ -538,8 +551,10 @@ export function useChatController({ activeProjectId } = {}) {
     setResolvingId(message.id);
     try {
       await updateMessage.mutateAsync({ id: message.id, data: { session_id: message.session_id, role: message.role, content: message.content, pending_action: null } });
-      const created = await createMessage.mutateAsync({ session_id: message.session_id, role: "assistant", content: "Okay, cancelled." });
-      markMessageNew(created.id);
+      await createMessage.mutateAsync(
+        { session_id: message.session_id, role: "assistant", content: "Okay, cancelled." },
+        { onSuccess: (created) => markMessageNew(created.id) }
+      );
     } finally {
       setResolvingId(null);
     }

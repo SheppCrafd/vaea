@@ -1,18 +1,18 @@
 import { describe, it, expect } from "vitest";
-import { splitToolLogSuffix, detailForLogLine } from "./ChatMessageList.jsx";
+import { splitToolLogPrefix, detailForLogLine } from "./ChatMessageList.jsx";
 
-describe("splitToolLogSuffix", () => {
-  it("splits the reply from a trailing tool-log fence", () => {
-    const content = 'Adding two Areas.\n\n```tool-log\nsearch_workspace("q") — 1 match\nplan · 2 steps across 2 areas\ncreate_area("A")\ncreate_area("B")\n```';
-    const { reply, suffix } = splitToolLogSuffix(content);
+describe("splitToolLogPrefix", () => {
+  it("splits a leading tool-log fence from the reply that follows it", () => {
+    const content = '```tool-log\nsearch_workspace("q") — 1 match\nplan · 2 steps across 2 areas\ncreate_area("A")\ncreate_area("B")\n```\n\nAdding two Areas.';
+    const { prefix, reply } = splitToolLogPrefix(content);
+    expect(prefix).toBe('```tool-log\nsearch_workspace("q") — 1 match\nplan · 2 steps across 2 areas\ncreate_area("A")\ncreate_area("B")\n```\n\n');
     expect(reply).toBe("Adding two Areas.");
-    expect(suffix).toBe('\n\n```tool-log\nsearch_workspace("q") — 1 match\nplan · 2 steps across 2 areas\ncreate_area("A")\ncreate_area("B")\n```');
   });
 
   it("leaves a plain reply with no fence untouched", () => {
-    const { reply, suffix } = splitToolLogSuffix("Just a plain reply, nothing ran.");
+    const { prefix, reply } = splitToolLogPrefix("Just a plain reply, nothing ran.");
+    expect(prefix).toBe("");
     expect(reply).toBe("Just a plain reply, nothing ran.");
-    expect(suffix).toBe("");
   });
 });
 

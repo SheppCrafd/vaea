@@ -69,36 +69,51 @@ function makeMarkdownComponents(toolLogDetail, onOpenDetail) {
   };
 }
 
-// A persisted message's content is the reply text + a trailing
-// `` \n\n```tool-log\n...\n``` `` block, when the turn did anything real
-// (see useChatController.js's buildLoggedContent) — the reply reads as the
-// assistant's own account of *why*, so it's the headline; the tool-log is
-// concrete supporting detail underneath it, not the other way around (it
-// used to lead, which read more like a JSON dump than an answer). That
-// block already had its own live line-by-line reveal (liveSteps,
-// .chat-step-reveal) before this message ever existed, so only the reply
-// portion should type out — replaying the tool-log lines a second time here
-// would be redundant. A plain reply with nothing behind it has no suffix at
-// all.
-const TOOL_LOG_SUFFIX_RE = /\n\n```tool-log\n[\s\S]*?```$/;
-export function splitToolLogSuffix(content) {
-  const match = content.match(TOOL_LOG_SUFFIX_RE);
-  if (!match) return { reply: content, suffix: "" };
-  return { reply: content.slice(0, match.index), suffix: match[0] };
+// A persisted message's content is `` ```tool-log\n...\n``` `` + the reply
+// text, when the turn did anything real (see useChatController.js's
+// buildLoggedContent) — the plan/actions lead, the same order they actually
+// happened in and the same order their own live reveal (liveSteps,
+// .chat-step-reveal) already showed them, with the assistant's own reply
+// following as the plain-English wrap-up. That tool-log block already had
+// its own live line-by-line reveal before this message ever existed, so
+// only the reply portion should type out — replaying the tool-log lines a
+// second time here would be redundant. A plain reply with nothing behind it
+// has no prefix at all.
+const TOOL_LOG_PREFIX_RE = /^```tool-log\n[\s\S]*?\n```\n\n/;
+export function splitToolLogPrefix(content) {
+  const match = content.match(TOOL_LOG_PREFIX_RE);
+  if (!match) return { prefix: "", reply: content };
+  return { prefix: match[0], reply: content.slice(match[0].length) };
 }
 
 // Reveals `fullText` a character at a time when `enabled`; otherwise (a
 // message loaded from chat history, not one that just arrived) it's shown
 // in full immediately, with no animation at all. Duration scales with
 // length but is capped, so a long reply still finishes typing quickly
-// rather than crawling. Runs once per mount only — a message's content
-// never changes after it's created, so there's nothing to re-trigger on.
+// rather than crawling.
+//
+// Reacts to `enabled` turning true on a LATER render, not just at mount —
+// this message's own createMessage.mutateAsync (useChatController.js)
+// appends it to the query cache and marks its id "new" via two separate
+// state updates that, in practice, land in two separate React commits: the
+// cache append renders this component for the first time with `enabled`
+// still false (so it mounts already "finished," full text shown), and only
+// the *next* render carries `enabled: true`. A `[]`-deps effect that only
+// ever looked at mount-time `enabled` would miss that second render
+// entirely and never animate at all — confirmed live: instrumented both
+// updates and watched them arrive one render apart, every time.
 function useTypewriter(fullText, enabled) {
-  const [shownLength, setShownLength] = useState(enabled ? 0 : fullText.length);
-  const finishedRef = useRef(!enabled);
+  const [shownLength, setShownLength] = useState(() => (enabled ? 0 : fullText.length));
+  const finishedRef = useRef(false);
+  const startedRef = useRef(false); // guards against restarting once `enabled` has already kicked it off
 
   useEffect(() => {
-    if (!enabled || finishedRef.current) return;
+    if (!enabled || startedRef.current) return;
+    startedRef.current = true;
+    // Undoes the "mounted already-finished" initial state above, for the
+    // case where `enabled` only became true after this component's first
+    // render — a no-op when it was already 0.
+    setShownLength(0);
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       setShownLength(fullText.length);
       finishedRef.current = true;
@@ -118,8 +133,7 @@ function useTypewriter(fullText, enabled) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [enabled, fullText]);
 
   return { shown: fullText.slice(0, shownLength), isTyping: enabled && !finishedRef.current };
 }
@@ -134,15 +148,11 @@ function useTypewriter(fullText, enabled) {
 // instead, replaying the tool-log lines' fade-in every single keystroke.
 function ChatAssistantMessage({ m, onOpenDetail, isNew }) {
   const components = useMemo(() => makeMarkdownComponents(m.tool_log_detail, onOpenDetail), [m.tool_log_detail, onOpenDetail]);
-  const { reply, suffix } = useMemo(() => splitToolLogSuffix(m.content), [m.content]);
+  const { prefix, reply } = useMemo(() => splitToolLogPrefix(m.content), [m.content]);
   const { shown, isTyping } = useTypewriter(reply, isNew);
-  // The reply types out first; the tool-log detail (if any) appears in full,
-  // un-animated, only once typing finishes — it already had its own separate
-  // live reveal (liveSteps) while the turn was actually running, so it just
-  // needs to land, not type out a second time.
   return (
     <div className="text-foreground">
-      <ReactMarkdown urlTransform={sanitizeUrl} components={components}>{shown + (isTyping ? "" : suffix)}</ReactMarkdown>
+      <ReactMarkdown urlTransform={sanitizeUrl} components={components}>{prefix + shown}</ReactMarkdown>
       {isTyping && <span className="inline-block w-[7px] h-[13px] bg-primary/70 align-middle ml-0.5 chat-cursor-blink" />}
     </div>
   );

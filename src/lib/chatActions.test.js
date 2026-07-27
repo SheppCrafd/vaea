@@ -300,8 +300,8 @@ describe("chatActions: describePlan tallies real entity counts, not step counts"
 });
 
 describe("chatActions: stripToolLog", () => {
-  it("removes the trailing fenced tool-log block, keeping the plain-English reply before it", () => {
-    const content = 'All set. Let me know what\'s next.\n\n```tool-log\nplan · 4 steps across 1 area, 1 product, 1 project, 1 task\nbulk_create(5 area)\nbulk_create(10 product)\n```';
+  it("removes the leading fenced tool-log block, keeping the plain-English reply after it", () => {
+    const content = '```tool-log\nplan · 4 steps across 1 area, 1 product, 1 project, 1 task\nbulk_create(5 area)\nbulk_create(10 product)\n```\n\nAll set. Let me know what\'s next.';
     expect(stripToolLog(content)).toBe("All set. Let me know what's next.");
   });
 
