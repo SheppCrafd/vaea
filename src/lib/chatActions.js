@@ -77,6 +77,24 @@ const BULK_DELETE_ACTION_AND_ID_KEY_BY_TYPE = {
   department: ["DELETE_DEPARTMENT", "department_id"],
 };
 
+// localDb.create() never checks that a parent_area_id/parent_product_id
+// actually points at a real record — it just stores whatever it's given.
+// Without this guard, a model that mis-resolves (or never resolves) a
+// $temp_id placeholder — or hallucinates a plausible-looking id instead of
+// using one — silently produces a Product/Project that "creates" fine but
+// then never renders anywhere: Dashboard.jsx filters strictly by
+// parent_area_id/parent_product_id match, and unlike orphan Projects (which
+// fall back into an Area's "Direct Projects" box), there's no fallback slot
+// for an orphan Product at all. The chat's own reply text, decided by the
+// model in the same turn as the plan, has no way to know this happened and
+// reports success regardless — so the failure was invisible until someone
+// went looking at the actual board. Failing loudly here turns that into a
+// real, visible "⚠️ Couldn't complete that: ..." error instead.
+async function assertParentExists(collection, id, label) {
+  const parent = await collection.get(id);
+  if (!parent || parent.deleted_at) throw new Error(`${label} "${id}" doesn't exist — the plan's parent reference didn't resolve to a real record.`);
+}
+
 export async function executeAction(action, args) {
   switch (action) {
     case "CREATE_AREA": {
@@ -93,6 +111,7 @@ export async function executeAction(action, args) {
     }
 
     case "CREATE_PRODUCT": {
+      await assertParentExists(localDb.areas, args.parent_area_id, "Area");
       const product = await createProduct({
         parent_area_id: args.parent_area_id,
         title: args.title,
@@ -112,6 +131,8 @@ export async function executeAction(action, args) {
     }
 
     case "CREATE_PROJECT": {
+      await assertParentExists(localDb.areas, args.parent_area_id, "Area");
+      if (args.parent_product_id) await assertParentExists(localDb.products, args.parent_product_id, "Product");
       const project = await createProject({
         parent_area_id: args.parent_area_id,
         parent_product_id: args.parent_product_id || null,
@@ -132,6 +153,8 @@ export async function executeAction(action, args) {
       return { toolResult: { project } };
     }
     case "MOVE_PROJECT": {
+      await assertParentExists(localDb.areas, args.parent_area_id, "Area");
+      if (args.parent_product_id) await assertParentExists(localDb.products, args.parent_product_id, "Product");
       const project = await updateProject({
         id: args.project_id,
         data: { parent_product_id: args.parent_product_id ?? null, parent_area_id: args.parent_area_id },

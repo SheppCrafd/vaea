@@ -84,6 +84,29 @@ describe("chatActions: multi-step plans with temp_id placeholders", () => {
     expect(project.parent_product_id).toBe(product.id);
   });
 
+  it("throws instead of silently creating an orphan when a temp_id never resolves", async () => {
+    // Mirrors a real observed failure: a model's CREATE_PRODUCT step
+    // referenced a $temp_id that didn't match any earlier step's temp_id
+    // (a typo, or the earlier CREATE_AREA step never got tagged with one).
+    // resolvePlaceholders leaves an unresolved "$..." string untouched, so
+    // without this guard the product "creates" successfully with a
+    // parent_area_id of literally "$area1" — an id that matches no real
+    // Area, so it never renders on the Dashboard (no orphan-product
+    // fallback exists) even though the chat reports success.
+    await expect(
+      executeActionSequence([
+        { action: "CREATE_AREA", args: { title: "Platform", description: "" } },
+        { action: "CREATE_PRODUCT", args: { parent_area_id: "$area1", title: "Core" } },
+      ])
+    ).rejects.toThrow(/doesn't exist/);
+    expect(await localDb.products.list()).toHaveLength(0);
+  });
+
+  it("CREATE_PRODUCT/CREATE_PROJECT reject a parent id that doesn't exist", async () => {
+    await expect(executeAction("CREATE_PRODUCT", { parent_area_id: "not-a-real-id", title: "Core" })).rejects.toThrow(/doesn't exist/);
+    await expect(executeAction("CREATE_PROJECT", { parent_area_id: "not-a-real-id", title: "Launch" })).rejects.toThrow(/doesn't exist/);
+  });
+
   it("BULK_CREATE creates multiple records of the same type", async () => {
     const { toolResult: { area } } = await executeAction("CREATE_AREA", { title: "Area", description: "" });
     const { toolResult: { project } } = await executeAction("CREATE_PROJECT", { parent_area_id: area.id, title: "Project" });

@@ -16,6 +16,13 @@
 // systemPrompt.js's own note about this gap, so a BYOK model is told the
 // truth instead of pretending it can.
 const idDesc = (desc) => `${desc} — look this id up from [DATABASE STATE] by name/title; never invent one.`;
+// Same as idDesc, but for a parent-record field on a CREATE_* tool — see the
+// matching parentId() comment in base44/functions/aiChatStream/entry.ts for
+// why idDesc's plain "never invent one" was steering the model away from the
+// $temp_id mechanism for a parent this same turn is creating, producing
+// Products/Projects with a parent id matching no real record (created, but
+// never rendered anywhere).
+const parentIdDesc = (desc) => `${desc} — look this id up from [DATABASE STATE] by name/title. If THIS TURN's own plan already created the parent (via an earlier CREATE_AREA/CREATE_PRODUCT call), use its "$temp_id" reference instead — never invent a real-looking id either way.`;
 const stakeholderIdsDesc = (desc) => `${desc} Pass the FULL desired array (not just additions/removals) — look up the entity's current value in [DATABASE STATE] and merge yourself.`;
 
 const STATUS_ENUM = ["NOT_STARTED", "IN_PROGRESS", "DELEGATED", "PENDING_FEEDBACK", "ON_HOLD", "BLOCKED", "DONE", "DELEGATED_DONE"];
@@ -78,7 +85,7 @@ export const TOOL_CATALOG = [
     parameters: {
       type: "object",
       properties: {
-        parent_area_id: { type: "string", description: idDesc("Parent Area") },
+        parent_area_id: { type: "string", description: parentIdDesc("Parent Area") },
         title: { type: "string" },
         description: { type: "string" },
         stakeholder_ids: { type: "array", items: { type: "string" }, description: stakeholderIdsDesc("Stakeholders on this product.") },
@@ -116,8 +123,8 @@ export const TOOL_CATALOG = [
     parameters: {
       type: "object",
       properties: {
-        parent_area_id: { type: "string", description: idDesc("Parent Area") },
-        parent_product_id: { type: "string", description: idDesc("Parent Product") + " Omit for a standalone project not under any product." },
+        parent_area_id: { type: "string", description: parentIdDesc("Parent Area") },
+        parent_product_id: { type: "string", description: parentIdDesc("Parent Product") + " Omit for a standalone project not under any product." },
         title: { type: "string" },
         objective: { type: "string" },
         problem_statement: { type: "string" },

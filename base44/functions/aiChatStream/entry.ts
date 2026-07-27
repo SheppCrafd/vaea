@@ -46,6 +46,19 @@ function id(desc) {
   return z.string().describe(`${desc} — look this id up from [DATABASE STATE] by name/title; never invent one.`);
 }
 
+// Same as id(), but for a parent-record field on a CREATE_* tool, where the
+// parent legitimately might not exist in [DATABASE STATE] yet — this turn's
+// own earlier CREATE_AREA/CREATE_PRODUCT call might be creating it right now.
+// id()'s plain "never invent one" reads as banning exactly that case, which
+// pushed the model toward guessing a real-looking id instead of using the
+// $temp_id mechanism MULTI-STEP PLANS below actually provides for it —
+// producing a Product/Project whose parent_area_id/parent_product_id matches
+// no real record, so it's created but never rendered anywhere (there's no
+// orphan-product fallback the way there is for orphan projects).
+function parentId(desc) {
+  return z.string().describe(`${desc} — look this id up from [DATABASE STATE] by name/title. If THIS TURN's own plan already created the parent (via an earlier CREATE_AREA/CREATE_PRODUCT call), use its "$temp_id" reference instead — never invent a real-looking id either way.`);
+}
+
 function stakeholderIds(desc) {
   return z.array(z.string()).optional().describe(`${desc} Pass the FULL desired array (not just additions/removals) — look up the entity's current value in [DATABASE STATE] and merge yourself.`);
 }
@@ -215,7 +228,7 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault }) {
     CREATE_PRODUCT: tool({
       description: 'Create a new Product under an Area.',
       inputSchema: z.object({
-        parent_area_id: id('Parent Area'),
+        parent_area_id: parentId('Parent Area'),
         title: z.string(),
         description: z.string().optional(),
         stakeholder_ids: stakeholderIds('Stakeholders on this product.'),
@@ -242,8 +255,8 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault }) {
     CREATE_PROJECT: tool({
       description: 'Create a new Project under an Area, optionally attached to a Product.',
       inputSchema: z.object({
-        parent_area_id: id('Parent Area'),
-        parent_product_id: id('Parent Product').nullable().optional().describe('Null/omit for a standalone project not under any product.'),
+        parent_area_id: parentId('Parent Area'),
+        parent_product_id: parentId('Parent Product').nullable().optional().describe('Null/omit for a standalone project not under any product.'),
         title: z.string(),
         objective: z.string().optional(),
         problem_statement: z.string().optional(),
