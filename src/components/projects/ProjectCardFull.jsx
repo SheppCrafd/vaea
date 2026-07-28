@@ -40,7 +40,7 @@ import { getDueDateColorClass, DUE_DATE_STATUS_OPTIONS } from "@/lib/projectUtil
 // on Enter; the "+" button is only shown when `showButton` is set (Risks and
 // Open Questions rely on Enter alone — the general Notes box keeps a click
 // affordance too, matching AddNoteForm's modal equivalent).
-function NoteBox({ title, notes, allStakeholders, tintStyle, placeholder, onAdd, showButton = false }) {
+function NoteBox({ title, notes, allStakeholders, tintStyle, placeholder, onAdd, showButton = false, className = "" }) {
   const [text, setText] = useState("");
   const submit = () => {
     if (!text.trim()) return;
@@ -49,7 +49,7 @@ function NoteBox({ title, notes, allStakeholders, tintStyle, placeholder, onAdd,
   };
   return (
     <div
-      className="w-full rounded px-2 py-1 border border-border/60 transition-colors z-20"
+      className={`w-full rounded px-2 py-1 border border-border/60 transition-colors z-20 ${className}`}
       style={notes.length > 0 ? tintStyle : undefined}
     >
       <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider text-left mb-0.5">{title}</p>
@@ -269,10 +269,45 @@ export default function ProjectCardFull({ project, stakeholderIds = [] }) {
         </button>
       </div>
 
-      <div className="flex items-start gap-3 pr-11 pl-5">
+      {/* Card header: Title and Objective (and the Problem Statement moved up
+          from the card's tail) span nearly the full card width — the only
+          reserved margins are the corner icons' own footprints (grip left,
+          expand/delete right). */}
+      <div className="pl-7 pr-14 flex flex-col items-center gap-1">
+        <h4
+          className="font-heading font-semibold text-sm break-words text-center outline-none focus:ring-1 focus:ring-primary/40 rounded cursor-text w-full px-1"
+          contentEditable
+          suppressContentEditableWarning
+          onInput={handleTitleInput}
+          onBlur={handleTitleBlur}
+          onKeyDown={handleTitleKeyDown}
+        >
+          {title}
+        </h4>
+        <EditableText
+          value={project.objective}
+          onSave={(v) => updateProject.mutate({ id: project.id, data: { objective: v } })}
+          placeholder="No objective set"
+          className="text-[11px] text-muted-foreground text-center"
+        />
+        <EditableText
+          value={project.problem_statement}
+          onSave={(v) => updateProject.mutate({ id: project.id, data: { problem_statement: v } })}
+          placeholder="No problem statement set"
+          className="text-[10px] text-muted-foreground text-center"
+          multiline
+        />
+      </div>
+
+      {/* items-stretch + the Open Questions box absorbing leftover center
+          height (flex-1) means all three columns share one bottom edge: the
+          quadrant grid, the Open Questions box, and the meta group (which
+          justify-ends onto it) — the row's baseline the design review asked
+          for. */}
+      <div className="mt-2 flex items-stretch gap-3 pl-5 pr-1">
         <button
           onClick={() => setIsTableOpen(true)}
-          className="shrink-0 mt-1 grid grid-cols-2 gap-1 border border-border rounded overflow-hidden w-16 h-16 text-sm z-20 select-none"
+          className="shrink-0 grid grid-cols-2 grid-rows-2 gap-1 border border-border rounded overflow-hidden w-16 min-h-16 text-sm z-20 select-none"
           title="Open Task Table"
         >
           {quadrants.map((q) => (
@@ -292,24 +327,7 @@ export default function ProjectCardFull({ project, stakeholderIds = [] }) {
           ))}
         </button>
 
-        <div className="flex-1 text-center px-1 min-w-0 flex flex-col items-center gap-1">
-          <h4
-            className="font-heading font-semibold text-sm break-words outline-none focus:ring-1 focus:ring-primary/40 rounded cursor-text w-full px-1"
-            contentEditable
-            suppressContentEditableWarning
-            onInput={handleTitleInput}
-            onBlur={handleTitleBlur}
-            onKeyDown={handleTitleKeyDown}
-          >
-            {title}
-          </h4>
-          <EditableText
-            value={project.objective}
-            onSave={(v) => updateProject.mutate({ id: project.id, data: { objective: v } })}
-            placeholder="No objective set"
-            className="text-[11px] text-muted-foreground text-center"
-          />
-
+        <div className="flex-1 text-center min-w-0 flex flex-col gap-1">
           <NoteBox
             title="Risks"
             notes={riskNotes}
@@ -318,17 +336,22 @@ export default function ProjectCardFull({ project, stakeholderIds = [] }) {
             placeholder="Add a risk and press Enter..."
             onAdd={(text) => addNote("RISK", text)}
           />
-          <NoteBox
-            title="Open Questions"
-            notes={questionNotes}
-            allStakeholders={allStakeholders}
-            tintStyle={{ backgroundColor: `${STATUS_COLORS.PENDING_FEEDBACK}1A`, borderColor: `${STATUS_COLORS.PENDING_FEEDBACK}4D` }}
-            placeholder="Add a question and press Enter..."
-            onAdd={(text) => addNote("QUESTION", text)}
-          />
+          <div className="flex-1 min-h-0">
+            {/* h-full scoped here only — on Risks it would resolve against
+                the stretched column and squeeze this box out. */}
+            <NoteBox
+              className="h-full"
+              title="Open Questions"
+              notes={questionNotes}
+              allStakeholders={allStakeholders}
+              tintStyle={{ backgroundColor: `${STATUS_COLORS.PENDING_FEEDBACK}1A`, borderColor: `${STATUS_COLORS.PENDING_FEEDBACK}4D` }}
+              placeholder="Add a question and press Enter..."
+              onAdd={(text) => addNote("QUESTION", text)}
+            />
+          </div>
         </div>
 
-        <div className="text-right shrink-0 min-w-[85px] select-none mt-0.5 flex flex-col items-end gap-1">
+        <div className="text-right shrink-0 min-w-[85px] select-none flex flex-col items-end justify-end gap-1">
           <EditableText
             value={project.owner_name}
             onSave={(v) => updateProject.mutate({ id: project.id, data: { owner_name: v } })}
@@ -361,16 +384,6 @@ export default function ProjectCardFull({ project, stakeholderIds = [] }) {
 
       <div className="pl-5 pr-1 mt-2">
         <TaskStatistics tasks={tasks} />
-      </div>
-
-      <div className="pl-5 pr-1 mt-2">
-        <EditableText
-          value={project.problem_statement}
-          onSave={(v) => updateProject.mutate({ id: project.id, data: { problem_statement: v } })}
-          placeholder="No problem statement set"
-          className="text-[10px] text-muted-foreground"
-          multiline
-        />
       </div>
 
       <CardCustomFields
