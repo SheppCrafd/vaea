@@ -229,6 +229,27 @@ export function useChatController({ activeProjectId } = {}) {
     const tasks = allTasks.filter((t) => !t.archived_at && !t.deleted_at);
     const archivedTasks = allTasks.filter((t) => t.archived_at && !t.deleted_at);
 
+    // Vault connection + force-loaded overview — the Vaea analog of a Claude
+    // Code CLI's own SessionStart hook (see [[Claude Code Vault System]] in
+    // the connected vault itself, if this is that vault): fetched once per
+    // session and cached, not once per message. GitHub calls happen here,
+    // client-side, using the same locally-stored token every other vault
+    // read/write already trusts (see githubApi.js) — never server-side, and
+    // best-effort throughout, so a fetch failure just means less context,
+    // never a visible error. Loaded for EVERY provider now, not just
+    // base44-hosted — BYOK/Backdoor Mode's own vault_* tools (localTools.js)
+    // need externalVault just as much as entry.ts's server-side ones do.
+    const externalVault = await loadVaultConnection();
+    let vaultOverview = null;
+    if (isVaultConnected(externalVault)) {
+      if (vaultOverviewCacheRef.current.sessionId === payload.sessionId) {
+        vaultOverview = vaultOverviewCacheRef.current.overview;
+      } else {
+        vaultOverview = await fetchVaultOverview(externalVault).catch(() => null);
+        vaultOverviewCacheRef.current = { sessionId: payload.sessionId, overview: vaultOverview };
+      }
+    }
+
     // Settings -> AI Model: if the user brought their own provider key, the
     // plan is decided entirely client-side (src/lib/llm/byokChat.js) —
     // straight from this browser to that provider's own API, never through
@@ -246,6 +267,8 @@ export function useChatController({ activeProjectId } = {}) {
           conversationHistory: payload.conversationHistory,
           aiIdentity: await loadAiIdentity(),
           protocolReminderRequested: payload.protocolReminderRequested,
+          externalVault,
+          vaultOverview,
           areas: areas.filter((a) => !a.deleted_at),
           products: products.filter((p) => !p.deleted_at),
           projects: projectsActive,
@@ -257,26 +280,6 @@ export function useChatController({ activeProjectId } = {}) {
           notes,
         },
       });
-    }
-
-    const externalVault = await loadVaultConnection();
-
-    // Force-loaded vault context — the Vaea analog of a Claude Code CLI's
-    // own SessionStart hook (see [[Claude Code Vault System]] in the
-    // connected vault itself, if this is that vault): fetched once per
-    // session and cached, not once per message. GitHub calls happen here,
-    // client-side, using the same locally-stored token every other vault
-    // read/write already trusts (see githubApi.js) — never server-side, and
-    // best-effort throughout, so a fetch failure just means less context,
-    // never a visible error.
-    let vaultOverview = null;
-    if (isVaultConnected(externalVault)) {
-      if (vaultOverviewCacheRef.current.sessionId === payload.sessionId) {
-        vaultOverview = vaultOverviewCacheRef.current.overview;
-      } else {
-        vaultOverview = await fetchVaultOverview(externalVault).catch(() => null);
-        vaultOverviewCacheRef.current = { sessionId: payload.sessionId, overview: vaultOverview };
-      }
     }
 
     // base44.functions.invoke() runs on its own axios client (interceptResponses:

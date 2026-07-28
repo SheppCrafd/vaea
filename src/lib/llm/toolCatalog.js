@@ -8,13 +8,19 @@
 // (src/lib/llm/localTools.js), and their results feed back into the model's
 // next turn.
 //
-// Deliberately NOT included here (base44-hosted chat only, for now):
-// web_search, analyze_attachment, read_project_link (need base44's own
-// integrations), and the WRITE_VAULT_NOTE/list_vault_notes/read_vault_note/
-// search_vault/audit_vault external-vault tools (need a client-side GitHub
-// read layer that doesn't exist yet — see githubApi.js). See
-// systemPrompt.js's own note about this gap, so a BYOK model is told the
-// truth instead of pretending it can.
+// web_search is deliberately NOT a catalog entry here at all — unlike
+// every tool below, it's never client-executed/staged through this
+// codebase's own runTool dispatch. Anthropic and xAI each have their own
+// native hosted web search, wired directly into anthropicAdapter.js/
+// openaiCompatibleAdapter.js instead (see those files' own comments);
+// OpenAI/Google BYOK and Backdoor Mode have no web search at all — see
+// systemPrompt.js's own NOT AVAILABLE note. Everything below DOES work
+// across every BYOK provider and Backdoor Mode: read_project_link via a
+// plain client-side fetch (see localTools.js; CORS can block some sites, a
+// real limitation, not a bug), analyze_attachment the same way but limited
+// to images + plain-text files (no client-side PDF/Office parser), and
+// WRITE_VAULT_NOTE/list_vault_notes/read_vault_note/search_vault/
+// audit_vault via githubApi.js's own client-side GitHub layer.
 const idDesc = (desc) => `${desc} — look this id up from [DATABASE STATE] by name/title; never invent one.`;
 // Same as idDesc, but for a parent-record field on a CREATE_* tool — see the
 // matching parentId() comment in base44/functions/aiChatStream/entry.ts for
@@ -478,6 +484,20 @@ export const TOOL_CATALOG = [
       required: [],
     },
   },
+  {
+    name: "WRITE_VAULT_NOTE",
+    staged: true,
+    description: "Create or update one file in the connected Vaea Vault (a personal Obsidian/GitHub notes repo — see [VAEA VAULT] below). Staged like every tool above, not run here — the user's own device commits it via the GitHub API using their locally-stored token. Use for \"/vault-log\" (write today's [Daily/YYYY-MM-DD].md, and a [Decisions/...] file too if a real decision was made) and for \"/vault-tidy\" fixes (adding a missing [[wikilink]], creating a stub file). Always pass the FULL desired file content, not a diff — look up the current content via read_vault_note first if you're editing an existing note, and preserve everything in it you're not deliberately changing.",
+    parameters: {
+      type: "object",
+      properties: {
+        path: { type: "string", description: 'Repo-relative path, e.g. "Daily/2026-07-22.md" or "Decisions/Some Decision.md".' },
+        content: { type: "string", description: "The full file content, in Markdown, using [[wikilink]] syntax for any reference to another note." },
+        commit_message: { type: "string", description: "Short commit message. Defaults to a generic one if omitted." },
+      },
+      required: ["path", "content"],
+    },
+  },
 
   {
     name: "search_workspace",
@@ -490,6 +510,56 @@ export const TOOL_CATALOG = [
     staged: false,
     description: "Audit the whole workspace for hygiene issues — overdue/unowned projects, done-but-unarchived tasks, near-duplicate notes/tasks, stakeholders with no department, empty areas/products. Runs immediately and returns findings only; it does not fix anything itself — propose fixes afterward using the normal CREATE_*/UPDATE_*/ARCHIVE_*/DELETE_* tools, as a confirmable plan like any other request.",
     parameters: { type: "object", properties: {}, required: [] },
+  },
+  {
+    name: "list_vault_notes",
+    staged: false,
+    description: "List every note (path) in the connected Vaea Vault. Runs immediately. Use to get an overview before deciding what to read, or to check whether a note already exists before creating one.",
+    parameters: { type: "object", properties: {}, required: [] },
+  },
+  {
+    name: "read_vault_note",
+    staged: false,
+    description: "Read one note's full content from the connected Vaea Vault by its exact path (from list_vault_notes or search_vault). Runs immediately and returns real content.",
+    parameters: { type: "object", properties: { path: { type: "string" } }, required: ["path"] },
+  },
+  {
+    name: "search_vault",
+    staged: false,
+    description: 'Search the connected Vaea Vault by keyword (GitHub code search, scoped to that one repo). Use for "what did we decide about X" / "find notes mentioning Y" style questions about the user\'s personal vault. Runs immediately.',
+    parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] },
+  },
+  {
+    name: "audit_vault",
+    staged: false,
+    description: "Audit the connected Vaea Vault's [[wikilinks]] for structural issues: links pointing at a note that doesn't exist (broken links) and notes with zero incoming or outgoing links (isolated notes). Runs immediately and returns findings only — propose fixes afterward with WRITE_VAULT_NOTE, as a normal confirmable plan, same pattern as audit_workspace/\"/tidy\". Reads every note's content once, so mention it may take a moment on a large vault.",
+    parameters: { type: "object", properties: {}, required: [] },
+  },
+  {
+    name: "read_project_link",
+    staged: false,
+    description: "Read the real content at a URL from a project's \"links\" array (see [DATABASE STATE]) — a spec doc, a design file, a GitHub repo, a doc — instead of only seeing its label and URL text. Runs immediately as a plain client-side fetch (not an LLM-driven browse), so some sites will block it via CORS; if that happens you'll get a clear error back — tell the user plainly rather than guessing at the content.",
+    parameters: {
+      type: "object",
+      properties: {
+        url: { type: "string", description: "The exact URL from the project's links array — look it up in [DATABASE STATE] by the link's label, never invent one." },
+        focus: { type: "string", description: "What to focus on, if the user asked about something specific." },
+      },
+      required: ["url"],
+    },
+  },
+  {
+    name: "analyze_attachment",
+    staged: false,
+    description: 'Read the actual contents of a file the user attached in this conversation. Runs immediately as a plain client-side fetch: an image (png/jpeg/gif/webp) is handed to you directly so you can genuinely see it, a plain-text file\'s content is returned as-is — a PDF/Word doc/other binary format comes back as an honest error instead, since no document parser is available outside Vaea\'s own built-in model.',
+    parameters: {
+      type: "object",
+      properties: {
+        file_url: { type: "string", description: 'The URL from a "[Attached: name](url)" line in the latest message.' },
+        focus: { type: "string", description: "What to focus the summary on, if the user asked about something specific." },
+      },
+      required: ["file_url"],
+    },
   },
 ];
 

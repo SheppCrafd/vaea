@@ -1,12 +1,16 @@
 // Minimal client-side GitHub REST API helpers for the connected external
-// vault (vaultConnection.js). Deliberately separate from the read-side
+// vault (vaultConnection.js). Deliberately separate from the equivalent
 // GitHub calls in base44/functions/aiChatStream/entry.ts — that's a
 // different (Deno) runtime and can't share a module with browser code,
 // same reasoning as chatCommands.js's split from entry.ts's
-// SLASH_COMMAND_GUIDE. This file only covers what the client actually
-// needs to do itself: test a connection, and write a file (chatActions.js's
-// WRITE_VAULT_NOTE) — reads run server-side, inside the model's own tool
-// loop, so they can feed results back into its next reasoning step.
+// SLASH_COMMAND_GUIDE. Originally this file only covered what the client
+// needed for itself (connection test, write, the once-per-session force-
+// loaded overview) since base44-hosted chat's own vault_* tools ran
+// server-side, inside the model's own tool loop. BYOK/Backdoor Mode have no
+// server at all, so their own tool loop (localTools.js) now calls the
+// listVaultNoteRepo/readVaultNoteContent/searchVaultNotes/auditVaultNotes
+// exports below directly — the client-side twins of entry.ts's own
+// list_vault_notes/read_vault_note/search_vault/audit_vault tool bodies.
 const API_BASE = "https://api.github.com";
 
 function headers(token) {
@@ -43,6 +47,88 @@ async function readVaultFile({ owner, repo, branch, token, path }) {
   if (!res.ok) return null;
   const data = await res.json();
   return base64ToUtf8(data.content);
+}
+
+// read_vault_note's own throwing twin of readVaultFile above — a tool call
+// needs a real, honest error message on failure (quoted verbatim to the
+// user per systemPrompt.js's VAEA VAULT rule), not a silent null meant for
+// best-effort context-loading.
+export async function readVaultNoteContent({ owner, repo, branch, token, path }) {
+  const url = `${API_BASE}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodePath(path)}?ref=${encodeURIComponent(branch)}`;
+  const res = await fetch(url, { headers: headers(token) });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || `GitHub error (${res.status}).`);
+  }
+  const data = await res.json();
+  return base64ToUtf8(data.content);
+}
+
+// list_vault_notes' own client-side twin of entry.ts's listVaultNoteRepo —
+// every markdown note's path, via the Git Trees API (recursive), the only
+// GitHub endpoint that lists a whole repo's files in one call.
+export async function listVaultNoteRepo({ owner, repo, branch, token }) {
+  const url = `${API_BASE}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/trees/${encodeURIComponent(branch)}?recursive=1`;
+  const res = await fetch(url, { headers: headers(token) });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || `GitHub error (${res.status}).`);
+  }
+  const data = await res.json();
+  return (data.tree || []).filter((entry) => entry.type === "blob" && entry.path.endsWith(".md")).map((entry) => entry.path);
+}
+
+// search_vault's own client-side twin of entry.ts's own GitHub code search.
+export async function searchVaultNotes({ owner, repo, token }, query) {
+  const q = `${query} repo:${owner}/${repo}`;
+  const res = await fetch(`${API_BASE}/search/code?q=${encodeURIComponent(q)}`, {
+    headers: { ...headers(token), Accept: "application/vnd.github.text-match+json" },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || `GitHub error (${res.status}).`);
+  }
+  const data = await res.json();
+  const matches = (data.items || []).slice(0, 15).map((item) => ({
+    path: item.path,
+    snippet: (item.text_matches || []).map((m) => m.fragment).join(" … ").slice(0, 400),
+  }));
+  return { count: data.total_count ?? matches.length, matches };
+}
+
+// audit_vault's own client-side twin of entry.ts's own wikilink audit:
+// broken links (pointing at a note that doesn't exist) and isolated notes
+// (zero incoming or outgoing [[links]]). Reads every scanned note's content
+// once, same MAX_NOTES cap as the server-side version.
+const MAX_AUDIT_NOTES = 80;
+export async function auditVaultNotes({ owner, repo, branch, token }) {
+  const paths = await listVaultNoteRepo({ owner, repo, branch, token });
+  const scanned = paths.slice(0, MAX_AUDIT_NOTES);
+  const titleByPath = new Map(scanned.map((p) => [p, p.split("/").pop().replace(/\.md$/, "").toLowerCase()]));
+  const pathByTitle = new Map([...titleByPath.entries()].map(([p, t]) => [t, p]));
+
+  const outgoing = new Map(); // path -> Set(linked titles, lowercased)
+  const linkRegex = /\[\[([^\]|#]+)/g;
+  for (const path of scanned) {
+    const content = await readVaultNoteContent({ owner, repo, branch, token, path });
+    const links = new Set();
+    let m;
+    while ((m = linkRegex.exec(content))) links.add(m[1].trim().toLowerCase());
+    outgoing.set(path, links);
+  }
+
+  const broken_links = [];
+  const hasIncoming = new Set();
+  for (const [path, links] of outgoing) {
+    for (const linkedTitle of links) {
+      const target = pathByTitle.get(linkedTitle);
+      if (target) hasIncoming.add(target);
+      else broken_links.push({ from: path, broken_link: linkedTitle });
+    }
+  }
+  const isolated_notes = scanned.filter((p) => outgoing.get(p).size === 0 && !hasIncoming.has(p));
+
+  return { notes_scanned: scanned.length, notes_total: paths.length, broken_links, isolated_notes };
 }
 
 const MAX_PRIORITY_NOTES = 5;

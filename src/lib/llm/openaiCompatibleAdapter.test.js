@@ -87,6 +87,64 @@ describe("openaiCompatibleAdapter: tool-call loop (streamed)", () => {
     });
   });
 
+  it("sends analyze_attachment's image as a follow-up user message with an image_url part — the chat-completions tool role can't carry an image itself", async () => {
+    const calls = [];
+    const fetchMock = vi.fn(async (url, init) => {
+      calls.push({ url, body: JSON.parse(init.body) });
+      if (calls.length === 1) {
+        return streamResponse(roundChunks({ toolCalls: [{ id: "call_1", name: "analyze_attachment", args: { file_url: "https://x/y.png" } }] }));
+      }
+      return streamResponse(roundChunks({ content: "That's a chart." }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const runTool = vi.fn(() => ({ file_url: "https://x/y.png", is_image: true, media_type: "image/png", image_base64: "QUJD" }));
+    await callOpenAiCompatible({
+      baseUrl: "https://api.openai.com/v1", apiKey: "sk-test", model: "gpt-5",
+      systemPrompt: "system", contextPrompt: "context", tools: [], runTool,
+    });
+
+    const secondMessages = calls[1].body.messages;
+    // system, user, assistant(tool_calls), tool result (text only), user (image)
+    expect(secondMessages).toHaveLength(5);
+    expect(secondMessages[3]).toEqual({
+      role: "tool",
+      tool_call_id: "call_1",
+      content: JSON.stringify({ file_url: "https://x/y.png", is_image: true }),
+    });
+    expect(secondMessages[4]).toEqual({
+      role: "user",
+      content: [
+        { type: "text", text: "(Image from the analyze_attachment call above — analyze it directly.)" },
+        { type: "image_url", image_url: { url: "data:image/png;base64,QUJD" } },
+      ],
+    });
+  });
+
+  it("adds xAI's own native search_parameters only when providerId is xai", async () => {
+    const calls = [];
+    const fetchMock = vi.fn(async (url, init) => {
+      calls.push(JSON.parse(init.body));
+      return streamResponse(roundChunks({ content: "Just a reply." }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await callOpenAiCompatible({ baseUrl: "https://api.x.ai/v1", apiKey: "k", model: "grok-4", systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn(), providerId: "xai" });
+    expect(calls[0].search_parameters).toEqual({ mode: "auto" });
+  });
+
+  it("never sends search_parameters for OpenAI/Google — only documented for xAI", async () => {
+    const calls = [];
+    const fetchMock = vi.fn(async (url, init) => {
+      calls.push(JSON.parse(init.body));
+      return streamResponse(roundChunks({ content: "Just a reply." }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await callOpenAiCompatible({ baseUrl: "https://api.openai.com/v1", apiKey: "k", model: "gpt-5", systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn(), providerId: "openai" });
+    expect(calls[0].search_parameters).toBeUndefined();
+  });
+
   it("carries a round's own text forward even when that round also made a tool call", async () => {
     const fetchMock = vi.fn(async (url, init) => {
       const body = JSON.parse(init.body);

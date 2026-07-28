@@ -139,6 +139,70 @@ describe("anthropicAdapter: tool-call loop (streamed)", () => {
     expect(reply).not.toBe(reasoning);
   });
 
+  it("sends analyze_attachment's image as a real image content block, not just JSON text — the model actually SEES it next round", async () => {
+    const calls = [];
+    const fetchMock = vi.fn(async (url, init) => {
+      calls.push({ url, body: JSON.parse(init.body) });
+      if (calls.length === 1) {
+        return streamResponse(roundEvents([
+          { type: "tool_use", id: "toolu_1", name: "analyze_attachment", input: { file_url: "https://x/y.png" } },
+        ]));
+      }
+      return streamResponse(roundEvents([{ type: "text", text: "That's a chart of Q3 revenue." }]));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const runTool = vi.fn(() => ({ file_url: "https://x/y.png", is_image: true, media_type: "image/png", image_base64: "QUJD" }));
+
+    await callAnthropic({ apiKey: "k", model: "m", systemPrompt: "s", contextPrompt: "c", tools: [], runTool });
+
+    const secondMessages = calls[1].body.messages;
+    const toolResultContent = secondMessages[2].content[0].content;
+    // image_base64 rides as its own real content block...
+    expect(toolResultContent).toEqual([
+      { type: "text", text: JSON.stringify({ file_url: "https://x/y.png", is_image: true }) },
+      { type: "image", source: { type: "base64", media_type: "image/png", data: "QUJD" } },
+    ]);
+    // ...and is never ALSO duplicated inside the JSON text half.
+    expect(toolResultContent[0].text).not.toContain("QUJD");
+  });
+
+  it("always sends Anthropic's own native web_search tool alongside the client tool catalog", async () => {
+    const calls = [];
+    const fetchMock = vi.fn(async (url, init) => {
+      calls.push(JSON.parse(init.body));
+      return streamResponse(roundEvents([{ type: "text", text: "Just a reply." }]));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    await callAnthropic({ apiKey: "k", model: "m", systemPrompt: "s", contextPrompt: "c", tools: [{ name: "search_workspace" }], runTool: vi.fn() });
+    expect(calls[0].tools).toEqual([{ name: "search_workspace" }, { type: "web_search_20250305", name: "web_search", max_uses: 5 }]);
+  });
+
+  it("doesn't crash on Anthropic's own server-executed web search block types (server_tool_use / web_search_tool_result), and still derives reply/reasoning from the surrounding real text", async () => {
+    const events = [
+      { type: "message_start", message: { content: [] } },
+      { type: "content_block_start", index: 0, content_block: { type: "text", text: "" } },
+      { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "Let me check the latest news." } },
+      { type: "content_block_stop", index: 0 },
+      { type: "content_block_start", index: 1, content_block: { type: "server_tool_use", id: "srvtoolu_1", name: "web_search" } },
+      { type: "content_block_delta", index: 1, delta: { type: "input_json_delta", partial_json: '{"query":"vaea"}' } },
+      { type: "content_block_stop", index: 1 },
+      { type: "content_block_start", index: 2, content_block: { type: "web_search_tool_result", tool_use_id: "srvtoolu_1", content: [{ type: "web_search_result", url: "https://x", title: "X" }] } },
+      { type: "content_block_stop", index: 2 },
+      { type: "content_block_start", index: 3, content_block: { type: "text", text: "" } },
+      { type: "content_block_delta", index: 3, delta: { type: "text_delta", text: "Found it — here's what I found." } },
+      { type: "content_block_stop", index: 3 },
+      { type: "message_delta", delta: { stop_reason: "end_turn" }, usage: {} },
+      { type: "message_stop" },
+    ];
+    vi.stubGlobal("fetch", vi.fn(async () => streamResponse(events)));
+    const { reply, reasoning } = await callAnthropic({ apiKey: "k", model: "m", systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn() });
+    // The server_tool_use/web_search_tool_result blocks never reach runTool
+    // (Anthropic already executed the search itself) and never pollute the
+    // narrated text — only the two real text blocks do.
+    expect(reasoning).toBe("Let me check the latest news.\nFound it — here's what I found.");
+    expect(reply).toBe(reasoning);
+  });
+
   it("surfaces the provider's own error message on a non-2xx response", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => errorResponse({ error: { message: "invalid x-api-key" } })));
     await expect(

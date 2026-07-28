@@ -92,7 +92,7 @@ export async function runByokChat({ providerConfig, contextArgs, onEvent }) {
   // so there's nothing genuinely live to emit mid-call; see
   // simulateLiveReveal below for how it still shows the same thing anyway.
   const isLocalBridge = provider.adapter === "local-bridge";
-  const runTool = makeToolRunner({ plan, liveTrace, dataset, onEvent: isLocalBridge ? undefined : onEvent });
+  const runTool = makeToolRunner({ plan, liveTrace, dataset, externalVault: contextArgs.externalVault, onEvent: isLocalBridge ? undefined : onEvent });
 
   const systemPrompt = buildInstructions({ maxActionsPerRequest: MAX_ACTIONS_PER_REQUEST });
   const contextPrompt = buildContextPrompt(contextArgs);
@@ -106,7 +106,7 @@ export async function runByokChat({ providerConfig, contextArgs, onEvent }) {
     ? await callLocalBridge({ systemPrompt, contextPrompt, tools: toAnthropicTools(), runTool })
     : await callOpenAiCompatible({
         baseUrl: provider.baseUrl, apiKey: providerConfig.apiKey, model: providerConfig.model, systemPrompt, contextPrompt,
-        tools: toOpenAiCompatibleTools(), runTool, onEvent,
+        tools: toOpenAiCompatibleTools(), runTool, onEvent, providerId: provider.id,
       });
 
   if (isLocalBridge && onEvent) {

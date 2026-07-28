@@ -74,6 +74,30 @@ describe("localBridgeAdapter: file-based round loop", () => {
     expect(reply).not.toBe(reasoning);
   });
 
+  it("sends analyze_attachment's image as a real image content block, matching Anthropic's own tool_result shape (this transport is documented as Claude-compatible)", async () => {
+    pollForResponseFile
+      .mockResolvedValueOnce({
+        content: [{ type: "tool_use", id: "toolu_1", name: "analyze_attachment", input: { file_url: "https://x/y.png" } }],
+      })
+      .mockResolvedValueOnce({ content: [{ type: "text", text: "That's a chart." }] });
+
+    const runTool = vi.fn(() => ({ file_url: "https://x/y.png", is_image: true, media_type: "image/png", image_base64: "QUJD" }));
+    await callLocalBridge({ systemPrompt: "s", contextPrompt: "c", tools: [], runTool });
+
+    const [, , body1] = writeRequestFile.mock.calls[1];
+    expect(body1.messages[2]).toEqual({
+      role: "user",
+      content: [{
+        type: "tool_result",
+        tool_use_id: "toolu_1",
+        content: [
+          { type: "text", text: JSON.stringify({ file_url: "https://x/y.png", is_image: true }) },
+          { type: "image", source: { type: "base64", media_type: "image/png", data: "QUJD" } },
+        ],
+      }],
+    });
+  });
+
   it("throws on a malformed response file instead of treating it as final", async () => {
     pollForResponseFile.mockResolvedValueOnce({ notContent: true });
     await expect(

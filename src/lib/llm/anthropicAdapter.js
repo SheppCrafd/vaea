@@ -10,6 +10,18 @@ import { readSse } from "@/lib/llm/streamUtils";
 
 const MAX_TOOL_ROUNDS = 15;
 
+// Anthropic's own hosted, server-executed web search — declared here (not
+// in toolCatalog.js, which is only ever the client-executed/staged JSON
+// schema every provider shares) since it's Anthropic-specific and the
+// server runs it itself: no tool_use block for the model to call and no
+// runTool dispatch on our end at all, unlike every other tool in this
+// codebase. Confidence: documented, but unverified against a live key in
+// this environment — if Anthropic's own wire shape for this has moved on
+// since, the defensive block handling in streamOnce below is what keeps an
+// unrecognized block from crashing the turn rather than this exact shape
+// being load-bearing.
+const ANTHROPIC_WEB_SEARCH_TOOL = { type: "web_search_20250305", name: "web_search", max_uses: 5 };
+
 // The closing paragraph of a full multi-round narrative — split on blank
 // lines WITHIN the joined text, not on tool-loop round boundaries, since a
 // model very often puts its entire narration (build-up and conclusion both)
@@ -47,7 +59,7 @@ async function streamOnce({ apiKey, model, systemPrompt, messages, tools, onEven
       "anthropic-version": "2023-06-01",
       "anthropic-dangerous-direct-browser-access": "true",
     },
-    body: JSON.stringify({ model, max_tokens: 4096, system: systemPrompt, messages, tools, stream: true }),
+    body: JSON.stringify({ model, max_tokens: 4096, system: systemPrompt, messages, tools: [...tools, ANTHROPIC_WEB_SEARCH_TOOL], stream: true }),
   });
   if (!res.ok) {
     // A non-2xx response is a normal (non-streamed) JSON error body, same
@@ -62,11 +74,25 @@ async function streamOnce({ apiKey, model, systemPrompt, messages, tools, onEven
   await readSse(res, (event) => {
     if (event.type === "content_block_start") {
       const block = event.content_block;
-      blocks[event.index] = block.type === "tool_use"
-        ? { type: "tool_use", id: block.id, name: block.name, jsonParts: [] }
-        : { type: "text", text: "" };
+      if (block.type === "tool_use") {
+        blocks[event.index] = { type: "tool_use", id: block.id, name: block.name, jsonParts: [] };
+      } else if (block.type === "text") {
+        blocks[event.index] = { type: "text", text: "" };
+      } else {
+        // web_search_20250305 runs entirely server-side — its own
+        // "server_tool_use" (streams like tool_use, via input_json_delta)
+        // and "web_search_tool_result" (arrives whole, no delta) block
+        // types are neither ours to execute nor to narrate as our own
+        // text. Passed through completely as-received (jsonParts kept in
+        // case it streams like tool_use) so the API's own multi-turn
+        // history stays coherent, without this code needing to understand
+        // every field of a shape it never has to act on. Never picked up by
+        // the tool_use filter below, so runTool is never called for it.
+        blocks[event.index] = { ...block, jsonParts: [] };
+      }
     } else if (event.type === "content_block_delta") {
       const block = blocks[event.index];
+      if (!block) return;
       if (event.delta.type === "text_delta") {
         block.text += event.delta.text;
         onEvent?.({ type: "thinking-delta", text: event.delta.text });
@@ -80,9 +106,16 @@ async function streamOnce({ apiKey, model, systemPrompt, messages, tools, onEven
   if (streamError) throw new Error(streamError);
 
   return {
-    content: blocks.map((block) => block.type === "tool_use"
-      ? { type: "tool_use", id: block.id, name: block.name, input: JSON.parse(block.jsonParts.join("") || "{}") }
-      : { type: "text", text: block.text }),
+    content: blocks.map((block) => {
+      if (block.type === "tool_use") {
+        return { type: "tool_use", id: block.id, name: block.name, input: JSON.parse(block.jsonParts.join("") || "{}") };
+      }
+      if (block.type === "text") {
+        return { type: "text", text: block.text };
+      }
+      const { jsonParts, ...rest } = block;
+      return jsonParts.length ? { ...rest, input: JSON.parse(jsonParts.join("") || "{}") } : rest;
+    }),
   };
 }
 
@@ -122,11 +155,32 @@ export async function callAnthropic({ apiKey, model, systemPrompt, contextPrompt
     }
 
     messages.push({ role: "assistant", content });
-    const toolResults = toolUseBlocks.map((block) => ({
-      type: "tool_result",
-      tool_use_id: block.id,
-      content: JSON.stringify(runTool(block.name, block.input)),
-    }));
+    // Sequential, not Promise.all — runTool is async now (vault tools,
+    // read_project_link, analyze_attachment all make real network calls),
+    // and running them one at a time matches executeActionSequence's own
+    // sequential model elsewhere in this codebase rather than introducing
+    // a new concurrent-tool-calls code path this app has never had.
+    const toolResults = [];
+    for (const block of toolUseBlocks) {
+      const result = await runTool(block.name, block.input);
+      // analyze_attachment's image case: Anthropic's tool_result content can
+      // itself be a content array, so the actual image rides along as a
+      // real image block right here — the model genuinely SEES it next
+      // round, not just a text description of it. image_base64 is stripped
+      // from the JSON text half so it isn't duplicated (and so the model
+      // isn't asked to read pixels as a giant base64 string).
+      const { image_base64, media_type, ...rest } = result || {};
+      toolResults.push({
+        type: "tool_result",
+        tool_use_id: block.id,
+        content: image_base64
+          ? [
+              { type: "text", text: JSON.stringify(rest) },
+              { type: "image", source: { type: "base64", media_type, data: image_base64 } },
+            ]
+          : JSON.stringify(result),
+      });
+    }
     messages.push({ role: "user", content: toolResults });
   }
 

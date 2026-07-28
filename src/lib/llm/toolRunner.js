@@ -6,9 +6,8 @@ export const MAX_ACTIONS_PER_REQUEST = 60;
 
 // Builds the {label, detail} entry a real (non-staged) tool call's own
 // result becomes — same shape aiChatStream/entry.ts's trace() pushes onto
-// its own liveTrace, so ChatMessageList renders both providers' live calls
-// identically. Only search_workspace/audit_workspace exist in BYOK mode
-// (see NOT AVAILABLE IN THIS MODE in systemPrompt.js).
+// its own liveTrace, so ChatMessageList renders every provider's live calls
+// identically, whichever tool it was.
 function describeLiveResult(name, args, result) {
   if (name === "search_workspace") {
     return { label: `search_workspace("${args.query}") — ${result.count} match${result.count === 1 ? "" : "es"}`, detail: { query: args.query, ...result } };
@@ -16,6 +15,34 @@ function describeLiveResult(name, args, result) {
   if (name === "audit_workspace") {
     const total = Object.values(result).reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0);
     return { label: `audit_workspace() — ${total} finding${total === 1 ? "" : "s"}`, detail: result };
+  }
+  if (name === "list_vault_notes") {
+    return { label: `list_vault_notes() — ${result.count ?? 0} note${result.count === 1 ? "" : "s"}`, detail: result };
+  }
+  if (name === "read_vault_note") {
+    return { label: `read_vault_note("${args.path}")`, detail: { path: args.path, ...result } };
+  }
+  if (name === "search_vault") {
+    return { label: `search_vault("${args.query}") — ${result.count ?? 0} match${result.count === 1 ? "" : "es"}`, detail: { query: args.query, ...result } };
+  }
+  if (name === "audit_vault") {
+    return { label: `audit_vault() — ${result.broken_links?.length || 0} broken link${result.broken_links?.length === 1 ? "" : "s"}, ${result.isolated_notes?.length || 0} isolated`, detail: result };
+  }
+  if (name === "read_project_link") {
+    return { label: `read_project_link("${args.url}")`, detail: { url: args.url, focus: args.focus, ...result } };
+  }
+  if (name === "analyze_attachment") {
+    // image_base64 is dropped here on purpose — this `detail` feeds the
+    // UI's tool-log entry, and dumping a full base64 image into that
+    // rendered log (and into React/localStorage-backed message state)
+    // would bloat memory for no benefit; the real image data still reaches
+    // the model, just via the adapter's own multimodal content block, not
+    // through this display copy.
+    const { image_base64: _image_base64, ...rest } = result || {};
+    return { label: `analyze_attachment("${(args.file_url || "").split("/").pop()}")`, detail: { file_url: args.file_url, focus: args.focus, ...rest } };
+  }
+  if (name === "web_search") {
+    return { label: `web_search("${args.query}")`, detail: { query: args.query, ...result } };
   }
   return null;
 }
@@ -25,8 +52,11 @@ function describeLiveResult(name, args, result) {
 // openaiCompatibleAdapter.js) since a tool call's *meaning* (stage vs. run
 // for real) doesn't depend on which provider is asking. Mirrors
 // aiChatStream/entry.ts's buildTools()' queue()/trace() for both halves.
-export function makeToolRunner({ plan, liveTrace = [], dataset, onEvent }) {
-  return function runTool(name, args) {
+// Async — several live tools (vault reads/writes, read_project_link,
+// analyze_attachment) make real network calls now, not just synchronous
+// reads over an already-loaded dataset.
+export function makeToolRunner({ plan, liveTrace = [], dataset, externalVault, onEvent }) {
+  return async function runTool(name, args) {
     if (STAGED_TOOL_NAMES.has(name)) {
       if (plan.length >= MAX_ACTIONS_PER_REQUEST) {
         return { queued: false, error: `Plan already has ${MAX_ACTIONS_PER_REQUEST} actions queued (the max allowed in one request) — stop adding more and wrap up your reply.` };
@@ -64,7 +94,7 @@ export function makeToolRunner({ plan, liveTrace = [], dataset, onEvent }) {
         ...(temp_id ? { temp_id_registered: temp_id, hint: `Reference this record later as "$${temp_id}" wherever an id is needed for it.` } : {}),
       };
     }
-    const result = runLocalTool(name, args || {}, dataset);
+    const result = await runLocalTool(name, args || {}, { dataset, externalVault });
     const entry = describeLiveResult(name, args || {}, result);
     if (entry) {
       liveTrace.push(entry);

@@ -66,11 +66,28 @@ export async function callLocalBridge({ systemPrompt, contextPrompt, tools, runT
     }
 
     messages.push({ role: "assistant", content });
-    const toolResults = toolUseBlocks.map((block) => ({
-      type: "tool_result",
-      tool_use_id: block.id,
-      content: JSON.stringify(runTool(block.name, block.input)),
-    }));
+    // Sequential, not Promise.all — runTool is async now (vault tools,
+    // read_project_link, analyze_attachment all make real network calls).
+    const toolResults = [];
+    for (const block of toolUseBlocks) {
+      const result = await runTool(block.name, block.input);
+      // See anthropicAdapter.js's matching comment — same Anthropic-shaped
+      // content format, so a real image rides along as its own content
+      // block for whatever local runtime the user's watcher script forwards
+      // this to (already documented as "Claude-compatible" — see
+      // BackdoorModeSetupGuidePage.jsx).
+      const { image_base64, media_type, ...rest } = result || {};
+      toolResults.push({
+        type: "tool_result",
+        tool_use_id: block.id,
+        content: image_base64
+          ? [
+              { type: "text", text: JSON.stringify(rest) },
+              { type: "image", source: { type: "base64", media_type, data: image_base64 } },
+            ]
+          : JSON.stringify(result),
+      });
+    }
     messages.push({ role: "user", content: toolResults });
   }
 
