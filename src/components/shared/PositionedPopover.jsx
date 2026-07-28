@@ -58,6 +58,11 @@ export default function PositionedPopover({
       <div className={overlayClassName} onClick={close}>
         <div
           ref={panelRef}
+          // Marks the panel subtree so usePositionedMenu's close-on-scroll
+          // can tell internal scrolls (this panel's own overflow list, a
+          // text input's caret scrolling through overflowing content) from
+          // page scrolls that actually de-anchor the trigger.
+          data-popover-panel=""
           className={panelClassName}
           style={{ top: `${position.top}px`, left: `${position.left}px` }}
           onClick={(e) => e.stopPropagation()}

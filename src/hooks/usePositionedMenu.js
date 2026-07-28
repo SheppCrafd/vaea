@@ -39,8 +39,18 @@ export function usePositionedMenu({ closeOnScroll = false } = {}) {
 
   useEffect(() => {
     if (!isOpen || !closeOnScroll) return;
-    const handleScroll = () => close();
-    // Capture phase so a scroll on any internal container closes the menu too.
+    // Capture phase so a scroll on any scrolling container closes the menu —
+    // except scrolls that originate INSIDE the popover panel itself. The
+    // panel is position:fixed, so its own internal scrolling (an
+    // overflow-y-auto list, or a text input scrolling its content as the
+    // caret moves / a long URL is pasted) never moves it relative to its
+    // trigger and is no reason to close; treating those as "outside" is
+    // exactly what made the Add Link popover vanish on paste and on
+    // arrow-key caret movement.
+    const handleScroll = (e) => {
+      if (e.target instanceof Element && e.target.closest("[data-popover-panel]")) return;
+      close();
+    };
     window.addEventListener("scroll", handleScroll, true);
     return () => window.removeEventListener("scroll", handleScroll, true);
   }, [isOpen, closeOnScroll]);
