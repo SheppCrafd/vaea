@@ -36,6 +36,10 @@ export default function EditableText({ value, onSave, placeholder = "—", class
       onKeyDown={handleKeyDown}
       placeholder={placeholder}
       rows={multiline ? 2 : undefined}
+      // Native tooltip with the full value — single-line inputs clip long
+      // text with no way to expand in place, so hover is where the whole
+      // objective/risk/question reads out (as plain text, never markup).
+      title={text || undefined}
       className={`bg-transparent outline-none focus:ring-1 focus:ring-primary/40 rounded w-full min-w-0 break-words ${multiline ? "resize-none" : ""} ${className}`}
     />
   );

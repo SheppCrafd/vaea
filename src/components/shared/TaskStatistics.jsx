@@ -18,8 +18,20 @@ export default function TaskStatistics({ tasks = [] }) {
   const counts = getStatusCounts(tasks);
   const total = counts.reduce((sum, c) => sum + c.count, 0);
 
-  // If there are no tasks, don't render the component to save space
-  if (total === 0) return null;
+  // Zero tasks still renders the bar — empty (white, thin black border;
+  // inverted in dark mode) rather than absent, so cards keep a consistent
+  // footprint and "no tasks yet" reads at a glance. The legend is skipped;
+  // there's nothing to itemize.
+  if (total === 0) {
+    return (
+      <div className="mt-3 pt-3 border-t border-foreground/[0.06] w-full">
+        <div
+          className="flex w-full h-2 rounded-full bg-white border border-black dark:bg-black dark:border-white"
+          title="No tasks yet"
+        />
+      </div>
+    );
+  }
 
   const activeStats = counts
     .filter((c) => c.count > 0)

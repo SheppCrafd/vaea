@@ -18,7 +18,7 @@ import { useUpdateProject, useDeleteProject } from "@/hooks/useProjects";
 import { useEditableField } from "@/hooks/useEditableField";
 import { useHighlightMatch } from "@/hooks/useHighlightDim";
 import { useHighlight } from "@/lib/HighlightContext";
-import { confirmThen, sanitizeHttpUrl } from "@/lib/entityUtils";
+import { confirmThen, sanitizeHttpUrl, titleWithBreakHints } from "@/lib/entityUtils";
 import { filterActiveTasks, getQuadrantCounts, isTaskDone, STATUS_COLORS } from "@/lib/taskUtils";
 import { getDueDateColorClass, DUE_DATE_STATUS_OPTIONS } from "@/lib/projectUtils";
 
@@ -99,7 +99,7 @@ function LinksCorner({ links, onSave }) {
           href={sanitizeHttpUrl(l.url) || "#"}
           target="_blank"
           rel="noreferrer"
-          title={l.url}
+          title={l.label && l.label !== l.url ? `${l.label} — ${l.url}` : l.url}
           className="flex items-center gap-1 max-w-[120px] text-[10px] text-primary hover:underline bg-secondary/40 rounded px-1.5 py-0.5"
         >
           <Link2 className="w-2.5 h-2.5 shrink-0" />
@@ -275,14 +275,14 @@ export default function ProjectCardFull({ project, stakeholderIds = [] }) {
           expand/delete right). */}
       <div className="pl-7 pr-14 flex flex-col items-center gap-1">
         <h4
-          className="font-heading font-semibold text-sm break-words text-center outline-none focus:ring-1 focus:ring-primary/40 rounded cursor-text w-full px-1"
+          className="font-heading font-semibold text-sm text-center outline-none focus:ring-1 focus:ring-primary/40 rounded cursor-text w-full px-1"
           contentEditable
           suppressContentEditableWarning
           onInput={handleTitleInput}
           onBlur={handleTitleBlur}
           onKeyDown={handleTitleKeyDown}
         >
-          {title}
+          {titleWithBreakHints(title)}
         </h4>
         <EditableText
           value={project.objective}

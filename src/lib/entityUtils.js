@@ -41,6 +41,18 @@ export function reorderPositions(ids, draggedId, targetId) {
   return Object.fromEntries(next.map((id, index) => [id, index]));
 }
 
+// Display-only line-break hints for card titles: a zero-width space after
+// each delimiter (colon, slash, hyphen, comma, period, em-dash, underscore)
+// gives the browser a break opportunity exactly there — paired with
+// removing `break-words` from title elements, wrapping happens after
+// delimiters and never mid-word ("Measurements/Insights" splits at the
+// slash, not wherever the line runs out). Purely presentational:
+// useEditableField strips the U+200B back out of anything typed or saved,
+// so stored titles never contain it.
+export function titleWithBreakHints(text) {
+  return (text || "").replace(/([:/\-,.—_])/g, "$1\u200B");
+}
+
 // Only allow http(s) URLs to prevent stored XSS via unsafe protocols (e.g.
 // javascript:). Returns the trimmed URL, or null if it's missing/invalid.
 export function sanitizeHttpUrl(url) {

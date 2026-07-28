@@ -20,7 +20,10 @@ export function useEditableField(initialValue, onSave) {
   // front and typed text comes out reversed. While the field is focused the
   // DOM is the source of truth; state only catches up on blur.
   const handleInput = (e) => {
-    latest.current = e.currentTarget.textContent;
+    // Strip the zero-width break hints titleWithBreakHints() renders into
+    // display text — they're a wrapping affordance, not content, and must
+    // never reach a save.
+    latest.current = e.currentTarget.textContent.replace(/\u200B/g, "");
   };
 
   const handleBlur = () => {

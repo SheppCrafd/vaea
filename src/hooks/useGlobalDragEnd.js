@@ -64,6 +64,35 @@ export function useGlobalDragEnd() {
       const project = projects.find((p) => p.id === activeData.id);
       if (!project) return;
 
+      // Dropped on a sibling project: reorder within that project's parent
+      // (product, or area-direct), taking the target's spot — the same
+      // "drop onto X to take X's place" mechanic Products already have one
+      // level up. Coming from a different parent, the same computation
+      // moves it there landing at that spot instead of tacked on the end.
+      if (overData.type === "project" && overData.id !== project.id) {
+        const target = projects.find((p) => p.id === overData.id);
+        if (!target) return;
+        const targetProductId = target.parent_product_id ?? null;
+        const targetAreaId = target.parent_area_id ?? null;
+        const siblingIds = sortByPosition(
+          projects.filter(
+            (p) =>
+              (p.parent_product_id ?? null) === targetProductId &&
+              (p.parent_area_id ?? null) === targetAreaId &&
+              p.id !== project.id
+          )
+        ).map((p) => p.id);
+        const positions = reorderPositions([...siblingIds, project.id], project.id, target.id);
+        localDb.projects
+          .updateMany(Object.keys(positions), (item) => (
+            item.id === project.id
+              ? { position: positions[item.id], parent_product_id: targetProductId, parent_area_id: targetAreaId }
+              : { position: positions[item.id] }
+          ))
+          .then(() => queryClient.invalidateQueries({ queryKey: ["projects"] }));
+        return;
+      }
+
       if (overData.type === "product") {
         const targetProduct = products.find((p) => p.id === overData.id);
         if (!targetProduct) return;

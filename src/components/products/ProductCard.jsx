@@ -2,23 +2,20 @@ import { useState } from "react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { Expand, Trash2, GripVertical } from "lucide-react";
 import { useFilter } from "@/lib/FilterContext";
-import { useStakeholders } from "@/hooks/useStakeholders";
 import { useProjects } from "@/hooks/useProjects";
 import { useAllTasks } from "@/hooks/useTasks";
 import { useUpdateProduct, useDeleteProduct } from "@/hooks/useProducts";
 import { useEditableField } from "@/hooks/useEditableField";
 import { useHighlightMatch } from "@/hooks/useHighlightDim";
-import { confirmThen } from "@/lib/entityUtils";
+import { confirmThen, sortByPosition, titleWithBreakHints } from "@/lib/entityUtils";
 import EditableText from "@/components/shared/EditableText";
 import CardCustomFields from "@/components/shared/CardCustomFields";
-import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
 import ProjectsGrid from "@/components/shared/ProjectsGrid";
 import ProductDetailModal from "@/components/products/ProductDetailModal";
 import TaskStatistics from "@/components/shared/TaskStatistics";
 
 export default function ProductCard({ product, forceFullProjects = false }) {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const { data: allStakeholders = [] } = useStakeholders();
   const { data: allProjects = [] } = useProjects();
   const { data: allTasks = [] } = useAllTasks();
   const { excludedIds } = useFilter();
@@ -30,7 +27,7 @@ export default function ProductCard({ product, forceFullProjects = false }) {
     (value) => updateProduct.mutate({ id: product.id, data: { title: value } })
   );
 
-  const projects = allProjects.filter((p) => p.parent_product_id === product.id && !excludedIds.includes(p.id));
+  const projects = sortByPosition(allProjects.filter((p) => p.parent_product_id === product.id && !excludedIds.includes(p.id)));
 
   const { setNodeRef: setDropRef, isOver } = useDroppable({ id: `product-drop-${product.id}`, data: { type: "product", id: product.id } });
   // Draggable so a Product can be dragged to reorder within its Area, or
@@ -113,14 +110,14 @@ export default function ProductCard({ product, forceFullProjects = false }) {
 
       <div className="relative z-[1] min-w-0 pr-12 pl-6">
         <h3
-          className="font-heading font-semibold break-words min-w-0 outline-none focus:ring-1 focus:ring-primary/40 rounded cursor-text"
+          className="font-heading font-semibold min-w-0 outline-none focus:ring-1 focus:ring-primary/40 rounded cursor-text"
           contentEditable
           suppressContentEditableWarning
           onInput={handleInput}
           onBlur={handleTitleBlur}
           onKeyDown={handleTitleKeyDown}
         >
-          {title}
+          {titleWithBreakHints(title)}
         </h3>
         
         <div className="mt-0.5 min-w-0">
@@ -133,14 +130,10 @@ export default function ProductCard({ product, forceFullProjects = false }) {
         </div>
       </div>
       
-      <div className="relative z-[1] mt-3 flex justify-center">
-        <StakeholderAssigner
-          currentStakeholderIds={product.stakeholder_ids || []}
-          allStakeholders={allStakeholders}
-          onSave={(newIds) => updateProduct.mutate({ id: product.id, data: { stakeholder_ids: newIds } })}
-        />
-      </div>
-
+      {/* No StakeholderAssigner here, deliberately — Product cards are the
+          one card type without the inline (+) assign control, per design
+          review; assignment still works by dragging a stakeholder from the
+          sidebar onto the card, or through ProductDetailModal. */}
       <ProjectsGrid
         projects={projects}
         stakeholderIds={product.stakeholder_ids}

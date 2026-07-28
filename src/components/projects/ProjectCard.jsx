@@ -9,7 +9,7 @@ import { useEditableField } from "@/hooks/useEditableField";
 import { useHighlightMatch } from "@/hooks/useHighlightDim";
 import { useHighlight } from "@/lib/HighlightContext";
 import { useUpdateProject, useDeleteProject } from "@/hooks/useProjects";
-import { confirmThen } from "@/lib/entityUtils";
+import { confirmThen, titleWithBreakHints } from "@/lib/entityUtils";
 import { getQuadrantCounts, getMiniStatusCounts, STATUS_COLORS } from "@/lib/taskUtils";
 
 // Mini card: the dashboard's default project face is deliberately just
@@ -100,14 +100,15 @@ export default function ProjectCard({ project, stakeholderIds = [] }) {
         </div>
 
         <h4
-          className="flex-1 min-w-0 font-heading font-semibold text-[11px] leading-tight text-center break-words outline-none focus:ring-1 focus:ring-primary/40 rounded cursor-text line-clamp-2"
+          className="flex-1 min-w-0 font-heading font-semibold text-[11px] leading-tight text-center outline-none focus:ring-1 focus:ring-primary/40 rounded cursor-text line-clamp-2"
           contentEditable
           suppressContentEditableWarning
           onInput={handleTitleInput}
           onBlur={handleTitleBlur}
           onKeyDown={handleTitleKeyDown}
+          title={title}
         >
-          {title}
+          {titleWithBreakHints(title)}
         </h4>
 
         <div className="shrink-0 flex items-center gap-0.5">
@@ -174,7 +175,7 @@ export default function ProjectCard({ project, stakeholderIds = [] }) {
         </div>
       </div>
 
-      {miniTotal > 0 && (
+      {miniTotal > 0 ? (
         <div className="w-full flex h-1.5 rounded-full overflow-hidden shrink-0 mb-0.5">
           {miniStats
             .filter((s) => s.count > 0)
@@ -187,6 +188,15 @@ export default function ProjectCard({ project, stakeholderIds = [] }) {
               />
             ))}
         </div>
+      ) : (
+        // Zero tasks still shows the bar — an empty vessel (white with a
+        // thin black border; inverted in dark mode), not a missing one, so
+        // every tile keeps the same footprint and "no tasks yet" is legible
+        // at a glance.
+        <div
+          className="w-full h-1.5 rounded-full shrink-0 mb-0.5 bg-white border border-black dark:bg-black dark:border-white"
+          title="No tasks yet"
+        />
       )}
 
       {isTableOpen && (

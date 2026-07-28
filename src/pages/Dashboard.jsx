@@ -91,11 +91,11 @@ export default function Dashboard() {
 
         const productsWithProjects = areaProducts.map((product) => ({
           ...product,
-          projects: projects.filter((proj) => proj.parent_product_id === product.id)
+          projects: sortByPosition(projects.filter((proj) => proj.parent_product_id === product.id))
         }));
 
-        const orphanProjects = projects.filter(
-          (proj) => proj.parent_area_id === area.id && !proj.parent_product_id
+        const orphanProjects = sortByPosition(
+          projects.filter((proj) => proj.parent_area_id === area.id && !proj.parent_product_id)
         );
 
         // Areas have no stakeholder_ids of their own, so an Area's

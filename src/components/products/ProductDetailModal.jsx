@@ -7,7 +7,7 @@ import { useProjects } from "@/hooks/useProjects";
 import { useAllTasks } from "@/hooks/useTasks";
 import { useAreas, useUpdateArea } from "@/hooks/useAreas";
 import { isTaskDone } from "@/lib/taskUtils";
-import { confirmThen } from "@/lib/entityUtils";
+import { confirmThen, sortByPosition } from "@/lib/entityUtils";
 import EditableText from "@/components/shared/EditableText";
 import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
 import CustomFieldsSection from "@/components/shared/CustomFieldsSection";
@@ -26,7 +26,7 @@ export default function ProductDetailModal({ product, onClose }) {
   const departments = [...new Set(stakeholders.map((s) => s.department))];
   const area = allAreas.find((a) => a.id === product.parent_area_id);
 
-  const projects = allProjects.filter((p) => p.parent_product_id === product.id);
+  const projects = sortByPosition(allProjects.filter((p) => p.parent_product_id === product.id));
   const projectIds = projects.map((p) => p.id);
   const productTasks = allTasks.filter((t) => projectIds.includes(t.project_id));
   const doneCount = productTasks.filter(isTaskDone).length;
