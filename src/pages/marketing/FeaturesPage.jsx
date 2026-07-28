@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
 import { Reveal, StageLight, Grain } from "./effects";
-import { darkSectionBg, darkText, darkTopEdge, pillOnDark, eyebrowOnDark, displayXL, displayL } from "./theme";
+import { darkSectionBg, darkText, darkTopEdge, pillOnDark, eyebrowOnDark, displayXL, displayL, hairlineH } from "./theme";
 
 const GROUPS = [
   {
@@ -84,7 +84,8 @@ export default function FeaturesPage() {
 
       <div className="max-w-4xl mx-auto px-6 py-16 sm:py-20">
         {GROUPS.map((group, i) => (
-          <Reveal key={group.title} as="div" className={`py-10 sm:py-12 ${i > 0 ? "border-t border-border" : ""}`}>
+          <Reveal key={group.title} as="div" className="py-10 sm:py-12">
+            {i > 0 && <div aria-hidden="true" className={`${hairlineH} -mt-10 sm:-mt-12 mb-10 sm:mb-12`} />}
             <div className="sm:grid sm:grid-cols-[220px_1fr] sm:gap-10">
               <div className="mb-6 sm:mb-0">
                 <h2 className="font-heading text-xl font-semibold tracking-tight">{group.title}</h2>
@@ -96,7 +97,7 @@ export default function FeaturesPage() {
                     key={title}
                     className="flex gap-4 p-4 -mx-4 rounded-xl transition-colors hover:bg-gradient-to-r hover:from-muted/50 hover:to-transparent"
                   >
-                    <div className="shrink-0 w-9 h-9 rounded-lg bg-gradient-to-b from-card to-muted/60 border border-border/70 shadow-sm flex items-center justify-center">
+                    <div className="shrink-0 w-9 h-9 rounded-lg bg-gradient-to-b from-card to-muted/60 shadow-[0_0_0_1px_hsl(var(--foreground)/0.05),0_1px_2px_0_hsl(200_30%_12%/0.06)] flex items-center justify-center">
                       <Icon className="w-4 h-4 text-foreground" />
                     </div>
                     <div>

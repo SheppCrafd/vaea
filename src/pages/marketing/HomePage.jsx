@@ -12,7 +12,7 @@ import {
   IdentityFilm, IDENTITY_PHASES,
 } from "./demos";
 import {
-  darkSectionBg, darkText, darkTopEdge, lightStage,
+  darkSectionBg, darkText, darkTopEdge, lightStage, lightWash, glowTop,
   pillOnDark, linkOnDark, linkOnLight, eyebrowOnDark, eyebrowOnLight,
   displayXL, displayL, displayM,
 } from "./theme";
@@ -142,8 +142,9 @@ function PaletteSection() {
   const { ref, step } = useTimeline(PALETTE_PHASES);
 
   return (
-    <section className="relative bg-background border-t border-border/60">
-      <div ref={ref} className="max-w-6xl mx-auto px-6 py-24 sm:py-32">
+    <section className="relative bg-background">
+      <div aria-hidden="true" className={glowTop} />
+      <div ref={ref} className="relative max-w-6xl mx-auto px-6 py-24 sm:py-32">
         <div className="grid lg:grid-cols-[0.85fr_1.15fr] gap-12 lg:gap-16 items-center">
           <Reveal>
             <p className={`${eyebrowOnLight} mb-4`}>Find anything</p>
@@ -172,7 +173,7 @@ function NestSection() {
   const { ref, step } = useTimeline(NEST_PHASES);
 
   return (
-    <section className="relative bg-muted/25 border-t border-border/60">
+    <section className={`relative ${lightWash}`}>
       <div ref={ref} className="max-w-6xl mx-auto px-6 py-24 sm:py-32">
         <div className="grid lg:grid-cols-[1.15fr_0.85fr] gap-12 lg:gap-16 items-center">
           <Reveal delay={120} className={`${lightStage} p-6 sm:p-12 lg:order-1 order-2`}>
@@ -278,12 +279,12 @@ export default function HomePage() {
       <IdentitySection />
       <VaultSection />
 
-      <section className="relative bg-background border-t border-border/60">
+      <section className="relative bg-background">
         <div className="max-w-5xl mx-auto px-6 py-20">
           <Reveal className="grid sm:grid-cols-3 gap-8">
             {QUIET_TRUTHS.map(({ icon: Icon, title, body }) => (
               <div key={title} className="flex gap-3">
-                <div className="shrink-0 w-8 h-8 rounded-lg bg-gradient-to-b from-card to-muted/60 border border-border/70 shadow-sm flex items-center justify-center">
+                <div className="shrink-0 w-8 h-8 rounded-lg bg-gradient-to-b from-card to-muted/60 shadow-[0_0_0_1px_hsl(var(--foreground)/0.05),0_1px_2px_0_hsl(200_30%_12%/0.06)] flex items-center justify-center">
                   <Icon className="w-3.5 h-3.5 text-foreground" />
                 </div>
                 <div>
@@ -296,7 +297,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="relative bg-muted/25 border-t border-border/60">
+      <section className={`relative ${lightWash}`}>
         <div className="max-w-2xl mx-auto px-6 py-24 sm:py-28">
           <Reveal className="text-center">
             <p className={`${eyebrowOnLight} mb-4`}>FAQ</p>
@@ -305,7 +306,7 @@ export default function HomePage() {
           <Reveal delay={120} className={`mt-10 ${lightStage} p-2 sm:p-5`}>
             <Accordion type="single" collapsible>
               {FAQS.map(({ q, a }) => (
-                <AccordionItem key={q} value={q}>
+                <AccordionItem key={q} value={q} className="border-foreground/[0.07] last:border-b-0">
                   <AccordionTrigger className="text-base px-2">{q}</AccordionTrigger>
                   <AccordionContent className="text-muted-foreground px-2">{a}</AccordionContent>
                 </AccordionItem>

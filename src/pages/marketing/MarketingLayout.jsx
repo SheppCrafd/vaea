@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Github, Menu, X } from "lucide-react";
+import { hairlineH } from "./theme";
 
 const NAV_LINKS = [
   { to: "/features", label: "Features" },
@@ -20,19 +21,19 @@ function Logo() {
   );
 }
 
-// The frosted sticky bar: the original proportions (h-16, full-size logo and
-// nav, square-cornered Sign up) with a real glass build on top of the flat
-// alpha it used to have — a vertical falloff rather than one uniform
-// translucency, plus a hairline highlight along the top edge where light
-// would catch a pane. Stays theme-adaptive (bg-background) rather than
-// hardcoded dark, so it tracks the user's light/dark preference and reads
-// the same whether a dark band or a light section is scrolling underneath.
+// The frosted sticky bar, apple.com-style: no border-b line at all — the
+// bar's edge is a 1px shadow (an opacity shift over whatever scrolls
+// beneath) plus a wide soft falloff, and the glass itself is a heavily
+// saturated blur so colors passing under it stay vivid instead of going
+// gray. Stays theme-adaptive (bg-background) rather than hardcoded dark, so
+// it tracks the user's light/dark preference and reads the same whether a
+// dark band or a light section is scrolling underneath.
 function NavBar() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border/70 bg-gradient-to-b from-background/85 to-background/60 backdrop-blur-xl supports-[backdrop-filter]:from-background/70 supports-[backdrop-filter]:to-background/45 shadow-[inset_0_1px_0_0_hsl(var(--card)/0.7),0_1px_12px_-6px_hsl(200_30%_12%/0.25)]">
+    <header className="sticky top-0 z-30 bg-background/70 supports-[backdrop-filter]:bg-background/55 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_1px_0_0_hsl(var(--foreground)/0.06),0_16px_32px_-24px_hsl(200_30%_12%/0.3)]">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between gap-6">
         <div className="flex items-center gap-8">
           <Logo />
@@ -71,7 +72,7 @@ function NavBar() {
           </Link>
           <Link
             to="/signup"
-            className="text-sm px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md transition-colors shadow-sm"
+            className="text-sm px-4 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-full transition-all hover:shadow-[0_6px_16px_-6px_hsl(var(--primary)/0.5)]"
           >
             Sign up
           </Link>
@@ -80,7 +81,7 @@ function NavBar() {
             onClick={() => setMobileOpen((v) => !v)}
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
             aria-expanded={mobileOpen}
-            className="sm:hidden flex items-center justify-center w-9 h-9 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors -mr-1"
+            className="sm:hidden flex items-center justify-center w-9 h-9 rounded-full bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors -mr-1"
           >
             {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
           </button>
@@ -88,7 +89,7 @@ function NavBar() {
       </div>
 
       {mobileOpen && (
-        <nav className="sm:hidden border-t border-border bg-background px-6 py-4 flex flex-col gap-1">
+        <nav className="sm:hidden bg-background/85 backdrop-blur-2xl shadow-[inset_0_1px_0_0_hsl(var(--foreground)/0.06)] px-6 py-4 flex flex-col gap-1">
           {NAV_LINKS.map(({ to, label }) => (
             <Link
               key={to}
@@ -134,7 +135,8 @@ function NavBar() {
 
 function Footer() {
   return (
-    <footer className="border-t border-border/60 bg-muted/20">
+    <footer className="bg-gradient-to-b from-transparent to-muted/50">
+      <div aria-hidden="true" className={hairlineH} />
       <div className="max-w-6xl mx-auto px-6 py-14">
         <div className="grid sm:grid-cols-[1.5fr_1fr_1fr] gap-10">
           <div>
@@ -167,8 +169,9 @@ function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 pt-6 border-t border-border/60 text-xs text-muted-foreground">
-          Vaea. Your stuff stays on your device, always.
+        <div className="mt-10">
+          <div aria-hidden="true" className={hairlineH} />
+          <p className="pt-6 text-xs text-muted-foreground">Vaea. Your stuff stays on your device, always.</p>
         </div>
       </div>
     </footer>

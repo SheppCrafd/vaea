@@ -35,15 +35,34 @@ export const glassSheen =
 
 // A lighter glass treatment for tiles sitting on theme-adaptive light
 // sections — reads as premium without fighting the light background the way
-// a dark glass panel would.
+// a dark glass panel would. The 1px edge is a shadow ring (an opacity shift
+// over whatever's behind it), not a solid border — no hard lines anywhere
+// on the marketing surface.
 export const glassTileLight =
-  "bg-gradient-to-b from-card to-muted/50 border border-border/70 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300";
+  "bg-gradient-to-b from-card to-muted/50 shadow-[0_0_0_1px_hsl(var(--foreground)/0.05),0_1px_2px_0_hsl(200_30%_12%/0.06)] hover:shadow-[0_0_0_1px_hsl(var(--foreground)/0.06),0_4px_10px_-2px_hsl(200_30%_12%/0.12)] hover:-translate-y-0.5 transition-all duration-300";
 
 // The recessed "stage" a light-section demo sits in, so a realistically
 // small piece of UI (a command palette, a card stack) can hold a wide
 // section without being stretched to a size it never has in the real app.
 export const lightStage =
-  "rounded-[2rem] bg-[radial-gradient(80%_60%_at_50%_0%,hsl(var(--card)),hsl(var(--muted)/0.5))] border border-border/60 shadow-[inset_0_1px_0_0_hsl(var(--card)),0_1px_2px_0_hsl(200_30%_12%/0.05)]";
+  "rounded-[2rem] bg-[radial-gradient(80%_60%_at_50%_0%,hsl(var(--card)),hsl(var(--muted)/0.5))] shadow-[inset_0_1px_0_0_hsl(var(--card)),0_0_0_1px_hsl(var(--foreground)/0.045),0_1px_2px_0_hsl(200_30%_12%/0.05)]";
+
+// A light section whose edges dissolve into a muted wash instead of meeting
+// the neighbouring section at a border-t line — two of these stacked read as
+// one continuous surface with a soft valley where they touch.
+export const lightWash =
+  "bg-[linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--muted)/0.55)_28%,hsl(var(--muted)/0.55)_72%,hsl(var(--background))_100%)]";
+
+// Gradient hairline — the replacement for every border-t/border-b rule line
+// on light surfaces: brightest in the middle, dissolving to nothing at the
+// ends, so it reads as a fold in the surface rather than a drawn line.
+export const hairlineH =
+  "h-px w-full bg-gradient-to-r from-transparent via-foreground/[0.09] to-transparent";
+
+// Faint cyan bloom pinned to a light section's top edge — the light-mode
+// sibling of StageLight, at a fraction of the intensity.
+export const glowTop =
+  "pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(55%_70%_at_50%_0%,rgba(70,186,209,0.07),transparent_70%)]";
 
 // High-contrast pill CTAs — always the opposite tone of whatever section
 // they sit on, matching the contrast a "Buy" pill keeps regardless of the
