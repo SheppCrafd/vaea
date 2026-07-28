@@ -1,17 +1,27 @@
-import { createContext, useContext, useState, useMemo } from "react";
+import { createContext, useContext, useState, useMemo, useCallback } from "react";
 
 // Global exclusion filter: any Area/Product/Project ID pushed here is hidden
-// from the dashboard views.
+// from the dashboard views. Bulk operations rather than a one-id toggle —
+// the filter UI's Excel-style tri-state behavior (uncheck a parent, its
+// whole subtree unchecks with it; Select All flips everything) always acts
+// on sets of ids in one state update, never a per-id loop of renders.
 const FilterContext = createContext(null);
 
 export function FilterProvider({ children }) {
   const [excludedIds, setExcludedIds] = useState([]);
 
-  const toggleExclude = (id) => {
-    setExcludedIds((prev) => (prev.includes(id) ? prev.filter((existing) => existing !== id) : [...prev, id]));
-  };
+  const excludeMany = useCallback((ids) => {
+    setExcludedIds((prev) => [...new Set([...prev, ...ids])]);
+  }, []);
 
-  const value = useMemo(() => ({ excludedIds, toggleExclude }), [excludedIds]);
+  const includeMany = useCallback((ids) => {
+    setExcludedIds((prev) => {
+      const drop = new Set(ids);
+      return prev.filter((id) => !drop.has(id));
+    });
+  }, []);
+
+  const value = useMemo(() => ({ excludedIds, excludeMany, includeMany }), [excludedIds, excludeMany, includeMany]);
 
   return <FilterContext.Provider value={value}>{children}</FilterContext.Provider>;
 }
