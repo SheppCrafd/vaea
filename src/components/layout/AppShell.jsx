@@ -139,7 +139,10 @@ export default function AppShell({ children }) {
           </main>
         </div>
 
-        <aside style={{ gridArea: "sidebar" }} className={`overflow-hidden rounded-2xl flex flex-col ${isRightSidebarOpen ? "bg-card shadow-[0_0_0_1px_hsl(var(--foreground)/0.04),0_10px_22px_-12px_hsl(200_30%_12%/0.18)]" : ""}`}>
+        {/* Same dark-panel treatment as the left rail (and Chat/Settings'
+            rails) — all four side panels share one surface, per direct
+            feedback, rather than the right one staying light. */}
+        <aside style={{ gridArea: "sidebar" }} className={`dark text-foreground overflow-hidden rounded-2xl flex flex-col ${isRightSidebarOpen ? "bg-[linear-gradient(180deg,#181818_0%,#111111_55%,#0C0C0C_100%)] shadow-xl" : ""}`}>
           {isRightSidebarOpen && (
             <>
               <div className="h-14 shrink-0 flex items-center justify-between pl-3 pr-4">
