@@ -14,6 +14,8 @@
 import { localDb } from "@/lib/localDb";
 import { withKeyLock } from "@/lib/asyncKeyLock";
 import { toCsv } from "@/lib/csv";
+import { excludeSoftDeleted } from "@/lib/entityUtils";
+import { filterActiveTasks } from "@/lib/taskUtils";
 import { CARD_VIEW_STORAGE_KEY, CARD_VIEW_CHANGE_EVENT } from "@/lib/cardViewConstants";
 import { loadAiIdentity, saveAiIdentity } from "@/lib/aiPreferences";
 import { createSnapshot } from "@/lib/backupSnapshots";
@@ -344,14 +346,17 @@ export async function executeAction(action, args) {
     }
 
     case "EXPORT_CSV": {
+      // Active records only — an export represents the current workspace,
+      // so soft-deleted rows (every type) and archived projects/tasks stay
+      // out of it, matching exactly what the UI itself shows.
       const listers = {
-        area: () => localDb.areas.list(),
-        product: () => localDb.products.list(),
-        project: () => localDb.projects.list(),
-        task: () => localDb.tasks.list(),
-        stakeholder: () => localDb.stakeholders.list(),
-        department: () => localDb.departments.list(),
-        note: () => localDb.projectNotes.list(),
+        area: async () => excludeSoftDeleted(await localDb.areas.list()),
+        product: async () => excludeSoftDeleted(await localDb.products.list()),
+        project: async () => excludeSoftDeleted(await localDb.projects.list()).filter((p) => !p.is_archived),
+        task: async () => filterActiveTasks(await localDb.tasks.list()),
+        stakeholder: async () => excludeSoftDeleted(await localDb.stakeholders.list()),
+        department: async () => excludeSoftDeleted(await localDb.departments.list()),
+        note: async () => excludeSoftDeleted(await localDb.projectNotes.list()),
       };
       const lister = listers[args.entity_type];
       if (!lister) throw new Error(`Unknown entity_type "${args.entity_type}" for EXPORT_CSV`);

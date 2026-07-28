@@ -4,14 +4,15 @@ import { Button } from "@/components/ui/button";
 import { useAreas } from "@/hooks/useAreas";
 import { useProducts } from "@/hooks/useProducts";
 import { useProjects } from "@/hooks/useProjects";
+import { useAllTasks } from "@/hooks/useTasks";
 import { parseCsv, toCsv } from "@/lib/csv";
-import { CSV_TEMPLATE_COLUMNS, CSV_TEMPLATE_EXAMPLE_ROWS, buildHierarchyPlan, countActionsByType } from "@/lib/csvImport";
+import { CSV_TEMPLATE_COLUMNS, CSV_TEMPLATE_EXAMPLE_ROWS, buildWorkspaceRows, buildHierarchyPlan, countActionsByType } from "@/lib/csvImport";
 import { executeActionSequence } from "@/lib/chatActions";
 
 const LABELS = { area: "area", product: "product", project: "project", task: "task" };
 
-function downloadTemplate() {
-  const csv = toCsv(CSV_TEMPLATE_COLUMNS, CSV_TEMPLATE_EXAMPLE_ROWS);
+function downloadCsvFile(rows) {
+  const csv = toCsv(CSV_TEMPLATE_COLUMNS, rows);
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -40,6 +41,17 @@ export default function CsvImportForm() {
   const { data: areas = [] } = useAreas();
   const { data: products = [] } = useProducts();
   const { data: projects = [] } = useProjects();
+  const { data: tasks = [] } = useAllTasks();
+
+  // The template downloads pre-filled with the current workspace (active
+  // records only — these hooks already exclude archived and deleted): a
+  // ready inventory to edit and re-import, since unchanged rows reuse their
+  // existing records rather than duplicating. Only a completely empty
+  // workspace falls back to the worked example rows.
+  const downloadTemplate = () => {
+    const rows = buildWorkspaceRows({ areas, products, projects, tasks });
+    downloadCsvFile(rows.length ? rows : CSV_TEMPLATE_EXAMPLE_ROWS);
+  };
 
   const handleFile = async (e) => {
     const file = e.target.files?.[0];
@@ -51,7 +63,7 @@ export default function CsvImportForm() {
     try {
       const text = await file.text();
       const { records } = parseCsv(text);
-      const { actions, errors } = buildHierarchyPlan(records, { areas, products, projects });
+      const { actions, errors } = buildHierarchyPlan(records, { areas, products, projects, tasks });
       if (actions.length) {
         await executeActionSequence(actions);
         ["areas", "products", "projects", "tasks"].forEach((key) =>
