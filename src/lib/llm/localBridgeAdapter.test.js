@@ -59,6 +59,21 @@ describe("localBridgeAdapter: file-based round loop", () => {
     });
   });
 
+  it("splits reply from reasoning even when a SINGLE round's own text has multiple paragraphs — a model very often writes its whole build-up and its conclusion together, with no tool call forcing a second round at all", async () => {
+    pollForResponseFile.mockResolvedValueOnce({
+      content: [{ type: "text", text: "I'll set up three areas with a product each.\n\nDone — created three areas with their own products." }],
+    });
+
+    const { reply, reasoning } = await callLocalBridge({ systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn() });
+
+    // "Last round's own text" alone would have made reply === reasoning here
+    // (there's only one round) — the exact regression a real user caught a
+    // second time, even after the round-based version of this fix.
+    expect(reasoning).toBe("I'll set up three areas with a product each.\n\nDone — created three areas with their own products.");
+    expect(reply).toBe("Done — created three areas with their own products.");
+    expect(reply).not.toBe(reasoning);
+  });
+
   it("throws on a malformed response file instead of treating it as final", async () => {
     pollForResponseFile.mockResolvedValueOnce({ notContent: true });
     await expect(

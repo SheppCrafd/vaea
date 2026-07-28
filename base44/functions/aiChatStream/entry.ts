@@ -995,19 +995,30 @@ Deno.serve(async (req) => {
           // `reasoning` is every round's own text, in order — "I'll check
           // the workspace first...", then "Found two matches, now creating
           // the plan...", genuine deliberation including any real
-          // self-correction, not just the destination. `reply` is ONLY the
-          // last round's own text — the actual conversational answer, the
-          // thing that belongs in the chat transcript without needing to
-          // click anything. These used to be the same string (the full
-          // joined narrative used as both the chat bubble AND the plan
-          // modal's own detail) — a real user caught that as "the plan is
-          // VERBATIM the text in chat," rightly pointless, since a click
-          // that reveals nothing you couldn't already see is no different
-          // from no click at all. A single-round turn (a plain reply, no
-          // tool calls) legitimately has reply === reasoning — there's no
-          // earlier deliberation to separate out — and that's fine.
+          // self-correction, not just the destination.
           const reasoning = stepTexts.join('\n\n');
-          const reply = stepTexts[stepTexts.length - 1] || "I couldn't come up with a reply — could you rephrase?";
+          // `reply` is ONLY the closing paragraph of that — the actual
+          // conversational answer, the thing that belongs in the chat
+          // transcript without needing to click anything. Split on
+          // paragraph breaks WITHIN the full text, not on tool-loop round
+          // boundaries: a model very often writes its entire narration —
+          // build-up and conclusion both — in one single round (it doesn't
+          // need to see a tool's result before deciding to create three
+          // sibling areas, so it just calls all three at once, with all its
+          // reasoning in that same one completion) which made
+          // "steps[steps.length-1]" identical to the whole thing whenever
+          // that happened — the exact "reply === reasoning" a real user
+          // caught happening again even after the round-based version of
+          // this fix. Paragraph breaks (blank lines) are how the model
+          // itself already separates "here's my plan" from "done" prose
+          // regardless of how many real API round-trips it took, so
+          // splitting on those instead is right every time, not just when
+          // the model happens to spread itself across multiple rounds. A
+          // reply with no paragraph break at all (a short, single-thought
+          // turn) legitimately has reply === reasoning — there's nothing
+          // earlier to separate out — and that's fine.
+          const paragraphs = reasoning.split(/\n\n+/).filter(Boolean);
+          const reply = paragraphs[paragraphs.length - 1] || "I couldn't come up with a reply — could you rephrase?";
 
           // Word-sized paced chunks of the FULL reasoning (every round,
           // not just the final one) — this is what streams live, the same

@@ -20,6 +20,16 @@ function newRequestId() {
   return `req-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+// See anthropicAdapter.js's matching comment: the closing paragraph of the
+// full narrative, split on blank lines WITHIN the text rather than on
+// tool-loop round boundaries, since a model very often puts its entire
+// narration in a single round (all its reasoning plus every tool call it
+// doesn't need an intermediate result for, in one completion).
+function lastParagraph(text) {
+  const paragraphs = text.split(/\n\n+/).filter(Boolean);
+  return paragraphs[paragraphs.length - 1] || "";
+}
+
 // Returns {reply, reasoning} for one turn — `reply` is just the last
 // round's own text (the actual conversational answer), `reasoning` is every
 // round's own text joined (the full deliberation, self-corrections
@@ -48,9 +58,10 @@ export async function callLocalBridge({ systemPrompt, contextPrompt, tools, runT
     if (roundText) thinking.push(roundText);
 
     if (toolUseBlocks.length === 0) {
+      const reasoning = thinking.join("\n\n");
       return {
-        reply: thinking[thinking.length - 1] || "I couldn't come up with a reply — could you rephrase?",
-        reasoning: thinking.join("\n\n"),
+        reply: lastParagraph(reasoning) || "I couldn't come up with a reply — could you rephrase?",
+        reasoning,
       };
     }
 

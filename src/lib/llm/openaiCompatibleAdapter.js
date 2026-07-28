@@ -9,6 +9,16 @@ import { readSse } from "@/lib/llm/streamUtils";
 
 const MAX_TOOL_ROUNDS = 15;
 
+// See anthropicAdapter.js's matching comment: the closing paragraph of the
+// full narrative, split on blank lines WITHIN the text rather than on
+// tool-loop round boundaries, since a model very often puts its entire
+// narration in a single round (all its reasoning plus every tool call it
+// doesn't need an intermediate result for, in one completion).
+function lastParagraph(text) {
+  const paragraphs = text.split(/\n\n+/).filter(Boolean);
+  return paragraphs[paragraphs.length - 1] || "";
+}
+
 // Streams one round via `stream: true` + the chat-completions SSE format
 // (each event a "chat.completion.chunk" carrying one incremental `delta`,
 // terminated by a `data: [DONE]` sentinel readSse already swallows),
@@ -92,9 +102,10 @@ export async function callOpenAiCompatible({ baseUrl, apiKey, model, systemPromp
     if (roundText) thinking.push(roundText);
 
     if (!message.tool_calls?.length) {
+      const reasoning = thinking.join("\n\n");
       return {
-        reply: thinking[thinking.length - 1] || "I couldn't come up with a reply — could you rephrase?",
-        reasoning: thinking.join("\n\n"),
+        reply: lastParagraph(reasoning) || "I couldn't come up with a reply — could you rephrase?",
+        reasoning,
       };
     }
 

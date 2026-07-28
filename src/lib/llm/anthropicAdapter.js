@@ -10,6 +10,22 @@ import { readSse } from "@/lib/llm/streamUtils";
 
 const MAX_TOOL_ROUNDS = 15;
 
+// The closing paragraph of a full multi-round narrative — split on blank
+// lines WITHIN the joined text, not on tool-loop round boundaries, since a
+// model very often puts its entire narration (build-up and conclusion both)
+// in a single round: it doesn't need to see one tool's result before
+// deciding to create three sibling areas, so it just calls all three at
+// once, with all its reasoning in that same completion. Using "the last
+// round's own text" as `reply` made reply === reasoning whenever that
+// happened — paragraph breaks (blank lines) are how the model itself
+// already separates "here's my plan" from "done" prose regardless of how
+// many real round-trips it took, so this is right every time, not just when
+// the model happens to spread itself across multiple rounds.
+function lastParagraph(text) {
+  const paragraphs = text.split(/\n\n+/).filter(Boolean);
+  return paragraphs[paragraphs.length - 1] || "";
+}
+
 // Streams one round via `stream: true` + Anthropic's own SSE format
 // (message_start/content_block_start/content_block_delta/content_block_stop/
 // message_stop — see https://docs.anthropic.com/en/api/messages-streaming),
@@ -98,9 +114,10 @@ export async function callAnthropic({ apiKey, model, systemPrompt, contextPrompt
     if (roundText) thinking.push(roundText);
 
     if (toolUseBlocks.length === 0) {
+      const reasoning = thinking.join("\n\n");
       return {
-        reply: thinking[thinking.length - 1] || "I couldn't come up with a reply — could you rephrase?",
-        reasoning: thinking.join("\n\n"),
+        reply: lastParagraph(reasoning) || "I couldn't come up with a reply — could you rephrase?",
+        reasoning,
       };
     }
 

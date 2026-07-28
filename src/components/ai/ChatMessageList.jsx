@@ -248,17 +248,45 @@ export default function ChatMessageList({ messages, isComputing, liveSteps, stre
               message uses (not raw text) so headings/bold/bullets already
               look right while it's still growing, instead of showing raw
               "**"/"*" characters that then visibly snap into their real
-              rendered form — a jarring, "sketchy"-looking discontinuity a
-              real user caught. An unclosed marker for the brief instant
-              before its own closing one streams in (e.g. "**Area" before
-              the second "**" arrives) is the one accepted trade-off —
+              rendered form. An unclosed marker for the brief instant before
+              its own closing one streams in (e.g. "**Area" before the
+              second "**" arrives) is the one accepted trade-off —
               react-markdown just shows it literally until closed, same as
-              any other streaming chat UI. */}
-          {streamingText && (
-            <div className="text-foreground [&_p]:mb-2 [&_p:last-child]:mb-0">
-              <ReactMarkdown urlTransform={sanitizeUrl}>{streamingText}</ReactMarkdown>
-            </div>
-          )}
+              any other streaming chat UI.
+
+              Split into "past" and "current" round text, "\n\n" (the exact
+              separator every provider joins rounds with — see
+              anthropicAdapter.js's `reasoning`) marking where an earlier
+              round ended and a new one began. Only the LAST round's own
+              text survives once this message is actually persisted (see
+              useChatController.js: `reply` is last-round-only, the earlier
+              rounds only live on in the plan's own reasoning detail) — so
+              every earlier round is shown already dimmed here, live, the
+              moment the NEXT round starts. Without this, a real user
+              watched the full multi-paragraph narrative render at full
+              contrast, then watched the earlier paragraphs vanish the
+              instant it persisted — a jarring "it loaded, then snapped
+              back." Dimming a round the moment it's actually superseded
+              means that disappearance is never a surprise — by the time it
+              persists, the user already watched every earlier round fade
+              to background on its own. */}
+          {streamingText && (() => {
+            const rounds = streamingText.split(/\n\n+/).filter(Boolean);
+            const current = rounds.length ? rounds[rounds.length - 1] : streamingText;
+            const past = rounds.slice(0, -1).join("\n\n");
+            return (
+              <>
+                {past && (
+                  <div className="text-muted-foreground transition-colors duration-500 [&_p]:mb-2 [&_p:last-child]:mb-0 mb-2">
+                    <ReactMarkdown urlTransform={sanitizeUrl}>{past}</ReactMarkdown>
+                  </div>
+                )}
+                <div className="text-foreground [&_p]:mb-2 [&_p:last-child]:mb-0">
+                  <ReactMarkdown urlTransform={sanitizeUrl}>{current}</ReactMarkdown>
+                </div>
+              </>
+            );
+          })()}
           <p className="flex items-center gap-1.5">
             <ChatIcon iconChoice={iconChoice} className="w-3.5 h-3.5 text-primary chat-icon-computing" />
             <span className="inline-block w-[7px] h-[13px] bg-primary/70 chat-cursor-blink" />
