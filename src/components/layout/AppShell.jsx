@@ -72,9 +72,10 @@ export default function AppShell({ children }) {
           `dark` class, scoping the dark token set to its own subtree: every
           child (StakeholderList and friends) restyles itself through the
           same CSS variables it already reads, giving the reference layout's
-          dark-anchor sidebar with zero child changes. Its fixed near-black
-          gradient carries the marketing site's graphite-teal, so the app
-          and the site read as one brand. */}
+          dark-anchor sidebar with zero child changes. The gradient is pure
+          neutral (no hue), matching dark mode's own 0%-saturation tokens —
+          the graphite-teal cast stays a marketing-site-only thing, per
+          direct feedback that the app itself carries no teal. */}
       <div
         className="h-full grid overflow-hidden gap-3 px-3 pb-3 transition-[grid-template-columns] duration-200 ease-in-out"
         style={{
@@ -85,7 +86,7 @@ export default function AppShell({ children }) {
         {/* text-foreground re-resolves inherited `color` against the dark
             token scope — without it, unclassed text inside inherits the
             page's light-mode color and vanishes on the dark panel. */}
-        <aside style={{ gridArea: "leftsidebar" }} className={`dark text-foreground overflow-hidden rounded-2xl flex flex-col ${isLeftSidebarOpen ? "bg-[linear-gradient(180deg,#10181C_0%,#0B1114_55%,#080D0F_100%)] shadow-xl" : ""}`}>
+        <aside style={{ gridArea: "leftsidebar" }} className={`dark text-foreground overflow-hidden rounded-2xl flex flex-col ${isLeftSidebarOpen ? "bg-[linear-gradient(180deg,#181818_0%,#111111_55%,#0C0C0C_100%)] shadow-xl" : ""}`}>
           {isLeftSidebarOpen && (
             <>
               <div className="h-14 shrink-0 flex items-center justify-between pl-4 pr-3">

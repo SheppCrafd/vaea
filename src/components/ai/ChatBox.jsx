@@ -195,7 +195,7 @@ export default function ChatBox({ activeProjectId }) {
         <button
           ref={containerRef}
           onClick={() => setIsChatOpen(true)}
-          className="fixed bottom-6 right-6 z-[110] w-14 h-14 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center shadow-[0_0_0_1px_hsl(var(--foreground)/0.05),0_8px_28px_-6px_rgba(70,186,209,0.45),0_16px_36px_-14px_hsl(200_30%_12%/0.45)] hover:shadow-[0_0_0_1px_hsl(var(--foreground)/0.06),0_10px_36px_-6px_rgba(70,186,209,0.6),0_20px_44px_-14px_hsl(200_30%_12%/0.5)] hover:-translate-y-1 transition-all duration-300"
+          className="fixed bottom-6 right-6 z-[110] w-14 h-14 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center shadow-[0_0_0_1px_hsl(var(--foreground)/0.05),0_16px_36px_-12px_hsl(var(--primary)/0.55)] hover:shadow-[0_0_0_1px_hsl(var(--foreground)/0.06),0_20px_44px_-12px_hsl(var(--primary)/0.65)] hover:-translate-y-1 transition-all duration-300"
         >
           <ChatIcon iconChoice={chat.iconChoice} className="w-6 h-6" />
         </button>
