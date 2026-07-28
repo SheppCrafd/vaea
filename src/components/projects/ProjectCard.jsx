@@ -73,63 +73,67 @@ export default function ProjectCard({ project, stakeholderIds = [] }) {
 
   const hasRisks = riskNotes.length > 0;
   const hasQuestions = questionNotes.length > 0;
-  const hasFlags = hasRisks || hasQuestions;
 
   return (
     <div
       ref={setRefs}
       style={style}
       data-project-card={project.id}
-      // No fixed width: this card is only ever rendered inside ProjectsGrid's
-      // Mini-mode CSS grid (auto-fit/minmax(112px, 1fr)), which sets a 112px
-      // floor and grows this card via 1fr when there's leftover space in its
-      // row, same as ProjectCardFull one card-view up. Height stays fixed —
-      // only the width grows — so it reads as a wider tile, not a stretched
-      // square.
-      className={`relative bg-card border border-border rounded-xl p-2 w-full h-28 flex flex-col items-center transition-colors ${isMatched ? "bg-primary/10 ring-1 ring-primary/30" : ""} ${isDragging ? "shadow-2xl scale-105 border-primary" : "shadow-sm"} ${isOver ? "ring-2 ring-primary ring-offset-1" : ""}`}
+      // No fixed dimensions: ProjectsGrid's Mini-mode CSS grid
+      // (auto-fill/minmax(112px, 1fr)) decides the tile's width, and
+      // aspect-square derives the height from it — the tile is a square at
+      // every track size, per design review, instead of the old fixed-height
+      // h-28 rectangle that only its width could grow.
+      className={`relative bg-card border border-border rounded-xl p-2 w-full aspect-square flex flex-col items-center transition-colors ${isMatched ? "bg-primary/10 ring-1 ring-primary/30" : ""} ${isDragging ? "shadow-2xl scale-105 border-primary" : "shadow-sm"} ${isOver ? "ring-2 ring-primary ring-offset-1" : ""}`}
     >
-      <div
-        {...attributes}
-        {...listeners}
-        className="absolute top-1 left-1 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-0.5 z-20"
-      >
-        <GripVertical className="w-3 h-3" />
-      </div>
-
-      <div className="absolute top-1 right-1 flex items-center gap-0.5 z-20">
-        <button
-          onClick={() => setIsDetailOpen(true)}
-          className="text-muted-foreground hover:text-foreground p-0.5 rounded hover:bg-muted transition-colors"
-          title="Expand Project"
-          aria-label="Expand project"
+      {/* Header row in normal flow (not absolute corners): grip, then the
+          title sitting between the move and expand icons, then the
+          expand/delete cluster — the title's flex-1 keeps it centered in
+          whatever width the icons leave over. */}
+      <div className="w-full flex items-start gap-0.5 z-20">
+        <div
+          {...attributes}
+          {...listeners}
+          className="shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-0.5"
         >
-          <Expand className="w-3 h-3" />
-        </button>
-        <button
-          onClick={handleDelete}
-          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 p-0.5 rounded transition-colors"
-          title="Delete Project"
-          aria-label="Delete project"
-        >
-          <Trash2 className="w-3 h-3" />
-        </button>
-      </div>
+          <GripVertical className="w-3 h-3" />
+        </div>
 
-      <h4
-        className="font-heading font-semibold text-[11px] leading-tight text-center break-words outline-none focus:ring-1 focus:ring-primary/40 rounded cursor-text w-full px-3 mt-3 line-clamp-2"
-        contentEditable
-        suppressContentEditableWarning
-        onInput={handleTitleInput}
-        onBlur={handleTitleBlur}
-        onKeyDown={handleTitleKeyDown}
-      >
-        {title}
-      </h4>
+        <h4
+          className="flex-1 min-w-0 font-heading font-semibold text-[11px] leading-tight text-center break-words outline-none focus:ring-1 focus:ring-primary/40 rounded cursor-text line-clamp-2"
+          contentEditable
+          suppressContentEditableWarning
+          onInput={handleTitleInput}
+          onBlur={handleTitleBlur}
+          onKeyDown={handleTitleKeyDown}
+        >
+          {title}
+        </h4>
+
+        <div className="shrink-0 flex items-center gap-0.5">
+          <button
+            onClick={() => setIsDetailOpen(true)}
+            className="text-muted-foreground hover:text-foreground p-0.5 rounded hover:bg-muted transition-colors"
+            title="Expand Project"
+            aria-label="Expand project"
+          >
+            <Expand className="w-3 h-3" />
+          </button>
+          <button
+            onClick={handleDelete}
+            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 p-0.5 rounded transition-colors"
+            title="Delete Project"
+            aria-label="Delete project"
+          >
+            <Trash2 className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
 
       <div className="flex-1 flex items-center justify-center gap-1 w-full min-h-0">
         <button
           onClick={() => setIsTableOpen(true)}
-          className={`shrink-0 grid grid-cols-2 gap-0.5 border border-border rounded overflow-hidden w-11 h-11 text-xs z-20 select-none transition-transform ${hasFlags ? "-translate-x-1.5" : ""}`}
+          className="shrink-0 grid grid-cols-2 gap-0.5 border border-border rounded overflow-hidden w-11 h-11 text-xs z-20 select-none"
           title="Open Task Table"
         >
           {quadrants.map((q) => (
@@ -149,28 +153,25 @@ export default function ProjectCard({ project, stakeholderIds = [] }) {
           ))}
         </button>
 
-        {hasFlags && (
-          <div className="flex flex-col gap-0.5 shrink-0">
-            {hasRisks && (
-              <AlertTriangle
-                className="w-3.5 h-3.5"
-                style={{ color: "#FCA5A5" }}
-                aria-label={`${riskNotes.length} risk${riskNotes.length === 1 ? "" : "s"}`}
-              >
-                <title>{`${riskNotes.length} risk${riskNotes.length === 1 ? "" : "s"}`}</title>
-              </AlertTriangle>
-            )}
-            {hasQuestions && (
-              <HelpCircle
-                className="w-3.5 h-3.5"
-                style={{ color: "#FDBA74" }}
-                aria-label={`${questionNotes.length} question${questionNotes.length === 1 ? "" : "s"}`}
-              >
-                <title>{`${questionNotes.length} question${questionNotes.length === 1 ? "" : "s"}`}</title>
-              </HelpCircle>
-            )}
-          </div>
-        )}
+        {/* Both flag icons render always, so the tile's composition never
+            shifts as notes come and go — greyed out while there's nothing
+            behind them, full color the moment there is. */}
+        <div className="flex flex-col gap-0.5 shrink-0">
+          <AlertTriangle
+            className={`w-3.5 h-3.5 ${hasRisks ? "" : "text-muted-foreground/35"}`}
+            style={hasRisks ? { color: "#FCA5A5" } : undefined}
+            aria-label={hasRisks ? `${riskNotes.length} risk${riskNotes.length === 1 ? "" : "s"}` : "No risks"}
+          >
+            <title>{hasRisks ? `${riskNotes.length} risk${riskNotes.length === 1 ? "" : "s"}` : "No risks"}</title>
+          </AlertTriangle>
+          <HelpCircle
+            className={`w-3.5 h-3.5 ${hasQuestions ? "" : "text-muted-foreground/35"}`}
+            style={hasQuestions ? { color: "#FDBA74" } : undefined}
+            aria-label={hasQuestions ? `${questionNotes.length} question${questionNotes.length === 1 ? "" : "s"}` : "No open questions"}
+          >
+            <title>{hasQuestions ? `${questionNotes.length} question${questionNotes.length === 1 ? "" : "s"}` : "No open questions"}</title>
+          </HelpCircle>
+        </div>
       </div>
 
       {miniTotal > 0 && (

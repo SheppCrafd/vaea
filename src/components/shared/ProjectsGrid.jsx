@@ -20,8 +20,11 @@ import ProjectCardFull from "@/components/projects/ProjectCardFull";
 // leftover width evenly across all of them — including the empty ones —
 // so an existing card only grows to roughly one track's share, leaving
 // room for a sibling to land in the same row instead of stretching alone.
-// Mini mode deliberately keeps `auto-fit`: its tiles are meant to grow to
-// fill the row when there's nothing else to show yet.
+// Mini mode used to keep `auto-fit` so tiles grew to fill the row — but the
+// mini card is now aspect-square (its height follows its width), so a lone
+// tile stretched by auto-fit would balloon into a row-sized square. It now
+// uses `auto-fill` like Full mode: a lone tile only grows to one track's
+// share and stays a small square.
 //
 // `forceView`, when set, overrides the dashboard's Mini/Full toggle —
 // AreaModal passes "full" down through a Product's own ProjectsGrid so an
@@ -55,7 +58,7 @@ export default function ProjectsGrid({ projects, stakeholderIds, emptyMessage, g
   return (
     <div
       className={className}
-      style={{ display: "grid", gridTemplateColumns: `repeat(auto-fit, minmax(112px, 1fr))`, alignItems: "start", gap: `${gap}px` }}
+      style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(112px, 1fr))`, alignItems: "start", gap: `${gap}px` }}
     >
       {projects.map((project) => (
         <ProjectCard key={project.id} project={project} stakeholderIds={stakeholderIds} />
