@@ -134,25 +134,25 @@ export default function Dashboard() {
       <div className="flex items-center justify-between gap-4 mb-6">
         <h1 className="font-heading text-2xl font-semibold">Areas of Responsibility</h1>
         <div className="flex items-center gap-3">
-          <div className="shrink-0 inline-flex items-center rounded-lg border border-border bg-muted/40 p-0.5 text-xs font-medium">
+          <div className="shrink-0 inline-flex items-center rounded-full bg-card/70 shadow-[0_0_0_1px_hsl(var(--foreground)/0.05)] p-1 text-xs font-medium">
             <button
               onClick={() => setCardView("mini")}
               aria-pressed={cardView === "mini"}
-              className={`px-3 py-1.5 rounded-md transition-colors ${cardView === "mini" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              className={`px-3.5 py-1.5 rounded-full transition-colors ${cardView === "mini" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
             >
               Mini Cards
             </button>
             <button
               onClick={() => setCardView("full")}
               aria-pressed={cardView === "full"}
-              className={`px-3 py-1.5 rounded-md transition-colors ${cardView === "full" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              className={`px-3.5 py-1.5 rounded-full transition-colors ${cardView === "full" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
             >
               Full Cards
             </button>
           </div>
           <Link
             to="/app/chat"
-            className="shrink-0 inline-flex items-center gap-1.5 text-sm px-3.5 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg transition-colors shadow-sm"
+            className="shrink-0 inline-flex items-center gap-1.5 text-sm px-4 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-full transition-all shadow-[0_8px_20px_-10px_hsl(var(--primary)/0.7)] hover:-translate-y-0.5"
           >
             <MessageCircle className="w-3.5 h-3.5" />
             Ask Vaea Chat

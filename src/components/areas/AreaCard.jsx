@@ -70,7 +70,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
     <article
       ref={setCardRefs}
       style={{ opacity: isDragging ? 0.4 : 1 }}
-      className={`relative z-10 bg-card border rounded-xl shadow-md p-5 break-inside-avoid flex flex-col gap-4 transition-colors ${isCardOver ? "ring-2 ring-primary ring-offset-1 border-primary" : "border-border"}`}
+      className={`relative z-10 bg-card border rounded-2xl shadow-md p-5 break-inside-avoid flex flex-col gap-4 transition-colors ${isCardOver ? "ring-2 ring-primary ring-offset-1 border-primary" : "border-foreground/[0.04]"}`}
     >
 
       <div className="relative">
@@ -150,7 +150,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
 
       <div 
         ref={setNodeRef}
-        className={`mt-2 p-4 border rounded-lg transition-colors ${isOver ? "bg-primary/10 border-primary" : "border-border bg-muted/30"}`}
+        className={`mt-2 p-4 rounded-xl transition-all ${isOver ? "bg-primary/10 shadow-[inset_0_0_0_2px_hsl(var(--primary)/0.6)]" : "bg-muted/40 shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.035)]"}`}
       >
         <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
           Direct Projects

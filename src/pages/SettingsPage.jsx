@@ -70,11 +70,11 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="h-full flex overflow-hidden bg-background">
+    <div className="h-full flex overflow-hidden gap-3 px-3 pb-3">
       {isSidebarOpen && (
-        <aside className="w-56 shrink-0 border-r border-border bg-card flex flex-col">
-          <div className="h-14 shrink-0 border-b border-border flex items-center justify-between px-3">
-            <p className="text-sm font-semibold truncate">Sections</p>
+        <aside className="dark text-foreground w-56 shrink-0 overflow-hidden rounded-2xl bg-[linear-gradient(180deg,#10181C_0%,#0B1114_55%,#080D0F_100%)] shadow-xl flex flex-col">
+          <div className="h-14 shrink-0 flex items-center justify-between pl-4 pr-3">
+            <p className="text-sm font-semibold text-foreground truncate">Sections</p>
             <button
               onClick={toggleSidebar}
               aria-label="Collapse settings sections panel"
@@ -99,7 +99,7 @@ export default function SettingsPage() {
       )}
 
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-        <div className="h-14 shrink-0 border-b border-border flex items-center gap-3 px-4">
+        <div className="h-14 shrink-0 flex items-center gap-3 px-4">
           {!isSidebarOpen && (
             <button
               onClick={toggleSidebar}

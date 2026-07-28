@@ -48,7 +48,7 @@ export default function Header() {
   };
 
   return (
-    <header className="h-16 shrink-0 flex items-center justify-between px-6 border-b border-border bg-card shadow-sm relative z-10">
+    <header className="h-16 shrink-0 flex items-center justify-between px-6 relative z-10">
       <div className="flex items-center gap-3">
         <span className="text-lg tracking-tight font-bold [font-family:'JetBrains_Mono',_monospace]">Vaea</span>
 
@@ -63,7 +63,7 @@ export default function Header() {
             return (
               <div
                 key={key}
-                className={`flex items-center rounded-md transition-colors ${active ? "bg-secondary" : "hover:bg-secondary/60"}`}
+                className={`flex items-center rounded-full transition-all ${active ? "bg-card shadow-sm" : "hover:bg-card/60"}`}
               >
                 <Link
                   to={to}
@@ -77,7 +77,7 @@ export default function Header() {
                   <button
                     onClick={(e) => handleCloseTab(e, tab, active)}
                     aria-label={`Close ${label} tab`}
-                    className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md p-1 mr-1 transition-colors"
+                    className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full p-1 mr-1 transition-colors"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -91,11 +91,11 @@ export default function Header() {
         <button
           onClick={openCommandPalette}
           aria-label="Search everything"
-          className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground px-3 py-1.5 rounded-md border border-border bg-background hover:text-foreground hover:bg-secondary/60 transition-colors"
+          className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground px-4 py-1.5 rounded-full bg-card/70 shadow-[0_0_0_1px_hsl(var(--foreground)/0.05),0_1px_2px_0_hsl(200_30%_12%/0.06)] hover:text-foreground hover:bg-card transition-colors"
         >
           <Search className="w-3.5 h-3.5" />
           Search
-          <kbd className="text-[10px] font-mono border border-border rounded px-1 py-0.5">/</kbd>
+          <kbd className="text-[10px] font-mono bg-muted/80 rounded-md px-1.5 py-0.5">/</kbd>
         </button>
         <UserMenu />
       </div>

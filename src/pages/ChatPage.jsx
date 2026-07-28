@@ -39,11 +39,11 @@ export default function ChatPage() {
   const inputHistory = useChatInputHistory({ messages: chat.chatState.messages, input: chat.input, setInput: chat.setInput });
 
   return (
-    <div className="h-full flex overflow-hidden bg-background">
+    <div className="h-full flex overflow-hidden gap-3 px-3 pb-3">
       {isSidebarOpen && (
-        <aside className="w-64 shrink-0 border-r border-border bg-card flex flex-col">
-          <div className="h-14 shrink-0 border-b border-border flex items-center justify-between px-3">
-            <p className="text-sm font-semibold truncate">Chat History</p>
+        <aside className="dark text-foreground w-64 shrink-0 overflow-hidden rounded-2xl bg-[linear-gradient(180deg,#10181C_0%,#0B1114_55%,#080D0F_100%)] shadow-xl flex flex-col">
+          <div className="h-14 shrink-0 flex items-center justify-between pl-4 pr-3">
+            <p className="text-sm font-semibold text-foreground truncate">Chat History</p>
             <button
               onClick={toggleSidebar}
               aria-label="Collapse chat history panel"
@@ -55,7 +55,7 @@ export default function ChatPage() {
           <div className="p-3">
             <button
               onClick={chat.handleNewChat}
-              className="w-full flex items-center justify-center gap-1.5 text-sm px-3 py-2 bg-secondary text-secondary-foreground border border-border rounded-md hover:opacity-80"
+              className="w-full flex items-center justify-center gap-1.5 text-sm px-3 py-2 bg-secondary/80 text-secondary-foreground rounded-xl hover:bg-secondary transition-colors"
             >
               <Plus className="w-4 h-4" />
               New chat
@@ -82,7 +82,7 @@ export default function ChatPage() {
       )}
 
       <div className="flex-1 min-w-0 flex flex-col">
-        <div className="h-14 shrink-0 border-b border-border flex items-center gap-3 px-4">
+        <div className="h-14 shrink-0 flex items-center gap-3 px-4">
           {!isSidebarOpen && (
             <button
               onClick={toggleSidebar}
@@ -156,7 +156,7 @@ export default function ChatPage() {
                 <Plus className="w-5 h-5" />
               </button>
               <input ref={chat.fileInputRef} type="file" onChange={chat.handleFileChange} className="hidden" />
-              <div className="flex-1 flex items-center gap-2 bg-card border border-input rounded-xl px-4 py-3 focus-within:ring-1 focus-within:ring-primary/50 transition-all">
+              <div className="flex-1 flex items-center gap-2 bg-card rounded-2xl px-4 py-3 shadow-[0_0_0_1px_hsl(var(--foreground)/0.05),0_2px_10px_-4px_hsl(200_30%_12%/0.15)] focus-within:ring-2 focus-within:ring-primary/40 transition-all">
                 <span className="font-terminal text-primary text-sm select-none">{'>'}</span>
                 <input
                   ref={messageInputRef}
@@ -176,7 +176,7 @@ export default function ChatPage() {
               <button
                 type="submit"
                 disabled={chat.isComputing}
-                className="shrink-0 text-sm px-5 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-xl transition-colors shadow-sm disabled:opacity-50"
+                className="shrink-0 text-sm px-5 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-full transition-all shadow-[0_8px_20px_-10px_hsl(var(--primary)/0.7)] disabled:opacity-50"
               >
                 Send
               </button>

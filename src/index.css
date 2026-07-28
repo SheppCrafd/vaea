@@ -43,7 +43,9 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --radius: 0.75rem;
+    /* 1rem (was 0.75) — the redesign's floating-panel/pill language needs
+       every derived rounded-lg/md/sm to sit a step softer across the app. */
+    --radius: 1rem;
     --font-heading: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
     --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
     --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
@@ -156,6 +158,17 @@
 
   html, body, #root {
     height: 100%;
+  }
+
+  /* The authenticated app's canvas sits a real step dimmer than the shared
+     --background (which the marketing pages keep at near-white) so the
+     floating panels and cards read as lifted surfaces without needing any
+     border to outline them — the Payflow-reference "objects on a table"
+     look. Scoped to the app-shell class (and light mode only; dark mode's
+     7%-vs-9.5% card contrast already floats) rather than changing the
+     token globally, so the marketing site's light sections stay bright. */
+  html.app-shell-locked:not(.dark) {
+    --background: 200 20% 94%;
   }
 
   /* The authenticated app (/app/*) is a fixed shell (AppShell.jsx is

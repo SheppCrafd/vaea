@@ -81,7 +81,7 @@ export default function ProductCard({ product, forceFullProjects = false }) {
       ref={setNodeRef}
       data-product-card={product.id}
       style={{ opacity: isDragging ? 0.4 : 1 }}
-      className={`relative z-10 bg-muted/40 border border-border/70 rounded-xl p-4 overflow-hidden transition-colors ${sizingClass} ${isMatched ? "bg-primary/10 ring-1 ring-primary/30" : ""} ${isOver ? "ring-2 ring-primary ring-offset-1" : ""}`}
+      className={`relative z-10 bg-muted/50 rounded-xl p-4 overflow-hidden transition-colors shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.04)] ${sizingClass} ${isMatched ? "bg-primary/10 ring-1 ring-primary/30" : ""} ${isOver ? "ring-2 ring-primary ring-offset-1" : ""}`}
     >
       <div
         className="absolute top-3 left-3 z-20 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
@@ -155,7 +155,7 @@ export default function ProductCard({ product, forceFullProjects = false }) {
       <CardCustomFields
         entity={product}
         onUpdateEntity={(data) => updateProduct.mutate({ id: product.id, data })}
-        className="relative z-[1] mt-3 pt-3 border-t border-border flex flex-wrap gap-x-3 gap-y-1"
+        className="relative z-[1] mt-3 pt-3 border-t border-foreground/[0.06] flex flex-wrap gap-x-3 gap-y-1"
       />
 
       {isDetailOpen && <ProductDetailModal product={product} onClose={() => setIsDetailOpen(false)} />}

@@ -26,7 +26,7 @@ export default function TaskStatistics({ tasks = [] }) {
     .map((c) => ({ key: c.key, count: c.count, label: BUCKET_LABEL[c.key], color: STATUS_COLORS[c.key] }));
 
   return (
-    <div className="mt-3 pt-3 border-t border-border w-full flex flex-col gap-1.5">
+    <div className="mt-3 pt-3 border-t border-foreground/[0.06] w-full flex flex-col gap-1.5">
       {/* 1-Row Stacked Bar */}
       <div className="flex w-full h-2 rounded-full overflow-hidden">
         {activeStats.map((item) => (
