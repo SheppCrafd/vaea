@@ -80,10 +80,6 @@ export const STATUS_COLORS = {
   NOT_STARTED: "var(--status-not-started)",
 };
 
-// Single source for the task Type enum (TaskTable's row + new-row selects,
-// TaskForm's quick-create form all need the exact same list).
-export const TYPE_OPTIONS = ["COMMUNICATION", "OPEN_QUESTIONS", "SCRUM_NEEDS", "EMPLOYEE_NEEDS", "OTHER"];
-
 export function getStatusCounts(tasks = []) {
   const activeTasks = filterActiveTasks(tasks);
   return STATUS_BUCKETS.map((bucket) => ({

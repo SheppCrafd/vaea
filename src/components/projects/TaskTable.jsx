@@ -7,7 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useHighlight } from "@/lib/HighlightContext";
 import { isHighlightMatch } from "@/hooks/useHighlightDim";
 import { confirmThen } from "@/lib/entityUtils";
-import { isTaskDone, STATUS_COLORS, TYPE_OPTIONS } from "@/lib/taskUtils";
+import { isTaskDone, STATUS_COLORS } from "@/lib/taskUtils";
 import StatusDropdown, { DEFAULT_STATUSES } from "@/components/projects/StatusDropdown";
 import TaskAttachments from "@/components/projects/TaskAttachments";
 import EditableText from "@/components/shared/EditableText";
@@ -24,13 +24,11 @@ const QUADRANT_OPTIONS = [
   { value: "unassigned", label: "Unassigned" },
 ];
 const STATUS_FILTER_OPTIONS = DEFAULT_STATUSES.map((s) => ({ value: s, label: s.replace(/_/g, " ") }));
-const TYPE_FILTER_OPTIONS = TYPE_OPTIONS.map((t) => ({ value: t, label: t.replace(/_/g, " ") }));
 
 const EMPTY_FILTERS = {
   description: "",
   status: [],
   quadrant: [],
-  type: [],
   stakeholders: [],
   notes: "",
   files: "all",
@@ -45,7 +43,6 @@ function taskMatchesFilters(task, filters) {
     const q = task.quadrant ? String(task.quadrant) : "unassigned";
     if (!filters.quadrant.includes(q)) return false;
   }
-  if (filters.type.length && !filters.type.includes(task.type || "OTHER")) return false;
   if (filters.stakeholders.length && !(task.stakeholder_ids || []).some((id) => filters.stakeholders.includes(id))) return false;
   if (filters.notes && !(task.notes || "").toLowerCase().includes(filters.notes.toLowerCase())) return false;
   if (filters.files !== "all") {
@@ -154,15 +151,6 @@ function TaskRow({ task, allStakeholders, isMatched, updateTask, onToggleTopThre
           </button>
         </div>
       </td>
-      <td className="p-2">
-        <select
-          value={task.type || "OTHER"}
-          onChange={(e) => updateTask.mutate({ id: task.id, data: { type: e.target.value } })}
-          className="text-[10px] bg-transparent border border-border rounded px-1 py-0.5"
-        >
-          {TYPE_OPTIONS.map((t) => <option key={t} value={t}>{t.replace(/_/g, " ")}</option>)}
-        </select>
-      </td>
       <td className="p-2 whitespace-nowrap">
         <StakeholderAssigner
           currentStakeholderIds={task.stakeholder_ids || []}
@@ -229,10 +217,13 @@ export default function TaskTable({ project }) {
   const [newDescription, setNewDescription] = useState("");
   const [newQuadrant, setNewQuadrant] = useState("");
   const [newStatus, setNewStatus] = useState("");
-  const [newType, setNewType] = useState("");
   const [newStakeholderIds, setNewStakeholderIds] = useState([]);
   const [newNotes, setNewNotes] = useState("");
   const [newWeekly, setNewWeekly] = useState(false);
+  const [newHighlyImportant, setNewHighlyImportant] = useState(false);
+  const [newQuickTask, setNewQuickTask] = useState(false);
+  const [newTopThree, setNewTopThree] = useState(false);
+  const [newAttachments, setNewAttachments] = useState([]);
   const newRowInputRef = useRef(null);
 
   const handleSort = (column) => {
@@ -271,18 +262,38 @@ export default function TaskTable({ project }) {
     const payload = { project_id: project.id, description: newDescription.trim() };
     if (newQuadrant !== "") payload.quadrant = Number(newQuadrant);
     if (newStatus !== "") payload.status = newStatus;
-    if (newType !== "") payload.type = newType;
     if (newStakeholderIds.length) payload.stakeholder_ids = newStakeholderIds;
     if (newNotes.trim()) payload.notes = newNotes.trim();
     if (newWeekly) payload.is_weekly_focus = true;
+    if (newHighlyImportant) payload.is_highly_important = true;
+    if (newQuickTask) payload.is_quick_task = true;
+    if (newAttachments.length) payload.attachments = newAttachments;
+    if (newTopThree) {
+      // Same 3-per-project cap useToggleTopThree enforces — creating with
+      // the star pre-set mustn't be a way around it. The task itself is
+      // still created; only the flag is dropped, with the reason surfaced.
+      const topThreeCount = tasks.filter((t) => t.is_today_top_three).length;
+      if (topThreeCount >= 3) {
+        toast({
+          variant: "destructive",
+          title: "Can't add to Top 3",
+          description: "Only 3 top-three tasks are allowed per project — the task was created without it.",
+        });
+      } else {
+        payload.is_today_top_three = true;
+      }
+    }
     createTask.mutate(payload);
     setNewDescription("");
     setNewQuadrant("");
     setNewStatus("");
-    setNewType("");
     setNewStakeholderIds([]);
     setNewNotes("");
     setNewWeekly(false);
+    setNewHighlyImportant(false);
+    setNewQuickTask(false);
+    setNewTopThree(false);
+    setNewAttachments([]);
     requestAnimationFrame(() => newRowInputRef.current?.focus());
   };
 
@@ -350,15 +361,6 @@ export default function TaskTable({ project }) {
                 onClearOptions={() => clearChecklistFilter("quadrant")}
               />
             </ColumnHeader>
-            <ColumnHeader column="type" label="Type" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort}>
-              <ColumnFilterMenu
-                mode="checklist"
-                options={TYPE_FILTER_OPTIONS}
-                selected={filters.type}
-                onToggleOption={(v) => toggleChecklistFilter("type", v)}
-                onClearOptions={() => clearChecklistFilter("type")}
-              />
-            </ColumnHeader>
             <ColumnHeader column="stakeholders" label="Stakeholders" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort}>
               <ColumnFilterMenu
                 mode="checklist"
@@ -386,7 +388,7 @@ export default function TaskTable({ project }) {
         <tbody>
           {sortedTasks.length === 0 && (
             <tr>
-              <td className="p-2 text-muted-foreground text-center" colSpan={10}>No active tasks</td>
+              <td className="p-2 text-muted-foreground text-center" colSpan={9}>No active tasks</td>
             </tr>
           )}
           {sortedTasks.slice(0, MAX_ROWS).map((task) => (
@@ -428,25 +430,36 @@ export default function TaskTable({ project }) {
               </select>
             </td>
             <td className="p-2">
-              <select
-                value={newQuadrant}
-                onChange={(e) => setNewQuadrant(e.target.value)}
-                className="text-[10px] bg-background border border-border rounded px-1 py-0.5"
-                aria-label="Quadrant for new task"
-              >
-                <QuadrantOptions />
-              </select>
-            </td>
-            <td className="p-2">
-              <select
-                value={newType}
-                onChange={(e) => setNewType(e.target.value)}
-                className="text-[10px] bg-background border border-border rounded px-1 py-0.5"
-                aria-label="Type for new task"
-              >
-                <option value="">—</option>
-                {TYPE_OPTIONS.map((t) => <option key={t} value={t}>{t.replace(/_/g, " ")}</option>)}
-              </select>
+              <div className="flex items-center gap-1">
+                <select
+                  value={newQuadrant}
+                  onChange={(e) => setNewQuadrant(e.target.value)}
+                  className="text-[10px] bg-background border border-border rounded px-1 py-0.5"
+                  aria-label="Quadrant for new task"
+                >
+                  <QuadrantOptions />
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setNewHighlyImportant((v) => !v)}
+                  aria-label="Highly important for new task"
+                  aria-pressed={newHighlyImportant}
+                  title="Highly important"
+                  className={`w-4 h-4 text-[9px] font-bold rounded border ${newHighlyImportant ? "bg-red-500 text-white border-red-500" : "text-muted-foreground border-border"}`}
+                >
+                  H
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNewQuickTask((v) => !v)}
+                  aria-label="Quick task for new task"
+                  aria-pressed={newQuickTask}
+                  title="Quick task"
+                  className={`w-4 h-4 text-[9px] font-bold rounded border ${newQuickTask ? "bg-blue-500 text-white border-blue-500" : "text-muted-foreground border-border"}`}
+                >
+                  Q
+                </button>
+              </div>
             </td>
             <td className="p-2 whitespace-nowrap">
               <StakeholderAssigner
@@ -455,7 +468,12 @@ export default function TaskTable({ project }) {
                 onSave={setNewStakeholderIds}
               />
             </td>
-            <td className="p-2"></td>
+            <td className="p-2 text-center whitespace-nowrap">
+              <TaskAttachments
+                attachments={newAttachments}
+                onSave={setNewAttachments}
+              />
+            </td>
             <td className="p-2 min-w-0 max-w-[140px]">
               <input
                 value={newNotes}
@@ -468,7 +486,17 @@ export default function TaskTable({ project }) {
             <td className="p-2 text-center">
               <input type="checkbox" checked={newWeekly} onChange={(e) => setNewWeekly(e.target.checked)} aria-label="Weekly focus for new task" />
             </td>
-            <td className="p-2" colSpan={2}></td>
+            <td className="p-2 text-center">
+              <button
+                type="button"
+                onClick={() => setNewTopThree((v) => !v)}
+                aria-label="Top 3 for new task"
+                aria-pressed={newTopThree}
+              >
+                <Star className={`w-4 h-4 ${newTopThree ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`} />
+              </button>
+            </td>
+            <td className="p-2"></td>
           </tr>
         </tbody>
       </table>
