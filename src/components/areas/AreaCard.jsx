@@ -3,7 +3,7 @@ import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { useUpdateArea, useDeleteArea } from "@/hooks/useAreas";
 import { useAllTasks } from "@/hooks/useTasks";
 import { useEditableField } from "@/hooks/useEditableField";
-import { confirmThen } from "@/lib/entityUtils";
+import { confirmThen, titleWithBreakHints } from "@/lib/entityUtils";
 import { useCardView } from "@/lib/CardViewContext";
 import EditableText from "@/components/shared/EditableText";
 import CardCustomFields from "@/components/shared/CardCustomFields";
@@ -103,14 +103,14 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
         </div>
 
         <h3
-          className="font-heading font-semibold text-lg pl-6 pr-16 outline-none focus:ring-1 focus:ring-primary/40 rounded break-words min-w-0"
+          className="font-heading font-semibold text-lg pl-6 pr-16 outline-none focus:ring-1 focus:ring-primary/40 rounded min-w-0"
           contentEditable
           suppressContentEditableWarning
           onInput={handleInput}
           onBlur={handleTitleBlur}
           onKeyDown={handleTitleKeyDown}
         >
-          {title}
+          {titleWithBreakHints(title)}
         </h3>
         <div className="mt-1 min-w-0">
           <EditableText
