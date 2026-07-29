@@ -5,13 +5,14 @@ vi.mock("@/lib/vaultConnection", () => ({
   isVaultConnected: vi.fn(),
 }));
 vi.mock("@/lib/githubApi", () => ({
+  listVaultNoteRepo: vi.fn(),
   readVaultNoteContent: vi.fn(),
   writeVaultFile: vi.fn(),
   SELF_NOTE_PATH: "Vaea Self.md",
 }));
 
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
-import { readVaultNoteContent, writeVaultFile } from "@/lib/githubApi";
+import { listVaultNoteRepo, readVaultNoteContent, writeVaultFile } from "@/lib/githubApi";
 import {
   mergeSelfNoteSection,
   buildIdentitySection,
@@ -22,6 +23,7 @@ import {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  listVaultNoteRepo.mockResolvedValue([]); // no identity/soul/user.md by default — no wikilinks
 });
 
 describe("mergeSelfNoteSection", () => {
@@ -78,6 +80,22 @@ describe("buildIdentitySection", () => {
   it("handles a null/undefined identity the same as an empty one", () => {
     expect(buildIdentitySection(null)).toBe(buildIdentitySection({}));
   });
+
+  it("appends a wikilink to a field only when one was actually found", () => {
+    const text = buildIdentitySection(
+      { identity: "A helpful assistant", soul: "Direct", userProfile: "Solo dev" },
+      { identity: "identity", userProfile: "user" }
+    );
+    expect(text).toContain("A helpful assistant (see [[identity]])");
+    expect(text).toContain("Solo dev (see [[user]])");
+    expect(text).toContain("**Soul (tone & protocol):** Direct");
+    expect(text).not.toContain("Direct (see");
+  });
+
+  it("adds no wikilinks at all when links is omitted", () => {
+    const text = buildIdentitySection({ identity: "A helpful assistant" });
+    expect(text).not.toContain("[[");
+  });
 });
 
 describe("syncIdentityToSelfNote", () => {
@@ -123,5 +141,43 @@ describe("syncIdentityToSelfNote", () => {
     writeVaultFile.mockRejectedValue(new Error("network down"));
 
     await expect(syncIdentityToSelfNote({ name: "Vaea Chat" })).resolves.toBeUndefined();
+  });
+
+  it("cross-links a field to its matching vault file, found anywhere in the repo, but only for fields with a real match", async () => {
+    loadVaultConnection.mockResolvedValue({ owner: "me", repo: "vault", branch: "main", token: "tok" });
+    isVaultConnected.mockReturnValue(true);
+    readVaultNoteContent.mockResolvedValue("");
+    listVaultNoteRepo.mockResolvedValue(["Identity.md", "People/soul.md", "vault.md"]); // no user.md
+
+    await syncIdentityToSelfNote({ identity: "A helpful assistant", soul: "Direct", userProfile: "Solo dev" });
+
+    const written = writeVaultFile.mock.calls[0][0].content;
+    expect(written).toContain("A helpful assistant (see [[Identity]])"); // matched case-insensitively, real basename kept
+    expect(written).toContain("Direct (see [[soul]])"); // matched despite living in a subfolder
+    expect(written).toContain("**About you:** Solo dev"); // no user.md found — no link
+    expect(written).not.toContain("Solo dev (see");
+  });
+
+  it("adds no wikilinks when the vault has none of identity.md/soul.md/user.md", async () => {
+    loadVaultConnection.mockResolvedValue({ owner: "me", repo: "vault", branch: "main", token: "tok" });
+    isVaultConnected.mockReturnValue(true);
+    readVaultNoteContent.mockResolvedValue("");
+    listVaultNoteRepo.mockResolvedValue(["vault.md", "Daily/2026-07-28.md"]);
+
+    await syncIdentityToSelfNote({ identity: "A helpful assistant" });
+
+    expect(writeVaultFile.mock.calls[0][0].content).not.toContain("[[");
+  });
+
+  it("still writes successfully even if the vault file listing itself fails", async () => {
+    loadVaultConnection.mockResolvedValue({ owner: "me", repo: "vault", branch: "main", token: "tok" });
+    isVaultConnected.mockReturnValue(true);
+    readVaultNoteContent.mockResolvedValue("");
+    listVaultNoteRepo.mockRejectedValue(new Error("rate limited"));
+
+    await syncIdentityToSelfNote({ name: "Vaea Chat" });
+
+    expect(writeVaultFile).toHaveBeenCalledTimes(1);
+    expect(writeVaultFile.mock.calls[0][0].content).toContain("**Name:** Vaea Chat");
   });
 });

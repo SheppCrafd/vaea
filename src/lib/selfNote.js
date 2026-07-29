@@ -9,7 +9,7 @@
 //     observations about itself. Never touches Identity; told explicitly to
 //     carry it forward unchanged (see buildReflectionInstruction).
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
-import { readVaultNoteContent, writeVaultFile, SELF_NOTE_PATH } from "@/lib/githubApi";
+import { listVaultNoteRepo, readVaultNoteContent, writeVaultFile, SELF_NOTE_PATH } from "@/lib/githubApi";
 
 export const SELF_NOTE_IDENTITY_HEADER = "Identity";
 export const SELF_NOTE_NOTES_HEADER = "Notes";
@@ -60,13 +60,41 @@ export function mergeSelfNoteSection(content, header, body) {
   return stringifySections(sections);
 }
 
-export function buildIdentitySection(identity) {
+// Bare vault filenames each identity field cross-links to when the connected
+// vault happens to keep an assistant-identity note under that name — the
+// same three-way identity/soul/user split a Claude Code vault already
+// documents in its own CLAUDE.md. Matched by basename only (case-
+// insensitive, any folder), same convention auditVaultNotes' own
+// titleByPath uses, since that's how Obsidian itself resolves a bare
+// [[wikilink]] regardless of which folder the target actually lives in.
+const IDENTITY_LINK_FILES = { identity: "identity.md", soul: "soul.md", userProfile: "user.md" };
+
+// Looks up, for each field in IDENTITY_LINK_FILES, whether a matching file
+// actually exists anywhere in the vault's own file list — never assumed.
+// Linking to a file that isn't there would hand [[wikilink]]s straight to
+// audit_vault to flag as broken, which defeats the point of a feature meant
+// to keep the vault tidy in the first place.
+function findIdentityLinkTargets(vaultPaths) {
+  const links = {};
+  for (const [field, filename] of Object.entries(IDENTITY_LINK_FILES)) {
+    const match = (vaultPaths || []).find((p) => p.split("/").pop().toLowerCase() === filename);
+    if (match) links[field] = match.split("/").pop().replace(/\.md$/i, "");
+  }
+  return links;
+}
+
+// `links` (optional) is field -> the real basename to wikilink to, e.g.
+// { identity: "identity" } — see findIdentityLinkTargets above. Left empty
+// by default so this stays a pure, no-network function callable from tests
+// and anywhere else that just wants the plain rendered section.
+export function buildIdentitySection(identity, links = {}) {
   const i = identity || {};
+  const withLink = (text, field) => (links[field] ? `${text} (see [[${links[field]}]])` : text);
   return [
     `**Name:** ${i.name || "(not set)"}`,
-    `**Identity:** ${i.identity || "(not set)"}`,
-    `**Soul (tone & protocol):** ${i.soul || "(not set)"}`,
-    `**About you:** ${i.userProfile || "(not set)"}`,
+    `**Identity:** ${withLink(i.identity || "(not set)", "identity")}`,
+    `**Soul (tone & protocol):** ${withLink(i.soul || "(not set)", "soul")}`,
+    `**About you:** ${withLink(i.userProfile || "(not set)", "userProfile")}`,
   ].join("\n");
 }
 
@@ -82,8 +110,12 @@ export async function syncIdentityToSelfNote(identity) {
   try {
     const connection = await loadVaultConnection();
     if (!isVaultConnected(connection)) return;
-    const current = await readVaultNoteContent({ ...connection, path: SELF_NOTE_PATH }).catch(() => "");
-    const merged = mergeSelfNoteSection(current, SELF_NOTE_IDENTITY_HEADER, buildIdentitySection(identity));
+    const [current, vaultPaths] = await Promise.all([
+      readVaultNoteContent({ ...connection, path: SELF_NOTE_PATH }).catch(() => ""),
+      listVaultNoteRepo(connection).catch(() => []),
+    ]);
+    const links = findIdentityLinkTargets(vaultPaths);
+    const merged = mergeSelfNoteSection(current, SELF_NOTE_IDENTITY_HEADER, buildIdentitySection(identity, links));
     await writeVaultFile({
       ...connection,
       path: SELF_NOTE_PATH,
