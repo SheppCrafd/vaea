@@ -21,6 +21,7 @@ import { loadAiIdentity, saveAiIdentity } from "@/lib/aiPreferences";
 import { createSnapshot } from "@/lib/backupSnapshots";
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
 import { writeVaultFile, SELF_NOTE_PATH, SELF_NOTE_HARD_CAP_CHARS } from "@/lib/githubApi";
+import { syncIdentityToSelfNote } from "@/lib/selfNote";
 import { createArea, updateArea, deleteArea } from "@/hooks/useAreas";
 import { createProduct, updateProduct, deleteProduct } from "@/hooks/useProducts";
 import { createProject, updateProject, archiveProject, restoreProject, deleteProject } from "@/hooks/useProjects";
@@ -426,6 +427,12 @@ export async function executeAction(action, args) {
         await saveAiIdentity(merged);
         return merged;
       });
+      // Mirrors into Vaea Self.md's Identity section when a vault is
+      // connected, same as AiPreferencesSection.jsx's own Save button does —
+      // "/setup" reaches this exact case too, so this one hook covers both
+      // paths that can ever change aiIdentity. Best-effort, never blocks
+      // this action's own success.
+      await syncIdentityToSelfNote(updated);
       return { toolResult: { identity: updated } };
     }
 

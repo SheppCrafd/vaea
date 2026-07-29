@@ -5,6 +5,7 @@ import { DEFAULTS as IDENTITY_DEFAULTS } from "@/lib/aiPreferences";
 import { useAiIdentity, useSaveAiIdentity } from "@/hooks/useAiIdentity";
 import { useReflectionPreferences, useSaveReflectionPreferences } from "@/hooks/useReflectionPreferences";
 import { useVaultConnected } from "@/hooks/useVaultConnected";
+import { syncIdentityToSelfNote } from "@/lib/selfNote";
 
 const FIELDS = [
   { key: "name", label: "Name", placeholder: "Vaea Chat (default) — or give it a name of your own", rows: 1 },
@@ -57,6 +58,11 @@ export default function AiPreferencesSection() {
 
   const handleSave = async () => {
     await saveIdentity.mutateAsync(identity);
+    // Mirrors into Vaea Self.md's Identity section — the other call site
+    // for this same sync is chatActions.js's SET_AI_IDENTITY case, which
+    // covers "/setup"'s own interview-driven saves. Best-effort, never
+    // blocks this button from reporting success.
+    await syncIdentityToSelfNote(identity);
     setJustSaved(true);
     setTimeout(() => setJustSaved(false), 1500);
   };

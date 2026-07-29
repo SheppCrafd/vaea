@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { MessageCircle, Bot, Sparkles, HelpCircle, Smile } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -17,6 +17,7 @@ import { useChatMessages, useCreateChatMessage, useUpdateChatMessage } from "@/h
 import { useAiIdentity } from "@/hooks/useAiIdentity";
 import { computeWorkspaceDelta, buildReflectionInstruction } from "@/lib/reflectionSummary";
 import { runReflectionIfDue } from "@/lib/reflectionTrigger";
+import { loadReflectionPreferences, saveReflectionPreferences, VAULT_TIDY_INTERVAL_MS, VAULT_LOG_IDLE_MS } from "@/lib/reflectionPreferences";
 
 // Icon component references only (no JSX here) so this can stay a plain .js
 // module — actual rendering happens in ChatIcon.jsx.
@@ -164,6 +165,22 @@ export function useChatController({ activeProjectId } = {}) {
   // back to this ref after switching sessions) refetches, but sending a
   // second message in the same session reuses the cached copy.
   const vaultOverviewCacheRef = useRef({ sessionId: null, overview: null });
+  // Mirrors activeSessionId for the idle-vault-log timer below, which reads
+  // it from inside a setTimeout callback that can fire many minutes after
+  // the render that armed it — a plain closure over the `activeSessionId`
+  // state variable would see whatever it was AT ARM TIME, not whatever the
+  // user has actually switched to by the time the hour is up.
+  const activeSessionIdRef = useRef(activeSessionId);
+  useEffect(() => {
+    activeSessionIdRef.current = activeSessionId;
+  }, [activeSessionId]);
+  // Holds the pending idle-vault-log setTimeout, if one is armed — always
+  // cleared before a new one is set (see armVaultLogTimer below), so at most
+  // one is ever live. That's the actual guard against firing twice for the
+  // same stretch of silence; there's no separate "already fired" flag to
+  // keep in sync.
+  const vaultLogTimerRef = useRef(null);
+  useEffect(() => () => clearTimeout(vaultLogTimerRef.current), []);
 
   const iconPicker = usePositionedMenu();
   const createSession = useCreateChatSession();
@@ -282,7 +299,6 @@ export function useChatController({ activeProjectId } = {}) {
       return runByokChat({
         providerConfig,
         onEvent,
-        isReflectionTurn: !!payload.isReflectionTurn,
         contextArgs: {
           activeProjectId: payload.activeProjectId,
           userText: payload.message,
@@ -394,21 +410,41 @@ export function useChatController({ activeProjectId } = {}) {
     // invokeAssistant's own fetch (keyed by the same session id) hits the
     // cache instead of fetching the exact same data a second time.
     let vaultOverview = null;
+    // Vault-tidy's own, much longer cooldown (see reflectionPreferences.js) —
+    // checked and (if used) advanced independently of the base reflection
+    // cadence, since it's a genuinely separate, expensive-to-run-often thing
+    // layered on top of the same cycle, not gated by the same clock.
+    let includeVaultTidy = false;
+    let reflectionPrefs = null;
     if (vaultConnected) {
       vaultOverview = await fetchVaultOverview(externalVault).catch(() => null);
       vaultOverviewCacheRef.current = { sessionId: session.id, overview: vaultOverview };
+      reflectionPrefs = await loadReflectionPreferences();
+      includeVaultTidy = !reflectionPrefs.lastVaultTidyAt
+        || Date.now() - new Date(reflectionPrefs.lastVaultTidyAt).getTime() >= VAULT_TIDY_INTERVAL_MS;
     }
 
     const instruction = buildReflectionInstruction(delta.facts, {
       vaultConnected,
       selfNoteLength: vaultOverview?.selfNote?.length || 0,
+      includeVaultTidy,
     });
+    if (includeVaultTidy) {
+      // Advanced regardless of whether the model actually found/fixed
+      // anything this cycle — "checked recently" is what the cooldown is
+      // tracking, not "found something."
+      await saveReflectionPreferences({ ...reflectionPrefs, lastVaultTidyAt: new Date().toISOString() });
+    }
     const data = await invokeAssistant({
       message: instruction,
       conversationHistory: "",
       activeProjectId: null,
       sessionId: session.id,
       protocolReminderRequested: false,
+      // Not read by anything client-side (see byokChat.js) — rides along in
+      // the hosted path's own request body as honest metadata, harmless and
+      // free for entry.ts to use later if it ever needs to distinguish this
+      // kind of turn.
       isReflectionTurn: true,
     });
 
@@ -442,6 +478,103 @@ export function useChatController({ activeProjectId } = {}) {
   // never visibly wait on this.
   const notifyChatOpened = () => {
     runReflectionIfDue({ runReflectionTurn });
+  };
+
+  // Arms (or re-arms) the "auto /vault-log after an hour of silence in this
+  // chat" timer (runIdleVaultLog, below). Called from handleSend right after
+  // a real user message lands in `sessionId` — every new message pushes the
+  // hour back out, same as it would for a person deciding "it's been quiet a
+  // while, let me jot this down." Unlike REFLECTION_INTERVAL_MS's "checked
+  // only when chat reopens" pattern, this is a real, live setTimeout — see
+  // VAULT_LOG_IDLE_MS's own comment in reflectionPreferences.js for why that
+  // honesty claim is different (and achievable) here: it only needs the tab
+  // to stay open for the hour, not survive being closed.
+  const armVaultLogTimer = (sessionId) => {
+    clearTimeout(vaultLogTimerRef.current);
+    vaultLogTimerRef.current = setTimeout(() => {
+      vaultLogTimerRef.current = null;
+      runIdleVaultLog(sessionId);
+    }, VAULT_LOG_IDLE_MS);
+  };
+
+  // Fires once, an hour after the user's last message in `sessionId`, with
+  // no further message sent in the meantime — the exact same "/vault-log"
+  // a user could type themselves (see systemPrompt.js's slash-command
+  // table), just triggered by silence instead of a keystroke. Consent and
+  // vault-connection are both re-checked here, at FIRE time, not back when
+  // the timer was armed — either could have changed during that hour (a
+  // Settings toggle, a disconnected vault), and a silent, permission-less
+  // vault write is exactly what this feature must never become. Writes into
+  // THIS session (not a new one, unlike runReflectionTurn's check-ins) since
+  // this is logging a real conversation that already happened here, not
+  // opening a new one. Fully silent on any failure, same as
+  // runReflectionTurn: the user never asked for this turn, so from their
+  // side it should simply not have happened.
+  const runIdleVaultLog = async (sessionId) => {
+    try {
+      const prefs = await loadReflectionPreferences();
+      if (prefs.consent !== true) return;
+      const externalVault = await loadVaultConnection();
+      if (!isVaultConnected(externalVault)) return;
+
+      // "-created_date" + reverse, same convention useChatMessages.js's own
+      // "recent" page uses — this is a standalone fetch (the session may no
+      // longer be the active one by the time this fires, so chatState's own
+      // cached messages can't be trusted to still be for THIS session), not
+      // a call through that hook.
+      const desc = await base44.entities.ChatMessage.filter({ session_id: sessionId }, "-created_date", 200);
+      if (!desc.length) return; // nothing was ever said here — nothing to log
+      const messages = [...desc].reverse();
+      const conversationHistory = messages
+        .map((m) => `${m.role.toUpperCase()}: ${stripToolLog(m.content)}`)
+        .join("\n");
+
+      const data = await invokeAssistant({
+        message: "/vault-log",
+        conversationHistory,
+        activeProjectId: null,
+        sessionId,
+        protocolReminderRequested: false,
+      });
+
+      const reply = data.reply || "";
+      const liveTrace = data.liveTrace || [];
+      const actions = data.actions || [];
+      const executable = actions.filter((a) => !NON_EXECUTABLE_ACTIONS.has(a.action));
+
+      if (!executable.length) {
+        if (!reply) return; // nothing written and nothing to say — stay silent rather than post an empty aside
+        const created = await createMessage.mutateAsync({
+          session_id: sessionId, role: "assistant",
+          content: buildLoggedContent(reply, liveTrace.map((l) => l.label)),
+          ...(liveTrace.length ? { tool_log_detail: { liveTrace } } : {}),
+        });
+        markMessageNew(created.id);
+        if (sessionId !== activeSessionIdRef.current) setReflectionSessionId(sessionId);
+        return;
+      }
+
+      // "/vault-log" only ever proposes WRITE_VAULT_NOTE (see
+      // systemPrompt.js), never anything in DESTRUCTIVE_ACTIONS — but this
+      // still routes through the same pending_action fallback handleSend
+      // uses for a normal turn, rather than assuming that holds forever. A
+      // silent auto-execute of something destructive is exactly the failure
+      // mode every confirm-gate in this file exists to prevent.
+      const isDestructive = executable.some((a) => DESTRUCTIVE_ACTIONS.has(a.action));
+      const results = isDestructive ? [] : await executeActionSequence(executable, {});
+      const toolLog = [...liveTrace.map((l) => l.label), describePlan(executable), ...results.map(describeToolCall)];
+      const created = await createMessage.mutateAsync({
+        session_id: sessionId, role: "assistant",
+        content: buildLoggedContent(reply, toolLog),
+        ...(isDestructive ? { pending_action: { actions: executable } } : {}),
+        ...(toolLog.length ? { tool_log_detail: { liveTrace, plan: executable, steps: results } } : {}),
+      });
+      markMessageNew(created.id);
+      if (sessionId !== activeSessionIdRef.current) setReflectionSessionId(sessionId);
+      if (!isDestructive) await invalidateAppQueries();
+    } catch {
+      // best-effort — a failed idle log just means it didn't happen this hour
+    }
   };
 
   const runUndo = async () => {
@@ -479,6 +612,7 @@ export function useChatController({ activeProjectId } = {}) {
       setInput("");
       setAttachedFile(null);
       await createMessage.mutateAsync({ session_id: sessionId, role: "user", content: userText });
+      armVaultLogTimer(sessionId);
     } catch (error) {
       if (error.status === 401 || error.status === 403) {
         setAuthPromptVisible(true);

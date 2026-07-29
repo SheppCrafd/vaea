@@ -9,6 +9,7 @@
 import { localDb } from "@/lib/localDb";
 import { isTaskDone } from "@/lib/taskUtils";
 import { SELF_NOTE_PATH, SELF_NOTE_TARGET_MAX_CHARS } from "@/lib/githubApi";
+import { SELF_NOTE_IDENTITY_HEADER, SELF_NOTE_NOTES_HEADER } from "@/lib/selfNote";
 
 const MAX_ITEMS_PER_FACT = 8;
 
@@ -74,20 +75,34 @@ export async function computeWorkspaceDelta(sinceIso) {
 // the file's already near the target, the model is told to consolidate
 // instead of just appending, so the file has a real chance of staying
 // useful-sized on its own, not just capped from outside.
-export function buildReflectionInstruction(facts, { vaultConnected = false, selfNoteLength = 0 } = {}) {
+//
+// `includeVaultTidy` opts this cycle into also running a "/vault-tidy"-style
+// audit — decided by the caller (useChatController.js's runReflectionTurn,
+// gated on reflectionPreferences.js's own separate, longer cooldown) since
+// audit_vault reads every note in the vault once; running it on every
+// 3-hour cycle would be needless repeated cost for a check that rarely
+// changes between cycles. Any fix it proposes is NOT auto-executing — it's
+// not one of the two allowlisted paths, so chatActions.js's
+// filterReflectionActions routes it to pending_action same as any other
+// vault edit, exactly matching what "/vault-tidy" already does in a normal
+// turn.
+export function buildReflectionInstruction(facts, { vaultConnected = false, selfNoteLength = 0, includeVaultTidy = false } = {}) {
   const todayLogPath = `Daily/${new Date().toISOString().slice(0, 10)}.md`;
   const nearingCap = selfNoteLength >= SELF_NOTE_TARGET_MAX_CHARS * 0.75;
+  const vaultTidyGuidance = includeVaultTidy
+    ? `\nIt's also been a while since your notes vault was last checked over — you may run audit_vault once. If it finds real broken wikilinks or orphaned notes, propose fixes the normal way (WRITE_VAULT_NOTE to whatever path needs it) — that still needs the user's confirmation, same as any "/vault-tidy" fix normally would. Skip this entirely if there's nothing wrong.`
+    : "";
   const vaultGuidance = vaultConnected
     ? `
 
 You have a connected Vaea Vault, with two files you can write to directly this turn — no confirmation needed, they'll save automatically:
-- "${SELF_NOTE_PATH}" — your own notes about yourself: what you've learned about working in this particular workspace, corrections to how you'd been operating, style notes. Its current content, if any, is already shown above in [VAULT CONTEXT] — write the full revised version if you genuinely have something new to add, otherwise leave it alone entirely; don't touch it just to have touched it. This is about YOU, never a read on the user — no notes about their behavior, tone, or personality belong here.${
+- "${SELF_NOTE_PATH}" — your own notes about yourself: what you've learned about working in this particular workspace, corrections to how you'd been operating, style notes. It has two sections: "## ${SELF_NOTE_IDENTITY_HEADER}" (your name/identity/soul/about-the-user, set from Settings or "/setup" — never yours to edit; if you rewrite the file, carry that section forward EXACTLY as shown above in [VAULT CONTEXT], unchanged) and "## ${SELF_NOTE_NOTES_HEADER}" (yours). Only ever touch the Notes section — write its full revised body if you genuinely have something new to add, otherwise leave the whole file alone; don't touch it just to have touched it. This is about YOU, never a read on the user — no notes about their behavior, tone, or personality belong here.${
         nearingCap
-          ? " It's already getting long — if you're updating it, consolidate rather than append: fold related points together, cut anything stale or superseded, keep only what's still genuinely useful. Don't let it grow without bound."
+          ? " Your Notes section is already getting long — if you're updating it, consolidate rather than append: fold related points together, cut anything stale or superseded, keep only what's still genuinely useful. Don't let it grow without bound."
           : ""
       }
 - "${todayLogPath}" — a plain log entry for the facts above, same convention "/vault-log" already uses (read_vault_note it first if it already has content today, and append rather than overwrite).
-Any other vault path still needs the user's confirmation, same as everything else.`
+Any other vault path still needs the user's confirmation, same as everything else.${vaultTidyGuidance}`
     : "";
 
   return `[SYSTEM-INITIATED CHECK-IN — the user has not sent a message this turn]

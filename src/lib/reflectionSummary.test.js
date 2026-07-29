@@ -166,8 +166,29 @@ describe("buildReflectionInstruction", () => {
       vaultConnected: true,
       selfNoteLength: Math.ceil(SELF_NOTE_TARGET_MAX_CHARS * 0.75),
     });
-    expect(text).toContain("It's already getting long");
+    expect(text).toContain("Your Notes section is already getting long");
     expect(text).toContain("consolidate rather than append");
+  });
+
+  it("names the Identity/Notes section split and tells the model to carry Identity forward unchanged", () => {
+    const text = buildReflectionInstruction(["fact"], { vaultConnected: true });
+    expect(text).toContain('"## Identity"');
+    expect(text).toContain('"## Notes"');
+    expect(text).toContain("never yours to edit");
+    expect(text).toContain("carry that section forward EXACTLY as shown above");
+  });
+
+  it("includes vault-tidy guidance only when includeVaultTidy is true", () => {
+    const withTidy = buildReflectionInstruction(["fact"], { vaultConnected: true, includeVaultTidy: true });
+    const withoutTidy = buildReflectionInstruction(["fact"], { vaultConnected: true, includeVaultTidy: false });
+    expect(withTidy).toContain("audit_vault");
+    expect(withTidy).toContain("still needs the user's confirmation");
+    expect(withoutTidy).not.toContain("audit_vault");
+  });
+
+  it("never mentions vault-tidy when vault isn't connected, even if includeVaultTidy is true", () => {
+    const text = buildReflectionInstruction(["fact"], { vaultConnected: false, includeVaultTidy: true });
+    expect(text).not.toContain("audit_vault");
   });
 
   it("never mentions pruning when vault isn't connected, regardless of selfNoteLength", () => {

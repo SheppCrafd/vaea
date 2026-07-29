@@ -1,5 +1,5 @@
 import { PROVIDERS } from "@/lib/llm/providers";
-import { toAnthropicTools, toOpenAiCompatibleTools, READ_ONLY_TOOL_CATALOG } from "@/lib/llm/toolCatalog";
+import { toAnthropicTools, toOpenAiCompatibleTools } from "@/lib/llm/toolCatalog";
 import { buildInstructions, buildContextPrompt } from "@/lib/llm/systemPrompt";
 import { makeToolRunner, MAX_ACTIONS_PER_REQUEST } from "@/lib/llm/toolRunner";
 import { callAnthropic } from "@/lib/llm/anthropicAdapter";
@@ -56,13 +56,20 @@ async function simulateLiveReveal({ liveTrace, reasoning, onEvent }) {
 // it decides the plan client-side the same way every other non-base44
 // provider does, so it belongs in the same dispatch rather than a
 // parallel copy of this function.
-// `isReflectionTurn`, set only by reflectionTrigger.js's synthetic
-// check-in turn, restricts the tools actually advertised to the model to
-// the read-only subset — half of the hard "cannot mutate the workspace"
-// guarantee (see toolCatalog.js's READ_ONLY_TOOL_CATALOG and
-// chatActions.js's filterReflectionActions for the other half, which
-// covers this same guarantee on the hosted path too).
-export async function runByokChat({ providerConfig, contextArgs, onEvent, isReflectionTurn = false }) {
+// Deliberately offers the FULL tool catalog regardless of whether this is a
+// reflection-initiated turn — an earlier version restricted reflection
+// turns to READ_ONLY_TOOL_CATALOG, which excludes every `staged: true` tool
+// including WRITE_VAULT_NOTE, silently making it impossible for a
+// reflection turn to ever write to Vaea Self.md/the Daily log on BYOK or
+// Backdoor Mode. That restriction never protected anything real: the actual
+// "cannot mutate the workspace" guarantee is chatActions.js's
+// filterReflectionActions, which inspects what the model RETURNS regardless
+// of what it was offered, and web_search (the other thing it was meant to
+// stop) isn't in TOOL_CATALOG at all — it's wired natively per-provider, so
+// restricting this catalog never touched it; the real (and only working)
+// mitigation there is the "Do not use web search this turn" line already in
+// every reflection prompt, which every provider receives regardless.
+export async function runByokChat({ providerConfig, contextArgs, onEvent }) {
   const provider = PROVIDERS[providerConfig?.provider];
   if (!provider || !provider.adapter) {
     throw new Error(`Unknown AI provider "${providerConfig?.provider}" — check Settings -> AI Model.`);
@@ -102,18 +109,17 @@ export async function runByokChat({ providerConfig, contextArgs, onEvent, isRefl
 
   const systemPrompt = buildInstructions({ maxActionsPerRequest: MAX_ACTIONS_PER_REQUEST });
   const contextPrompt = buildContextPrompt(contextArgs);
-  const catalog = isReflectionTurn ? READ_ONLY_TOOL_CATALOG : undefined;
 
   const { reply, reasoning } = provider.adapter === "anthropic"
     ? await callAnthropic({
         apiKey: providerConfig.apiKey, model: providerConfig.model, systemPrompt, contextPrompt,
-        tools: toAnthropicTools(catalog), runTool, onEvent,
+        tools: toAnthropicTools(), runTool, onEvent,
       })
     : isLocalBridge
-    ? await callLocalBridge({ systemPrompt, contextPrompt, tools: toAnthropicTools(catalog), runTool })
+    ? await callLocalBridge({ systemPrompt, contextPrompt, tools: toAnthropicTools(), runTool })
     : await callOpenAiCompatible({
         baseUrl: provider.baseUrl, apiKey: providerConfig.apiKey, model: providerConfig.model, systemPrompt, contextPrompt,
-        tools: toOpenAiCompatibleTools(catalog), runTool, onEvent, providerId: provider.id,
+        tools: toOpenAiCompatibleTools(), runTool, onEvent, providerId: provider.id,
       });
 
   if (isLocalBridge && onEvent) {
