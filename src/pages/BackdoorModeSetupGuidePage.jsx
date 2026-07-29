@@ -9,75 +9,78 @@ const PIPELINE = [
   { Icon: Cpu, label: "Your model answers" },
 ];
 
-const ECHO_SCRIPT = `#!/usr/bin/env python3
-# watcher.py — the smallest possible Backdoor Mode watcher. It doesn't call
-# a real model yet; it just echoes a fixed reply back, so you can confirm
-# the folder wiring works end to end before plugging in your own model.
+const WATCHER_SCRIPT = `#!/usr/bin/env python3
+# bridge_watcher.py — the prebuilt Backdoor Mode watcher. The folder
+# inspection lives here once, so it never has to be re-written per script:
+# a prompt counts as NEW only while it has no response yet, which makes
+# restarts safe — answered prompts are never re-answered, even before Vaea
+# files the pair away into processed/.
 #
-# Usage: python watcher.py /path/to/the/folder/you/connected/in/vaea
+#   python bridge_watcher.py <folder> --echo     # wiring test, no model
+#   python bridge_watcher.py <folder> --url http://localhost:11434/v1/messages
+#
+# Or import it and bring your own model (see "Forwarding to a real model"):
+#   from bridge_watcher import run_watcher
+#   run_watcher("<folder>", my_answer_function)
 
-import json, sys, time
+import argparse, json, time, urllib.request
 from pathlib import Path
 
-root = Path(sys.argv[1])
-prompts, responses = root / "prompts", root / "responses"
-seen = set()
-
-print(f"Watching {prompts} every 5s...")
-while True:
+def scan_new_prompts(root):
+    """Yield (name, request) for each prompt that has no response yet."""
+    prompts, responses = Path(root) / "prompts", Path(root) / "responses"
     for f in sorted(prompts.glob("*.json")):
-        if f.name in seen:
-            continue
-        seen.add(f.name)
-        request = json.loads(f.read_text())
-        print(f"Got round {request['round']} from {f.name}")
+        if (responses / f.name).exists():
+            continue  # answered — Vaea will file the pair into processed/
+        try:
+            yield f.name, json.loads(f.read_text())
+        except (FileNotFoundError, json.JSONDecodeError):
+            continue  # mid-write or just archived; the next pass gets it
 
-        # Replace this with a real call to your own model — see the
-        # "Wiring up a real model" section below for what request/response
-        # actually contain.
-        reply = {"content": [{"type": "text", "text": "Hello from your local watcher script."}]}
+def run_watcher(root, answer, interval=5):
+    responses = Path(root) / "responses"
+    print(f"Watching {Path(root) / 'prompts'} every {interval}s...")
+    while True:
+        for name, request in scan_new_prompts(root):
+            print(f"Got round {request['round']} from {name}")
+            reply = answer(request)
+            (responses / name).write_text(json.dumps(reply, indent=2))
+            print(f"Answered {name}")
+        time.sleep(interval)
 
-        (responses / f.name).write_text(json.dumps(reply, indent=2))
-        print(f"Wrote {f.name}")
-    time.sleep(5)`;
+def echo_model(request):
+    return {"content": [{"type": "text", "text": "Hello from your local watcher script."}]}
 
-const REAL_SCRIPT = `#!/usr/bin/env python3
-# watcher.py — forwards each round straight to a local Claude-compatible
-# endpoint (e.g. your own model gateway listening on localhost, or an
-# on-prem proxy in front of your company's model). Swap MODEL_URL and the
-# request shape for whatever your actual endpoint expects — the point is
-# just: read the round file, call your model, write its answer back.
+def http_model(url):
+    def answer(request):
+        body = json.dumps({
+            "system": request["system"],
+            "tools": request["tools"],
+            "messages": request["messages"],
+        }).encode()
+        req = urllib.request.Request(url, data=body, headers={"content-type": "application/json"})
+        with urllib.request.urlopen(req) as res:
+            return json.loads(res.read())  # expected shape: {"content": [...]}
+    return answer
 
-import json, sys, time, urllib.request
-from pathlib import Path
+if __name__ == "__main__":
+    p = argparse.ArgumentParser()
+    p.add_argument("folder")
+    mode = p.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--echo", action="store_true", help="reply with a fixed test message")
+    mode.add_argument("--url", help="forward each round to a Claude-compatible endpoint")
+    args = p.parse_args()
+    run_watcher(args.folder, echo_model if args.echo else http_model(args.url))`;
 
-MODEL_URL = "http://localhost:11434/v1/messages"  # <- point this at your model
+const CUSTOM_MODEL_SNIPPET = `# your_model_watcher.py — bring any model; the folder handling is already done.
+from bridge_watcher import run_watcher
 
-root = Path(sys.argv[1])
-prompts, responses = root / "prompts", root / "responses"
-seen = set()
+def answer(request):
+    # request has "system", "tools", "messages" — call your model however
+    # you like and return {"content": [...]} (text and/or tool_use blocks).
+    ...
 
-def call_model(request):
-    body = json.dumps({
-        "system": request["system"],
-        "tools": request["tools"],
-        "messages": request["messages"],
-    }).encode()
-    req = urllib.request.Request(MODEL_URL, data=body, headers={"content-type": "application/json"})
-    with urllib.request.urlopen(req) as res:
-        return json.loads(res.read())  # expected shape: {"content": [...]}
-
-print(f"Watching {prompts} every 5s...")
-while True:
-    for f in sorted(prompts.glob("*.json")):
-        if f.name in seen:
-            continue
-        seen.add(f.name)
-        request = json.loads(f.read_text())
-        reply = call_model(request)
-        (responses / f.name).write_text(json.dumps(reply, indent=2))
-        print(f"Answered {f.name}")
-    time.sleep(5)`;
+run_watcher("/path/to/the/folder/you/connected", answer)`;
 
 const REQUEST_SHAPE = `{
   "round": 0,
@@ -108,7 +111,10 @@ const STEPS = [
         <span className="font-terminal text-xs text-foreground">prompts/</span> and{" "}
         <span className="font-terminal text-xs text-foreground">responses/</span> — and remembers the folder for
         next time (Chrome/Edge desktop only — this uses the File System Access API, which Firefox and Safari
-        don't support).
+        don't support). Once a prompt has been answered and Vaea has read the answer, the pair is filed away
+        into a third folder, <span className="font-terminal text-xs text-foreground">processed/</span> — so{" "}
+        <span className="font-terminal text-xs text-foreground">prompts/</span> only ever holds what's still
+        waiting, and Settings shows you both counts at a glance.
       </>
     ),
   },
@@ -118,8 +124,11 @@ const STEPS = [
       <>
         Nothing polls the folder on its own — that's a script you (or your IT/platform team) run, on this device
         or wherever your model actually lives, as long as it can see the same folder (a local path, or a synced/
-        shared/mounted one). Start with the echo script below just to prove the wiring works, then swap in a real
-        call to your model.
+        shared/mounted one). The prebuilt{" "}
+        <span className="font-terminal text-xs text-foreground">bridge_watcher.py</span> below handles all the
+        folder inspection — run it with <span className="font-terminal text-xs text-foreground">--echo</span> to
+        prove the wiring works, then point it at your model with{" "}
+        <span className="font-terminal text-xs text-foreground">--url</span> (or import it and bring your own).
       </>
     ),
   },
@@ -188,13 +197,15 @@ export default function BackdoorModeSetupGuidePage() {
         </ol>
 
         <div className="mb-14">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Test script — confirms the wiring, no model needed</p>
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">The prebuilt watcher — save it once, reuse it for everything</p>
           <p className="text-sm text-muted-foreground mb-4">
-            Run this (Python 3, no extra packages) pointed at the folder you connected, then send any message in
-            Vaea Chat — you should see it print the round it received and get "Hello from your local watcher
-            script." back as the reply.
+            Save this as <span className="font-terminal text-xs text-foreground">bridge_watcher.py</span> (Python
+            3, no extra packages) and run it with{" "}
+            <span className="font-terminal text-xs text-foreground">--echo</span> pointed at the folder you
+            connected, then send any message in Vaea Chat — you should see it print the round it received and get
+            "Hello from your local watcher script." back as the reply.
           </p>
-          <TerminalBlock title="watcher.py (echo)" code={ECHO_SCRIPT} showPrompt={false} />
+          <TerminalBlock title="bridge_watcher.py" code={WATCHER_SCRIPT} showPrompt={false} />
         </div>
 
         <div className="mt-14 pt-10 border-t border-border">
@@ -235,7 +246,12 @@ export default function BackdoorModeSetupGuidePage() {
             a reply has no tool_use blocks left, that round's text is the final answer and the turn is done. Vaea
             polls for each response every 5 seconds, so there's no strict latency requirement — but a script that's
             not running at all just means the chat waits (and eventually times out with a clear error) rather than
-            failing silently.
+            failing silently. After Vaea reads each answer it files the round's pair into{" "}
+            <span className="font-terminal text-xs text-foreground">processed/</span> — anything still sitting in{" "}
+            <span className="font-terminal text-xs text-foreground">prompts/</span> is by definition new and
+            unanswered, which is exactly the rule{" "}
+            <span className="font-terminal text-xs text-foreground">bridge_watcher.py</span> uses to never
+            re-answer history after a restart.
           </p>
 
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Forwarding to a real model</p>
@@ -244,9 +260,18 @@ export default function BackdoorModeSetupGuidePage() {
             <span className="font-terminal text-xs text-foreground">tools</span>/
             <span className="font-terminal text-xs text-foreground">messages</span> fields in the request are
             already shaped like Anthropic's Messages API — if your local/on-prem model speaks that shape (or you
-            put a small translation layer in front of it), forwarding is nearly a direct pass-through:
+            put a small translation layer in front of it), the same prebuilt watcher forwards directly:
           </p>
-          <TerminalBlock title="watcher.py (real model)" code={REAL_SCRIPT} showPrompt={false} />
+          <TerminalBlock
+            title="terminal"
+            code={`python bridge_watcher.py /path/to/your/folder --url http://localhost:11434/v1/messages`}
+            showPrompt={false}
+          />
+          <p className="text-sm text-muted-foreground mt-4 mb-4">
+            Speaking some other shape? Import the watcher and supply just the model call — the folder handling
+            never has to be written again:
+          </p>
+          <TerminalBlock title="your_model_watcher.py" code={CUSTOM_MODEL_SNIPPET} showPrompt={false} />
         </div>
 
         <div className="mt-14 pt-10 border-t border-border">

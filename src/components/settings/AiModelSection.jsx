@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, Eye, EyeOff, FolderCog, Loader2, TriangleAlert, Unlink, ChevronRight } from "lucide-react";
+import { Check, Eye, EyeOff, FolderCog, Loader2, RefreshCw, TriangleAlert, Unlink, ChevronRight } from "lucide-react";
 import { loadAiProviderConfig, saveAiProviderConfig, DEFAULTS as PROVIDER_DEFAULTS } from "@/lib/aiProviderConfig";
 import { PROVIDERS, PROVIDER_LIST } from "@/lib/llm/providers";
 import {
@@ -10,6 +10,7 @@ import {
   connectBridgeFolder,
   reconnectBridgeFolder,
   disconnectBridgeFolder,
+  inspectBridgeFolder,
 } from "@/lib/llm/localBridgeStorage";
 
 // Which model actually answers Vaea Chat — Vaea's own hosted default, or a
@@ -150,11 +151,15 @@ function BackdoorModeConnect() {
   const [status, setStatus] = useState("checking");
   const [folderName, setFolderName] = useState(null);
   const [error, setError] = useState("");
+  const [stats, setStats] = useState(null); // { pending: [names], processed: n }
 
   const refresh = async () => {
     const s = await getBridgeStatus();
     setStatus(s);
     if (s === "needs-permission") setFolderName(await getRememberedBridgeFolderName());
+    // Surface the folder's live state: what's still waiting for the watcher
+    // vs how many rounds are already filed in processed/.
+    setStats(s === "connected" ? await inspectBridgeFolder().catch(() => null) : null);
   };
 
   useEffect(() => {
@@ -213,13 +218,30 @@ function BackdoorModeConnect() {
       </p>
 
       {status === "connected" && (
-        <button
-          type="button"
-          onClick={handleDisconnect}
-          className="flex items-center gap-1.5 text-xs px-3 py-2 border border-input rounded-md hover:bg-accent transition-colors text-muted-foreground"
-        >
-          <Unlink className="w-3.5 h-3.5" /> Disconnect
-        </button>
+        <>
+          {stats && (
+            <p className="text-xs text-muted-foreground mb-3">
+              <span className="font-terminal text-foreground">{stats.pending.length}</span> prompt{stats.pending.length === 1 ? "" : "s"} waiting ·{" "}
+              <span className="font-terminal text-foreground">{stats.processed}</span> processed
+              <button
+                type="button"
+                onClick={refresh}
+                aria-label="Refresh folder status"
+                title="Refresh"
+                className="ml-2 align-middle text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <RefreshCw className="w-3 h-3 inline" />
+              </button>
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={handleDisconnect}
+            className="flex items-center gap-1.5 text-xs px-3 py-2 border border-input rounded-md hover:bg-accent transition-colors text-muted-foreground"
+          >
+            <Unlink className="w-3.5 h-3.5" /> Disconnect
+          </button>
+        </>
       )}
 
       {status === "needs-permission" && (

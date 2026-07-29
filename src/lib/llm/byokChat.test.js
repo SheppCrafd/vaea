@@ -5,6 +5,7 @@ vi.mock("./localBridgeStorage.js", () => ({
   getBridgeStatus: vi.fn(),
   writeRequestFile: vi.fn(async () => {}),
   pollForResponseFile: vi.fn(),
+  archiveProcessedRound: vi.fn(async () => {}),
 }));
 
 import { getBridgeStatus, writeRequestFile, pollForResponseFile } from "./localBridgeStorage.js";

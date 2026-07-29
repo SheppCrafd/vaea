@@ -8,12 +8,20 @@
 // deliberately doesn't share deviceStorage.js's store or its dirHandle.
 //
 // Layout inside the chosen folder, created automatically on first connect:
-//   prompts/<requestId>-r<round>.json    — written by this browser
+//   prompts/<requestId>-r<round>.json    — written by this browser; only ever
+//                                          holds rounds still waiting for an
+//                                          answer (the "new" list)
 //   responses/<requestId>-r<round>.json  — written by the user's own local
 //                                          watcher script (see
 //                                          BackdoorModeSetupGuidePage.jsx for
 //                                          the file contract and a sample
 //                                          script)
+//   processed/{prompts,responses}/...    — where each pair is filed once the
+//                                          response has been read and acted
+//                                          on (archiveProcessedRound below) —
+//                                          the permanent "known" list, so a
+//                                          restarted watcher can never
+//                                          re-answer history
 
 export const supportsFileSystemAccess =
   typeof window !== "undefined" && typeof window.showDirectoryPicker === "function";
@@ -175,6 +183,61 @@ async function readResponseFileIfPresent(requestId, round) {
     if (err.name === "NotFoundError") return null;
     throw err;
   }
+}
+
+// The File System Access API has no cross-directory move — copy then delete.
+async function moveFile(sourceDir, targetDir, name) {
+  const fh = await sourceDir.getFileHandle(name, { create: false });
+  const text = await (await fh.getFile()).text();
+  const target = await targetDir.getFileHandle(name, { create: true });
+  const writable = await target.createWritable();
+  await writable.write(text);
+  await writable.close();
+  await sourceDir.removeEntry(name);
+}
+
+// Once a round's response has been read and acted on, the prompt has done
+// its job — the pair is filed out of the live folders into processed/
+// (new list -> known list). prompts/ stays an honest "still waiting" view
+// for the Settings readout and any watcher, and a watcher restarted after
+// downtime can never re-answer history. Best-effort by design: a failed
+// move leaves stale files behind but never breaks the chat turn that
+// already consumed the round.
+export async function archiveProcessedRound(requestId, round) {
+  if (!rootHandle || !promptsHandle || !responsesHandle) return;
+  const name = fileNameFor(requestId, round);
+  try {
+    const processedRoot = await rootHandle.getDirectoryHandle("processed", { create: true });
+    const processedPrompts = await processedRoot.getDirectoryHandle("prompts", { create: true });
+    const processedResponses = await processedRoot.getDirectoryHandle("responses", { create: true });
+    await moveFile(promptsHandle, processedPrompts, name).catch(() => {});
+    await moveFile(responsesHandle, processedResponses, name).catch(() => {});
+  } catch {
+    // best-effort
+  }
+}
+
+// The prebuilt folder inspection — one implementation for anything that
+// needs to look inside the bridge folder (the Settings readout today):
+// which prompts are still waiting (new) and how many rounds have been
+// processed (known). Returns null when the folder isn't connected.
+export async function inspectBridgeFolder() {
+  if (!rootHandle || !promptsHandle) return null;
+  const pending = [];
+  for await (const entry of promptsHandle.values()) {
+    if (entry.kind === "file" && entry.name.endsWith(".json")) pending.push(entry.name);
+  }
+  let processed = 0;
+  try {
+    const processedRoot = await rootHandle.getDirectoryHandle("processed", { create: false });
+    const processedPrompts = await processedRoot.getDirectoryHandle("prompts", { create: false });
+    for await (const entry of processedPrompts.values()) {
+      if (entry.kind === "file" && entry.name.endsWith(".json")) processed += 1;
+    }
+  } catch (err) {
+    if (err.name !== "NotFoundError") throw err;
+  }
+  return { pending: pending.sort(), processed };
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

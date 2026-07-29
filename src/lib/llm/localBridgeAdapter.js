@@ -1,4 +1,4 @@
-import { writeRequestFile, pollForResponseFile } from "@/lib/llm/localBridgeStorage";
+import { writeRequestFile, pollForResponseFile, archiveProcessedRound } from "@/lib/llm/localBridgeStorage";
 
 // "Backdoor Mode" — same plan-then-tools loop shape as anthropicAdapter.js's
 // callAnthropic, but the transport is two folders on disk instead of a
@@ -53,6 +53,12 @@ export async function callLocalBridge({ systemPrompt, contextPrompt, tools, runT
     if (!Array.isArray(content)) {
       throw new Error(`Malformed response in responses/${requestId}-r${round}.json — expected a {"content": [...]} object.`);
     }
+    // This round's response has been read and is about to drive the turn —
+    // the prompt has successfully done its job, so the pair moves from the
+    // live folders (the "new" list) into processed/ (the "known" list).
+    // A malformed response deliberately never reaches this line: the pair
+    // stays in place for debugging. Best-effort — see localBridgeStorage.js.
+    await archiveProcessedRound(requestId, round);
     const toolUseBlocks = content.filter((block) => block.type === "tool_use");
     const roundText = content.filter((block) => block.type === "text").map((block) => block.text).join("\n").trim();
     if (roundText) thinking.push(roundText);
