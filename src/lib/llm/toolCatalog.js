@@ -565,12 +565,23 @@ export const TOOL_CATALOG = [
 
 export const STAGED_TOOL_NAMES = new Set(TOOL_CATALOG.filter((t) => t.staged).map((t) => t.name));
 
+// The hard half of a reflection turn's "cannot mutate the workspace"
+// guarantee (see chatActions.js's filterReflectionActions for the other
+// half): every `staged: false` tool is already a genuine read with no
+// side effects (search/audit/read_*, all plain fetches — see
+// localTools.js/githubApi.js), so this is a real restriction, not just a
+// prompt. BYOK/Backdoor Mode pass this instead of TOOL_CATALOG for a
+// reflection turn (see byokChat.js); the hosted path doesn't need it for
+// the guarantee to hold, since nothing hosted-produced ever mutates
+// anything except through the same client-side filter.
+export const READ_ONLY_TOOL_CATALOG = TOOL_CATALOG.filter((t) => !t.staged);
+
 // Anthropic's Messages API wants { name, description, input_schema }.
-export function toAnthropicTools() {
-  return TOOL_CATALOG.map(({ name, description, parameters }) => ({ name, description, input_schema: parameters }));
+export function toAnthropicTools(catalog = TOOL_CATALOG) {
+  return catalog.map(({ name, description, parameters }) => ({ name, description, input_schema: parameters }));
 }
 
 // OpenAI-compatible chat-completions wants { type: "function", function: { name, description, parameters } }.
-export function toOpenAiCompatibleTools() {
-  return TOOL_CATALOG.map(({ name, description, parameters }) => ({ type: "function", function: { name, description, parameters } }));
+export function toOpenAiCompatibleTools(catalog = TOOL_CATALOG) {
+  return catalog.map(({ name, description, parameters }) => ({ type: "function", function: { name, description, parameters } }));
 }

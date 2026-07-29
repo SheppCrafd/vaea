@@ -47,6 +47,25 @@ export const DESTRUCTIVE_ACTIONS = new Set([
 // (the server prompt requires it to be the only tool call in a turn).
 export const NON_EXECUTABLE_ACTIONS = new Set(["UNDO_LAST_ACTION"]);
 
+// A reflection turn (see reflectionTrigger.js) runs with nobody having asked
+// anything this turn, so the normal trust model — DESTRUCTIVE_ACTIONS need a
+// confirm click, everything else (SET_AI_IDENTITY, WRITE_VAULT_NOTE,
+// CREATE_*, ...) auto-executes because the user just asked for it in plain
+// language — doesn't apply. Two real gaps if the normal gate were reused
+// as-is: UNDO_LAST_ACTION bypasses DESTRUCTIVE_ACTIONS entirely (it's
+// special-cased in useChatController.js's handleSend, before that check
+// ever runs), and every non-destructive staged action auto-executes with no
+// confirmation at all. So this is deliberately NOT "reuse DESTRUCTIVE_ACTIONS" —
+// it's uniform: drop anything in NON_EXECUTABLE_ACTIONS outright (never runs
+// UNDO during a reflection turn, regardless of actionHistory state), and
+// force every remaining action into pending_action, no auto-execute
+// exception, no allowlist of "safe" staged actions. Read-only (staged:
+// false) tools never reach here at all — they already ran immediately and
+// only show up in liveTrace, not actions.
+export function filterReflectionActions(actions) {
+  return (actions || []).filter((a) => !NON_EXECUTABLE_ACTIONS.has(a.action));
+}
+
 // A model asked for a huge single BULK_CREATE/BULK_DELETE (e.g. 60 tasks in
 // one call) has, in practice, sometimes given up partway through generating
 // that one giant tool-call argument and printed the rest as plain text

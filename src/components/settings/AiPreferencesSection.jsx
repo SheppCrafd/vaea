@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { Check, Download, Upload } from "lucide-react";
 import { DEFAULTS as IDENTITY_DEFAULTS } from "@/lib/aiPreferences";
 import { useAiIdentity, useSaveAiIdentity } from "@/hooks/useAiIdentity";
+import { useReflectionPreferences, useSaveReflectionPreferences } from "@/hooks/useReflectionPreferences";
 
 const FIELDS = [
   { key: "name", label: "Name", placeholder: "Vaea Chat (default) — or give it a name of your own", rows: 1 },
@@ -25,6 +26,25 @@ export default function AiPreferencesSection() {
   const [justSaved, setJustSaved] = useState(false);
   const [importError, setImportError] = useState("");
   const fileInputRef = useRef(null);
+
+  // Same value the one-time consent overlay writes (ChatReflectionConsent.jsx) —
+  // this toggle is the reversible half of that decision, not a separate
+  // setting. Saves immediately on click, independent of the Save button
+  // above, since it's its own on/off switch, not part of the identity form.
+  const { data: reflectionPrefs } = useReflectionPreferences();
+  const saveReflectionPrefs = useSaveReflectionPreferences();
+  const reflectionEnabled = reflectionPrefs?.consent === true;
+  const toggleReflection = () => {
+    if (!reflectionPrefs) return;
+    const consent = !reflectionEnabled;
+    saveReflectionPrefs.mutate({
+      ...reflectionPrefs,
+      consent,
+      // Same reasoning as the overlay's own Allow handler — turning it back
+      // on shouldn't summarize everything that happened while it was off.
+      lastReflectionAt: consent ? new Date().toISOString() : reflectionPrefs.lastReflectionAt,
+    });
+  };
 
   useEffect(() => {
     if (isSuccess) setIdentity(savedIdentity);
@@ -133,6 +153,28 @@ export default function AiPreferencesSection() {
         )}
       </div>
       {importError && <p className="text-xs text-destructive mt-2">{importError}</p>}
+
+      <div className="flex items-start justify-between gap-4 mt-6 pt-6 border-t border-border">
+        <div>
+          <p className="text-sm font-medium">Proactive check-ins</p>
+          <p className="text-xs text-muted-foreground mt-0.5 max-w-md">
+            If you're away 3+ hours, opening Vaea Chat may show a message it started on its own — based on a
+            read-only look at your own tasks and projects. It can never change anything without asking you first.
+          </p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={reflectionEnabled}
+          onClick={toggleReflection}
+          disabled={!reflectionPrefs}
+          className={`shrink-0 mt-0.5 relative w-9 h-5 rounded-full transition-colors disabled:opacity-50 ${reflectionEnabled ? "bg-primary" : "bg-muted"}`}
+        >
+          <span
+            className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-background shadow-sm transition-transform ${reflectionEnabled ? "translate-x-4" : ""}`}
+          />
+        </button>
+      </div>
     </div>
   );
 }

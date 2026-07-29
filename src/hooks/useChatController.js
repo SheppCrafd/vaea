@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { MessageCircle, Bot, Sparkles, HelpCircle, Smile } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { localDb } from "@/lib/localDb";
-import { executeAction, executeActionSequence, describeToolCall, describePlan, stripToolLog, DESTRUCTIVE_ACTIONS, NON_EXECUTABLE_ACTIONS } from "@/lib/chatActions";
+import { executeAction, executeActionSequence, describeToolCall, describePlan, stripToolLog, DESTRUCTIVE_ACTIONS, NON_EXECUTABLE_ACTIONS, filterReflectionActions } from "@/lib/chatActions";
 import { loadAiIdentity, DEFAULTS as IDENTITY_DEFAULTS } from "@/lib/aiPreferences";
 import { loadAiProviderConfig, isByokConfigured, isLocalBridgeConfigured } from "@/lib/aiProviderConfig";
 import { runByokChat } from "@/lib/llm/byokChat";
@@ -15,6 +15,8 @@ import { usePositionedMenu } from "@/hooks/usePositionedMenu";
 import { useCreateChatSession } from "@/hooks/useChatSessions";
 import { useChatMessages, useCreateChatMessage, useUpdateChatMessage } from "@/hooks/useChatMessages";
 import { useAiIdentity } from "@/hooks/useAiIdentity";
+import { computeWorkspaceDelta, buildReflectionInstruction } from "@/lib/reflectionSummary";
+import { runReflectionIfDue } from "@/lib/reflectionTrigger";
 
 // Icon component references only (no JSX here) so this can stay a plain .js
 // module — actual rendering happens in ChatIcon.jsx.
@@ -140,6 +142,16 @@ export function useChatController({ activeProjectId } = {}) {
     if (!id) return;
     setNewMessageIds((prev) => new Set(prev).add(id));
   };
+  // The session id of a reflection-created check-in (see runReflectionTurn
+  // below), if one exists and hasn't been opened yet. Deliberately NOT the
+  // same as switching activeSessionId out from under the user the moment
+  // it's created — if they already have chat open reading something else,
+  // silently yanking them into a new conversation would be exactly the kind
+  // of "does something without being asked" behavior this feature is
+  // supposed to avoid. Instead this just flags that a new one exists; the
+  // host (ChatBox/ChatPage) shows a small badge, and switching to it is a
+  // real click via handleSelectSession, same as any other session.
+  const [reflectionSessionId, setReflectionSessionId] = useState(null);
 
   const fileInputRef = useRef(null);
   const queryClient = useQueryClient();
@@ -185,6 +197,15 @@ export function useChatController({ activeProjectId } = {}) {
   const handleSelectSession = (id) => {
     setActiveSessionId(id);
     writeStorage(SESSION_STORAGE_KEY, id);
+  };
+
+  // The reflection badge's click handler — switches into it like any other
+  // session AND clears the badge, in one step, so it doesn't linger pointing
+  // at a session the user is now already looking at.
+  const openReflectionSession = () => {
+    if (!reflectionSessionId) return;
+    handleSelectSession(reflectionSessionId);
+    setReflectionSessionId(null);
   };
 
   const handleNewChat = () => {
@@ -261,6 +282,7 @@ export function useChatController({ activeProjectId } = {}) {
       return runByokChat({
         providerConfig,
         onEvent,
+        isReflectionTurn: !!payload.isReflectionTurn,
         contextArgs: {
           activeProjectId: payload.activeProjectId,
           userText: payload.message,
@@ -339,6 +361,58 @@ export function useChatController({ activeProjectId } = {}) {
     if (streamError) throw new Error(streamError);
     if (!finalPayload) throw new Error("The assistant's response ended unexpectedly.");
     return { reply: finalPayload.reply, reasoning: finalPayload.reasoning, actions: finalPayload.actions, liveTrace: finalPayload.liveTrace };
+  };
+
+  // A reflection-initiated turn: the assistant, not the user, opens a brand
+  // new conversation with an opening message grounded in real deltas since
+  // `sinceIso` (computeWorkspaceDelta — code-computed, never asked of the
+  // model). Deliberately doesn't reuse ensureSession/handleSend: a
+  // reflection needs a genuinely NEW session (not whatever the user was
+  // last in) whose first message is role:"assistant", and it must be
+  // impossible for it to auto-execute anything — every returned action goes
+  // straight into pending_action, with no branch that ever calls
+  // executeActionSequence, regardless of DESTRUCTIVE_ACTIONS membership
+  // (see filterReflectionActions's own comment for why the normal gate
+  // isn't reused as-is). Every failure is swallowed — a reflection that
+  // can't complete must never surface an error bubble or the sign-in
+  // prompt; the user never asked for this turn, so it should simply not
+  // have happened, from their perspective.
+  const runReflectionTurn = async (sinceIso) => {
+    const delta = await computeWorkspaceDelta(sinceIso);
+    if (!delta.hasChanges) return; // nothing to say — a "nothing happened!" check-in erodes trust in the feature fast
+
+    const session = await createSession.mutateAsync({ title: "Check-in" });
+    const instruction = buildReflectionInstruction(delta.facts);
+    const data = await invokeAssistant({
+      message: instruction,
+      conversationHistory: "",
+      activeProjectId: null,
+      sessionId: session.id,
+      protocolReminderRequested: false,
+      isReflectionTurn: true,
+    });
+
+    const reply = data.reply || "Hey — just checking in on a few things.";
+    const liveTrace = data.liveTrace || [];
+    const pendingActions = filterReflectionActions(data.actions || []);
+    const created = await createMessage.mutateAsync({
+      session_id: session.id,
+      role: "assistant",
+      content: buildLoggedContent(reply, liveTrace.map((l) => l.label)),
+      ...(pendingActions.length ? { pending_action: { actions: pendingActions } } : {}),
+      ...(liveTrace.length ? { tool_log_detail: { liveTrace } } : {}),
+    });
+    markMessageNew(created.id);
+    setReflectionSessionId(session.id);
+  };
+
+  // Call from the actual moment Vaea Chat is opened (ChatBox's isChatOpen
+  // becoming true; ChatPage mounting) — not from this hook's own bare
+  // mount, which happens on every dashboard load even while the floating
+  // widget stays collapsed. Fire-and-forget by design: opening chat should
+  // never visibly wait on this.
+  const notifyChatOpened = () => {
+    runReflectionIfDue({ runReflectionTurn });
   };
 
   const runUndo = async () => {
@@ -645,6 +719,9 @@ export function useChatController({ activeProjectId } = {}) {
     dismissAuthPrompt,
     signInForChat,
     chatState,
+    reflectionSessionId,
+    notifyChatOpened,
+    openReflectionSession,
     handleSelectSession,
     handleNewChat,
     handleFileChange,

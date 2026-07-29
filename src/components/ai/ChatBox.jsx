@@ -13,6 +13,7 @@ import ChatResizeHandles from "@/components/ai/ChatResizeHandles";
 import ChatCommandMenu from "@/components/ai/ChatCommandMenu";
 import ChatSettingsModal from "@/components/ai/ChatSettingsModal";
 import ChatAuthPrompt from "@/components/ai/ChatAuthPrompt";
+import ChatReflectionConsent from "@/components/ai/ChatReflectionConsent";
 
 // Floating quick-access chat widget. All the actual chat behavior (sessions,
 // sending, confirm/undo, icon persistence, attachments) lives in
@@ -32,6 +33,14 @@ export default function ChatBox({ activeProjectId }) {
   const { geometry, startMove, startResize } = useWindowGeometry();
   const slashCommand = useSlashCommand(chat.input, chat.setInput);
   const inputHistory = useChatInputHistory({ messages: chat.chatState.messages, input: chat.input, setInput: chat.setInput });
+
+  // The "opened" signal reflectionTrigger.js waits for — fires only when the
+  // panel actually opens (false -> true), not on this component's own
+  // mount, which happens on every dashboard load while the widget is still
+  // collapsed.
+  useEffect(() => {
+    if (isChatOpen) chat.notifyChatOpened();
+  }, [isChatOpen]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -124,6 +133,22 @@ export default function ChatBox({ activeProjectId }) {
             </div>
           </div>
 
+          <ChatReflectionConsent />
+
+          {/* Vaea started a new conversation while this one was open (or
+              while the panel was collapsed) — flagged, not force-switched:
+              silently yanking the user into a different session mid-read
+              would be exactly the "does something without asking" behavior
+              this whole feature is built to avoid. */}
+          {chat.reflectionSessionId && chat.reflectionSessionId !== chat.activeSessionId && (
+            <button
+              onClick={chat.openReflectionSession}
+              className="px-3 py-1.5 bg-primary/10 hover:bg-primary/15 text-primary text-xs font-medium text-left transition-colors"
+            >
+              Vaea started a new conversation — view it
+            </button>
+          )}
+
           <ChatMessageList
             messages={chat.chatState.messages}
             isComputing={chat.isComputing}
@@ -195,9 +220,20 @@ export default function ChatBox({ activeProjectId }) {
         <button
           ref={containerRef}
           onClick={() => setIsChatOpen(true)}
+          // `fixed` already establishes a positioning context for an
+          // absolutely-positioned child (the unread dot below) on its own —
+          // an extra `relative` here would conflict with `fixed` (both set
+          // the same `position` property) and silently knock the button out
+          // of its pinned corner into normal document flow.
           className="fixed bottom-6 right-6 z-[110] w-14 h-14 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center shadow-[0_0_0_1px_hsl(var(--foreground)/0.05),0_16px_36px_-12px_hsl(var(--primary)/0.55)] hover:shadow-[0_0_0_1px_hsl(var(--foreground)/0.06),0_20px_44px_-12px_hsl(var(--primary)/0.65)] hover:-translate-y-1 transition-all duration-300"
         >
           <ChatIcon iconChoice={chat.iconChoice} className="w-6 h-6" />
+          {/* Vaea started a check-in while the panel was collapsed — a plain
+              presence dot, not a count; the reflection is a single session,
+              never a queue. */}
+          {chat.reflectionSessionId && (
+            <span aria-hidden="true" className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_0_2px_hsl(var(--primary))]" />
+          )}
         </button>
       )}
 

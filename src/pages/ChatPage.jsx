@@ -1,5 +1,5 @@
 import { Plus, Paperclip, Info, Settings, PanelLeft, PanelLeftClose } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useChatController } from "@/hooks/useChatController";
 import { useChatSessions } from "@/hooks/useChatSessions";
 import { useSlashCommand } from "@/hooks/useSlashCommand";
@@ -12,6 +12,7 @@ import ChatSessionRow from "@/components/ai/ChatSessionRow";
 import ChatCommandMenu from "@/components/ai/ChatCommandMenu";
 import ChatSettingsModal from "@/components/ai/ChatSettingsModal";
 import ChatAuthPrompt from "@/components/ai/ChatAuthPrompt";
+import ChatReflectionConsent from "@/components/ai/ChatReflectionConsent";
 
 // Full-page chat — a dedicated /chat route (outside the dashboard's AppShell
 // chrome entirely) laid out like a standalone chat app: a persistent session
@@ -37,6 +38,12 @@ export default function ChatPage() {
   const messageInputRef = useRef(null);
   const slashCommand = useSlashCommand(chat.input, chat.setInput);
   const inputHistory = useChatInputHistory({ messages: chat.chatState.messages, input: chat.input, setInput: chat.setInput });
+
+  // The page itself IS "opened" — no isChatOpen-style toggle here the way
+  // ChatBox has one, so this just fires once per real navigation to /chat.
+  useEffect(() => {
+    chat.notifyChatOpened();
+  }, []);
 
   return (
     <div className="h-full flex overflow-hidden gap-3 px-3 pb-3">
@@ -118,6 +125,17 @@ export default function ChatPage() {
         </div>
 
         <div className="flex-1 min-h-0 flex flex-col max-w-3xl w-full mx-auto">
+          <ChatReflectionConsent />
+
+          {chat.reflectionSessionId && chat.reflectionSessionId !== chat.activeSessionId && (
+            <button
+              onClick={chat.openReflectionSession}
+              className="px-4 py-2 bg-primary/10 hover:bg-primary/15 text-primary text-sm font-medium text-left transition-colors"
+            >
+              Vaea started a new conversation — view it
+            </button>
+          )}
+
           <ChatMessageList
             messages={chat.chatState.messages}
             isComputing={chat.isComputing}

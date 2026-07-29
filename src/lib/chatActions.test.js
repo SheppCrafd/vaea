@@ -13,7 +13,7 @@ function makeLocalStorage() {
 }
 globalThis.localStorage = makeLocalStorage();
 
-const { executeAction, executeActionSequence, stripToolLog, describePlan, DESTRUCTIVE_ACTIONS } = await import("./chatActions.js");
+const { executeAction, executeActionSequence, stripToolLog, describePlan, DESTRUCTIVE_ACTIONS, NON_EXECUTABLE_ACTIONS, filterReflectionActions } = await import("./chatActions.js");
 const { localDb } = await import("./localDb.js");
 const { writeKey, removeKey } = await import("./deviceStorage.js");
 const { VAULT_CONNECTION_KEY } = await import("./vaultConnection.js");
@@ -307,5 +307,51 @@ describe("chatActions: stripToolLog", () => {
 
   it("leaves a message with no tool-log block untouched", () => {
     expect(stripToolLog("Just a plain reply, no plan ran.")).toBe("Just a plain reply, no plan ran.");
+  });
+});
+
+describe("chatActions: filterReflectionActions — the hard half of the 'a reflection turn cannot mutate the workspace' guarantee", () => {
+  it("drops UNDO_LAST_ACTION outright — a reflection turn must never call runUndo(), regardless of actionHistory state", () => {
+    const actions = [{ action: "UNDO_LAST_ACTION", args: {} }];
+    expect(filterReflectionActions(actions)).toEqual([]);
+  });
+
+  it("keeps every staged action, destructive or not — the caller is responsible for treating ALL of them as pending, never auto-executing any", () => {
+    // Every staged action a real plan could ever contain, both destructive
+    // (DESTRUCTIVE_ACTIONS members, which auto-route to pending_action in a
+    // normal turn) and non-destructive (which auto-EXECUTE with no
+    // confirmation in a normal turn — SET_AI_IDENTITY, WRITE_VAULT_NOTE,
+    // CREATE_*, etc.). filterReflectionActions must not special-case any of
+    // them differently from each other; only NON_EXECUTABLE_ACTIONS gets
+    // dropped.
+    const destructive = [...DESTRUCTIVE_ACTIONS].map((action) => ({ action, args: {} }));
+    const nonDestructiveStaged = [
+      "SET_AI_IDENTITY", "WRITE_VAULT_NOTE", "CREATE_AREA", "CREATE_TASK",
+      "UPDATE_TASK", "SET_CARD_VIEW", "EXPORT_CSV",
+    ].map((action) => ({ action, args: {} }));
+    const all = [...destructive, ...nonDestructiveStaged];
+
+    const result = filterReflectionActions(all);
+    expect(result).toHaveLength(all.length);
+    expect(result.map((a) => a.action).sort()).toEqual(all.map((a) => a.action).sort());
+  });
+
+  it("drops UNDO_LAST_ACTION even when mixed in with other actions, keeping the rest", () => {
+    const actions = [
+      { action: "CREATE_TASK", args: { description: "x" } },
+      { action: "UNDO_LAST_ACTION", args: {} },
+      { action: "WRITE_VAULT_NOTE", args: { path: "x.md", content: "x" } },
+    ];
+    expect(filterReflectionActions(actions).map((a) => a.action)).toEqual(["CREATE_TASK", "WRITE_VAULT_NOTE"]);
+  });
+
+  it("handles an empty or missing actions array", () => {
+    expect(filterReflectionActions([])).toEqual([]);
+    expect(filterReflectionActions(undefined)).toEqual([]);
+  });
+
+  it("NON_EXECUTABLE_ACTIONS is exactly what's dropped — a sanity cross-check against the real export, not a hardcoded duplicate", () => {
+    const actions = [...NON_EXECUTABLE_ACTIONS].map((action) => ({ action, args: {} }));
+    expect(filterReflectionActions(actions)).toEqual([]);
   });
 });

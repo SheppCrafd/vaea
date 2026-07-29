@@ -1,5 +1,5 @@
 import { PROVIDERS } from "@/lib/llm/providers";
-import { toAnthropicTools, toOpenAiCompatibleTools } from "@/lib/llm/toolCatalog";
+import { toAnthropicTools, toOpenAiCompatibleTools, READ_ONLY_TOOL_CATALOG } from "@/lib/llm/toolCatalog";
 import { buildInstructions, buildContextPrompt } from "@/lib/llm/systemPrompt";
 import { makeToolRunner, MAX_ACTIONS_PER_REQUEST } from "@/lib/llm/toolRunner";
 import { callAnthropic } from "@/lib/llm/anthropicAdapter";
@@ -56,7 +56,13 @@ async function simulateLiveReveal({ liveTrace, reasoning, onEvent }) {
 // it decides the plan client-side the same way every other non-base44
 // provider does, so it belongs in the same dispatch rather than a
 // parallel copy of this function.
-export async function runByokChat({ providerConfig, contextArgs, onEvent }) {
+// `isReflectionTurn`, set only by reflectionTrigger.js's synthetic
+// check-in turn, restricts the tools actually advertised to the model to
+// the read-only subset — half of the hard "cannot mutate the workspace"
+// guarantee (see toolCatalog.js's READ_ONLY_TOOL_CATALOG and
+// chatActions.js's filterReflectionActions for the other half, which
+// covers this same guarantee on the hosted path too).
+export async function runByokChat({ providerConfig, contextArgs, onEvent, isReflectionTurn = false }) {
   const provider = PROVIDERS[providerConfig?.provider];
   if (!provider || !provider.adapter) {
     throw new Error(`Unknown AI provider "${providerConfig?.provider}" — check Settings -> AI Model.`);
@@ -96,17 +102,18 @@ export async function runByokChat({ providerConfig, contextArgs, onEvent }) {
 
   const systemPrompt = buildInstructions({ maxActionsPerRequest: MAX_ACTIONS_PER_REQUEST });
   const contextPrompt = buildContextPrompt(contextArgs);
+  const catalog = isReflectionTurn ? READ_ONLY_TOOL_CATALOG : undefined;
 
   const { reply, reasoning } = provider.adapter === "anthropic"
     ? await callAnthropic({
         apiKey: providerConfig.apiKey, model: providerConfig.model, systemPrompt, contextPrompt,
-        tools: toAnthropicTools(), runTool, onEvent,
+        tools: toAnthropicTools(catalog), runTool, onEvent,
       })
     : isLocalBridge
-    ? await callLocalBridge({ systemPrompt, contextPrompt, tools: toAnthropicTools(), runTool })
+    ? await callLocalBridge({ systemPrompt, contextPrompt, tools: toAnthropicTools(catalog), runTool })
     : await callOpenAiCompatible({
         baseUrl: provider.baseUrl, apiKey: providerConfig.apiKey, model: providerConfig.model, systemPrompt, contextPrompt,
-        tools: toOpenAiCompatibleTools(), runTool, onEvent, providerId: provider.id,
+        tools: toOpenAiCompatibleTools(catalog), runTool, onEvent, providerId: provider.id,
       });
 
   if (isLocalBridge && onEvent) {
