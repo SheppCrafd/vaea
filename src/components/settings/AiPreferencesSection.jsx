@@ -178,6 +178,10 @@ export default function AiPreferencesSection() {
               </>
             )}
           </p>
+          <p className="text-xs text-muted-foreground mt-1.5 max-w-md">
+            It only ever looks at what you've typed into your workspace — never how you talk, your tone, or your
+            habits.
+          </p>
         </div>
         <button
           type="button"

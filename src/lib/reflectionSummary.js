@@ -8,7 +8,7 @@
 // plain fact text — the one thing a reflection turn is told not to add to.
 import { localDb } from "@/lib/localDb";
 import { isTaskDone } from "@/lib/taskUtils";
-import { SELF_NOTE_PATH } from "@/lib/githubApi";
+import { SELF_NOTE_PATH, SELF_NOTE_TARGET_MAX_CHARS } from "@/lib/githubApi";
 
 const MAX_ITEMS_PER_FACT = 8;
 
@@ -66,13 +66,26 @@ export async function computeWorkspaceDelta(sinceIso) {
 // the returned actions, not just this wording), so this text is guidance for
 // the model to use them for their intended purpose, not the safety boundary
 // itself. Not vault-connected: the original, unchanged instruction.
-export function buildReflectionInstruction(facts, { vaultConnected = false } = {}) {
+//
+// `selfNoteLength` is the soft layer of Vaea Self.md's size management (see
+// githubApi.js's SELF_NOTE_TARGET_MAX_CHARS for the other two: a hard
+// write-time sanity cap in chatActions.js, and hard read-time truncation in
+// systemPrompt.js/entry.ts regardless of what actually happened here) — once
+// the file's already near the target, the model is told to consolidate
+// instead of just appending, so the file has a real chance of staying
+// useful-sized on its own, not just capped from outside.
+export function buildReflectionInstruction(facts, { vaultConnected = false, selfNoteLength = 0 } = {}) {
   const todayLogPath = `Daily/${new Date().toISOString().slice(0, 10)}.md`;
+  const nearingCap = selfNoteLength >= SELF_NOTE_TARGET_MAX_CHARS * 0.75;
   const vaultGuidance = vaultConnected
     ? `
 
 You have a connected Vaea Vault, with two files you can write to directly this turn — no confirmation needed, they'll save automatically:
-- "${SELF_NOTE_PATH}" — your own notes about yourself: what you've learned about working in this particular workspace, corrections to how you'd been operating, style notes. Its current content, if any, is already shown above in [VAULT CONTEXT] — write the full revised version if you genuinely have something new to add, otherwise leave it alone entirely; don't touch it just to have touched it. This is about YOU, never a read on the user — no notes about their behavior, tone, or personality belong here.
+- "${SELF_NOTE_PATH}" — your own notes about yourself: what you've learned about working in this particular workspace, corrections to how you'd been operating, style notes. Its current content, if any, is already shown above in [VAULT CONTEXT] — write the full revised version if you genuinely have something new to add, otherwise leave it alone entirely; don't touch it just to have touched it. This is about YOU, never a read on the user — no notes about their behavior, tone, or personality belong here.${
+        nearingCap
+          ? " It's already getting long — if you're updating it, consolidate rather than append: fold related points together, cut anything stale or superseded, keep only what's still genuinely useful. Don't let it grow without bound."
+          : ""
+      }
 - "${todayLogPath}" — a plain log entry for the facts above, same convention "/vault-log" already uses (read_vault_note it first if it already has content today, and append rather than overwrite).
 Any other vault path still needs the user's confirmation, same as everything else.`
     : "";

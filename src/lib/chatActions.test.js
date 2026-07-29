@@ -14,7 +14,7 @@ function makeLocalStorage() {
 globalThis.localStorage = makeLocalStorage();
 
 const { executeAction, executeActionSequence, stripToolLog, describePlan, DESTRUCTIVE_ACTIONS, NON_EXECUTABLE_ACTIONS, filterReflectionActions } = await import("./chatActions.js");
-const { SELF_NOTE_PATH } = await import("./githubApi.js");
+const { SELF_NOTE_PATH, SELF_NOTE_HARD_CAP_CHARS } = await import("./githubApi.js");
 const { localDb } = await import("./localDb.js");
 const { writeKey, removeKey } = await import("./deviceStorage.js");
 const { VAULT_CONNECTION_KEY } = await import("./vaultConnection.js");
@@ -347,6 +347,18 @@ describe("chatActions: filterReflectionActions — the hard half of the 'a refle
     const { autoExecute, pending } = filterReflectionActions([action]);
     expect(autoExecute).toEqual([action]);
     expect(pending).toEqual([]);
+  });
+
+  it("demotes an oversized self-note write to pending instead of auto-executing — a runaway generation gets a human's eyes on it", () => {
+    const action = { action: "WRITE_VAULT_NOTE", args: { path: SELF_NOTE_PATH, content: "x".repeat(SELF_NOTE_HARD_CAP_CHARS + 1) } };
+    const { autoExecute, pending } = filterReflectionActions([action]);
+    expect(autoExecute).toEqual([]);
+    expect(pending).toEqual([action]);
+  });
+
+  it("still auto-executes a self-note write right at the hard cap, only past it", () => {
+    const atCap = { action: "WRITE_VAULT_NOTE", args: { path: SELF_NOTE_PATH, content: "x".repeat(SELF_NOTE_HARD_CAP_CHARS) } };
+    expect(filterReflectionActions([atCap]).autoExecute).toEqual([atCap]);
   });
 
   it("auto-executes WRITE_VAULT_NOTE to today's Daily/ log, matching /vault-log's own convention", () => {

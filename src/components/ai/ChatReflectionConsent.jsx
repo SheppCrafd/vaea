@@ -65,6 +65,13 @@ export default function ChatReflectionConsent() {
           ×
         </button>
       </div>
+      {/* A deliberate, visible trust statement, not a buried disclaimer — what
+          it reads is real workspace content only. It never analyzes how you
+          talk, your tone, or your habits, and never will as part of this
+          feature. */}
+      <p className="text-[11px] text-muted-foreground/80 pl-6">
+        It only ever looks at what you've typed into your workspace — never how you talk, your tone, or your habits.
+      </p>
       <div className="flex items-center justify-between gap-2 pl-6">
         <p className="text-[11px] text-muted-foreground/80">Turn this on or off anytime in Settings → AI Preferences.</p>
         <div className="flex items-center gap-2 shrink-0">

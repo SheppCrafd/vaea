@@ -386,7 +386,23 @@ export function useChatController({ activeProjectId } = {}) {
     const vaultConnected = isVaultConnected(externalVault);
 
     const session = await createSession.mutateAsync({ title: "Check-in" });
-    const instruction = buildReflectionInstruction(delta.facts, { vaultConnected });
+
+    // Fetched here (once) rather than left to invokeAssistant's own internal
+    // fetch, for two reasons: the self-note's current length needs to be
+    // known before buildReflectionInstruction runs, and priming
+    // vaultOverviewCacheRef with this session's id up front means
+    // invokeAssistant's own fetch (keyed by the same session id) hits the
+    // cache instead of fetching the exact same data a second time.
+    let vaultOverview = null;
+    if (vaultConnected) {
+      vaultOverview = await fetchVaultOverview(externalVault).catch(() => null);
+      vaultOverviewCacheRef.current = { sessionId: session.id, overview: vaultOverview };
+    }
+
+    const instruction = buildReflectionInstruction(delta.facts, {
+      vaultConnected,
+      selfNoteLength: vaultOverview?.selfNote?.length || 0,
+    });
     const data = await invokeAssistant({
       message: instruction,
       conversationHistory: "",

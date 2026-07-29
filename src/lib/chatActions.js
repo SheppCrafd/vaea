@@ -20,7 +20,7 @@ import { CARD_VIEW_STORAGE_KEY, CARD_VIEW_CHANGE_EVENT } from "@/lib/cardViewCon
 import { loadAiIdentity, saveAiIdentity } from "@/lib/aiPreferences";
 import { createSnapshot } from "@/lib/backupSnapshots";
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
-import { writeVaultFile, SELF_NOTE_PATH } from "@/lib/githubApi";
+import { writeVaultFile, SELF_NOTE_PATH, SELF_NOTE_HARD_CAP_CHARS } from "@/lib/githubApi";
 import { createArea, updateArea, deleteArea } from "@/hooks/useAreas";
 import { createProduct, updateProduct, deleteProduct } from "@/hooks/useProducts";
 import { createProject, updateProject, archiveProject, restoreProject, deleteProject } from "@/hooks/useProjects";
@@ -70,10 +70,20 @@ export const NON_EXECUTABLE_ACTIONS = new Set(["UNDO_LAST_ACTION"]);
 // (destructive or not). Read-only (staged: false) tools never reach here at
 // all — they already ran immediately and only show up in liveTrace, not
 // actions. UNDO_LAST_ACTION is still dropped outright, unconditionally.
+//
+// A write to Vaea Self.md specifically also needs to pass a sanity size
+// check before it's allowed to auto-execute — the middle layer of the
+// file's size management (see githubApi.js's SELF_NOTE_HARD_CAP_CHARS for
+// the other two: reflectionSummary.js's soft prompt guidance to consolidate
+// rather than keep appending, and systemPrompt.js/entry.ts's hard read-time
+// truncation regardless of how the file got large). A single write this far
+// past the target size reads as a runaway generation, not a normal note
+// update — demoted to `pending` so the user actually sees it before it's
+// committed, rather than trusting the model's own restraint unconditionally.
 function isReflectionAutoExecutable(action) {
   if (action.action !== "WRITE_VAULT_NOTE") return false;
   const path = action.args?.path;
-  if (path === SELF_NOTE_PATH) return true;
+  if (path === SELF_NOTE_PATH) return (action.args?.content?.length ?? 0) <= SELF_NOTE_HARD_CAP_CHARS;
   return path === `Daily/${new Date().toISOString().slice(0, 10)}.md`;
 }
 

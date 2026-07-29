@@ -17,6 +17,7 @@ globalThis.localStorage = makeLocalStorage();
 
 const { computeWorkspaceDelta, buildReflectionInstruction } = await import("./reflectionSummary.js");
 const { localDb } = await import("./localDb.js");
+const { SELF_NOTE_TARGET_MAX_CHARS } = await import("./githubApi.js");
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -153,6 +154,25 @@ describe("buildReflectionInstruction", () => {
     expect(text).toContain("no confirmation needed");
     expect(text).toContain("Any other vault path still needs the user's confirmation");
     expect(text).toContain("never a read on the user");
+  });
+
+  it("says nothing about pruning when the self-note is small or absent", () => {
+    const text = buildReflectionInstruction(["fact"], { vaultConnected: true, selfNoteLength: 100 });
+    expect(text).not.toContain("consolidate");
+  });
+
+  it("tells the model to consolidate rather than keep appending once the self-note is nearing the size target", () => {
+    const text = buildReflectionInstruction(["fact"], {
+      vaultConnected: true,
+      selfNoteLength: Math.ceil(SELF_NOTE_TARGET_MAX_CHARS * 0.75),
+    });
+    expect(text).toContain("It's already getting long");
+    expect(text).toContain("consolidate rather than append");
+  });
+
+  it("never mentions pruning when vault isn't connected, regardless of selfNoteLength", () => {
+    const text = buildReflectionInstruction(["fact"], { vaultConnected: false, selfNoteLength: 999999 });
+    expect(text).not.toContain("consolidate");
   });
 
   it("defaults to not-connected wording when the second argument is omitted entirely", () => {

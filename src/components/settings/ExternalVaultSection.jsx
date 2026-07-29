@@ -3,9 +3,120 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Check, Github, Loader2, TriangleAlert, Unlink } from "lucide-react";
 import { loadVaultConnection, saveVaultConnection, clearVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
-import { testVaultConnection } from "@/lib/githubApi";
+import { testVaultConnection, readVaultNoteContent, writeVaultFile, SELF_NOTE_PATH, SELF_NOTE_TARGET_MAX_CHARS } from "@/lib/githubApi";
 
 const DEFAULT_CONNECTION = { owner: "", repo: "", branch: "main", token: "" };
+
+// Read/edit surface for Vaea Self.md — the reflection feature's own notes
+// about itself (see reflectionSummary.js), normally only auto-written by
+// that feature. This is the in-app alternative to opening the vault
+// directly in Obsidian: mostly for peeking at what it's written, occasionally
+// for a manual correction. Save here is a real, explicit user action (the
+// user is literally looking at Settings and clicking Save), so it writes
+// directly via writeVaultFile — no need to route through the chat/confirm
+// pipeline the way an assistant-proposed write does.
+function SelfNoteEditor({ connection }) {
+  const [content, setContent] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    // Any failure here (most commonly: the file doesn't exist yet — nothing
+    // has reflected since this feature shipped) is treated as "starts
+    // empty," not an error — the connection itself is already known-good by
+    // the time this renders (it's only shown once `connected` is true), so
+    // there's nothing useful to surface here beyond a blank editor.
+    readVaultNoteContent({ ...connection, path: SELF_NOTE_PATH })
+      .catch(() => "")
+      .then((text) => {
+        if (!cancelled) setContent(text);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [connection.owner, connection.repo, connection.branch, connection.token]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError("");
+    try {
+      await writeVaultFile({
+        ...connection,
+        path: SELF_NOTE_PATH,
+        content,
+        commitMessage: "Update Vaea Self.md (manual edit)",
+      });
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 1500);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const overCap = content.length > SELF_NOTE_TARGET_MAX_CHARS;
+
+  return (
+    <div className="mt-6 pt-6 border-t border-border">
+      <p className="text-sm font-medium mb-1">
+        <span className="font-terminal">{SELF_NOTE_PATH}</span>
+      </p>
+      <p className="text-xs text-muted-foreground mb-3">
+        What the assistant has written about itself — what it's learned working in this workspace, corrections to
+        how it operates. It updates this on its own during a check-in; you can read or correct it here anytime.
+      </p>
+      {loading ? (
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground py-4">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading…
+        </div>
+      ) : (
+        <>
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Nothing written yet — this fills in the first time it checks in."
+            rows={8}
+            className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all resize-y font-terminal"
+          />
+          <div className="flex items-center justify-between mt-1.5">
+            <p className={`text-[11px] ${overCap ? "text-destructive" : "text-muted-foreground"}`}>
+              {content.length.toLocaleString()} / {SELF_NOTE_TARGET_MAX_CHARS.toLocaleString()} characters
+              {overCap ? " — over the target it's asked to stay under" : ""}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="text-sm px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md transition-colors shadow-sm disabled:opacity-50"
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
+            {justSaved && (
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Check className="w-3.5 h-3.5" /> Saved
+              </span>
+            )}
+          </div>
+          {error && (
+            <p className="flex items-start gap-1.5 text-xs text-destructive mt-2">
+              <TriangleAlert className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {error}
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
 
 const FIELDS = [
   { key: "owner", label: "GitHub username / org", placeholder: "e.g. octocat" },
@@ -151,6 +262,8 @@ export default function ExternalVaultSection() {
           <TriangleAlert className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {error}
         </p>
       )}
+
+      {connected && <SelfNoteEditor connection={connection} />}
     </div>
   );
 }

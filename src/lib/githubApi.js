@@ -201,6 +201,23 @@ async function fetchRecentNotes({ owner, repo, branch, token }) {
 // identity notes, and a bare generic name would risk colliding with that.
 export const SELF_NOTE_PATH = "Vaea Self.md";
 
+// Size management for Vaea Self.md — three layers, each independent, each a
+// real backstop rather than trusting the layer before it:
+//  1. reflectionSummary.js's buildReflectionInstruction tells the model to
+//     consolidate rather than keep appending once the file's already near
+//     SELF_NOTE_TARGET_MAX_CHARS — a soft, prompt-level nudge.
+//  2. chatActions.js's isReflectionAutoExecutable refuses to auto-execute a
+//     write past SELF_NOTE_HARD_CAP_CHARS (demotes it to a normal confirm-
+//     gated action instead) — catches a runaway generation the prompt
+//     guidance failed to prevent, before it's ever silently committed.
+//  3. renderVaultOverview (systemPrompt.js / entry.ts) hard-truncates
+//     whatever's actually in the file to SELF_NOTE_TARGET_MAX_CHARS before
+//     including it in any prompt — holds even if a user pastes something
+//     huge into the file by hand outside of Vaea entirely, so no failure
+//     mode anywhere in this chain can silently blow up every future prompt.
+export const SELF_NOTE_TARGET_MAX_CHARS = 6000; // ~1500 tokens — a real "working notes" budget, not a hard wall
+export const SELF_NOTE_HARD_CAP_CHARS = 20000; // well past "the model is misbehaving," not a normal size
+
 export async function fetchVaultOverview({ owner, repo, branch, token }) {
   const [summary, priorityNotes, recentNotes, selfNote] = await Promise.all([
     readVaultFile({ owner, repo, branch, token, path: "vault.md" }).catch(() => null),
