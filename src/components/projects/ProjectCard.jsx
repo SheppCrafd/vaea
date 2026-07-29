@@ -79,11 +79,10 @@ export default function ProjectCard({ project, stakeholderIds = [] }) {
       ref={setRefs}
       style={style}
       data-project-card={project.id}
-      // No fixed dimensions: ProjectsGrid's Mini-mode CSS grid
-      // (auto-fill/minmax(112px, 1fr)) decides the tile's width, and
-      // aspect-square derives the height from it — the tile is a square at
-      // every track size, per design review, instead of the old fixed-height
-      // h-28 rectangle that only its width could grow.
+      // Width comes from ProjectsGrid's Mini-mode CSS grid, which fixes every
+      // track at 112px rather than letting them grow to fill the row —
+      // sized to this tile's own content instead of wasting leftover grid
+      // space. aspect-square derives the height from that same 112px.
       className={`relative bg-card border border-border rounded-xl p-2 w-full aspect-square flex flex-col items-center transition-colors ${isMatched ? "bg-primary/10 ring-1 ring-primary/30" : ""} ${isDragging ? "shadow-2xl scale-105 border-primary" : "shadow-sm"} ${isOver ? "ring-2 ring-primary ring-offset-1" : ""}`}
     >
       {/* Header row in normal flow (not absolute corners): grip, then the

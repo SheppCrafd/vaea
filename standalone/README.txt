@@ -33,15 +33,19 @@ on when to prefer one over the other.
 
 YOUR DATA
 
-  Everything you create — areas, products, projects, tasks, stakeholders,
-  notes — is stored locally in that browser's storage on your machine only.
-  Nothing is uploaded anywhere. Using a different browser, or clearing this
-  browser's site data, starts you with an empty workspace. (If you're a
-  developer running the actual git repo instead of this standalone copy via
-  `npm run dev`, data is stored as plain JSON files in a `data/` folder in
-  your clone instead — see the main README.md's "Local data storage"
-  section. That doesn't apply here; this standalone copy has no dev server
-  behind it, so it's always browser storage.)
+  The first time you run it, it asks where to keep your data. It'll offer
+  a cloud option too, but that needs signing in — and this standalone copy
+  has no sign-in (see below) — so pick the device option: a folder on your
+  own computer (Chrome/Edge — pick it once, and everything's saved there as
+  real files you can open yourself), or, on other browsers, a file you save
+  and load by hand. Nothing is uploaded anywhere. Using a different
+  folder/file, or a different browser, starts you with an empty workspace.
+  (If you're a developer running the actual git repo instead of this
+  standalone copy via `npm run dev`, data is stored as plain JSON files in
+  a `data/` folder in your clone instead — see the main README.md's "Local
+  data storage" section. That doesn't apply here; this standalone copy has
+  no dev server behind it, so it uses the same folder/file storage
+  described above.)
 
 SIGNING IN
 

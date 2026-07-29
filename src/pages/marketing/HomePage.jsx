@@ -24,11 +24,11 @@ const FAQS = [
   },
   {
     q: "How long does it actually take to get set up?",
-    a: "About a minute. Sign in, pick where your stuff lives (or skip that and just use the browser), and start telling Vaea Chat what's going on. There's no setup wizard standing between you and using it.",
+    a: "About a minute. Pick where your stuff lives — a folder on your device, or the cloud if you'd rather sign in and have it follow you everywhere — and start telling Vaea Chat what's going on. There's no setup wizard standing between you and using it.",
   },
   {
     q: "Is my data actually private?",
-    a: "Yes — everything except your chat history with Vaea lives on your own device, not our servers. When chat needs your data to answer, it's sent for that one request only and never stored on our end.",
+    a: "By default, yes — everything except your chat history with Vaea lives on your own device, not our servers. You can opt into cloud storage instead (tied to your account, so it follows you across devices) — that's the one case where your project data itself sits on our servers, and it's always your choice, never the default. Either way, when chat needs your data to answer, it's sent for that one request only and never stored on our end.",
   },
   {
     q: "What if I don't use Obsidian or take notes anywhere?",
@@ -59,8 +59,8 @@ const VAULT_REASONS = [
 ];
 
 const QUIET_TRUTHS = [
-  { icon: HardDrive, title: "It lives on your device", body: "Real files in a folder you picked — not an account somewhere else." },
-  { icon: LockKeyhole, title: "Signing in only unlocks chat", body: "Organizing, editing, importing all work whether you're signed in or not." },
+  { icon: HardDrive, title: "Your device by default", body: "Real files in a folder you picked — cloud storage is there if you'd rather sign in and use that instead." },
+  { icon: LockKeyhole, title: "Signing in unlocks chat and cloud", body: "Organizing, editing, and importing all work whether you're signed in or not." },
   { icon: Sparkles, title: "Free, with no plans to compare", body: "No tiers, no usage limits to keep an eye on." },
 ];
 
@@ -106,7 +106,7 @@ function HeroSection() {
               See how it works
             </Link>
           </div>
-          <p className="mt-5 text-xs text-white/35">Free. Data stays on your device either way.</p>
+          <p className="mt-5 text-xs text-white/35">Free. Your data stays on your device unless you choose otherwise.</p>
         </Reveal>
 
         <Reveal delay={150} className="mt-16 sm:mt-20 max-w-3xl mx-auto">

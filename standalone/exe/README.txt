@@ -41,8 +41,9 @@ WHY THIS EXISTS ALONGSIDE standalone/*.bat and *.sh
 YOUR DATA / SIGNING IN / THE AI CHAT WIDGET
 
   Same as the script launchers — see the root standalone/README.txt for
-  the full explanation. Short version: all your data stays in that
-  browser's local storage on your machine, this copy has no Base44 app id
+  the full explanation. Short version: your data stays in a folder you pick
+  (or a file you save/load by hand on browsers without a folder picker) —
+  never that browser's local storage — this copy has no Base44 app id
   baked in so it never asks you to sign in (the live hosted version does),
   and the AI chat widget is present but can't respond (it needs a live
   Base44 account/session that this offline copy doesn't have — when it does

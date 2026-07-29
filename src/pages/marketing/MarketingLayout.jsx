@@ -171,7 +171,7 @@ function Footer() {
 
         <div className="mt-10">
           <div aria-hidden="true" className={hairlineH} />
-          <p className="pt-6 text-xs text-muted-foreground">Vaea. Your stuff stays on your device, always.</p>
+          <p className="pt-6 text-xs text-muted-foreground">Vaea. Your stuff stays on your device by default, always your choice.</p>
         </div>
       </div>
     </footer>

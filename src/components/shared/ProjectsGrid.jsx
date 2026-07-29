@@ -3,28 +3,27 @@ import ProjectCard from "@/components/projects/ProjectCard";
 import ProjectCardFull from "@/components/projects/ProjectCardFull";
 
 // Projects fill whatever space their parent (a Product, or an Area's own
-// "Direct Projects" zone) gives them — same CSS grid (auto-fit/minmax)
-// approach at both card-view sizes, just a different floor: Full Cards'
-// real, editable card floors at 420px (its old fixed width); Mini Cards'
-// small square tile floors at 112px (its old fixed w-28/h-28). Either way,
-// existing tiles grow via 1fr before a new row starts, rather than the grid
-// leaving leftover space unused. Shared here rather than duplicated in
+// "Direct Projects" zone) gives them, but the two card views want opposite
+// things from that space: Full Cards are real, editable cards meant to grow
+// (floors at 420px, its old fixed width, then shares leftover row width via
+// 1fr). Mini Cards are a small square tile sized to its own content — grip,
+// title, the 2x2 quadrant grid, the flag icons, the stats bar — not to
+// whatever the grid track happens to be, so it stays a fixed 112px (its old
+// w-28/h-28 size) instead of ballooning into mostly-empty space when a row
+// has few cards. `auto-fill` (not `auto-fit`) is what makes the fixed-width
+// case work at all: it reserves as many 112px tracks as the row has room
+// for, so cards land side by side instead of one card centering itself
+// alone in the whole row. Shared here rather than duplicated in
 // ProductCard/AreaCard, since both need the exact same Full-vs-Mini
 // branching.
 //
-// Full mode uses `auto-fill`, not `auto-fit`: with `auto-fit`, a row with
-// fewer cards than could physically fit stretches those cards to consume
-// 100% of the row (a single 420px-floor Full card in a 1600px-wide row
-// balloons to fill all 1600px, mostly empty space). `auto-fill` reserves
-// as many 420px-floor tracks as the row has room for and splits the
-// leftover width evenly across all of them — including the empty ones —
-// so an existing card only grows to roughly one track's share, leaving
-// room for a sibling to land in the same row instead of stretching alone.
-// Mini mode used to keep `auto-fit` so tiles grew to fill the row — but the
-// mini card is now aspect-square (its height follows its width), so a lone
-// tile stretched by auto-fit would balloon into a row-sized square. It now
-// uses `auto-fill` like Full mode: a lone tile only grows to one track's
-// share and stays a small square.
+// Full mode's `auto-fill`-with-`1fr` combination exists for a different
+// reason than Mini's: with `auto-fit`, a row with fewer cards than could
+// physically fit stretches those cards to consume 100% of the row (a single
+// 420px-floor Full card in a 1600px-wide row balloons to fill all 1600px).
+// `auto-fill` reserves as many 420px-floor tracks as the row has room for
+// and splits the leftover width evenly across all of them — including the
+// empty ones — so an existing card only grows to roughly one track's share.
 //
 // `forceView`, when set, overrides the dashboard's Mini/Full toggle —
 // AreaModal passes "full" down through a Product's own ProjectsGrid so an
@@ -58,7 +57,7 @@ export default function ProjectsGrid({ projects, stakeholderIds, emptyMessage, g
   return (
     <div
       className={className}
-      style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(112px, 1fr))`, alignItems: "start", gap: `${gap}px` }}
+      style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, 112px)`, alignItems: "start", gap: `${gap}px` }}
     >
       {projects.map((project) => (
         <ProjectCard key={project.id} project={project} stakeholderIds={stakeholderIds} />

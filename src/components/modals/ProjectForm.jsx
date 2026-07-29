@@ -6,6 +6,7 @@ import { useProducts } from "@/hooks/useProducts";
 import { useCreateProject } from "@/hooks/useProjects";
 import { useStakeholders } from "@/hooks/useStakeholders";
 import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
+import DateField from "@/components/shared/DateField";
 
 export default function ProjectForm({ onDone }) {
   const [title, setTitle] = useState("");
@@ -79,7 +80,7 @@ export default function ProjectForm({ onDone }) {
         </div>
         <div className="flex-1">
           <label className="text-sm font-medium block mb-1">Due date (optional)</label>
-          <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+          <DateField value={dueDate} onSave={(v) => setDueDate(v || "")} className="w-full" />
         </div>
       </div>
       <div>

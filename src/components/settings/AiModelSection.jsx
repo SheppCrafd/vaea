@@ -131,10 +131,12 @@ export default function AiModelSection() {
 
         {isLocalBridge && <BackdoorModeConnect />}
 
-        {isByok && (
+        {isByok && provider.id !== "anthropic" && provider.id !== "xai" && (
           <p className="text-xs text-muted-foreground">
-            Web search, attachment reading, and Vaea Vault only work with Vaea's built-in model —
-            not yet available with {isLocalBridge ? "Backdoor Mode" : "a bring-your-own-key provider"}.
+            {isLocalBridge
+              ? "Web search isn't available with your own model — there's no hosted search to inherit."
+              : "Web search isn't available with this provider — Anthropic and xAI have their own built in, but this one doesn't."}{" "}
+            Attachment reading and Vaea Vault work the same as with Vaea's built-in model.
           </p>
         )}
       </div>

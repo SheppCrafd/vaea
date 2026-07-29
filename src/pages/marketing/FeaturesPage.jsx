@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Boxes, LayoutGrid, Command, FileSpreadsheet, Bot, Search, Fingerprint,
-  Paperclip, ClipboardCheck, FolderCog, LockKeyhole, HardDrive, ArrowRight,
+  Paperclip, ClipboardCheck, FolderCog, LockKeyhole, HardDrive, Cloud, ArrowRight,
   BookOpen, GitBranch, Wrench,
 } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
@@ -49,11 +49,12 @@ const GROUPS = [
     ],
   },
   {
-    title: "Your stuff, your device",
-    lede: "One less account, one less company holding your life hostage — everything happens on your own device by default, not as an afterthought.",
+    title: "Your stuff, your device — or your account, your call",
+    lede: "One less company holding your life hostage by default — everything happens on your own device unless you decide otherwise.",
     items: [
       { icon: HardDrive, title: "Real files, not something that just vanishes", body: "Pick a folder on your own computer once, and everything's saved there as real files you can open yourself — or save/load a file by hand if that's not an option for you." },
-      { icon: LockKeyhole, title: "Signing in only unlocks Vaea Chat", body: "Everything else — organizing, editing, bringing in a spreadsheet, searching — works whether you're signed in or not." },
+      { icon: Cloud, title: "Or let it follow you, if you'd rather", body: "Sign in and switch to cloud storage anytime — same data, synced to your account instead of one device. Switch back whenever; nothing's stuck where you first put it." },
+      { icon: LockKeyhole, title: "Signing in unlocks Vaea Chat — and cloud storage", body: "Everything else — organizing, editing, bringing in a spreadsheet, searching — works whether you're signed in or not." },
     ],
   },
 ];

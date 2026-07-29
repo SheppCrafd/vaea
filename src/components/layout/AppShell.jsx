@@ -68,14 +68,10 @@ export default function AppShell({ children }) {
       {/* Floating-panel canvas: the columns are separated by the canvas
           itself (grid gap + padding) rather than border-r/border-l lines —
           each sidebar is a rounded panel lifted off the dimmed background
-          by its shadow alone. The left rail additionally carries Tailwind's
-          `dark` class, scoping the dark token set to its own subtree: every
-          child (StakeholderList and friends) restyles itself through the
-          same CSS variables it already reads, giving the reference layout's
-          dark-anchor sidebar with zero child changes. The gradient is pure
-          neutral (no hue), matching dark mode's own 0%-saturation tokens —
-          the graphite-teal cast stays a marketing-site-only thing, per
-          direct feedback that the app itself carries no teal. */}
+          by its shadow alone. Both rails use the shadcn `sidebar` token pair
+          (bg-sidebar/text-sidebar-foreground), which index.css already
+          defines separately for :root and .dark, so the panels follow the
+          app's actual light/dark setting instead of being pinned dark. */}
       <div
         className="h-full grid overflow-hidden gap-3 px-3 pb-3 transition-[grid-template-columns] duration-200 ease-in-out"
         style={{
@@ -86,7 +82,7 @@ export default function AppShell({ children }) {
         {/* text-foreground re-resolves inherited `color` against the dark
             token scope — without it, unclassed text inside inherits the
             page's light-mode color and vanishes on the dark panel. */}
-        <aside style={{ gridArea: "leftsidebar" }} className={`dark text-foreground overflow-hidden rounded-2xl flex flex-col ${isLeftSidebarOpen ? "bg-[linear-gradient(180deg,#181818_0%,#111111_55%,#0C0C0C_100%)] shadow-xl" : ""}`}>
+        <aside style={{ gridArea: "leftsidebar" }} className={`text-sidebar-foreground overflow-hidden rounded-2xl flex flex-col ${isLeftSidebarOpen ? "bg-sidebar shadow-xl" : ""}`}>
           {isLeftSidebarOpen && (
             <>
               <div className="h-14 shrink-0 flex items-center justify-between pl-4 pr-3">
@@ -139,10 +135,9 @@ export default function AppShell({ children }) {
           </main>
         </div>
 
-        {/* Same dark-panel treatment as the left rail (and Chat/Settings'
-            rails) — all four side panels share one surface, per direct
-            feedback, rather than the right one staying light. */}
-        <aside style={{ gridArea: "sidebar" }} className={`dark text-foreground overflow-hidden rounded-2xl flex flex-col ${isRightSidebarOpen ? "bg-[linear-gradient(180deg,#181818_0%,#111111_55%,#0C0C0C_100%)] shadow-xl" : ""}`}>
+        {/* Same treatment as the left rail (and Chat/Settings' rails) — all
+            four side panels share one token-driven surface. */}
+        <aside style={{ gridArea: "sidebar" }} className={`text-sidebar-foreground overflow-hidden rounded-2xl flex flex-col ${isRightSidebarOpen ? "bg-sidebar shadow-xl" : ""}`}>
           {isRightSidebarOpen && (
             <>
               <div className="h-14 shrink-0 flex items-center justify-between pl-3 pr-4">

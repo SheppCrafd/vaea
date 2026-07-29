@@ -3,6 +3,7 @@ import { RotateCcw } from "lucide-react";
 import { useArchivedProjects, useRestoreProject, useProject } from "@/hooks/useProjects";
 import ProjectDetailModal from "@/components/projects/ProjectDetailModal";
 import QueryError from "@/components/shared/QueryError";
+import DateField from "@/components/shared/DateField";
 
 // Archive/history shell: ISO-8601 date range filter hitting the
 // archivedProjects function, which reconstructs every project whose active
@@ -32,11 +33,11 @@ export default function ArchiveView() {
       <div className="flex items-end gap-4 mb-2">
         <div>
           <label className="text-xs text-muted-foreground block mb-1">Start date</label>
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="text-sm px-2 py-1.5 bg-card border border-border rounded" />
+          <DateField value={startDate} onSave={(v) => setStartDate(v || "")} className="bg-card rounded" />
         </div>
         <div>
           <label className="text-xs text-muted-foreground block mb-1">End date</label>
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="text-sm px-2 py-1.5 bg-card border border-border rounded" />
+          <DateField value={endDate} onSave={(v) => setEndDate(v || "")} className="bg-card rounded" />
         </div>
       </div>
       {(startIso || endIso) && (

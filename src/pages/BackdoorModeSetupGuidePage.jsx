@@ -295,11 +295,12 @@ export default function BackdoorModeSetupGuidePage() {
                 <Settings className="w-4 h-4 text-primary" />
               </div>
               <div>
-                <p className="font-heading font-semibold text-sm mb-1">Not available in this mode</p>
+                <p className="font-heading font-semibold text-sm mb-1">The one thing it can't do</p>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Same limits as bring-your-own-key: web search, reading attached files, and the external notes
-                  vault only work through Vaea's own built-in model — the assistant is told this outright and
-                  won't pretend otherwise.
+                  Web search — Anthropic and xAI's own models have that built in natively, but Backdoor Mode's
+                  whole point is running your own model, so there's no hosted search to inherit. Reading attached
+                  files and your Vaea Vault notes both work normally; the assistant is told about the search gap
+                  outright and won't pretend otherwise.
                 </p>
               </div>
             </div>

@@ -48,7 +48,7 @@ export default function ChatPage() {
   return (
     <div className="h-full flex overflow-hidden gap-3 px-3 pb-3">
       {isSidebarOpen && (
-        <aside className="dark text-foreground w-64 shrink-0 overflow-hidden rounded-2xl bg-[linear-gradient(180deg,#181818_0%,#111111_55%,#0C0C0C_100%)] shadow-xl flex flex-col">
+        <aside className="text-sidebar-foreground w-64 shrink-0 overflow-hidden rounded-2xl bg-sidebar shadow-xl flex flex-col">
           <div className="h-14 shrink-0 flex items-center justify-between pl-4 pr-3">
             <p className="text-sm font-semibold text-foreground truncate">Chat History</p>
             <button
