@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import { useReflectionPreferences, useSaveReflectionPreferences } from "@/hooks/useReflectionPreferences";
+import { useVaultConnected } from "@/hooks/useVaultConnected";
 import { dismissReflectionConsentThisPageLoad, hasReflectionConsentBeenDismissedThisPageLoad } from "@/lib/reflectionTrigger";
 
 // One-time, explicit opt-in — shown only while consent is still `null`
@@ -15,6 +17,7 @@ import { dismissReflectionConsentThisPageLoad, hasReflectionConsentBeenDismissed
 export default function ChatReflectionConsent() {
   const { data: prefs } = useReflectionPreferences();
   const savePrefs = useSaveReflectionPreferences();
+  const { data: vaultConnected } = useVaultConnected();
   // Local state mirrors the module-level flag so a click actually re-renders
   // this instance — the flag itself lives in reflectionTrigger.js (not here)
   // so it still holds if the banner unmounts/remounts as ChatBox opens and
@@ -42,8 +45,21 @@ export default function ChatReflectionConsent() {
         <Sparkles className="w-3.5 h-3.5 shrink-0 mt-0.5 text-muted-foreground" />
         <p className="flex-1 text-muted-foreground leading-relaxed">
           Vaea Chat can check in on its own. If you're away 3+ hours, opening chat may show a message it started —
-          based on a read-only look at your own tasks and projects. It can never change anything without asking you
-          first.
+          based on a read-only look at your own tasks and projects.{" "}
+          {vaultConnected ? (
+            <>
+              It can also keep its own notes in your Vaea Vault and log what happened while you were gone — those
+              save automatically. Everything else still needs your okay first.
+            </>
+          ) : (
+            <>
+              It can never change anything without asking you first.{" "}
+              <Link to="/app/settings/vault-setup" className="underline underline-offset-2 hover:text-foreground">
+                Connect Vaea Vault
+              </Link>{" "}
+              to let it keep its own notes there too.
+            </>
+          )}
         </p>
         <button onClick={dismiss} aria-label="Dismiss" className="shrink-0 text-muted-foreground hover:text-foreground">
           ×

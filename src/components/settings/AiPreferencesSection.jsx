@@ -1,8 +1,10 @@
 import { useEffect, useState, useRef } from "react";
+import { Link } from "react-router-dom";
 import { Check, Download, Upload } from "lucide-react";
 import { DEFAULTS as IDENTITY_DEFAULTS } from "@/lib/aiPreferences";
 import { useAiIdentity, useSaveAiIdentity } from "@/hooks/useAiIdentity";
 import { useReflectionPreferences, useSaveReflectionPreferences } from "@/hooks/useReflectionPreferences";
+import { useVaultConnected } from "@/hooks/useVaultConnected";
 
 const FIELDS = [
   { key: "name", label: "Name", placeholder: "Vaea Chat (default) — or give it a name of your own", rows: 1 },
@@ -33,6 +35,7 @@ export default function AiPreferencesSection() {
   // above, since it's its own on/off switch, not part of the identity form.
   const { data: reflectionPrefs } = useReflectionPreferences();
   const saveReflectionPrefs = useSaveReflectionPreferences();
+  const { data: vaultConnected } = useVaultConnected();
   const reflectionEnabled = reflectionPrefs?.consent === true;
   const toggleReflection = () => {
     if (!reflectionPrefs) return;
@@ -159,7 +162,21 @@ export default function AiPreferencesSection() {
           <p className="text-sm font-medium">Proactive check-ins</p>
           <p className="text-xs text-muted-foreground mt-0.5 max-w-md">
             If you're away 3+ hours, opening Vaea Chat may show a message it started on its own — based on a
-            read-only look at your own tasks and projects. It can never change anything without asking you first.
+            read-only look at your own tasks and projects.{" "}
+            {vaultConnected ? (
+              <>
+                It also keeps its own notes in your Vaea Vault and logs what happened while you were gone — those
+                save automatically. Everything else still needs your okay first.
+              </>
+            ) : (
+              <>
+                It can never change anything without asking you first.{" "}
+                <Link to="/app/settings/vault-setup" className="underline underline-offset-2 hover:text-foreground">
+                  Connect Vaea Vault
+                </Link>{" "}
+                to let it keep its own notes there too.
+              </>
+            )}
           </p>
         </div>
         <button

@@ -137,10 +137,25 @@ describe("computeWorkspaceDelta", () => {
 });
 
 describe("buildReflectionInstruction", () => {
-  it("includes every fact as its own bullet and the hard no-mutation instruction", () => {
+  it("includes every fact as its own bullet and the hard no-mutation instruction, with no vault guidance when not connected", () => {
     const text = buildReflectionInstruction(["Completed (1): \"Fix bug\""]);
     expect(text).toContain("- Completed (1): \"Fix bug\"");
-    expect(text).toContain("You may NOT create, update, delete, archive, or write anything this turn");
+    expect(text).toContain("you may NOT create, update, delete, archive, or write anything this turn");
     expect(text).toContain("Do not use web search this turn");
+    expect(text).not.toContain("Vaea Self.md");
+  });
+
+  it("names both auto-executing vault paths, and restates that anything else still needs confirmation, when connected", () => {
+    const text = buildReflectionInstruction(["Completed (1): \"Fix bug\""], { vaultConnected: true });
+    const today = new Date().toISOString().slice(0, 10);
+    expect(text).toContain('"Vaea Self.md"');
+    expect(text).toContain(`"Daily/${today}.md"`);
+    expect(text).toContain("no confirmation needed");
+    expect(text).toContain("Any other vault path still needs the user's confirmation");
+    expect(text).toContain("never a read on the user");
+  });
+
+  it("defaults to not-connected wording when the second argument is omitted entirely", () => {
+    expect(buildReflectionInstruction(["x"])).toBe(buildReflectionInstruction(["x"], { vaultConnected: false }));
   });
 });

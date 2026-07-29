@@ -14,6 +14,7 @@ function makeLocalStorage() {
 globalThis.localStorage = makeLocalStorage();
 
 const { executeAction, executeActionSequence, stripToolLog, describePlan, DESTRUCTIVE_ACTIONS, NON_EXECUTABLE_ACTIONS, filterReflectionActions } = await import("./chatActions.js");
+const { SELF_NOTE_PATH } = await import("./githubApi.js");
 const { localDb } = await import("./localDb.js");
 const { writeKey, removeKey } = await import("./deviceStorage.js");
 const { VAULT_CONNECTION_KEY } = await import("./vaultConnection.js");
@@ -313,45 +314,74 @@ describe("chatActions: stripToolLog", () => {
 describe("chatActions: filterReflectionActions — the hard half of the 'a reflection turn cannot mutate the workspace' guarantee", () => {
   it("drops UNDO_LAST_ACTION outright — a reflection turn must never call runUndo(), regardless of actionHistory state", () => {
     const actions = [{ action: "UNDO_LAST_ACTION", args: {} }];
-    expect(filterReflectionActions(actions)).toEqual([]);
+    expect(filterReflectionActions(actions)).toEqual({ autoExecute: [], pending: [] });
   });
 
-  it("keeps every staged action, destructive or not — the caller is responsible for treating ALL of them as pending, never auto-executing any", () => {
+  const todayLogPath = `Daily/${new Date().toISOString().slice(0, 10)}.md`;
+
+  it("forces every staged action to pending EXCEPT the two allowlisted vault paths — the caller is responsible for never auto-executing anything else", () => {
     // Every staged action a real plan could ever contain, both destructive
-    // (DESTRUCTIVE_ACTIONS members, which auto-route to pending_action in a
-    // normal turn) and non-destructive (which auto-EXECUTE with no
+    // (DESTRUCTIVE_ACTIONS members, which route to pending_action in a
+    // normal turn too) and non-destructive (which auto-EXECUTE with no
     // confirmation in a normal turn — SET_AI_IDENTITY, WRITE_VAULT_NOTE,
-    // CREATE_*, etc.). filterReflectionActions must not special-case any of
-    // them differently from each other; only NON_EXECUTABLE_ACTIONS gets
-    // dropped.
+    // CREATE_*, etc.). None of them get the reflection-turn auto-execute
+    // exception; only a WRITE_VAULT_NOTE to exactly one of the two
+    // allowlisted paths does (covered in the tests below).
     const destructive = [...DESTRUCTIVE_ACTIONS].map((action) => ({ action, args: {} }));
     const nonDestructiveStaged = [
-      "SET_AI_IDENTITY", "WRITE_VAULT_NOTE", "CREATE_AREA", "CREATE_TASK",
+      "SET_AI_IDENTITY", "CREATE_AREA", "CREATE_TASK",
       "UPDATE_TASK", "SET_CARD_VIEW", "EXPORT_CSV",
     ].map((action) => ({ action, args: {} }));
-    const all = [...destructive, ...nonDestructiveStaged];
+    // A WRITE_VAULT_NOTE to some OTHER, non-allowlisted path — must still be pending.
+    const otherVaultWrite = { action: "WRITE_VAULT_NOTE", args: { path: "Decisions/Something.md", content: "x" } };
+    const all = [...destructive, ...nonDestructiveStaged, otherVaultWrite];
 
-    const result = filterReflectionActions(all);
-    expect(result).toHaveLength(all.length);
-    expect(result.map((a) => a.action).sort()).toEqual(all.map((a) => a.action).sort());
+    const { autoExecute, pending } = filterReflectionActions(all);
+    expect(autoExecute).toEqual([]);
+    expect(pending).toHaveLength(all.length);
+    expect(pending.map((a) => a.action).sort()).toEqual(all.map((a) => a.action).sort());
   });
 
-  it("drops UNDO_LAST_ACTION even when mixed in with other actions, keeping the rest", () => {
+  it("auto-executes WRITE_VAULT_NOTE to the self-notes file", () => {
+    const action = { action: "WRITE_VAULT_NOTE", args: { path: SELF_NOTE_PATH, content: "notes about myself" } };
+    const { autoExecute, pending } = filterReflectionActions([action]);
+    expect(autoExecute).toEqual([action]);
+    expect(pending).toEqual([]);
+  });
+
+  it("auto-executes WRITE_VAULT_NOTE to today's Daily/ log, matching /vault-log's own convention", () => {
+    const action = { action: "WRITE_VAULT_NOTE", args: { path: todayLogPath, content: "what happened" } };
+    const { autoExecute, pending } = filterReflectionActions([action]);
+    expect(autoExecute).toEqual([action]);
+    expect(pending).toEqual([]);
+  });
+
+  it("does NOT auto-execute WRITE_VAULT_NOTE to yesterday's or any other date's Daily/ file — only today's exact path", () => {
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const action = { action: "WRITE_VAULT_NOTE", args: { path: `Daily/${yesterday}.md`, content: "x" } };
+    const { autoExecute, pending } = filterReflectionActions([action]);
+    expect(autoExecute).toEqual([]);
+    expect(pending).toEqual([action]);
+  });
+
+  it("drops UNDO_LAST_ACTION even when mixed in with other actions, keeping the rest split correctly", () => {
     const actions = [
       { action: "CREATE_TASK", args: { description: "x" } },
       { action: "UNDO_LAST_ACTION", args: {} },
-      { action: "WRITE_VAULT_NOTE", args: { path: "x.md", content: "x" } },
+      { action: "WRITE_VAULT_NOTE", args: { path: SELF_NOTE_PATH, content: "x" } },
     ];
-    expect(filterReflectionActions(actions).map((a) => a.action)).toEqual(["CREATE_TASK", "WRITE_VAULT_NOTE"]);
+    const { autoExecute, pending } = filterReflectionActions(actions);
+    expect(autoExecute.map((a) => a.action)).toEqual(["WRITE_VAULT_NOTE"]);
+    expect(pending.map((a) => a.action)).toEqual(["CREATE_TASK"]);
   });
 
   it("handles an empty or missing actions array", () => {
-    expect(filterReflectionActions([])).toEqual([]);
-    expect(filterReflectionActions(undefined)).toEqual([]);
+    expect(filterReflectionActions([])).toEqual({ autoExecute: [], pending: [] });
+    expect(filterReflectionActions(undefined)).toEqual({ autoExecute: [], pending: [] });
   });
 
-  it("NON_EXECUTABLE_ACTIONS is exactly what's dropped — a sanity cross-check against the real export, not a hardcoded duplicate", () => {
+  it("NON_EXECUTABLE_ACTIONS is exactly what's dropped entirely — a sanity cross-check against the real export, not a hardcoded duplicate", () => {
     const actions = [...NON_EXECUTABLE_ACTIONS].map((action) => ({ action, args: {} }));
-    expect(filterReflectionActions(actions)).toEqual([]);
+    expect(filterReflectionActions(actions)).toEqual({ autoExecute: [], pending: [] });
   });
 });

@@ -20,7 +20,7 @@ import { CARD_VIEW_STORAGE_KEY, CARD_VIEW_CHANGE_EVENT } from "@/lib/cardViewCon
 import { loadAiIdentity, saveAiIdentity } from "@/lib/aiPreferences";
 import { createSnapshot } from "@/lib/backupSnapshots";
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
-import { writeVaultFile } from "@/lib/githubApi";
+import { writeVaultFile, SELF_NOTE_PATH } from "@/lib/githubApi";
 import { createArea, updateArea, deleteArea } from "@/hooks/useAreas";
 import { createProduct, updateProduct, deleteProduct } from "@/hooks/useProducts";
 import { createProject, updateProject, archiveProject, restoreProject, deleteProject } from "@/hooks/useProjects";
@@ -51,19 +51,38 @@ export const NON_EXECUTABLE_ACTIONS = new Set(["UNDO_LAST_ACTION"]);
 // anything this turn, so the normal trust model — DESTRUCTIVE_ACTIONS need a
 // confirm click, everything else (SET_AI_IDENTITY, WRITE_VAULT_NOTE,
 // CREATE_*, ...) auto-executes because the user just asked for it in plain
-// language — doesn't apply. Two real gaps if the normal gate were reused
-// as-is: UNDO_LAST_ACTION bypasses DESTRUCTIVE_ACTIONS entirely (it's
-// special-cased in useChatController.js's handleSend, before that check
-// ever runs), and every non-destructive staged action auto-executes with no
-// confirmation at all. So this is deliberately NOT "reuse DESTRUCTIVE_ACTIONS" —
-// it's uniform: drop anything in NON_EXECUTABLE_ACTIONS outright (never runs
-// UNDO during a reflection turn, regardless of actionHistory state), and
-// force every remaining action into pending_action, no auto-execute
-// exception, no allowlist of "safe" staged actions. Read-only (staged:
-// false) tools never reach here at all — they already ran immediately and
-// only show up in liveTrace, not actions.
+// language — doesn't apply by default. Two real gaps if the normal gate were
+// reused as-is: UNDO_LAST_ACTION bypasses DESTRUCTIVE_ACTIONS entirely (it's
+// special-cased in useChatController.js's handleSend, before that check ever
+// runs), and every non-destructive staged action auto-executes with no
+// confirmation at all. So the default here is deliberately NOT "reuse
+// DESTRUCTIVE_ACTIONS" — everything lands in `pending`, no allowlist of
+// "safe" staged actions, EXCEPT one narrow, explicit exception: a
+// WRITE_VAULT_NOTE to exactly one of two paths the reflection feature owns
+// (see reflectionSummary.js) auto-executes, same as a user-initiated
+// "/vault-log" already does today. The reasoning that justifies requiring a
+// confirm click in the first place — an unreviewed GUESS ABOUT THE USER
+// becoming permanent "fact" — doesn't apply to either: `Vaea Self.md` is the
+// assistant writing about itself, and today's Daily/ log is code-computed
+// fact (reflectionSummary.js's computeWorkspaceDelta), never model-inferred.
+// This is an exact-path allowlist, not "any vault write" — a WRITE_VAULT_NOTE
+// to any other path still requires confirmation, same as every other action
+// (destructive or not). Read-only (staged: false) tools never reach here at
+// all — they already ran immediately and only show up in liveTrace, not
+// actions. UNDO_LAST_ACTION is still dropped outright, unconditionally.
+function isReflectionAutoExecutable(action) {
+  if (action.action !== "WRITE_VAULT_NOTE") return false;
+  const path = action.args?.path;
+  if (path === SELF_NOTE_PATH) return true;
+  return path === `Daily/${new Date().toISOString().slice(0, 10)}.md`;
+}
+
 export function filterReflectionActions(actions) {
-  return (actions || []).filter((a) => !NON_EXECUTABLE_ACTIONS.has(a.action));
+  const usable = (actions || []).filter((a) => !NON_EXECUTABLE_ACTIONS.has(a.action));
+  return {
+    autoExecute: usable.filter(isReflectionAutoExecutable),
+    pending: usable.filter((a) => !isReflectionAutoExecutable(a)),
+  };
 }
 
 // A model asked for a huge single BULK_CREATE/BULK_DELETE (e.g. 60 tasks in

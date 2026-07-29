@@ -8,6 +8,7 @@
 // plain fact text — the one thing a reflection turn is told not to add to.
 import { localDb } from "@/lib/localDb";
 import { isTaskDone } from "@/lib/taskUtils";
+import { SELF_NOTE_PATH } from "@/lib/githubApi";
 
 const MAX_ITEMS_PER_FACT = 8;
 
@@ -58,10 +59,27 @@ export async function computeWorkspaceDelta(sinceIso) {
 // input — travels through the exact same invokeAssistant()/message field
 // every normal turn already uses, so nothing downstream needs a new payload
 // shape.
-export function buildReflectionInstruction(facts) {
+//
+// `vaultConnected` opens exactly two auto-executing exceptions to the
+// otherwise-blanket "nothing this turn" rule — chatActions.js's
+// filterReflectionActions is what actually enforces them (a hard filter on
+// the returned actions, not just this wording), so this text is guidance for
+// the model to use them for their intended purpose, not the safety boundary
+// itself. Not vault-connected: the original, unchanged instruction.
+export function buildReflectionInstruction(facts, { vaultConnected = false } = {}) {
+  const todayLogPath = `Daily/${new Date().toISOString().slice(0, 10)}.md`;
+  const vaultGuidance = vaultConnected
+    ? `
+
+You have a connected Vaea Vault, with two files you can write to directly this turn — no confirmation needed, they'll save automatically:
+- "${SELF_NOTE_PATH}" — your own notes about yourself: what you've learned about working in this particular workspace, corrections to how you'd been operating, style notes. Its current content, if any, is already shown above in [VAULT CONTEXT] — write the full revised version if you genuinely have something new to add, otherwise leave it alone entirely; don't touch it just to have touched it. This is about YOU, never a read on the user — no notes about their behavior, tone, or personality belong here.
+- "${todayLogPath}" — a plain log entry for the facts above, same convention "/vault-log" already uses (read_vault_note it first if it already has content today, and append rather than overwrite).
+Any other vault path still needs the user's confirmation, same as everything else.`
+    : "";
+
   return `[SYSTEM-INITIATED CHECK-IN — the user has not sent a message this turn]
 It has been over 3 hours since you last talked. Here is what actually changed in their workspace since then (computed by the app, not by you — do not add anything beyond this):
 ${facts.map((f) => `- ${f}`).join("\n")}
 
-Write ONE short, warm opening message as the first message of a brand-new conversation. Ground it strictly in the facts above — no speculation about how the user feels or why, no invented trends. You may use search_workspace/audit_workspace to look closer at 1-2 items before writing. Do not use web search this turn — stay inside the workspace. You may NOT create, update, delete, archive, or write anything this turn under any circumstance — if something's worth remembering or logging, PROPOSE it in your message and wait for the user to confirm; never assume it.`;
+Write ONE short, warm opening message as the first message of a brand-new conversation. Ground it strictly in the facts above — no speculation about how the user feels or why, no invented trends. You may use search_workspace/audit_workspace to look closer at 1-2 items before writing. Do not use web search this turn — stay inside the workspace. Beyond the two vault paths named below (if any), you may NOT create, update, delete, archive, or write anything this turn under any circumstance — if something else is worth remembering or logging, PROPOSE it in your message and wait for the user to confirm; never assume it.${vaultGuidance}`;
 }

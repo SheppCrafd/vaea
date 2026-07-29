@@ -368,21 +368,25 @@ export function useChatController({ activeProjectId } = {}) {
   // `sinceIso` (computeWorkspaceDelta — code-computed, never asked of the
   // model). Deliberately doesn't reuse ensureSession/handleSend: a
   // reflection needs a genuinely NEW session (not whatever the user was
-  // last in) whose first message is role:"assistant", and it must be
-  // impossible for it to auto-execute anything — every returned action goes
-  // straight into pending_action, with no branch that ever calls
-  // executeActionSequence, regardless of DESTRUCTIVE_ACTIONS membership
-  // (see filterReflectionActions's own comment for why the normal gate
-  // isn't reused as-is). Every failure is swallowed — a reflection that
-  // can't complete must never surface an error bubble or the sign-in
-  // prompt; the user never asked for this turn, so it should simply not
-  // have happened, from their perspective.
+  // last in) whose first message is role:"assistant". Real workspace data
+  // (tasks/projects/etc.) stays fully un-mutable here, always — only
+  // filterReflectionActions's narrow WRITE_VAULT_NOTE allowlist
+  // (Vaea Self.md / today's Daily/ log) is allowed to actually run, via the
+  // same executeActionSequence primitive a normal turn already uses;
+  // everything else still goes straight into pending_action, no exceptions.
+  // Every failure is swallowed — a reflection that can't complete must
+  // never surface an error bubble or the sign-in prompt; the user never
+  // asked for this turn, so it should simply not have happened, from their
+  // perspective.
   const runReflectionTurn = async (sinceIso) => {
     const delta = await computeWorkspaceDelta(sinceIso);
     if (!delta.hasChanges) return; // nothing to say — a "nothing happened!" check-in erodes trust in the feature fast
 
+    const externalVault = await loadVaultConnection();
+    const vaultConnected = isVaultConnected(externalVault);
+
     const session = await createSession.mutateAsync({ title: "Check-in" });
-    const instruction = buildReflectionInstruction(delta.facts);
+    const instruction = buildReflectionInstruction(delta.facts, { vaultConnected });
     const data = await invokeAssistant({
       message: instruction,
       conversationHistory: "",
@@ -394,13 +398,22 @@ export function useChatController({ activeProjectId } = {}) {
 
     const reply = data.reply || "Hey — just checking in on a few things.";
     const liveTrace = data.liveTrace || [];
-    const pendingActions = filterReflectionActions(data.actions || []);
+    const { autoExecute, pending } = filterReflectionActions(data.actions || []);
+
+    // Only ever WRITE_VAULT_NOTE calls to the two allowlisted paths reach
+    // here — same execution primitive a normal turn's own auto-executing
+    // plan already uses (handleSend, below), not a new write path.
+    const autoResults = autoExecute.length
+      ? await executeActionSequence(autoExecute, {})
+      : [];
+    const toolLog = [...liveTrace.map((l) => l.label), ...autoResults.map(describeToolCall)];
+
     const created = await createMessage.mutateAsync({
       session_id: session.id,
       role: "assistant",
-      content: buildLoggedContent(reply, liveTrace.map((l) => l.label)),
-      ...(pendingActions.length ? { pending_action: { actions: pendingActions } } : {}),
-      ...(liveTrace.length ? { tool_log_detail: { liveTrace } } : {}),
+      content: buildLoggedContent(reply, toolLog),
+      ...(pending.length ? { pending_action: { actions: pending } } : {}),
+      ...(toolLog.length ? { tool_log_detail: { liveTrace, steps: autoResults } } : {}),
     });
     markMessageNew(created.id);
     setReflectionSessionId(session.id);

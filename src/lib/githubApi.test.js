@@ -167,6 +167,6 @@ describe("githubApi: fetchVaultOverview", () => {
       return { ok: false, status: 404 };
     });
     const overview = await fetchVaultOverview({ owner: "me", repo: "vault", branch: "main", token: "t" });
-    expect(overview).toEqual({ summary: null, priorityNotes: [], recentNotes: [] });
+    expect(overview).toEqual({ summary: null, priorityNotes: [], recentNotes: [], selfNote: null });
   });
 });

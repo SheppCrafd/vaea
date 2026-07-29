@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Check, Github, Loader2, TriangleAlert, Unlink } from "lucide-react";
 import { loadVaultConnection, saveVaultConnection, clearVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
@@ -24,6 +25,7 @@ export default function ExternalVaultSection() {
   const [status, setStatus] = useState("idle"); // idle | testing | ok | error | saved
   const [error, setError] = useState("");
   const [hasStoredConnection, setHasStoredConnection] = useState(false);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     loadVaultConnection().then((loaded) => {
@@ -50,6 +52,10 @@ export default function ExternalVaultSection() {
       await saveVaultConnection(withBranch);
       setHasStoredConnection(true);
       setStatus("ok");
+      // Lets ChatReflectionConsent.jsx/AiPreferencesSection.jsx's vault-aware
+      // copy (useVaultConnected.js) pick this up immediately instead of only
+      // after a reload.
+      queryClient.invalidateQueries({ queryKey: ["vaultConnected"] });
     } catch (err) {
       setStatus("error");
       setError(err.message);
@@ -61,6 +67,7 @@ export default function ExternalVaultSection() {
     setConnection(DEFAULT_CONNECTION);
     setHasStoredConnection(false);
     setStatus("idle");
+    queryClient.invalidateQueries({ queryKey: ["vaultConnected"] });
   };
 
   const connected = isVaultConnected(connection) && (status === "ok" || status === "saved");

@@ -193,13 +193,22 @@ async function fetchRecentNotes({ owner, repo, branch, token }) {
 // GitHub call that fails just yields less context, never an error the user
 // sees — this is enrichment on top of the on-demand vault_* tools, not a
 // required capability those tools depend on.
+// "Vaea Self.md" — the reflection feature's (reflectionSummary.js) home for
+// the assistant's own accumulating notes about itself, force-loaded the same
+// way vault.md is, so it's always current without a tool round-trip.
+// Deliberately not named "identity.md"/"self.md" — a vault connected here
+// might be the same one someone already uses for another AI assistant's own
+// identity notes, and a bare generic name would risk colliding with that.
+export const SELF_NOTE_PATH = "Vaea Self.md";
+
 export async function fetchVaultOverview({ owner, repo, branch, token }) {
-  const [summary, priorityNotes, recentNotes] = await Promise.all([
+  const [summary, priorityNotes, recentNotes, selfNote] = await Promise.all([
     readVaultFile({ owner, repo, branch, token, path: "vault.md" }).catch(() => null),
     fetchPriorityNotes({ owner, repo, branch, token }).catch(() => []),
     fetchRecentNotes({ owner, repo, branch, token }).catch(() => []),
+    readVaultFile({ owner, repo, branch, token, path: SELF_NOTE_PATH }).catch(() => null),
   ]);
-  return { summary, priorityNotes, recentNotes };
+  return { summary, priorityNotes, recentNotes, selfNote };
 }
 
 // GET /repos/{owner}/{repo} — used by ExternalVaultSection's "Test
