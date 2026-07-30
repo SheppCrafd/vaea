@@ -23,15 +23,25 @@ export default function ChatReflectionConsent() {
   // so it still holds if the banner unmounts/remounts as ChatBox opens and
   // closes within the same tab session.
   const [dismissed, setDismissed] = useState(hasReflectionConsentBeenDismissedThisPageLoad);
+  // Only matters if "Allow" is clicked below — "Not now" leaves this at its
+  // default (off), same as every other field prefs.consent === false leaves
+  // untouched.
+  const [userAnalysisOptIn, setUserAnalysisOptIn] = useState(false);
 
   if (!prefs || prefs.consent !== null || dismissed) return null;
 
   const decide = (consent) => {
-    // Setting lastReflectionAt to now on Allow, not leaving it null — opting
-    // in shouldn't retroactively summarize all of history or fire the
-    // moment consent is granted; the 3-hour clock starts here, same as
-    // every later cycle (see reflectionTrigger.js).
-    savePrefs.mutate({ ...prefs, consent, lastReflectionAt: consent ? new Date().toISOString() : prefs.lastReflectionAt });
+    // Setting lastReflectionAt/lastDreamAt to now on Allow, not leaving them
+    // null — opting in shouldn't retroactively summarize all of history or
+    // fire the moment consent is granted; the clocks start here, same as
+    // every later cycle (see reflectionTrigger.js/useChatController.js).
+    savePrefs.mutate({
+      ...prefs,
+      consent,
+      userAnalysisConsent: consent ? userAnalysisOptIn : prefs.userAnalysisConsent,
+      lastReflectionAt: consent ? new Date().toISOString() : prefs.lastReflectionAt,
+      lastDreamAt: consent ? new Date().toISOString() : prefs.lastDreamAt,
+    });
   };
 
   const dismiss = () => {
@@ -65,13 +75,25 @@ export default function ChatReflectionConsent() {
           ×
         </button>
       </div>
-      {/* A deliberate, visible trust statement, not a buried disclaimer — what
-          it reads is real workspace content only. It never analyzes how you
-          talk, your tone, or your habits, and never will as part of this
-          feature. */}
+      {/* A deliberate, visible trust statement, not a buried disclaimer.
+          Roughly once a day it also looks back at its own replies from real
+          conversations, not just workspace facts, to get better at
+          responding — that's always about ITS replies, not you, unless the
+          checkbox below is checked. */}
       <p className="text-[11px] text-muted-foreground/80 pl-6">
-        It only ever looks at what you've typed into your workspace — never how you talk, your tone, or your habits.
+        Roughly once a day it also looks back at its own replies from your real conversations — not just workspace
+        facts — to notice what worked and what didn't, and get better at responding. That's always about its own
+        replies, not you: it still never analyzes your tone, habits, or personality unless you check the box below.
       </p>
+      <label className="flex items-start gap-2 pl-6 text-[11px] text-muted-foreground/80">
+        <input
+          type="checkbox"
+          checked={userAnalysisOptIn}
+          onChange={(e) => setUserAnalysisOptIn(e.target.checked)}
+          className="mt-0.5 shrink-0"
+        />
+        <span>Also let it notice patterns in how I communicate or work, and save what it learns.</span>
+      </label>
       <div className="flex items-center justify-between gap-2 pl-6">
         <p className="text-[11px] text-muted-foreground/80">Turn this on or off anytime in Settings → AI Preferences.</p>
         <div className="flex items-center gap-2 shrink-0">

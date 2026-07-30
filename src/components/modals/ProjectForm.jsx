@@ -43,8 +43,9 @@ export default function ProjectForm({ onDone }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="text-sm font-medium block mb-1">Area</label>
+        <label htmlFor="project-area" className="text-sm font-medium block mb-1">Area</label>
         <select
+          id="project-area"
           value={areaId}
           onChange={(e) => { setAreaId(e.target.value); setProductId(""); }}
           className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md"
@@ -54,8 +55,9 @@ export default function ProjectForm({ onDone }) {
         </select>
       </div>
       <div>
-        <label className="text-sm font-medium block mb-1">Product (optional — leave blank for standalone)</label>
+        <label htmlFor="project-product" className="text-sm font-medium block mb-1">Product (optional — leave blank for standalone)</label>
         <select
+          id="project-product"
           value={productId}
           onChange={(e) => setProductId(e.target.value)}
           className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md"
@@ -66,21 +68,21 @@ export default function ProjectForm({ onDone }) {
         </select>
       </div>
       <div>
-        <label className="text-sm font-medium block mb-1">Project title</label>
-        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Admin Tasks" autoFocus />
+        <label htmlFor="project-title" className="text-sm font-medium block mb-1">Project title</label>
+        <Input id="project-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Admin Tasks" autoFocus />
       </div>
       <div>
-        <label className="text-sm font-medium block mb-1">Objective (optional)</label>
-        <Input value={objective} onChange={(e) => setObjective(e.target.value)} placeholder="What this project delivers" />
+        <label htmlFor="project-objective" className="text-sm font-medium block mb-1">Objective (optional)</label>
+        <Input id="project-objective" value={objective} onChange={(e) => setObjective(e.target.value)} placeholder="What this project delivers" />
       </div>
       <div className="flex gap-3">
         <div className="flex-1">
-          <label className="text-sm font-medium block mb-1">Owner (optional)</label>
-          <Input value={ownerName} onChange={(e) => setOwnerName(e.target.value)} placeholder="e.g. Jordan" />
+          <label htmlFor="project-owner" className="text-sm font-medium block mb-1">Owner (optional)</label>
+          <Input id="project-owner" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} placeholder="e.g. Jordan" />
         </div>
         <div className="flex-1">
-          <label className="text-sm font-medium block mb-1">Due date (optional)</label>
-          <DateField value={dueDate} onSave={(v) => setDueDate(v || "")} className="w-full" />
+          <label htmlFor="project-due-date" className="text-sm font-medium block mb-1">Due date (optional)</label>
+          <DateField id="project-due-date" value={dueDate} onSave={(v) => setDueDate(v || "")} className="w-full" />
         </div>
       </div>
       <div>

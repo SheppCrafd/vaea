@@ -9,6 +9,7 @@ import Portal from "@/lib/Portal";
 import { useAppStore } from "@/lib/store";
 import { useHighlight } from "@/lib/HighlightContext";
 import { useCommandPaletteData } from "@/hooks/useCommandPaletteData";
+import { FOCUSABLE_SELECTOR } from "@/hooks/useDialogA11y";
 
 const TYPE_ICON = {
   area: Boxes,
@@ -44,6 +45,8 @@ export default function CommandPalette() {
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef(null);
+  const panelRef = useRef(null);
+  const triggerRef = useRef(null);
 
   // Ctrl/Cmd+K opens from anywhere in the app, including while some other
   // input has focus (e.g. mid-edit on a card field) — that's the whole
@@ -74,6 +77,22 @@ export default function CommandPalette() {
         openPalette();
       } else if (e.key === "Escape" && isOpen) {
         closePalette();
+      } else if (e.key === "Tab" && isOpen) {
+        // Only the search input is ever a real Tab stop in here (results
+        // are chosen with ↑↓, not Tab) — so trapping just means Tab can't
+        // carry focus out into the dimmed page behind the overlay.
+        const root = panelRef.current;
+        const focusables = root ? Array.from(root.querySelectorAll(FOCUSABLE_SELECTOR)) : [];
+        if (!focusables.length) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -82,11 +101,18 @@ export default function CommandPalette() {
 
   useEffect(() => {
     if (isOpen) {
+      triggerRef.current = document.activeElement;
       setQuery("");
       setActiveIndex(0);
       // Portal content mounts after this effect's own render pass —
       // deferring focus a tick keeps it from landing before the input exists.
-      requestAnimationFrame(() => inputRef.current?.focus());
+      const raf = requestAnimationFrame(() => inputRef.current?.focus());
+      return () => {
+        cancelAnimationFrame(raf);
+        // Return focus to whatever opened the palette — nothing here did
+        // that before; focus just landed wherever the DOM removal left it.
+        triggerRef.current?.focus?.();
+      };
     }
   }, [isOpen]);
 
@@ -190,18 +216,24 @@ export default function CommandPalette() {
     <Portal>
       <div className="fixed inset-0 bg-black/40 z-[200] flex items-start justify-center pt-[15vh] px-4" onClick={closePalette}>
         <div
+          ref={panelRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Command palette"
+          tabIndex={-1}
           className="w-full max-w-lg bg-card border border-border rounded-xl shadow-2xl overflow-hidden animate-in fade-in duration-150"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border">
-            <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+            <Search className="w-4 h-4 text-muted-foreground shrink-0" aria-hidden="true" />
             <input
               ref={inputRef}
               value={query}
               onChange={(e) => { setQuery(e.target.value); setActiveIndex(0); }}
               onKeyDown={handleKeyDown}
               placeholder="Search areas, products, projects, tasks, stakeholders — or run a quick action"
-              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              aria-label="Search areas, products, projects, tasks, stakeholders — or run a quick action"
+              className="flex-1 bg-transparent text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring rounded placeholder:text-muted-foreground"
               autoComplete="off"
             />
             <kbd className="shrink-0 text-[10px] font-mono text-muted-foreground border border-border rounded px-1.5 py-0.5">Esc</kbd>

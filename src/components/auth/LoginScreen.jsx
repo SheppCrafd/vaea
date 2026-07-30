@@ -71,7 +71,7 @@ export default function LoginScreen() {
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-background px-4 py-16">
       <AuthAmbience />
-      <div className="relative max-w-sm w-full rounded-[1.75rem] bg-card/75 backdrop-blur-xl p-8 space-y-5 shadow-[0_0_0_1px_hsl(var(--foreground)/0.05),inset_0_1px_0_0_hsl(var(--card)),0_32px_64px_-32px_hsl(200_30%_12%/0.35)]">
+      <div className="relative max-w-sm w-full rounded-[1.75rem] bg-card/75 backdrop-blur-xl p-8 space-y-5 shadow-[0_0_0_1px_hsl(var(--foreground)/0.05),inset_0_1px_0_0_hsl(var(--card)),0_32px_64px_-32px_hsl(200_30%_12%/0.35)] dark:shadow-[0_0_0_1px_hsl(var(--foreground)/0.10),inset_0_1px_0_0_hsl(var(--card)),0_0_60px_-10px_hsl(var(--foreground)/0.12)]">
         <div className="text-center space-y-3">
           {/* Placeholder mark until there's a real logo — swap the src below when there is one.
               The source PNG has its own white background baked in (not transparent) — shown at
@@ -93,7 +93,7 @@ export default function LoginScreen() {
               key={key}
               type="button"
               onClick={() => handleProvider(key)}
-              className="text-sm px-4 py-2.5 rounded-xl bg-secondary/60 hover:bg-secondary text-foreground shadow-[inset_0_1px_0_0_hsl(var(--card)/0.8)] transition-colors"
+              className="text-sm px-4 py-2.5 rounded-xl bg-secondary/60 hover:bg-secondary text-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.8)] transition-colors"
             >
               {label}
             </button>
@@ -114,6 +114,7 @@ export default function LoginScreen() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Email"
+            aria-label="Email"
             className="text-sm px-3.5 py-2.5 bg-muted/60 rounded-xl outline-none focus:bg-card focus:ring-2 focus:ring-primary/30 transition-all placeholder:text-muted-foreground/70"
           />
           <input
@@ -123,6 +124,7 @@ export default function LoginScreen() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
+            aria-label="Password"
             className="text-sm px-3.5 py-2.5 bg-muted/60 rounded-xl outline-none focus:bg-card focus:ring-2 focus:ring-primary/30 transition-all placeholder:text-muted-foreground/70"
           />
           <button

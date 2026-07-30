@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Expand, GripVertical, Link2, Plus, Trash2, X } from "lucide-react";
+import { Expand, GripVertical, Link2, Plus, Trash2, X, Star } from "lucide-react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { usePositionedMenu } from "@/hooks/usePositionedMenu";
 import PositionedPopover from "@/components/shared/PositionedPopover";
@@ -59,7 +59,8 @@ function NoteBox({ title, notes, allStakeholders, tintStyle, placeholder, onAdd,
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && submit()}
           placeholder={placeholder}
-          className="flex-1 min-w-0 text-[10px] bg-transparent outline-none text-left placeholder:text-muted-foreground/60"
+          aria-label={title}
+          className="flex-1 min-w-0 text-[10px] bg-transparent outline-none focus-visible:ring-1 focus-visible:ring-ring text-left placeholder:text-muted-foreground/60"
         />
         {showButton && (
           <button type="button" onClick={submit} aria-label={`Add ${title}`} className="shrink-0 text-muted-foreground hover:text-primary">
@@ -134,14 +135,16 @@ function LinksCorner({ links, onSave }) {
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="Label (optional)"
-            className="text-xs px-2 py-1 bg-background border border-input rounded outline-none"
+            aria-label="Link label"
+            className="text-xs px-2 py-1 bg-background border border-input rounded outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
           <div className="flex items-center gap-1">
             <input
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://..."
-              className="flex-1 min-w-0 text-xs px-2 py-1 bg-background border border-input rounded outline-none"
+              aria-label="Link URL"
+              className="flex-1 min-w-0 text-xs px-2 py-1 bg-background border border-input rounded outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
             <button type="submit" disabled={!url.trim()} className="text-xs px-2 py-1 bg-primary text-primary-foreground border border-border rounded disabled:opacity-50 shrink-0">
               Add
@@ -309,11 +312,32 @@ export default function ProjectCardFull({ project, stakeholderIds = [] }) {
           onClick={() => setIsTableOpen(true)}
           className="shrink-0 grid grid-cols-2 grid-rows-2 gap-1 border border-border rounded overflow-hidden w-16 min-h-16 text-sm z-20 select-none"
           title="Open Task Table"
+          // The per-cell color coding (this week's focus vs. a highlighted
+          // stakeholder's task) has no other way to reach a screen reader —
+          // the whole quadrant grid is one button, not four — so its meaning
+          // gets folded into this one label rather than only living in color.
+          aria-label={`Open Task Table${
+            quadrants.some((q) => q.hasFocus) || quadrants.some((q) => q.hasHighlightedStakeholder)
+              ? ` — ${[
+                  quadrants.some((q) => q.hasFocus) && "includes this week's focus",
+                  quadrants.some((q) => q.hasHighlightedStakeholder) && "includes the highlighted stakeholder",
+                ]
+                  .filter(Boolean)
+                  .join(", ")}`
+              : ""
+          }`}
         >
           {quadrants.map((q) => (
             <div
               key={q.quadrant}
-              className={`flex items-center justify-center transition-colors ${
+              title={
+                q.hasHighlightedStakeholder
+                  ? "Includes the highlighted stakeholder"
+                  : q.hasFocus
+                  ? "Includes this week's focus"
+                  : undefined
+              }
+              className={`relative flex items-center justify-center transition-colors ${
                 q.hasHighlightedStakeholder
                   ? "text-foreground font-bold"
                   : q.hasFocus
@@ -322,6 +346,14 @@ export default function ProjectCardFull({ project, stakeholderIds = [] }) {
               }`}
               style={q.hasHighlightedStakeholder ? { backgroundColor: STATUS_COLORS.DONE } : undefined}
             >
+              {/* A shape marker, not just a color, distinguishes "this
+                  week's focus" from "highlighted stakeholder" — the two
+                  states are both a bold fill and could otherwise read the
+                  same to anyone who can't rely on the green/mint hue
+                  difference. */}
+              {q.hasFocus && !q.hasHighlightedStakeholder && (
+                <Star className="absolute top-0.5 right-0.5 w-2.5 h-2.5 fill-current" aria-hidden="true" />
+              )}
               {q.count}
             </div>
           ))}
@@ -356,6 +388,7 @@ export default function ProjectCardFull({ project, stakeholderIds = [] }) {
             value={project.owner_name}
             onSave={(v) => updateProject.mutate({ id: project.id, data: { owner_name: v } })}
             placeholder="Unassigned"
+            aria-label="Owner"
             className="text-[10px] font-semibold text-muted-foreground text-right"
           />
           <div className="flex items-center gap-1">
@@ -363,13 +396,15 @@ export default function ProjectCardFull({ project, stakeholderIds = [] }) {
               value={project.due_date}
               onSave={(v) => updateProject.mutate({ id: project.id, data: { due_date: v } })}
               unstyled
+              aria-label="Due date"
               className={`text-[10px] bg-transparent text-right ${dateColorClass}`}
             />
           </div>
           <select
             value={project.due_date_status || "ESTIMATED"}
             onChange={(e) => updateProject.mutate({ id: project.id, data: { due_date_status: e.target.value } })}
-            className="text-[9px] bg-transparent border border-border rounded px-1 py-0.5 outline-none"
+            aria-label="Due date status"
+            className="text-[9px] bg-transparent border border-border rounded px-1 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {DUE_DATE_STATUS_OPTIONS.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
           </select>

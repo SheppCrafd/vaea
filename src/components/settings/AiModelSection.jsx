@@ -70,8 +70,9 @@ export default function AiModelSection() {
 
       <div className="flex flex-col gap-3">
         <div>
-          <p className="text-sm font-medium mb-1.5">Provider</p>
+          <label htmlFor="ai-model-provider" className="text-sm font-medium mb-1.5 block">Provider</label>
           <select
+            id="ai-model-provider"
             value={provider.id}
             onChange={(e) => handleProviderChange(e.target.value)}
             className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all"
@@ -87,8 +88,9 @@ export default function AiModelSection() {
         {isKeyBased && (
           <>
             <div>
-              <p className="text-sm font-medium mb-1.5">Model</p>
+              <label htmlFor="ai-model-model" className="text-sm font-medium mb-1.5 block">Model</label>
               <select
+                id="ai-model-model"
                 value={config.model}
                 onChange={(e) => handleModelChange(e.target.value)}
                 className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all"
@@ -100,9 +102,10 @@ export default function AiModelSection() {
             </div>
 
             <div>
-              <p className="text-sm font-medium mb-1.5">{provider.label} API key</p>
+              <label htmlFor="ai-model-api-key" className="text-sm font-medium mb-1.5 block">{provider.label} API key</label>
               <div className="relative">
                 <input
+                  id="ai-model-api-key"
                   type={showKey ? "text" : "password"}
                   value={config.apiKey}
                   onChange={(e) => handleKeyChange(e.target.value)}

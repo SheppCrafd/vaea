@@ -35,7 +35,8 @@ export default function AddNoteForm({ projectId, allStakeholders = [], defaultTy
           <select
             value={type}
             onChange={(e) => setType(e.target.value)}
-            className="text-xs bg-background border border-border rounded px-1.5 py-1.5 outline-none"
+            aria-label="Note type"
+            className="text-xs bg-background border border-border rounded px-1.5 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {allowedTypes.map((t) => (
               <option key={t} value={t}>{TYPE_LABELS[t]}</option>
@@ -46,7 +47,8 @@ export default function AddNoteForm({ projectId, allStakeholders = [], defaultTy
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder={type === "NOTE" ? "Add a note..." : "Describe the risk or question..."}
-          className="flex-1 text-xs px-2 py-1.5 bg-background border border-input rounded outline-none"
+          aria-label={type === "NOTE" ? "Note content" : "Risk or question description"}
+          className="flex-1 text-xs px-2 py-1.5 bg-background border border-input rounded outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
       </div>
       <div className="flex items-center gap-2">
@@ -54,7 +56,8 @@ export default function AddNoteForm({ projectId, allStakeholders = [], defaultTy
           value={reporter}
           onChange={(e) => setReporter(e.target.value)}
           placeholder="Reporter (optional)"
-          className="flex-1 text-xs px-2 py-1.5 bg-background border border-input rounded outline-none"
+          aria-label="Reporter"
+          className="flex-1 text-xs px-2 py-1.5 bg-background border border-input rounded outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
         <StakeholderAssigner
           currentStakeholderIds={stakeholderIds}

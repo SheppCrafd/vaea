@@ -414,7 +414,8 @@ export default function TaskTable({ project }) {
                   onChange={(e) => setNewDescription(e.target.value)}
                   onKeyDown={handleNewTaskKeyDown}
                   placeholder="Type a task and press Enter (or click +)"
-                  className="w-full min-w-0 text-xs px-2 py-1.5 bg-background border border-border rounded outline-none"
+                  aria-label="New task description"
+                  className="w-full min-w-0 text-xs px-2 py-1.5 bg-background border border-border rounded outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />
               </div>
             </td>
@@ -480,7 +481,8 @@ export default function TaskTable({ project }) {
                 onChange={(e) => setNewNotes(e.target.value)}
                 onKeyDown={handleNewTaskKeyDown}
                 placeholder="Notes..."
-                className="w-full min-w-0 text-[11px] px-1.5 py-1 bg-background border border-border rounded outline-none"
+                aria-label="Notes for new task"
+                className="w-full min-w-0 text-[11px] px-1.5 py-1 bg-background border border-border rounded outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </td>
             <td className="p-2 text-center">

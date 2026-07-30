@@ -44,7 +44,8 @@ export default function ChatSessionRow({ session, isActive, onSelect, onDeleted 
           if (e.key === "Escape") setIsEditing(false);
         }}
         autoFocus
-        className="flex-1 min-w-0 text-xs px-2 py-1.5 bg-background border border-input rounded outline-none"
+        aria-label="Chat session name"
+        className="flex-1 min-w-0 text-xs px-2 py-1.5 bg-background border border-input rounded outline-none focus-visible:ring-2 focus-visible:ring-ring"
       />
     );
   }

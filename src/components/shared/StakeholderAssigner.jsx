@@ -34,11 +34,15 @@ export default function StakeholderAssigner({
   return (
     <>
       {/* TRIGGER: The Avatar Stack, or a Plus button if empty/forced */}
-      <div
+      <button
+        type="button"
         ref={triggerRef}
-        className="flex items-center cursor-pointer hover:opacity-80 transition-opacity min-h-[24px] min-w-[24px]"
+        className="flex items-center cursor-pointer hover:opacity-80 transition-opacity min-h-[24px] min-w-[24px] bg-transparent border-0 p-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
         onClick={toggle}
         title="Assign Stakeholders"
+        aria-label="Assign Stakeholders"
+        aria-haspopup="true"
+        aria-expanded={isOpen}
       >
         {showAddIcon ? (
           <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -61,7 +65,7 @@ export default function StakeholderAssigner({
             )}
           </div>
         )}
-      </div>
+      </button>
 
       {/* DROPDOWN MENU (Portal at document root, overlay click closes it) */}
       <PositionedPopover

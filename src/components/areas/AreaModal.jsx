@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { X } from "lucide-react";
-import Portal from "@/lib/Portal";
+import Modal from "@/components/shared/Modal";
 import { useAreas, useUpdateArea } from "@/hooks/useAreas";
 import { useProducts } from "@/hooks/useProducts";
 import { useProjects } from "@/hooks/useProjects";
@@ -34,13 +34,19 @@ export default function AreaModal({ area, onClose }) {
   }, []);
 
   return (
-    <Portal>
-      <div className="fixed inset-0 bg-background z-50 overflow-y-auto">
+    <Modal
+      isOpen
+      onClose={onClose}
+      closeOnBackdropClick={false}
+      label={liveArea.title}
+      overlayClassName="fixed inset-0 bg-background z-50 overflow-y-auto"
+    >
         <div className="flex items-start justify-between gap-3 p-6 border-b border-border sticky top-0 bg-background z-10">
           <div className="flex-1 min-w-0">
             <EditableText
               value={liveArea.title}
               onSave={(v) => updateArea.mutate({ id: area.id, data: { title: v } })}
+              aria-label="Area title"
               className="font-heading text-xl font-semibold"
             />
             <EditableText
@@ -48,10 +54,11 @@ export default function AreaModal({ area, onClose }) {
               onSave={(v) => updateArea.mutate({ id: area.id, data: { description: v } })}
               multiline
               placeholder="Add a description..."
+              aria-label="Area description"
               className="text-sm text-muted-foreground mt-1"
             />
           </div>
-          <button onClick={onClose} className="shrink-0"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} aria-label="Close" className="shrink-0"><X className="w-5 h-5" /></button>
         </div>
 
         <div className="p-6 max-w-5xl mx-auto">
@@ -79,7 +86,6 @@ export default function AreaModal({ area, onClose }) {
             </div>
           )}
         </div>
-      </div>
-    </Portal>
+    </Modal>
   );
 }

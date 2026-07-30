@@ -166,8 +166,9 @@ function DepartmentToolbar({ department, memberCount }) {
             if (e.key === "Escape") setIsRenaming(false);
           }}
           autoFocus
-          className="flex-1 min-w-0 text-xs px-2 py-1 bg-background border border-input rounded outline-none" />
-        
+          aria-label="Department name"
+          className="flex-1 min-w-0 text-xs px-2 py-1 bg-background border border-input rounded outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+
       </div>);
 
   }
@@ -281,9 +282,10 @@ export default function StakeholderList() {
           value={newDeptName}
           onChange={(e) => setNewDeptName(e.target.value)}
           placeholder="Department name"
+          aria-label="New department name"
           autoFocus
-          className="flex-1 text-xs px-2 py-1.5 bg-background border border-input rounded outline-none" />
-        
+          className="flex-1 text-xs px-2 py-1.5 bg-background border border-input rounded outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+
           <button type="submit" disabled={!newDeptName.trim()} className="text-xs px-2 py-1.5 bg-primary text-primary-foreground border border-border rounded-md disabled:opacity-50">
             Add
           </button>

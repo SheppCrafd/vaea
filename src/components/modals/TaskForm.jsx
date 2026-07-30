@@ -29,8 +29,9 @@ export default function TaskForm({ onDone }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="text-sm font-medium block mb-1">Project</label>
+        <label htmlFor="task-project" className="text-sm font-medium block mb-1">Project</label>
         <select
+          id="task-project"
           value={projectId}
           onChange={(e) => setProjectId(e.target.value)}
           className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md"
@@ -42,12 +43,13 @@ export default function TaskForm({ onDone }) {
         </select>
       </div>
       <div>
-        <label className="text-sm font-medium block mb-1">Task description</label>
-        <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. Write API docs" autoFocus />
+        <label htmlFor="task-description" className="text-sm font-medium block mb-1">Task description</label>
+        <Input id="task-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. Write API docs" autoFocus />
       </div>
       <div>
-        <label className="text-sm font-medium block mb-1">Quadrant (optional)</label>
+        <label htmlFor="task-quadrant" className="text-sm font-medium block mb-1">Quadrant (optional)</label>
         <select
+          id="task-quadrant"
           value={quadrant}
           onChange={(e) => setQuadrant(e.target.value)}
           className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md"

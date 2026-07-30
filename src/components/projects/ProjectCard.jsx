@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Expand, GripVertical, AlertTriangle, HelpCircle, Trash2 } from "lucide-react";
+import { Expand, GripVertical, AlertTriangle, HelpCircle, Trash2, Star } from "lucide-react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import TaskTableModal from "@/components/projects/TaskTableModal";
 import ProjectDetailModal from "@/components/projects/ProjectDetailModal";
@@ -135,11 +135,32 @@ export default function ProjectCard({ project, stakeholderIds = [] }) {
           onClick={() => setIsTableOpen(true)}
           className="shrink-0 grid grid-cols-2 gap-0.5 border border-border rounded overflow-hidden w-11 h-11 text-xs z-20 select-none"
           title="Open Task Table"
+          // The per-cell color coding (this week's focus vs. a highlighted
+          // stakeholder's task) has no other way to reach a screen reader —
+          // the whole quadrant grid is one button, not four — so its meaning
+          // gets folded into this one label rather than only living in color.
+          aria-label={`Open Task Table${
+            quadrants.some((q) => q.hasFocus) || quadrants.some((q) => q.hasHighlightedStakeholder)
+              ? ` — ${[
+                  quadrants.some((q) => q.hasFocus) && "includes this week's focus",
+                  quadrants.some((q) => q.hasHighlightedStakeholder) && "includes the highlighted stakeholder",
+                ]
+                  .filter(Boolean)
+                  .join(", ")}`
+              : ""
+          }`}
         >
           {quadrants.map((q) => (
             <div
               key={q.quadrant}
-              className={`flex items-center justify-center transition-colors ${
+              title={
+                q.hasHighlightedStakeholder
+                  ? "Includes the highlighted stakeholder"
+                  : q.hasFocus
+                  ? "Includes this week's focus"
+                  : undefined
+              }
+              className={`relative flex items-center justify-center transition-colors ${
                 q.hasHighlightedStakeholder
                   ? "text-foreground font-bold"
                   : q.hasFocus
@@ -148,6 +169,14 @@ export default function ProjectCard({ project, stakeholderIds = [] }) {
               }`}
               style={q.hasHighlightedStakeholder ? { backgroundColor: STATUS_COLORS.DONE } : undefined}
             >
+              {/* A shape marker, not just a color, distinguishes "this
+                  week's focus" from "highlighted stakeholder" — the two
+                  states are both a bold fill and could otherwise read the
+                  same to anyone who can't rely on the green/mint hue
+                  difference. */}
+              {q.hasFocus && !q.hasHighlightedStakeholder && (
+                <Star className="absolute top-0 right-0 w-2 h-2 fill-current" aria-hidden="true" />
+              )}
               {q.count}
             </div>
           ))}

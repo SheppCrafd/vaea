@@ -24,6 +24,14 @@ export const REFLECTION_INTERVAL_MS = 3 * 60 * 60 * 1000;
 // single time it fires.
 export const VAULT_TIDY_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
+// A third, even heavier layer folded into the reflection cycle (see
+// runReflectionTurn's includeDream) — reads real conversation content
+// across the whole day, not tiny fact strings, so it runs on its own
+// slower cadence, same reasoning as VAULT_TIDY_INTERVAL_MS above: real cost
+// that doesn't need repeating every 3-hour cycle, and reviewing a day's
+// conversations is honestly a once-a-day thing, not a every-check-in thing.
+export const DREAM_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
 // How long a chat has to sit with no NEW message from the user before
 // useChatController.js auto-logs it to the vault ("/vault-log", triggered
 // the same way it would be if the user typed it). Unlike REFLECTION_INTERVAL_MS
@@ -38,6 +46,13 @@ export const DEFAULTS = {
   consent: null, // null = never asked, true = opted in, false = declined
   lastReflectionAt: null, // ISO string, or null before the first cycle starts
   lastVaultTidyAt: null, // ISO string, or null before the first vault-tidy-inclusive cycle
+  lastDreamAt: null, // ISO string, or null before the first dream-inclusive cycle
+  // Separate tri-state from `consent` above, only meaningful once consent is
+  // true: whether the daily review may also notice/save patterns in how the
+  // USER themselves communicates or works, not just Vaea's own replies. Off
+  // (null or false) by default in every state — never inferred, same rule
+  // `consent` itself follows.
+  userAnalysisConsent: null,
 };
 
 export async function loadReflectionPreferences() {

@@ -72,11 +72,11 @@ export default function HowItWorksPage() {
         <div className="relative max-w-3xl mx-auto px-6 py-24 sm:py-32 text-center">
           <Reveal>
             <h2 className={displayL}>
-              Ready to get it off your plate?
+              Tell it what&apos;s piling up. It sorts it.
             </h2>
             <div className="mt-8">
               <Link to="/signup" className={pillOnDark}>
-                Get started
+                Sign up free
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>

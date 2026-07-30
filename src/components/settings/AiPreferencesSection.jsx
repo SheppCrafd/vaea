@@ -47,7 +47,18 @@ export default function AiPreferencesSection() {
       // Same reasoning as the overlay's own Allow handler — turning it back
       // on shouldn't summarize everything that happened while it was off.
       lastReflectionAt: consent ? new Date().toISOString() : reflectionPrefs.lastReflectionAt,
+      lastDreamAt: consent ? new Date().toISOString() : reflectionPrefs.lastDreamAt,
     });
+  };
+
+  // Separate tri-state from `consent` above — only meaningful while
+  // check-ins are on. Gates whether the daily self-review may also save
+  // patterns about the USER, not just Vaea's own replies (see
+  // reflectionPreferences.js's userAnalysisConsent).
+  const userAnalysisEnabled = reflectionPrefs?.userAnalysisConsent === true;
+  const toggleUserAnalysis = () => {
+    if (!reflectionPrefs) return;
+    saveReflectionPrefs.mutate({ ...reflectionPrefs, userAnalysisConsent: !userAnalysisEnabled });
   };
 
   useEffect(() => {
@@ -111,9 +122,10 @@ export default function AiPreferencesSection() {
       <div className="flex flex-col gap-4">
         {FIELDS.map(({ key, label, placeholder, rows }) => (
           <div key={key}>
-            <p className="text-sm font-medium mb-1.5">{label}</p>
+            <label htmlFor={`ai-identity-${key}`} className="text-sm font-medium mb-1.5 block">{label}</label>
             {rows === 1 ? (
               <input
+                id={`ai-identity-${key}`}
                 value={identity[key]}
                 onChange={(e) => handleChange(key, e.target.value)}
                 placeholder={placeholder}
@@ -121,6 +133,7 @@ export default function AiPreferencesSection() {
               />
             ) : (
               <textarea
+                id={`ai-identity-${key}`}
                 value={identity[key]}
                 onChange={(e) => handleChange(key, e.target.value)}
                 placeholder={placeholder}
@@ -185,8 +198,10 @@ export default function AiPreferencesSection() {
             )}
           </p>
           <p className="text-xs text-muted-foreground mt-1.5 max-w-md">
-            It only ever looks at what you've typed into your workspace — never how you talk, your tone, or your
-            habits.
+            Roughly once a day it also looks back at its own replies from your real conversations — not just
+            workspace facts — to notice what worked and what didn't, and get better at responding. That's always
+            about its own replies, not you: it still never analyzes your tone, habits, or personality unless the
+            toggle below is on.
           </p>
         </div>
         <button
@@ -202,6 +217,28 @@ export default function AiPreferencesSection() {
           />
         </button>
       </div>
+      {reflectionEnabled && (
+        <div className="flex items-start justify-between gap-4 mt-4 pt-4 border-t border-border">
+          <div>
+            <p className="text-sm font-medium">Notice patterns in how I communicate</p>
+            <p className="text-xs text-muted-foreground mt-0.5 max-w-md">
+              Its daily look-back can also save what it notices about how you write and work, not just its own
+              replies. Off by default — nothing about you is analyzed unless this is on.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={userAnalysisEnabled}
+            onClick={toggleUserAnalysis}
+            className={`shrink-0 mt-0.5 relative w-9 h-5 rounded-full transition-colors ${userAnalysisEnabled ? "bg-primary" : "bg-muted"}`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-background shadow-sm transition-transform ${userAnalysisEnabled ? "translate-x-4" : ""}`}
+            />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { X, Archive, RotateCcw, Trash2, ChevronDown, ChevronRight } from "lucide-react";
-import Portal from "@/lib/Portal";
+import Modal from "@/components/shared/Modal";
 import { useProjectNotes } from "@/hooks/useProjectNotes";
 import { useStakeholders } from "@/hooks/useStakeholders";
 import { useProducts } from "@/hooks/useProducts";
@@ -51,16 +51,21 @@ export default function ProjectDetailModal({ project, onClose }) {
   };
 
   return (
-    <Portal>
-      <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-
+    <Modal
+      isOpen
+      onClose={onClose}
+      closeOnBackdropClick={false}
+      label={project.title}
+      overlayClassName="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      panelClassName="bg-card border border-border rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+    >
           {/* Header */}
           <div className="flex items-start justify-between p-6 border-b border-border bg-muted/30">
             <div className="flex-1 mr-4">
               <EditableText
                 value={project.title}
                 onSave={(val) => updateProject.mutate({ id: project.id, data: { title: val } })}
+                aria-label="Project title"
                 className="text-2xl font-bold font-heading mb-2 w-full"
               />
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -69,6 +74,7 @@ export default function ProjectDetailModal({ project, onClose }) {
                   <EditableText
                     value={project.owner_name || "Unassigned"}
                     onSave={(val) => updateProject.mutate({ id: project.id, data: { owner_name: val } })}
+                    aria-label="Owner"
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -76,18 +82,20 @@ export default function ProjectDetailModal({ project, onClose }) {
                   <DateField
                     value={project.due_date}
                     onSave={(val) => updateProject.mutate({ id: project.id, data: { due_date: val } })}
+                    aria-label="Due date"
                   />
                   <select
                     value={project.due_date_status || "ESTIMATED"}
                     onChange={(e) => updateProject.mutate({ id: project.id, data: { due_date_status: e.target.value } })}
-                    className="bg-transparent border border-border rounded px-1.5 py-0.5 text-xs ml-1 outline-none"
+                    aria-label="Due date status"
+                    className="bg-transparent border border-border rounded px-1.5 py-0.5 text-xs ml-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     {DUE_DATE_STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
                 </div>
               </div>
             </div>
-            <button onClick={onClose} className="p-2 hover:bg-secondary rounded-full transition-colors shrink-0">
+            <button onClick={onClose} aria-label="Close" className="p-2 hover:bg-secondary rounded-full transition-colors shrink-0">
               <X className="w-5 h-5 text-muted-foreground" />
             </button>
           </div>
@@ -97,8 +105,9 @@ export default function ProjectDetailModal({ project, onClose }) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
-                <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Objective</p>
+                <label htmlFor="project-detail-objective" className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider block">Objective</label>
                 <EditableText
+                  id="project-detail-objective"
                   value={project.objective}
                   onSave={(val) => updateProject.mutate({ id: project.id, data: { objective: val } })}
                   placeholder="No objective set"
@@ -107,8 +116,9 @@ export default function ProjectDetailModal({ project, onClose }) {
                 />
               </div>
               <div>
-                <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Problem Statement</p>
+                <label htmlFor="project-detail-problem-statement" className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider block">Problem Statement</label>
                 <EditableText
+                  id="project-detail-problem-statement"
                   value={project.problem_statement}
                   onSave={(val) => updateProject.mutate({ id: project.id, data: { problem_statement: val } })}
                   placeholder="No problem statement set"
@@ -123,8 +133,9 @@ export default function ProjectDetailModal({ project, onClose }) {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {METRIC_FIELDS.map(({ key, label }) => (
                   <div key={key}>
-                    <label className="text-[10px] text-muted-foreground block mb-0.5">{label}</label>
+                    <label htmlFor={`project-metric-${key}`} className="text-[10px] text-muted-foreground block mb-0.5">{label}</label>
                     <EditableText
+                      id={`project-metric-${key}`}
                       value={project.metrics?.[key] || ""}
                       onSave={(val) => saveMetric(key, val)}
                       placeholder="—"
@@ -325,8 +336,6 @@ export default function ProjectDetailModal({ project, onClose }) {
             )}
           </div>
 
-        </div>
-      </div>
-    </Portal>
+    </Modal>
   );
 }

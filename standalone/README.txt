@@ -56,21 +56,36 @@ SIGNING IN
 
 THE AI CHAT WIDGET
 
-  The chat bubble is present in the UI, but it won't be able to respond in
-  this standalone copy — it's backed by a Base44 serverless function that
-  needs an authenticated Base44 account and Base44's own hosting to run,
-  neither of which this offline copy has. Everything else in the app works
-  normally without it. (When it does work, on the live hosted version, it
-  acts on your real local data directly — the same areas/products/projects/
-  tasks/etc. you see on the dashboard, not a separate copy somewhere else.
-  Your data is sent to an AI service only for the single exchange it takes
-  to answer you; nothing about your data is ever stored on a server.)
+  The chat bubble is present in the UI. By default it's backed by a Base44
+  serverless function that needs an authenticated Base44 account and
+  Base44's own hosting to run — neither of which this offline copy has, so
+  that default path won't respond here.
 
-  If you have (or set up) your own Base44 account and want the AI chat
-  working too, you'd need the full source project instead of this file:
-  install the Base44 CLI, run `base44 dev` from the project root (it runs
-  `npm install` and starts both the frontend and the chat backend together),
-  and open the URL it prints.
+  But this copy's Settings screen (gear icon) is fully reachable — there's
+  no login blocking it — and from there you can point chat at a working
+  provider instead:
+
+    - Bring your own API key (Settings -> AI Model): add an Anthropic,
+      OpenAI, Google, or xAI key and chat runs directly from your browser to
+      that provider. No Base44 account or hosting involved at all.
+    - Backdoor Mode (Settings -> AI Model): connect a local folder that a
+      watcher script on your own machine polls, so chat can run against a
+      model you host yourself — no API key, no internet call, fully
+      offline. See BackdoorModeSetupGuidePage in the full app (or the full
+      source project's src/pages/BackdoorModeSetupGuidePage.jsx) for setup.
+
+  Either way, it acts on your real local data directly — the same
+  areas/products/projects/tasks/etc. you see on the dashboard, not a
+  separate copy somewhere else. With your own API key, your data is sent to
+  that provider only for the single exchange it takes to answer you; with
+  Backdoor Mode, it never leaves your machine at all. Nothing about your
+  data is ever stored on a server either way.
+
+  If you'd rather use the default Base44-hosted chat instead of your own
+  key, you'd need the full source project instead of this file: install the
+  Base44 CLI, run `base44 dev` from the project root (it runs `npm install`
+  and starts both the frontend and the chat backend together), and open the
+  URL it prints.
 
 REBUILDING (for developers)
 

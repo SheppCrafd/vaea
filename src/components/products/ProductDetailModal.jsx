@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { X, Trash2 } from "lucide-react";
-import Portal from "@/lib/Portal";
+import Modal from "@/components/shared/Modal";
 import { useStakeholders } from "@/hooks/useStakeholders";
 import { useUpdateProduct, useDeleteProduct } from "@/hooks/useProducts";
 import { useProjects } from "@/hooks/useProjects";
@@ -38,20 +38,26 @@ export default function ProductDetailModal({ product, onClose }) {
   }, []);
 
   return (
-    <Portal>
-      <div className="fixed inset-0 bg-background z-50 overflow-y-auto">
+    <Modal
+      isOpen
+      onClose={onClose}
+      closeOnBackdropClick={false}
+      label={product.title}
+      overlayClassName="fixed inset-0 bg-background z-50 overflow-y-auto"
+    >
         <div className="flex items-center justify-between gap-3 p-6 border-b border-border sticky top-0 bg-background z-10">
           <EditableText
             value={product.title}
             onSave={(v) => updateProduct.mutate({ id: product.id, data: { title: v } })}
             className="font-heading text-xl font-semibold"
           />
-          <button onClick={onClose} className="shrink-0"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} aria-label="Close" className="shrink-0"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-6 max-w-3xl mx-auto flex flex-col gap-6">
           <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-1">Description</label>
+            <label htmlFor="product-description" className="text-xs font-medium text-muted-foreground block mb-1">Description</label>
             <EditableText
+              id="product-description"
               value={product.description}
               onSave={(v) => updateProduct.mutate({ id: product.id, data: { description: v } })}
               multiline
@@ -136,7 +142,6 @@ export default function ProductDetailModal({ product, onClose }) {
             </button>
           </div>
         </div>
-      </div>
-    </Portal>
+    </Modal>
   );
 }

@@ -15,10 +15,12 @@ import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
 import { listVaultNoteRepo, readVaultNoteContent, writeVaultFile } from "@/lib/githubApi";
 import {
   mergeSelfNoteSection,
+  stripUserNotesSection,
   buildIdentitySection,
   syncIdentityToSelfNote,
   SELF_NOTE_IDENTITY_HEADER,
   SELF_NOTE_NOTES_HEADER,
+  SELF_NOTE_USER_HEADER,
 } from "./selfNote.js";
 
 beforeEach(() => {
@@ -65,6 +67,26 @@ describe("mergeSelfNoteSection", () => {
     const result = mergeSelfNoteSection(content, "Notes", "");
     expect(result).not.toContain("## Notes");
     expect(result).toContain("## Identity\nidentity body");
+  });
+});
+
+describe("stripUserNotesSection", () => {
+  it("removes the User Notes section while leaving Identity and Notes untouched", () => {
+    const content = `## ${SELF_NOTE_IDENTITY_HEADER}\nidentity body\n\n## ${SELF_NOTE_NOTES_HEADER}\nself note\n\n## ${SELF_NOTE_USER_HEADER}\nuser behaves like X`;
+    const result = stripUserNotesSection(content);
+    expect(result).toContain(`## ${SELF_NOTE_IDENTITY_HEADER}\nidentity body`);
+    expect(result).toContain(`## ${SELF_NOTE_NOTES_HEADER}\nself note`);
+    expect(result).not.toContain(SELF_NOTE_USER_HEADER);
+    expect(result).not.toContain("user behaves like X");
+  });
+
+  it("is a no-op when the User Notes section isn't present", () => {
+    const content = `## ${SELF_NOTE_IDENTITY_HEADER}\nidentity body\n\n## ${SELF_NOTE_NOTES_HEADER}\nself note\n`;
+    expect(stripUserNotesSection(content)).toBe(content);
+  });
+
+  it("returns empty content unchanged", () => {
+    expect(stripUserNotesSection("")).toBe("");
   });
 });
 

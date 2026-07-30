@@ -11,8 +11,8 @@ This app has core app data (areas, products, projects, tasks, stakeholders, depa
 This project is built around data locality, which matters if your organization evaluates tools on data residency and third-party processor exposure:
 
 - **No backend database for your data, by default.** Every Area, Product, Project, Task, Stakeholder, and Note lives locally on the machine running it — as plain files in your own clone if you're running the repo directly, or in a folder/exported file you control otherwise (see "Local data storage" below). There is nothing to breach, subpoena, or leak from a server, because there is no server holding it — unless a user explicitly opts into cloud storage (Settings → Data Storage, or the first-run choice), which stores their data in a Base44-hosted record scoped to their account instead. That's a deliberate, disclosed exception a user has to choose, not a fallback the app picks for them; if your organization needs device-only storage guaranteed, don't offer that option to your users, or verify they haven't switched to it.
-- **Every exception is disclosed, not hidden.** The AI assistant: asking it to do something sends a snapshot of your current data to an LLM provider (via a Base44 function) for that single exchange, and nothing is written back to a server afterward — stated directly in the product (the info icon in both chat surfaces), not buried in a policy document. If your organization can't accept even transient third-party LLM exposure, the rest of the app works fully with chat simply left unused — see the standalone distributables below for a build with no network dependency at all. Cloud storage is the other one, covered above — off by default, opt-in only, and reversible from Settings at any time.
-- **Self-hostable, small, and auditable.** The frontend is a static build (`npm run build` → `dist/`) deployable to any static host or internal server — no runtime backend to operate or patch beyond the one optional serverless function powering chat. The codebase is compact and dependency-light enough for a real architecture/security review in an afternoon.
+- **Every exception is disclosed, not hidden.** The AI assistant: asking it to do something sends a snapshot of your current data to an LLM provider for that single exchange, and nothing is written back to a server afterward — stated directly in the product (the info icon in both chat surfaces), not buried in a policy document. By default that provider is Base44's own hosted LLM call; **Settings → AI Model** lets you point chat at your own API key instead (still a third-party exchange, just one you control), or at Backdoor Mode, a locally-hosted model with zero outbound calls at all — so if your organization can't accept even transient third-party LLM exposure, chat itself can still work fully, not just be left unused (see "Chat providers" below). Cloud storage is the other disclosed exception — off by default, opt-in only, and reversible from Settings at any time.
+- **Self-hostable, small, and auditable.** The frontend is a static build (`npm run build` → `dist/`) — no runtime backend to operate or patch beyond Base44's own hosting. That last part matters more than it sounds: every domain serving this app needs to be registered with Base44 (`base44 deploy`/`base44 site deploy` handle that for Base44's own hosting), because `AuthContext.jsx`'s startup check calls Base44 on every page load regardless of whether you ever touch chat — deploy the static build to an unregistered host and the *entire app* fails to a generic error screen before guest/local-only mode is even reached, not just chat. The codebase is compact and dependency-light enough for a real architecture/security review in an afternoon.
 - **Honest about current scope:** this is a single-user, single-browser tool today — there's no multi-user data sharing, roles, or admin console. It's built for one manager's own dashboard, not (yet) a shared team system of record. Evaluate it as a personal productivity tool, not a multi-seat platform, until that changes.
 
 ## Overview
@@ -79,13 +79,22 @@ Beyond full CRUD on every entity (areas/products/projects/tasks/stakeholders/dep
 - **Search your own workspace** by keyword across every area/product/project/task/stakeholder/note (including archived) — a real search step instead of relying on it to read the full data dump itself.
 - **Audit the workspace** (`/tidy`) for hygiene issues — overdue/unowned projects, done-but-unarchived tasks, near-duplicate tasks, stakeholders missing a department, empty areas/products — then propose fixes as a normal confirmable plan. This only ever runs when you ask; there's no server-side data store for a true autonomous nightly pass to run against, so this is the deliberate, manually-triggered analog instead.
 - **Export any entity type to CSV** and switch the dashboard between Mini/Full card view, on request.
-- **Have its own identity, set up however you want.** **Settings → AI Assistant** has four fields — name, identity, soul (tone + any standing response protocol, e.g. "compare two approaches before answering a bug question"), and a note on how you work — sent as context with every message. Write them by hand, or type `/setup` and let the assistant interview you across the conversation and draft them itself via a real tool call, the same staged mechanism as everything else it does. The name you set replaces "PM Copilot" everywhere in the chat UI immediately. There's no server-side storage for this, same as everything else — Export/Import in that same settings section carries it to another device as a small JSON file.
+- **Have its own identity, set up however you want.** **Settings → AI Assistant** has four fields — name, identity, soul (tone + any standing response protocol, e.g. "compare two approaches before answering a bug question"), and a note on how you work — sent as context with every message. Write them by hand, or type `/setup` and let the assistant interview you across the conversation and draft them itself via a real tool call, the same staged mechanism as everything else it does. The name you set replaces the default "Vaea Chat" label everywhere in the chat UI immediately. There's no server-side storage for this, same as everything else — Export/Import in that same settings section carries it to another device as a small JSON file.
 
 The web search and file-reading calls are covered by the same one-request, nothing-persisted privacy guarantee as the rest of chat — see the Architecture section below.
 
+### Chat providers
+
+By default, chat runs through Base44's own hosted LLM call (`aiChatStream`) — this is what everything above describes. **Settings → AI Model** offers two real alternatives:
+
+- **Bring your own API key** — add an Anthropic, OpenAI, Google, or xAI key and chat runs directly from your browser to that provider, no Base44 function in between (`src/lib/llm/`). Same tool-calling/action-plan behavior as the default path, with one honest gap: OpenAI/Google keys don't have native web search the way Anthropic/xAI do, and the assistant is told this outright rather than guessing.
+- **Backdoor Mode** — connect a local folder (File System Access, Chromium desktop only) that a small watcher script on your own machine polls every 5 seconds. Chat then runs entirely against a model you host yourself — no API key, no outbound HTTP call at all. **Settings → Resources → Backdoor Mode setup guide** (`src/pages/BackdoorModeSetupGuidePage.jsx`) walks through the file-protocol spec and an example watcher script.
+
+Both work in every deployment shape this README describes, including the standalone distributables below — Settings has no login gate, so configuring an API key or a Backdoor Mode connection makes chat work fully even in an offline, no-account copy that the default Base44-hosted path can't reach.
+
 ### Vaea Vault
 
-The assistant can also read and write Vaea Vault — a personal, git-backed Obsidian vault stored on GitHub — the same kind of connection a Claude Code + Obsidian setup gives a coding assistant, brought in-app instead of living in a CLI. **Settings → Vaea Vault**: connect a repo (owner, name, branch, and a personal access token — stored on this device, sent to Vaea's backend only for the moment a read tool actually runs, never persisted server-side). Never set one up before? **Settings → Resources → Vaea Vault setup guide** is a real in-app page (`src/pages/VaultSetupGuidePage.jsx`) walking through Obsidian + git + GitHub from scratch, ending in a real terminal-styled block (`src/components/settings/TerminalBlock.jsx`, prompt color follows your Appearance accent) with every command in order and a copy button.
+The assistant can also read and write Vaea Vault — a personal, git-backed Obsidian vault stored on GitHub — the same kind of connection a Claude Code + Obsidian setup gives a coding assistant, brought in-app instead of living in a CLI. **Settings → Vaea Vault**: connect a repo (owner, name, branch, and a personal access token — stored on this device, sent to Vaea's backend only for the moment a read tool — `search_vault`/`read_vault_note`/`list_vault_notes`/`audit_vault` — actually runs, never persisted server-side). Writes (`WRITE_VAULT_NOTE`) never touch Vaea's backend at all — they go straight from your browser to GitHub's own API. Never set one up before? **Settings → Resources → Vaea Vault setup guide** is a real in-app page (`src/pages/VaultSetupGuidePage.jsx`) walking through Obsidian + git + GitHub from scratch, ending in a real terminal-styled block (`src/components/settings/TerminalBlock.jsx`, prompt color follows your Appearance accent) with every command in order and a copy button.
 
 Once connected:
 - **Ask naturally** — `search_vault`, `read_vault_note`, and `list_vault_notes` are live tools (real GitHub Search/Contents API calls, results feed back into the model's next reasoning step) the assistant reaches for on its own, the in-app analog of a vault-crawler subagent.
@@ -93,6 +102,18 @@ Once connected:
 - **`/vault-tidy`** — `audit_vault` scans every note's `[[wikilinks]]` for broken links and isolated notes (capped at 80 notes per run), then proposes fixes via `WRITE_VAULT_NOTE` as a normal confirmable plan. The in-app analog of a nightly vault-maintenance pass, run on demand instead of on a schedule — there's still no server holding vault content to run an unattended job against.
 
 `WRITE_VAULT_NOTE` always sends the full file content (never a diff) and looks up the current file's sha itself before committing, so it updates instead of conflicting. Not treated as destructive — git's own history is the undo mechanism, the same way `EXPORT_CSV` and everything else here relies on the browser rather than Vaea for anything durable.
+
+### Proactive check-ins
+
+Reopening chat can show a message the assistant started on its own — a real, consent-gated feature, off until you explicitly opt in (a one-time banner in chat, or **Settings → AI Assistant → Proactive check-ins**). Three cadences, checked independently every time you reopen chat rather than one gating the others:
+
+- **Base check-in** (every ~3 hours) — a read-only look at what changed in your own tasks/projects since last time. Nothing about how you talk or work, ever, as part of this layer.
+- **Vault-tidy** (roughly daily, only with a connected Vaea Vault) — the same `audit_vault` pass as `/vault-tidy` above, run automatically instead of on demand.
+- **Daily self-review** (roughly daily, only with a connected Vaea Vault) — the assistant reviews its own replies from that day's real conversations, not just workspace facts, to notice what worked and what didn't, and writes concrete takeaways to its own notes (`Vaea Self.md`'s `## Notes` section). A second, separate opt-in — off by default, its own checkbox in the same consent banner/Settings toggle — additionally lets it notice and save patterns in how *you* communicate or work, under a distinct `## User Notes` section. That second permission is enforced structurally, not just by prompt instruction: without it, the client strips any `## User Notes` content from what actually gets written, even if the model's own output tries to include it anyway.
+
+Each cadence is checked on its own clock — the daily self-review doesn't wait for the 3-hour base check-in to also be due, so a day genuinely passes at most once between reviews, not "once every 3-hour window that happens to also be a day later."
+
+None of this is a true background job — there's no server holding chat or vault content to run an unattended pass against, the same limitation `/tidy`/`/vault-tidy` document above. It's checked, and if due, run at the moment you actually reopen chat — framed honestly as "since you were last here," not "while you were away."
 
 ### Backups
 
@@ -167,6 +188,10 @@ Base44 entities (`base44/entities`) — none of your project data: `User` (login
 
 `npm run dev` has no real Base44 app id configured locally, so the login check quietly fails open (a 404 instead of the real backend's `auth_required` 403) and the app renders without asking you to sign in. A properly deployed/published instance will actually require login.
 
+### Branches
+
+`main` is Production — it's what Base44's own hosting (`vaea.base44.app`) actually deploys from, so don't commit straight to it. Day-to-day work happens on `dev`; `int` and `perf-test` sit between `dev` and `main` as promotion stages (`dev` → `int` → `perf-test` → `main`, plain merges, nothing automated). If you're setting this up fresh and don't need that pipeline, working on `main` directly is fine — the branches only matter once more than one person (or agent) is touching the repo at once.
+
 ### Run locally (everything except AI chat)
 
 ```bash
@@ -225,11 +250,15 @@ See `standalone/exe/README.txt` for the size/dependency tradeoff versus the scri
 
 ### Publishing
 
-The frontend and local data layer can be deployed anywhere static sites are hosted (`npm run build` → `dist/`). To keep the AI chat function alive, publish it through the Base44 dashboard as before:
+The real, working publish path is Base44's own hosting — `aiChatStream` and (if you use it) cloud storage are Base44 functions/entities, and the base44 SDK on the client validates its requests against whatever domain Base44 has actually registered for this app. Deploying the static build to an arbitrary host and pointing it at the same app id does **not** work: every base44 API call from that domain fails with a `Domain is not valid` error, since the domain was never registered. Publish with:
 
 ```bash
-base44 dashboard open
+npm run build      # produces dist/
+base44 deploy      # entities, functions, agents, connectors
+base44 site deploy # the frontend build itself
 ```
+
+(`base44 dashboard open` just opens the Base44 web dashboard in your browser — it doesn't publish anything, despite how that might read.) All three steps take `-y`/`--yes` to skip their confirmation prompt, e.g. for a scripted deploy.
 
 ## Docs & Support
 

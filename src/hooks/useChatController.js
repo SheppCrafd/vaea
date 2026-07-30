@@ -9,7 +9,9 @@ import { loadAiProviderConfig, isByokConfigured, isLocalBridgeConfigured } from 
 import { runByokChat } from "@/lib/llm/byokChat";
 import { readNdjson } from "@/lib/llm/streamUtils";
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
-import { fetchVaultOverview } from "@/lib/githubApi";
+import { fetchVaultOverview, SELF_NOTE_PATH } from "@/lib/githubApi";
+import { gatherDreamTranscript } from "@/lib/dreamSummary";
+import { stripUserNotesSection } from "@/lib/selfNote";
 import { matchesProtocolTrigger } from "@/lib/protocolReminder";
 import { usePositionedMenu } from "@/hooks/usePositionedMenu";
 import { useCreateChatSession } from "@/hooks/useChatSessions";
@@ -17,7 +19,7 @@ import { useChatMessages, useCreateChatMessage, useUpdateChatMessage } from "@/h
 import { useAiIdentity } from "@/hooks/useAiIdentity";
 import { computeWorkspaceDelta, buildReflectionInstruction } from "@/lib/reflectionSummary";
 import { runReflectionIfDue } from "@/lib/reflectionTrigger";
-import { loadReflectionPreferences, saveReflectionPreferences, VAULT_TIDY_INTERVAL_MS, VAULT_LOG_IDLE_MS } from "@/lib/reflectionPreferences";
+import { loadReflectionPreferences, saveReflectionPreferences, VAULT_TIDY_INTERVAL_MS, DREAM_INTERVAL_MS, VAULT_LOG_IDLE_MS } from "@/lib/reflectionPreferences";
 
 // Icon component references only (no JSX here) so this can stay a plain .js
 // module — actual rendering happens in ChatIcon.jsx.
@@ -396,10 +398,37 @@ export function useChatController({ activeProjectId } = {}) {
   // perspective.
   const runReflectionTurn = async (sinceIso) => {
     const delta = await computeWorkspaceDelta(sinceIso);
-    if (!delta.hasChanges) return; // nothing to say — a "nothing happened!" check-in erodes trust in the feature fast
 
     const externalVault = await loadVaultConnection();
     const vaultConnected = isVaultConnected(externalVault);
+
+    // Vault-tidy's own, much longer cooldown (see reflectionPreferences.js) —
+    // checked and (if used) advanced independently of the base reflection
+    // cadence, since it's a genuinely separate, expensive-to-run-often thing
+    // layered on top of the same cycle, not gated by the same clock. Dream's
+    // own cooldown (DREAM_INTERVAL_MS) works the same way, one layer
+    // heavier still — see dreamSummary.js.
+    let includeVaultTidy = false;
+    let dreamDue = false;
+    let reflectionPrefs = null;
+    if (vaultConnected) {
+      reflectionPrefs = await loadReflectionPreferences();
+      includeVaultTidy = !reflectionPrefs.lastVaultTidyAt
+        || Date.now() - new Date(reflectionPrefs.lastVaultTidyAt).getTime() >= VAULT_TIDY_INTERVAL_MS;
+      dreamDue = !reflectionPrefs.lastDreamAt
+        || Date.now() - new Date(reflectionPrefs.lastDreamAt).getTime() >= DREAM_INTERVAL_MS;
+    }
+
+    // Dream reads real conversation content, not tiny fact strings — fetched
+    // only when actually due, and doesn't depend on the reflection session
+    // itself, so this can resolve before deciding whether a check-in is even
+    // worth creating at all. `includeDream` additionally requires there was
+    // something to review — an empty day shouldn't hand the model an empty
+    // transcript to "review."
+    const dreamResult = dreamDue ? await gatherDreamTranscript(reflectionPrefs.lastDreamAt || sinceIso).catch(() => null) : null;
+    const includeDream = dreamDue && !!dreamResult?.hasMessages;
+
+    if (!delta.hasChanges && !includeDream) return; // nothing to say — a "nothing happened!" check-in erodes trust in the feature fast
 
     const session = await createSession.mutateAsync({ title: "Check-in" });
 
@@ -410,30 +439,29 @@ export function useChatController({ activeProjectId } = {}) {
     // invokeAssistant's own fetch (keyed by the same session id) hits the
     // cache instead of fetching the exact same data a second time.
     let vaultOverview = null;
-    // Vault-tidy's own, much longer cooldown (see reflectionPreferences.js) —
-    // checked and (if used) advanced independently of the base reflection
-    // cadence, since it's a genuinely separate, expensive-to-run-often thing
-    // layered on top of the same cycle, not gated by the same clock.
-    let includeVaultTidy = false;
-    let reflectionPrefs = null;
     if (vaultConnected) {
       vaultOverview = await fetchVaultOverview(externalVault).catch(() => null);
       vaultOverviewCacheRef.current = { sessionId: session.id, overview: vaultOverview };
-      reflectionPrefs = await loadReflectionPreferences();
-      includeVaultTidy = !reflectionPrefs.lastVaultTidyAt
-        || Date.now() - new Date(reflectionPrefs.lastVaultTidyAt).getTime() >= VAULT_TIDY_INTERVAL_MS;
     }
 
     const instruction = buildReflectionInstruction(delta.facts, {
       vaultConnected,
       selfNoteLength: vaultOverview?.selfNote?.length || 0,
       includeVaultTidy,
+      includeDream,
+      dreamTranscript: dreamResult?.transcriptText || "",
+      userAnalysisConsent: reflectionPrefs?.userAnalysisConsent === true,
     });
-    if (includeVaultTidy) {
-      // Advanced regardless of whether the model actually found/fixed
-      // anything this cycle — "checked recently" is what the cooldown is
-      // tracking, not "found something."
-      await saveReflectionPreferences({ ...reflectionPrefs, lastVaultTidyAt: new Date().toISOString() });
+    if (includeVaultTidy || dreamDue) {
+      // Both cooldowns advance once checked this cycle, regardless of
+      // whether vault-tidy found anything or dream had messages to review —
+      // "checked recently" is what each cooldown tracks, not "found
+      // something."
+      await saveReflectionPreferences({
+        ...reflectionPrefs,
+        ...(includeVaultTidy ? { lastVaultTidyAt: new Date().toISOString() } : {}),
+        ...(dreamDue ? { lastDreamAt: new Date().toISOString() } : {}),
+      });
     }
     const data = await invokeAssistant({
       message: instruction,
@@ -452,11 +480,27 @@ export function useChatController({ activeProjectId } = {}) {
     const liveTrace = data.liveTrace || [];
     const { autoExecute, pending } = filterReflectionActions(data.actions || []);
 
+    // Structural backstop behind userAnalysisConsent, not just the prompt
+    // instruction telling the model not to write it (see dreamSummary.js's
+    // buildDreamInstruction): WRITE_VAULT_NOTE always sends the whole file
+    // content in one call, so a confused/ignored-instruction model output
+    // could otherwise smuggle a "## User Notes" section into Vaea Self.md
+    // even without real consent. Strip it from what actually gets written,
+    // whenever consent isn't a real `true`.
+    const userAnalysisConsent = reflectionPrefs?.userAnalysisConsent === true;
+    const sanitizedAutoExecute = userAnalysisConsent
+      ? autoExecute
+      : autoExecute.map((a) =>
+          a.action === "WRITE_VAULT_NOTE" && a.args?.path === SELF_NOTE_PATH
+            ? { ...a, args: { ...a.args, content: stripUserNotesSection(a.args.content) } }
+            : a
+        );
+
     // Only ever WRITE_VAULT_NOTE calls to the two allowlisted paths reach
     // here — same execution primitive a normal turn's own auto-executing
     // plan already uses (handleSend, below), not a new write path.
-    const autoResults = autoExecute.length
-      ? await executeActionSequence(autoExecute, {})
+    const autoResults = sanitizedAutoExecute.length
+      ? await executeActionSequence(sanitizedAutoExecute, {})
       : [];
     const toolLog = [...liveTrace.map((l) => l.label), ...autoResults.map(describeToolCall)];
 

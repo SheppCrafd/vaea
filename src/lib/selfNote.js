@@ -13,6 +13,10 @@ import { listVaultNoteRepo, readVaultNoteContent, writeVaultFile, SELF_NOTE_PATH
 
 export const SELF_NOTE_IDENTITY_HEADER = "Identity";
 export const SELF_NOTE_NOTES_HEADER = "Notes";
+// A dream cycle's consented-only user-behavior observations (see
+// dreamSummary.js's buildDreamInstruction) — kept strictly separate from
+// "## Notes", which stays self-only regardless of consent.
+export const SELF_NOTE_USER_HEADER = "User Notes";
 
 // Splits markdown content into an ordered list of {header, lines} sections
 // on "## " headers — header is null for any content before the first one
@@ -57,6 +61,22 @@ export function mergeSelfNoteSection(content, header, body) {
   const newSection = { header, lines: body.split("\n") };
   if (idx === -1) sections.push(newSection);
   else sections[idx] = newSection;
+  return stringifySections(sections);
+}
+
+// Structurally removes the "## User Notes" section from a full self-note
+// body, regardless of what the model actually wrote there — the real
+// backstop behind userAnalysisConsent, not just the prompt instruction
+// telling the model not to write it (see dreamSummary.js's
+// buildDreamInstruction). Called by useChatController.js's runReflectionTurn
+// on every reflection-turn WRITE_VAULT_NOTE to SELF_NOTE_PATH whenever
+// userAnalysisConsent isn't true, BEFORE the write is ever allowed to
+// auto-execute — a consent-false model output that tries to smuggle
+// user-behavior content into the file anyway cannot succeed, since the
+// client rewrites the content it actually persists. No-op if the section
+// isn't present.
+export function stripUserNotesSection(content) {
+  const sections = parseSections(content).filter((s) => s.header !== SELF_NOTE_USER_HEADER);
   return stringifySections(sections);
 }
 

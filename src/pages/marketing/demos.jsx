@@ -75,28 +75,28 @@ export const CHAT_CAPTIONS = [
 export function ChatFilm({ step }) {
   return (
     <GlassFrame minHeight="19rem">
-      <div className="flex items-center gap-1.5 px-5 py-3.5 border-b border-white/10">
-        <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
-        <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
-        <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
-        <span className="ml-2 font-terminal text-[11px] text-white/40">Vaea Chat</span>
+      <div className="flex items-center gap-1.5 px-5 py-3.5 border-b border-foreground/10">
+        <span className="w-2.5 h-2.5 rounded-full bg-foreground/15" />
+        <span className="w-2.5 h-2.5 rounded-full bg-foreground/15" />
+        <span className="w-2.5 h-2.5 rounded-full bg-foreground/15" />
+        <span className="ml-2 font-terminal text-[11px] text-foreground/40">Vaea Chat</span>
       </div>
 
       <div className="p-5 font-terminal text-[13px] leading-relaxed text-left">
-        <p className="text-white/90">
+        <p className="text-foreground/90">
           <span className="text-[#46BAD1]">{">"}</span>{" "}
           <Typed text={CHAT_ASK} play={step === 0} complete={step > 0} cps={48} />
           {step === 0 && <Caret />}
         </p>
 
         {step === 1 && (
-          <p className="mt-3 flex items-center gap-1.5 text-white/40">
+          <p className="mt-3 flex items-center gap-1.5 text-foreground/40">
             <span className="w-3 h-3 rounded-full border border-[#46BAD1]/60 border-t-transparent animate-spin" />
             <Caret />
           </p>
         )}
 
-        <div className="mt-3 space-y-1 text-white/40">
+        <div className="mt-3 space-y-1 text-foreground/40">
           <Line show={step >= 2}>plan · 3 steps across 3 projects</Line>
           <Line show={step >= 3}>tool call · archive_project(&quot;Q1 Newsletter&quot;)</Line>
           <Line show={step >= 4}>tool call · move_project(&quot;Landing Page Copy&quot;)</Line>
@@ -104,7 +104,7 @@ export function ChatFilm({ step }) {
         </div>
 
         {step >= 6 && (
-          <p className="mt-3 text-white/90">
+          <p className="mt-3 text-foreground/90">
             <Typed text={CHAT_REPLY} play={step === 6} complete={step > 6} cps={60} />
             {step >= 7 && <Caret />}
           </p>
@@ -154,7 +154,7 @@ export function PaletteFilm({ step }) {
   const rows = showResults ? PALETTE_RESULTS : PALETTE_QUICK;
 
   return (
-    <div className="w-full rounded-xl border border-border bg-card text-foreground shadow-2xl overflow-hidden text-left">
+    <div className="w-full rounded-xl border border-border bg-card text-foreground shadow-[0_25px_50px_-12px_rgb(0_0_0/0.25)] dark:shadow-[0_0_1px_0_hsl(var(--foreground)/0.15),0_0_50px_-8px_hsl(var(--foreground)/0.14)] overflow-hidden text-left">
       <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border">
         <Search className="w-4 h-4 text-muted-foreground shrink-0" />
         <span className="flex-1 text-sm">
@@ -238,7 +238,7 @@ export function NestFilm({ step }) {
     `transition-all duration-500 ease-out ${show ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}`;
 
   return (
-    <div className="w-full rounded-xl bg-card text-foreground border border-border shadow-md p-5 text-left" style={{ minHeight: "18rem" }}>
+    <div className="w-full rounded-xl bg-card text-foreground border border-border shadow-[0_4px_6px_-1px_rgb(0_0_0/0.1),0_2px_4px_-2px_rgb(0_0_0/0.1)] dark:shadow-[0_0_0_1px_hsl(var(--foreground)/0.06),0_0_16px_-4px_hsl(var(--foreground)/0.10)] p-5 text-left" style={{ minHeight: "18rem" }}>
       <div className={grow(step >= 0)}>
         <p className="text-sm font-semibold flex items-center gap-2">
           <Boxes className="w-4 h-4 text-muted-foreground" />
@@ -252,7 +252,7 @@ export function NestFilm({ step }) {
           Website Relaunch
         </p>
 
-        <div className={`mt-3 rounded-lg bg-card border border-border shadow-sm p-3 ${grow(step >= 2)}`}>
+        <div className={`mt-3 rounded-lg bg-card border border-border shadow-[0_1px_2px_0_rgb(0_0_0/0.05)] dark:shadow-[0_0_0_1px_hsl(var(--foreground)/0.06),0_0_8px_-2px_hsl(var(--foreground)/0.10)] p-3 ${grow(step >= 2)}`}>
           <p className="text-sm font-medium flex items-center gap-2">
             <FolderKanban className="w-3.5 h-3.5 text-muted-foreground" />
             Landing Page Copy
@@ -300,12 +300,12 @@ const VAULT_L2 = "Decided to move launch prep under ";
 export function VaultFilm({ step }) {
   return (
     <GlassFrame minHeight="14rem">
-      <div className="flex items-center gap-2 px-5 py-3.5 border-b border-white/10">
-        <BookOpen className="w-3.5 h-3.5 text-white/40" />
-        <span className="font-terminal text-[11px] text-white/40">Daily/2026-07-24.md</span>
+      <div className="flex items-center gap-2 px-5 py-3.5 border-b border-foreground/10">
+        <BookOpen className="w-3.5 h-3.5 text-foreground/40" />
+        <span className="font-terminal text-[11px] text-foreground/40">Daily/2026-07-24.md</span>
       </div>
 
-      <div className="p-5 font-terminal text-[13px] leading-relaxed text-white/90 text-left">
+      <div className="p-5 font-terminal text-[13px] leading-relaxed text-foreground/90 text-left">
         <p># Today</p>
         <p className="mt-2">
           <Typed text={VAULT_L1} play={step === 1} complete={step > 1} cps={38} />
@@ -322,19 +322,62 @@ export function VaultFilm({ step }) {
       </div>
 
       <div
-        className={`flex items-center gap-1.5 px-5 py-3 border-t border-white/10 bg-white/[0.02] transition-all duration-500 ${
+        className={`flex items-center gap-1.5 px-5 py-3 border-t border-foreground/10 bg-foreground/[0.02] transition-all duration-500 ${
           step >= 3 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
         }`}
       >
         <GitBranch className="w-3 h-3 text-[#46BAD1] shrink-0" />
-        <span className="font-terminal text-[11px] text-white/40">Committed to your GitHub — not ours</span>
+        <span className="font-terminal text-[11px] text-foreground/40">Committed to your GitHub — not ours</span>
         {step >= 4 && <Check className="w-3 h-3 text-[#86E7B0] ml-auto shrink-0" />}
       </div>
     </GlassFrame>
   );
 }
 
-// --- 5. Give it a personality ----------------------------------------------
+// --- 5. Checks in on its own ------------------------------------------------
+// Vaea Self.md's real "## Notes" section gaining a real self-observation,
+// then a real commit — same GlassFrame/commit-strip treatment as VaultFilm
+// above, because it's mechanically the exact same WRITE_VAULT_NOTE -> your
+// GitHub path, just a different file. The section header and filename are
+// the real, exact strings selfNote.js/githubApi.js use (SELF_NOTE_PATH,
+// SELF_NOTE_NOTES_HEADER); the observation line itself is illustrative —
+// what it actually writes is model-generated prose, same honest standard
+// ChatFilm's own reply text already holds itself to.
+
+export const SELFNOTE_PHASES = [1600, 2400, 900, 1900];
+
+const SELFNOTE_LINE = "When asked for a quick fix, skip the explanation and just make the change.";
+
+export function SelfNoteFilm({ step }) {
+  return (
+    <GlassFrame minHeight="14rem">
+      <div className="flex items-center gap-2 px-5 py-3.5 border-b border-foreground/10">
+        <BookOpen className="w-3.5 h-3.5 text-foreground/40" />
+        <span className="font-terminal text-[11px] text-foreground/40">Vaea Self.md</span>
+      </div>
+
+      <div className="p-5 font-terminal text-[13px] leading-relaxed text-foreground/90 text-left">
+        <p className="text-foreground/40">## Notes</p>
+        <p className="mt-2">
+          <Typed text={SELFNOTE_LINE} play={step === 1} complete={step > 1} cps={42} />
+          {step === 1 && <Caret />}
+        </p>
+      </div>
+
+      <div
+        className={`flex items-center gap-1.5 px-5 py-3 border-t border-foreground/10 bg-foreground/[0.02] transition-all duration-500 ${
+          step >= 2 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
+        }`}
+      >
+        <GitBranch className="w-3 h-3 text-[#46BAD1] shrink-0" />
+        <span className="font-terminal text-[11px] text-foreground/40">Committed to your GitHub — not ours</span>
+        {step >= 3 && <Check className="w-3 h-3 text-[#86E7B0] ml-auto shrink-0" />}
+      </div>
+    </GlassFrame>
+  );
+}
+
+// --- 6. Give it a personality ----------------------------------------------
 // The real Name / Identity / Soul fields from AiPreferencesSection.jsx being
 // filled in, and the chat header picking the new name up — which is exactly
 // what happens in the app, where saving the identity re-reads it so the
@@ -363,7 +406,7 @@ export function IdentityFilm({ step }) {
   // deliberately placed on a dark band, so without it every label and field
   // inherits the band's near-white text and renders white-on-white.
   return (
-    <div className="w-full rounded-xl border border-border bg-card text-foreground shadow-2xl overflow-hidden text-left">
+    <div className="w-full rounded-xl border border-border bg-card text-foreground shadow-[0_25px_50px_-12px_rgb(0_0_0/0.25)] dark:shadow-[0_0_1px_0_hsl(var(--foreground)/0.15),0_0_50px_-8px_hsl(var(--foreground)/0.14)] overflow-hidden text-left">
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
         <Settings className="w-3.5 h-3.5 text-muted-foreground" />
         <span className="text-xs font-medium">Settings · AI Preferences</span>

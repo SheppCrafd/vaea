@@ -196,6 +196,7 @@ export default function ChatBox({ activeProjectId }) {
                     if (!e.defaultPrevented) inputHistory.handleKeyDown(e);
                   }}
                   placeholder="E.g., Hello... / PLease add... / File a report for..."
+                  aria-label={`Message ${chat.aiIdentity?.name || "Vaea Chat"}`}
                   className="flex-1 min-w-0 font-terminal text-sm bg-transparent outline-none"
                   disabled={chat.isComputing}
                   autoComplete="off"

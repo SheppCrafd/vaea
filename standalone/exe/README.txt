@@ -45,10 +45,13 @@ YOUR DATA / SIGNING IN / THE AI CHAT WIDGET
   (or a file you save/load by hand on browsers without a folder picker) —
   never that browser's local storage — this copy has no Base44 app id
   baked in so it never asks you to sign in (the live hosted version does),
-  and the AI chat widget is present but can't respond (it needs a live
-  Base44 account/session that this offline copy doesn't have — when it does
-  work, it acts on your real local data directly, and your data only ever
-  touches an AI service in transit for that one exchange, never stored).
+  and the AI chat widget's default Base44-hosted path can't respond without
+  that login. Settings (gear icon) is still fully reachable, though — add
+  your own API key or connect Backdoor Mode there and chat works fully in
+  this exact offline copy, acting on your real local data directly. Data
+  only ever touches an outside service in transit for one exchange (or
+  never leaves your machine at all, with Backdoor Mode) — nothing is ever
+  stored on a server.
 
 REBUILDING (for developers)
 

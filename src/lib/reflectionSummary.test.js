@@ -199,4 +199,38 @@ describe("buildReflectionInstruction", () => {
   it("defaults to not-connected wording when the second argument is omitted entirely", () => {
     expect(buildReflectionInstruction(["x"])).toBe(buildReflectionInstruction(["x"], { vaultConnected: false }));
   });
+
+  it("includes dream guidance only when includeDream is true and vault is connected", () => {
+    const withDream = buildReflectionInstruction(["fact"], { vaultConnected: true, includeDream: true, dreamTranscript: "USER: hi" });
+    const withoutDream = buildReflectionInstruction(["fact"], { vaultConnected: true, includeDream: false });
+    const dreamNotConnected = buildReflectionInstruction(["fact"], { vaultConnected: false, includeDream: true, dreamTranscript: "USER: hi" });
+    expect(withDream).toContain("[DAILY REVIEW");
+    expect(withDream).toContain("USER: hi");
+    expect(withoutDream).not.toContain("[DAILY REVIEW");
+    expect(dreamNotConnected).not.toContain("[DAILY REVIEW");
+  });
+
+  it("degrades gracefully when facts is empty but a dream cycle is due", () => {
+    const text = buildReflectionInstruction([], { vaultConnected: true, includeDream: true, dreamTranscript: "USER: hi" });
+    expect(text).toContain("periodic self-review");
+    expect(text).not.toContain("Here is what actually changed");
+    expect(text).toContain("[DAILY REVIEW");
+  });
+
+  it("passes userAnalysisConsent through to the dream instruction", () => {
+    const consented = buildReflectionInstruction(["fact"], {
+      vaultConnected: true,
+      includeDream: true,
+      dreamTranscript: "t",
+      userAnalysisConsent: true,
+    });
+    const notConsented = buildReflectionInstruction(["fact"], {
+      vaultConnected: true,
+      includeDream: true,
+      dreamTranscript: "t",
+      userAnalysisConsent: false,
+    });
+    expect(consented).toContain('"## User Notes"');
+    expect(notConsented).not.toContain('"## User Notes"');
+  });
 });

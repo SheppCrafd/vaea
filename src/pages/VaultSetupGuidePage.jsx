@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, FolderOpen, GitBranch, Github, ArrowRight, KeyRound, Settings, Search, PenLine, Wrench, Check, Download, RefreshCw } from "lucide-react";
+import { ArrowLeft, FolderOpen, GitBranch, Github, ArrowRight, KeyRound, Settings, Search, PenLine, Wrench, Check, Download, RefreshCw, Sparkles } from "lucide-react";
 import TerminalBlock from "@/components/settings/TerminalBlock";
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
 
@@ -113,6 +113,11 @@ const USES = [
     Icon: Wrench,
     title: "/vault-tidy",
     body: "Scans every note's [[wikilinks]] for broken links and isolated notes, then proposes fixes as a normal confirmable plan — the same audit-then-propose pattern as /tidy.",
+  },
+  {
+    Icon: Sparkles,
+    title: "Proactive check-ins",
+    body: 'If you opt in (a banner in chat, or Settings → AI Assistant → "Proactive check-ins"), this vault also becomes where the assistant keeps its own notes automatically — including a roughly-daily self-review of its own replies, and, only with a second explicit opt-in, patterns it notices in how you communicate. Nothing here needs the assistant to be asked first.',
   },
 ];
 

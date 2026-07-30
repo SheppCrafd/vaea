@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { X } from "lucide-react";
-import Portal from "@/lib/Portal";
+import Modal from "@/components/shared/Modal";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useCreateStakeholder } from "@/hooks/useStakeholders";
@@ -51,51 +51,49 @@ export default function AddStakeholderModal({ onClose }) {
   };
 
   return (
-    <Portal>
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
-        <div className="bg-card rounded-xl shadow-xl w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-heading font-semibold">Add Stakeholder</h3>
-            <button onClick={onClose}><X className="w-4 h-4" /></button>
-          </div>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="text-sm font-medium block mb-1">Name</label>
-              <Input ref={nameInputRef} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
-            </div>
-            <div>
-              <label className="text-sm font-medium block mb-1">Department</label>
-              <select
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-                className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md"
-              >
-                <option value="">Select a department...</option>
-                {departments.map((d) => (
-                  <option key={d.id} value={d.name}>{d.name}</option>
-                ))}
-                <option value={NEW_DEPARTMENT}>+ New department...</option>
-              </select>
-              {isCreatingDepartment && (
-                <Input
-                  value={newDepartmentName}
-                  onChange={(e) => setNewDepartmentName(e.target.value)}
-                  placeholder="New department name"
-                  className="mt-2"
-                  autoFocus
-                />
-              )}
-            </div>
-            <div>
-              <label className="text-sm font-medium block mb-1">Image (optional)</label>
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} className="text-xs" />
-            </div>
-            <Button type="submit" className="w-full" disabled={!name.trim() || !resolvedDepartmentName}>
-              Add Stakeholder
-            </Button>
-          </form>
-        </div>
+    <Modal isOpen onClose={onClose} label="Add Stakeholder" panelClassName="bg-card rounded-xl shadow-xl w-full max-w-sm p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-heading font-semibold">Add Stakeholder</h3>
+        <button onClick={onClose} aria-label="Close"><X className="w-4 h-4" /></button>
       </div>
-    </Portal>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="stakeholder-name" className="text-sm font-medium block mb-1">Name</label>
+          <Input id="stakeholder-name" ref={nameInputRef} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+        </div>
+        <div>
+          <label htmlFor="stakeholder-department" className="text-sm font-medium block mb-1">Department</label>
+          <select
+            id="stakeholder-department"
+            value={department}
+            onChange={(e) => setDepartment(e.target.value)}
+            className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md"
+          >
+            <option value="">Select a department...</option>
+            {departments.map((d) => (
+              <option key={d.id} value={d.name}>{d.name}</option>
+            ))}
+            <option value={NEW_DEPARTMENT}>+ New department...</option>
+          </select>
+          {isCreatingDepartment && (
+            <Input
+              value={newDepartmentName}
+              onChange={(e) => setNewDepartmentName(e.target.value)}
+              placeholder="New department name"
+              aria-label="New department name"
+              className="mt-2"
+              autoFocus
+            />
+          )}
+        </div>
+        <div>
+          <label htmlFor="stakeholder-image" className="text-sm font-medium block mb-1">Image (optional)</label>
+          <input id="stakeholder-image" ref={fileInputRef} type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} className="text-xs" />
+        </div>
+        <Button type="submit" className="w-full" disabled={!name.trim() || !resolvedDepartmentName}>
+          Add Stakeholder
+        </Button>
+      </form>
+    </Modal>
   );
 }

@@ -45,7 +45,7 @@ function buildMonthGrid(viewDate) {
 // implementation. The one place date-picking looks and behaves the same
 // everywhere in the app — see useDateSelector's old role, now folded in here
 // since nothing else consumed that hook.
-export default function DateField({ value, onSave, className = "", unstyled = false, placeholder = "mm/dd/yyyy" }) {
+export default function DateField({ value, onSave, className = "", unstyled = false, placeholder = "mm/dd/yyyy", id, "aria-label": ariaLabel }) {
   const [open, setOpen] = useState(false);
   const selected = parseISO(value);
   const [viewDate, setViewDate] = useState(selected || new Date());
@@ -83,7 +83,7 @@ export default function DateField({ value, onSave, className = "", unstyled = fa
   };
 
   const base = unstyled
-    ? "outline-none"
+    ? "outline-none focus-visible:ring-1 focus-visible:ring-ring rounded"
     : "text-sm px-2 py-1.5 bg-background border border-input rounded-md outline-none focus-visible:ring-1 focus-visible:ring-ring";
 
   const today = new Date();
@@ -91,6 +91,8 @@ export default function DateField({ value, onSave, className = "", unstyled = fa
   return (
     <div ref={rootRef} className="relative inline-block">
       <button
+        id={id}
+        aria-label={ariaLabel}
         type="button"
         onClick={() => setOpen((o) => !o)}
         className={`${base} inline-flex items-center justify-between gap-1.5 ${!selected ? "text-muted-foreground" : ""} ${className}`}

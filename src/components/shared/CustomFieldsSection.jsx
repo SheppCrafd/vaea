@@ -124,14 +124,16 @@ export default function CustomFieldsSection({
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               placeholder="Field name"
+              aria-label="Field name"
               autoFocus
-              className="flex-1 text-xs px-2 py-1.5 bg-background border border-input rounded outline-none"
+              className="flex-1 text-xs px-2 py-1.5 bg-background border border-input rounded outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
             <input
               value={value}
               onChange={(e) => setValue(e.target.value)}
               placeholder="Value (optional)"
-              className="flex-1 text-xs px-2 py-1.5 bg-background border border-input rounded outline-none"
+              aria-label="Field value"
+              className="flex-1 text-xs px-2 py-1.5 bg-background border border-input rounded outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
           <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -139,7 +141,8 @@ export default function CustomFieldsSection({
               <select
                 value={scope}
                 onChange={(e) => setScope(e.target.value)}
-                className="text-xs bg-background border border-border rounded px-1.5 py-1.5 outline-none"
+                aria-label="Field scope"
+                className="text-xs bg-background border border-border rounded px-1.5 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <option value="entity">{entityScopeLabel}</option>
                 {area && <option value="area">{areaScopeLabel}</option>}

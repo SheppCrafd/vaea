@@ -81,13 +81,15 @@ export default function AttachmentsAndLinks({ project, onSave }) {
             value={linkLabel}
             onChange={(e) => setLinkLabel(e.target.value)}
             placeholder="Label (optional)"
-            className="w-24 text-xs px-2 py-1.5 bg-background border border-input rounded outline-none"
+            aria-label="Link label"
+            className="w-24 text-xs px-2 py-1.5 bg-background border border-input rounded outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
           <input
             value={linkUrl}
             onChange={(e) => setLinkUrl(e.target.value)}
             placeholder="https://..."
-            className="flex-1 text-xs px-2 py-1.5 bg-background border border-input rounded outline-none"
+            aria-label="Link URL"
+            className="flex-1 text-xs px-2 py-1.5 bg-background border border-input rounded outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
           <button type="submit" disabled={!linkUrl.trim()} className="text-xs px-3 py-1.5 bg-primary text-primary-foreground border border-border rounded-md disabled:opacity-50 shrink-0">
             Add

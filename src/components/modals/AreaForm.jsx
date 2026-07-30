@@ -18,12 +18,12 @@ export default function AreaForm({ onDone }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="text-sm font-medium block mb-1">Area title</label>
-        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Home" autoFocus />
+        <label htmlFor="area-title" className="text-sm font-medium block mb-1">Area title</label>
+        <Input id="area-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Home" autoFocus />
       </div>
       <div>
-        <label className="text-sm font-medium block mb-1">Description</label>
-        <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional description" />
+        <label htmlFor="area-description" className="text-sm font-medium block mb-1">Description</label>
+        <Input id="area-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional description" />
       </div>
       <Button type="submit" className="w-full" disabled={!title.trim()}>Create Area</Button>
     </form>

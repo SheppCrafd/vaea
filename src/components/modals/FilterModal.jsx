@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import Portal from "@/lib/Portal";
+import Modal from "@/components/shared/Modal";
 import { useAreas } from "@/hooks/useAreas";
 import { useProducts } from "@/hooks/useProducts";
 import { useProjects } from "@/hooks/useProjects";
@@ -88,15 +88,13 @@ export default function FilterModal({ onClose }) {
   );
 
   return (
-    <Portal>
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
-        <div className="bg-card rounded-xl shadow-xl w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-heading font-semibold">Filter</h3>
-            <button onClick={onClose} aria-label="Close filter"><X className="w-4 h-4" /></button>
-          </div>
+    <Modal isOpen onClose={onClose} label="Filter" panelClassName="bg-card rounded-xl shadow-xl w-full max-w-sm p-6">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-heading font-semibold">Filter</h3>
+        <button onClick={onClose} aria-label="Close filter"><X className="w-4 h-4" /></button>
+      </div>
 
-          {allIds.length === 0 ? (
+      {allIds.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nothing to filter yet.</p>
           ) : (
             <>
@@ -156,8 +154,6 @@ export default function FilterModal({ onClose }) {
               </div>
             </>
           )}
-        </div>
-      </div>
-    </Portal>
+    </Modal>
   );
 }

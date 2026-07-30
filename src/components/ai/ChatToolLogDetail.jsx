@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import Portal from "@/lib/Portal";
+import Modal from "@/components/shared/Modal";
 import { sanitizeUrl } from "@/lib/sanitizeUrl";
 
 // Backs the "click a tool-log line to see what it actually did" feature —
@@ -152,23 +152,22 @@ export default function ChatToolLogDetail({ detail, onClose }) {
   const { title, data } = detail;
 
   return (
-    <Portal>
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[200]" onClick={onClose}>
-        <div
-          className="bg-card rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col p-4"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-terminal text-sm font-semibold text-foreground truncate pr-2">{title}</h3>
-            <button onClick={onClose} aria-label="Close" className="shrink-0 text-muted-foreground hover:text-foreground">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="overflow-auto text-[13px] leading-relaxed text-foreground pr-1">
-            <DetailBody data={data} />
-          </div>
-        </div>
+    <Modal
+      isOpen
+      onClose={onClose}
+      label={title}
+      overlayClassName="fixed inset-0 bg-black/40 flex items-center justify-center z-[200]"
+      panelClassName="bg-card rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col p-4"
+    >
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-terminal text-sm font-semibold text-foreground truncate pr-2">{title}</h3>
+        <button onClick={onClose} aria-label="Close" className="shrink-0 text-muted-foreground hover:text-foreground">
+          <X className="w-4 h-4" />
+        </button>
       </div>
-    </Portal>
+      <div className="overflow-auto text-[13px] leading-relaxed text-foreground pr-1">
+        <DetailBody data={data} />
+      </div>
+    </Modal>
   );
 }

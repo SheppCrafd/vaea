@@ -1,6 +1,7 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Portal from "@/lib/Portal";
 import { clampPositionToViewport } from "@/lib/viewportClamp";
+import { FOCUSABLE_SELECTOR } from "@/hooks/useDialogA11y";
 
 // Shared Portal + full-screen-overlay + positioned-panel shell for every
 // trigger-button-driven floating menu (StakeholderAssigner, ProductAssigner,
@@ -51,6 +52,41 @@ export default function PositionedPopover({
     );
   }, [isOpen, coords]);
 
+  // Tab-trap + initial focus — Escape and focus-restore-to-trigger already
+  // live in usePositionedMenu.js (shared by every caller of this
+  // component), since that hook already owns the trigger's own ref; this
+  // only needs to own what requires the actual rendered panel content.
+  useEffect(() => {
+    if (!isOpen) return;
+    const raf = requestAnimationFrame(() => {
+      const root = panelRef.current;
+      if (!root || root.contains(document.activeElement)) return; // an autoFocus field already claimed it
+      const first = root.querySelector(FOCUSABLE_SELECTOR);
+      (first || root).focus();
+    });
+    const handleKeyDown = (e) => {
+      if (e.key !== "Tab") return;
+      const root = panelRef.current;
+      if (!root) return;
+      const focusables = Array.from(root.querySelectorAll(FOCUSABLE_SELECTOR));
+      if (!focusables.length) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -58,6 +94,9 @@ export default function PositionedPopover({
       <div className={overlayClassName} onClick={close}>
         <div
           ref={panelRef}
+          role="dialog"
+          aria-modal="true"
+          tabIndex={-1}
           // Marks the panel subtree so usePositionedMenu's close-on-scroll
           // can tell internal scrolls (this panel's own overflow list, a
           // text input's caret scrolling through overflowing content) from

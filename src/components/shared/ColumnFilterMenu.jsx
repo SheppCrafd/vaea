@@ -50,7 +50,8 @@ export default function ColumnFilterMenu({
             value={text}
             onChange={(e) => onTextChange(e.target.value)}
             placeholder="Contains..."
-            className="w-full text-xs px-2 py-1.5 bg-background border border-input rounded outline-none"
+            aria-label="Filter text"
+            className="w-full text-xs px-2 py-1.5 bg-background border border-input rounded outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         )}
         {mode === "triState" && (

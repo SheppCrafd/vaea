@@ -148,10 +148,13 @@ export function Caret({ className = "bg-[#46BAD1]/70" }) {
   return <span className={`inline-block w-[7px] h-[13px] align-middle ml-0.5 chat-cursor-blink ${className}`} />;
 }
 
-// Light-from-above plus an edge vignette. A dark section only reads as a lit
-// stage — the thing that makes product photography feel expensive — if the
-// light has a direction and the corners fall off. A single centered blur
-// blob has neither, which is what makes it read as generic.
+// Light-from-above: a single directional glow, off-center-high rather than a
+// centered blur blob, which is what makes it read as generic. Used to have a
+// second layer darkening the corners into a vignette — looked right when the
+// band underneath was always near-black (the darkening was invisible against
+// black), but once bands started using a light tone in light theme, that
+// same dark radial showed up as a visible gray smudge in the corners. Cut
+// rather than patched again.
 export function StageLight({ className = "" }) {
   return (
     <div aria-hidden="true" className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}>
@@ -161,10 +164,6 @@ export function StageLight({ className = "" }) {
           background:
             "radial-gradient(58% 52% at 50% 38%, rgba(70,186,209,0.22), rgba(70,186,209,0.07) 44%, transparent 72%)",
         }}
-      />
-      <div
-        className="absolute inset-0"
-        style={{ background: "radial-gradient(115% 85% at 50% 42%, transparent 52%, rgba(0,0,0,0.6))" }}
       />
     </div>
   );

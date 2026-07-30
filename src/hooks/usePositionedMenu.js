@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { pushOverlay, popOverlay, isTopOverlay } from "@/lib/overlayStack";
 
 // Shared mechanics for a trigger-button-driven floating menu: tracks
 // open/closed state and computes fixed { top, left } coordinates from the
@@ -18,6 +19,8 @@ export function usePositionedMenu({ closeOnScroll = false } = {}) {
   const [isOpen, setIsOpen] = useState(false);
   const [coords, setCoords] = useState({ top: 0, left: 0 });
   const triggerRef = useRef(null);
+  const idRef = useRef(null);
+  if (idRef.current === null) idRef.current = Symbol("popover");
 
   // Reads the trigger's *current* on-screen position. Called both on open
   // and (below) on resize, so `coords` is always a live measurement of
@@ -36,6 +39,37 @@ export function usePositionedMenu({ closeOnScroll = false } = {}) {
 
   const close = () => setIsOpen(false);
   const toggle = () => (isOpen ? close() : open());
+
+  // Escape closes the menu, and — since `triggerRef` already points at the
+  // real trigger button every consumer attaches it to (measure() above
+  // reads its rect the same way) — focus returns there on any close, not
+  // just an Escape-triggered one: outside-click and selecting an item both
+  // flip `isOpen` false too, and none of this app's menus returned focus to
+  // their trigger before.
+  //
+  // Registers with the same overlay stack useDialogA11y uses (see
+  // overlayStack.js): a popover opened from inside a modal — e.g.
+  // StakeholderAssigner inside ProjectDetailModal — pushes its id after the
+  // modal's, so it's topmost and its own Escape press only closes itself,
+  // not both at once.
+  useEffect(() => {
+    if (!isOpen) return;
+    const id = idRef.current;
+    pushOverlay(id);
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        if (!isTopOverlay(id)) return;
+        e.preventDefault();
+        close();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      popOverlay(id);
+      document.removeEventListener("keydown", handleKeyDown);
+      triggerRef.current?.focus?.();
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen || !closeOnScroll) return;

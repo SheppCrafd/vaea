@@ -28,13 +28,28 @@
     --secondary: 200 20% 94%;
     --secondary-foreground: 200 25% 15%;
     --muted: 200 20% 94%;
-    --muted-foreground: 200 10% 42%;
+    /* 42% -> 38%: the old value passed WCAG AA (4.5:1) by a 0.08 margin
+       against --muted — one font-rendering quirk from failing for real
+       users. 38% clears it with real headroom (5.3:1+) while staying
+       read as "muted" against the near-black --foreground body text. */
+    --muted-foreground: 200 10% 38%;
     --accent: 200 20% 94%;
     --accent-foreground: 200 25% 15%;
-    --destructive: 0 72% 51%;
+    /* 51% -> 45%: same razor-thin-pass problem as muted-foreground above,
+       here against the white destructive-button label text (4.59:1, a
+       0.09 margin over the 4.5:1 minimum). 45% clears it at 5.6:1. */
+    --destructive: 0 72% 45%;
     --destructive-foreground: 0 0% 98%;
     --border: 200 18% 88%;
-    --input: 200 18% 88%;
+    /* --input is deliberately split from --border here (they'd shared the
+       same value) rather than darkening every card/divider border in the
+       app: --border's softness is load-bearing for the whole "luxury,
+       nothing shouty" surface language, but --input specifically draws
+       real form-field boundaries, which 1.4.11 (non-text UI contrast)
+       actually requires at 3:1 — the old shared value measured 1.23:1.
+       56% clears 3:1 against both --background and --card with margin,
+       without touching a single card outline or section divider. */
+    --input: 200 18% 56%;
     --ring: 200 30% 15%;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
@@ -64,6 +79,18 @@
     --status-in-progress: #ff9800;
     --status-done: #4caf50;
     --status-not-started: #000000;
+    /* The marketing site's "band" sections (hero, CTA, vault demo) — a
+       featured/dramatic surface, not just another card. In dark mode this
+       is a near-black, moody stage (see .dark below); in light mode it's a
+       pale, luminous cyan-white instead of plain page-white, so the section
+       still reads as "the lit moment" rather than disappearing into the
+       page around it. Four gradient stops (theme.js's darkSectionBg),
+       clustered toward the top like a backdrop actually falls off under a
+       real light source. */
+    --band-1: 195 45% 96%;
+    --band-2: 195 50% 93%;
+    --band-3: 198 40% 95%;
+    --band-4: 200 30% 97%;
   }
 
   .dark {
@@ -93,7 +120,11 @@
     --destructive: 0 62% 40%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 17%;
-    --input: 0 0% 17%;
+    /* Same --border/--input split as :root above, same reasoning: only the
+       real form-field boundary gets strengthened for 1.4.11 (1.33:1 -> 40%
+       clears 3:1 with margin), every card outline and divider stays as
+       soft as it already was. */
+    --input: 0 0% 40%;
     --ring: 0 0% 75%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
@@ -112,6 +143,21 @@
     --status-in-progress: #ff9800;
     --status-done: #4caf50;
     --status-not-started: #ffffff;
+    /* A true lightness-mirror of :root's own band values (same H/S, only L
+       inverted) rather than the separately hand-picked near-black this used
+       to be — that version desaturated each stop by a different amount and
+       reordered the hue sequence (193→200→206→195, non-monotonic), which is
+       what read as visible seams/borders instead of one continuous surface.
+       Light's own hue drift (195→195→198→200) is already smooth; carrying
+       it through unchanged keeps that smoothness in dark mode too. NOT the
+       same fix as the neutral tokens above staying desaturated — those are
+       meant to read as neutral surfaces and carrying their hue into dark
+       mode read as muddy per direct feedback; bands are deliberately
+       colorful in both themes, so the lesson doesn't transfer. */
+    --band-1: 195 45% 4%;
+    --band-2: 195 50% 7%;
+    --band-3: 198 40% 5%;
+    --band-4: 200 30% 3%;
   }
 
   /* Curated accent-theme presets — set via `data-accent` on <html> by

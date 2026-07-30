@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 // fields so every "dead" text block on the page becomes editable. Saves on
 // blur or Enter (not on every keystroke) so typing never fires a mutation
 // per character.
-export default function EditableText({ value, onSave, placeholder = "—", className = "", multiline = false }) {
+export default function EditableText({ value, onSave, placeholder = "—", className = "", multiline = false, id, "aria-label": ariaLabel }) {
   const [text, setText] = useState(value || "");
 
   useEffect(() => setText(value || ""), [value]);
@@ -30,6 +30,8 @@ export default function EditableText({ value, onSave, placeholder = "—", class
 
   return (
     <Tag
+      id={id}
+      aria-label={ariaLabel}
       value={text}
       onChange={handleChange}
       onBlur={commit}

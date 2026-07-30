@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import Portal from "@/lib/Portal";
+import Modal from "@/components/shared/Modal";
 import AiPreferencesSection from "@/components/settings/AiPreferencesSection";
 import AiModelSection from "@/components/settings/AiModelSection";
 import ExternalVaultSection from "@/components/settings/ExternalVaultSection";
@@ -20,26 +20,25 @@ import ResourcesSection from "@/components/settings/ResourcesSection";
 // implementation of each, not a copy.
 export default function ChatSettingsModal({ onClose }) {
   return (
-    <Portal>
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[120] p-4" onClick={onClose}>
-        <div
-          className="bg-background rounded-xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border px-6 py-4 flex items-center justify-between">
-            <h2 className="font-heading text-lg font-semibold">Vaea Chat Settings</h2>
-            <button onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="p-6 flex flex-col gap-6">
-            <AiPreferencesSection />
-            <AiModelSection />
-            <ExternalVaultSection />
-            <ResourcesSection />
-          </div>
-        </div>
+    <Modal
+      isOpen
+      onClose={onClose}
+      label="Vaea Chat Settings"
+      overlayClassName="fixed inset-0 bg-black/40 flex items-center justify-center z-[120] p-4"
+      panelClassName="bg-background rounded-xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto"
+    >
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border px-6 py-4 flex items-center justify-between">
+        <h2 className="font-heading text-lg font-semibold">Vaea Chat Settings</h2>
+        <button onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground">
+          <X className="w-4 h-4" />
+        </button>
       </div>
-    </Portal>
+      <div className="p-6 flex flex-col gap-6">
+        <AiPreferencesSection />
+        <AiModelSection />
+        <ExternalVaultSection />
+        <ResourcesSection />
+      </div>
+    </Modal>
   );
 }

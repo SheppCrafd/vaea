@@ -1,5 +1,5 @@
-import Portal from "@/lib/Portal";
 import { X } from "lucide-react";
+import Modal from "@/components/shared/Modal";
 import { useAppStore } from "@/lib/store";
 import TaskForm from "@/components/modals/TaskForm";
 import ProjectForm from "@/components/modals/ProjectForm";
@@ -22,8 +22,6 @@ export default function CreateModal() {
   const closeCreateModal = useAppStore((s) => s.closeCreateModal);
   const setType = useAppStore.setState;
 
-  if (!isOpen) return null;
-
   const renderForm = () => {
     switch (type) {
       case "project": return <ProjectForm onDone={closeCreateModal} />;
@@ -36,31 +34,24 @@ export default function CreateModal() {
   };
 
   return (
-    <Portal>
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={closeCreateModal}>
-        <div
-          className="bg-card rounded-xl shadow-xl w-full max-w-md p-6"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex gap-1.5 flex-wrap">
-              {TYPES.map((t) => (
-                <button
-                  key={t.key}
-                  className={`text-xs px-2.5 py-1 rounded-full border border-border ${type === t.key ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}
-                  onClick={() => setType({ createModalType: t.key })}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-            <button onClick={closeCreateModal}>
-              <X className="w-4 h-4" />
+    <Modal isOpen={isOpen} onClose={closeCreateModal} label="Create new" panelClassName="bg-card rounded-xl shadow-xl w-full max-w-md p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex gap-1.5 flex-wrap">
+          {TYPES.map((t) => (
+            <button
+              key={t.key}
+              className={`text-xs px-2.5 py-1 rounded-full border border-border ${type === t.key ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}
+              onClick={() => setType({ createModalType: t.key })}
+            >
+              {t.label}
             </button>
-          </div>
-          {renderForm()}
+          ))}
         </div>
+        <button onClick={closeCreateModal} aria-label="Close">
+          <X className="w-4 h-4" />
+        </button>
       </div>
-    </Portal>
+      {renderForm()}
+    </Modal>
   );
 }

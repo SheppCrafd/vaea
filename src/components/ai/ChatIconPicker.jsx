@@ -31,7 +31,7 @@ export default function ChatIconPicker({ iconPicker, iconChoice, chooseIcon }) {
         }}
         className="flex gap-1"
       >
-        <input name="emoji" placeholder="or type an emoji" maxLength={2} className="w-28 text-xs px-2 py-1 bg-background border border-input rounded outline-none" />
+        <input name="emoji" placeholder="or type an emoji" aria-label="Type an emoji" maxLength={2} className="w-28 text-xs px-2 py-1 bg-background border border-input rounded outline-none focus-visible:ring-2 focus-visible:ring-ring" />
         <button type="submit" className="text-xs px-2 py-1 bg-secondary text-secondary-foreground border border-border rounded">Use</button>
       </form>
     </PositionedPopover>
