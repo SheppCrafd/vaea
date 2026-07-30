@@ -124,7 +124,7 @@ export default function SignUpScreen() {
                   key={key}
                   type="button"
                   onClick={() => handleProvider(key)}
-                  className="text-sm px-4 py-2.5 rounded-xl bg-secondary/60 hover:bg-secondary text-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.8)] transition-colors"
+                  className="text-sm px-4 py-2.5 rounded-xl bg-secondary/60 hover:bg-secondary text-foreground shadow-[inset_0_1px_3px_0_rgba(255,255,255,0.5)] transition-colors"
                 >
                   {label}
                 </button>
