@@ -9,6 +9,7 @@ import FilterModal from "@/components/modals/FilterModal";
 import Avatar from "@/components/shared/Avatar";
 import { useGlobalDragEnd } from "@/hooks/useGlobalDragEnd";
 import { useAppStore } from "@/lib/store";
+import { useCardView } from "@/lib/CardViewContext";
 
 // Code-split, like /chat and /settings already are (see App.jsx) — ChatBox
 // pulls in react-markdown (message rendering) and its own session/action
@@ -44,6 +45,7 @@ export default function AppShell({ children }) {
   const toggleRightSidebar = useAppStore((s) => s.toggleRightSidebar);
   const openCreateModal = useAppStore((s) => s.openCreateModal);
   const handleDragEnd = useGlobalDragEnd();
+  const { cardView, setCardView } = useCardView();
 
   return (
     <DndContext
@@ -103,7 +105,13 @@ export default function AppShell({ children }) {
         </aside>
 
         <div style={{ gridArea: "main" }} className="flex flex-col min-w-0 overflow-hidden">
-          <div className="h-14 shrink-0 flex items-center gap-2 px-1">
+          {/* Same glass treatment as the marketing/onboarding pages' own
+              sticky header (MarketingLayout.jsx's NavBar) — background
+              blur/saturation plus a hairline-and-glow shadow pair, light and
+              dark. Rounded here (the marketing header isn't) since this bar
+              sits boxed inside the dashboard's own floating-panel canvas
+              rather than running full-bleed edge to edge. */}
+          <div className="h-14 shrink-0 flex items-center gap-2 px-3 mb-2 rounded-2xl bg-background/70 supports-[backdrop-filter]:bg-background/55 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_1px_0_0_hsl(var(--foreground)/0.06),0_16px_32px_-24px_hsl(200_30%_12%/0.3)] dark:shadow-[0_1px_0_0_hsl(var(--foreground)/0.08),0_0_24px_-8px_hsl(var(--foreground)/0.10)]">
             {!isLeftSidebarOpen && (
               <button
                 onClick={toggleLeftSidebar}
@@ -120,6 +128,22 @@ export default function AppShell({ children }) {
             <Button variant="outline" size="icon" onClick={() => setIsFilterOpen(true)} aria-label="Filter" className="rounded-full bg-card/70 shadow-[0_0_0_1px_hsl(var(--foreground)/0.05)] border-transparent">
               <Filter className="w-4 h-4" />
             </Button>
+            <div className="shrink-0 inline-flex items-center rounded-full bg-card/70 shadow-[0_0_0_1px_hsl(var(--foreground)/0.05)] p-1 text-xs font-medium">
+              <button
+                onClick={() => setCardView("mini")}
+                aria-pressed={cardView === "mini"}
+                className={`px-3.5 py-1.5 rounded-full transition-colors ${cardView === "mini" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                Mini Cards
+              </button>
+              <button
+                onClick={() => setCardView("full")}
+                aria-pressed={cardView === "full"}
+                className={`px-3.5 py-1.5 rounded-full transition-colors ${cardView === "full" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                Full Cards
+              </button>
+            </div>
             {!isRightSidebarOpen && (
               <button
                 onClick={toggleRightSidebar}

@@ -1,11 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
-import { useSearchParams, Link } from "react-router-dom";
-import { MessageCircle } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { useAreas } from "@/hooks/useAreas";
 import { useProducts } from "@/hooks/useProducts";
 import { useProjects } from "@/hooks/useProjects";
 import { useFilter } from "@/lib/FilterContext";
-import { useCardView } from "@/lib/CardViewContext";
 import { sortByPosition } from "@/lib/entityUtils";
 import AreaCard from "@/components/areas/AreaCard";
 import AreaModal from "@/components/areas/AreaModal";
@@ -20,7 +18,6 @@ export default function Dashboard() {
   const { data: products = [], isError: productsError, error: productsErrorObj, refetch: refetchProducts } = useProducts();
   const { data: projects = [], isError: projectsError, error: projectsErrorObj, refetch: refetchProjects } = useProjects();
   const { excludedIds } = useFilter();
-  const { cardView, setCardView } = useCardView();
   const [searchParams, setSearchParams] = useSearchParams();
   const [expandedArea, setExpandedArea] = useState(null);
   const [expandedProduct, setExpandedProduct] = useState(null);
@@ -131,34 +128,6 @@ export default function Dashboard() {
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-4 mb-6">
-        <h1 className="font-heading text-2xl font-semibold">Areas of Responsibility</h1>
-        <div className="flex items-center gap-3">
-          <div className="shrink-0 inline-flex items-center rounded-full bg-card/70 shadow-[0_0_0_1px_hsl(var(--foreground)/0.05)] p-1 text-xs font-medium">
-            <button
-              onClick={() => setCardView("mini")}
-              aria-pressed={cardView === "mini"}
-              className={`px-3.5 py-1.5 rounded-full transition-colors ${cardView === "mini" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              Mini Cards
-            </button>
-            <button
-              onClick={() => setCardView("full")}
-              aria-pressed={cardView === "full"}
-              className={`px-3.5 py-1.5 rounded-full transition-colors ${cardView === "full" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              Full Cards
-            </button>
-          </div>
-          <Link
-            to="/app/chat"
-            className="shrink-0 inline-flex items-center gap-1.5 text-sm px-4 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-full transition-all shadow-[0_8px_20px_-10px_hsl(var(--primary)/0.7)] hover:-translate-y-0.5"
-          >
-            <MessageCircle className="w-3.5 h-3.5" />
-            Ask Vaea Chat
-          </Link>
-        </div>
-      </div>
       {areaViewModels.length === 0 ? (
         <div className="text-center py-20 text-muted-foreground">
           <p className="text-sm">No areas found. Click "Create New" to add your first Area of Responsibility.</p>

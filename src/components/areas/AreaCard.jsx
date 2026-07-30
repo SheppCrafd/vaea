@@ -127,13 +127,19 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
           className="mt-2 grid items-start gap-4"
           // Full Cards' project card is a fixed 420px, and a Product needs
           // room for at least one without clipping it (420 + this card's
-          // own p-4 padding ≈ 452px). Mini mode's floor is sized so two
-          // 112px mini tiles can sit side by side inside a Product instead
-          // of always stacking with visible unused width next to them: a
-          // Product's own p-4 (32px) + ProjectsGrid's wrapper p-2 (16px) +
-          // two 112px tiles + their 8px gap = 280px, plus a small cushion.
-          // A floor any narrower than this mathematically can't ever fit
-          // two tiles per row, no matter how wide the actual window is.
+          // own p-4 padding ≈ 452px) — a 240px floor (fine for Mini Cards'
+          // small tiles) can hand a Product a column too narrow for that in
+          // Full mode, and the card's overflow-hidden clips the rest.
+          //
+          // Mini mode's floor was briefly raised to 288px to guarantee two
+          // 112px tiles always fit side by side even at the bare floor —
+          // reverted the same day: that guarantee cost real column count
+          // per row (fewer Products fit across an Area before wrapping),
+          // which mattered more than the worst-case tile-fit guarantee. Two
+          // tiles still fit whenever a row has fewer Products than could
+          // physically pack in (the common case, via auto-fill's leftover-
+          // space redistribution below) — they just aren't guaranteed to at
+          // the exact 240px floor itself anymore.
           //
           // auto-fill, not auto-fit: same reasoning as ProjectsGrid's Full
           // mode — auto-fit stretches a lone Product to consume the entire
@@ -144,7 +150,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
           // track's share. Areas deliberately don't get this — they're
           // always a single full-width column, never sharing a row with a
           // sibling Area to begin with.
-          style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${cardView === "full" ? 460 : 288}px, 1fr))` }}
+          style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${cardView === "full" ? 460 : 240}px, 1fr))` }}
         >
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />
