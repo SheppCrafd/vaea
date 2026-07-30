@@ -48,7 +48,13 @@ export default function Header() {
   };
 
   return (
-    <header className="h-16 shrink-0 flex items-center justify-between px-6 relative z-10">
+    // Same glass treatment as the marketing site's NavBar (MarketingLayout.jsx)
+    // and AppShell's own inner toolbar row — frosted bg-background, heavy
+    // saturated blur, hairline+glow shadow pair for light/dark. Not rounded
+    // (unlike AppShell's boxed-in bar): this header runs full-bleed edge to
+    // edge above the floating-panel canvas, same as NavBar does above the
+    // marketing site's content.
+    <header className="h-16 shrink-0 flex items-center justify-between px-6 relative z-10 bg-background/70 supports-[backdrop-filter]:bg-background/55 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_1px_0_0_hsl(var(--foreground)/0.06),0_16px_32px_-24px_hsl(200_30%_12%/0.3)] dark:shadow-[0_1px_0_0_hsl(var(--foreground)/0.08),0_0_24px_-8px_hsl(var(--foreground)/0.10)]">
       <div className="flex items-center gap-3">
         <span className="text-lg tracking-tight font-bold [font-family:'JetBrains_Mono',_monospace]">Vaea</span>
 

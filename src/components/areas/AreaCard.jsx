@@ -127,19 +127,33 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
           className="mt-2 grid items-start gap-4"
           // Full Cards' project card is a fixed 420px, and a Product needs
           // room for at least one without clipping it (420 + this card's
-          // own p-4 padding ≈ 452px) — a 240px floor (fine for Mini Cards'
-          // small tiles) can hand a Product a column too narrow for that in
-          // Full mode, and the card's overflow-hidden clips the rest.
+          // own p-4 padding ≈ 452px) — a 460px floor for Full mode.
           //
-          // Mini mode's floor was briefly raised to 288px to guarantee two
-          // 112px tiles always fit side by side even at the bare floor —
-          // reverted the same day: that guarantee cost real column count
-          // per row (fewer Products fit across an Area before wrapping),
-          // which mattered more than the worst-case tile-fit guarantee. Two
-          // tiles still fit whenever a row has fewer Products than could
-          // physically pack in (the common case, via auto-fill's leftover-
-          // space redistribution below) — they just aren't guaranteed to at
-          // the exact 240px floor itself anymore.
+          // Mini mode's 242px floor is a deliberate target, not a leftover
+          // default: at the dashboard's floating-panel canvas overhead
+          // (px-3 canvas padding + the two column gaps + <main>'s px-1 +
+          // AreaCard's own p-5 ≈ 96px fixed, before either sidebar), a
+          // ~1512px-wide browser window (a laptop-class target, chosen
+          // since the actual window width varies per user and device)
+          // lands exactly the row-count progression this was tuned for:
+          // 3 Product columns with both sidebars open, 4 with either one
+          // closed, 5 with both closed — each sidebar toggle costs or gains
+          // exactly one column. 242px sits at the dead center of the ~223–
+          // 261px window that keeps that exact progression (narrower drops
+          // a column sooner, wider adds one sooner, but the per-sidebar
+          // math still holds either way).
+          //
+          // That target column count wins over guaranteeing Mini's 112px
+          // project tiles fit two-across inside a Product — a column here
+          // lands ~261-272px wide depending on state, short of the ~280px
+          // two tiles need with their own padding, so they stack instead
+          // (confirmed against a real render, not just the arithmetic —
+          // auto-fill gives every reserved track the same share whether
+          // it's occupied or not, so a Product isn't wider just because its
+          // row has fewer of them; see the auto-fill note below). Was
+          // briefly a 288px floor for that exact guarantee; reverted
+          // because it cost a whole column per row, and re-confirmed (not
+          // restored) when this 3/4/5 progression was tuned instead.
           //
           // auto-fill, not auto-fit: same reasoning as ProjectsGrid's Full
           // mode — auto-fit stretches a lone Product to consume the entire
@@ -150,7 +164,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
           // track's share. Areas deliberately don't get this — they're
           // always a single full-width column, never sharing a row with a
           // sibling Area to begin with.
-          style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${cardView === "full" ? 460 : 240}px, 1fr))` }}
+          style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${cardView === "full" ? 460 : 242}px, 1fr))` }}
         >
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />
