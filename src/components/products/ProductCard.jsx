@@ -139,7 +139,12 @@ export default function ProductCard({ product, forceFullProjects = false }) {
         emptyMessage="Drop a project here"
         gap={8}
         forceView={forceFullProjects ? "full" : undefined}
-        className={`relative z-[1] mt-4 min-h-[80px] rounded-lg p-2 transition-colors ${isOver ? "bg-primary/10 ring-2 ring-primary/40" : "bg-transparent"}`}
+        // `-mx-4` cancels this card's own p-4 for just this element, so a
+        // Project tile's distance to this card's edge is ProjectsGrid's own
+        // p-2 (8px) alone — not p-4 + p-2 (24px) stacked. That already
+        // matches the 8px `gap` above exactly, so a tile's margin to the
+        // Product card's wall reads the same as its gap to its neighbor.
+        className={`relative z-[1] mt-4 min-h-[80px] rounded-lg -mx-4 p-2 transition-colors ${isOver ? "bg-primary/10 ring-2 ring-primary/40" : "bg-transparent"}`}
       />
 
       <TaskStatistics tasks={productTasks} />
