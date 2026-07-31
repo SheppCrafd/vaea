@@ -1,7 +1,7 @@
-import { Check, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { usePositionedMenu } from "@/hooks/usePositionedMenu";
 import Avatar from "@/components/shared/Avatar";
-import PositionedPopover from "@/components/shared/PositionedPopover";
+import MultiSelectPopover from "@/components/shared/MultiSelectPopover";
 
 export default function StakeholderAssigner({
   currentStakeholderIds = [],
@@ -18,14 +18,6 @@ export default function StakeholderAssigner({
   label,
 }) {
   const { isOpen, coords, triggerRef, toggle, close } = usePositionedMenu({ closeOnScroll: true });
-
-  const toggleStakeholder = (id) => {
-    const newIds = currentStakeholderIds.includes(id)
-      ? currentStakeholderIds.filter((existingId) => existingId !== id)
-      : [...currentStakeholderIds, id];
-
-    onSave(newIds);
-  };
 
   // Safe subset for rendering the mini-avatars
   const assigned = allStakeholders.filter(s => currentStakeholderIds.includes(s.id));
@@ -68,29 +60,20 @@ export default function StakeholderAssigner({
       </button>
 
       {/* DROPDOWN MENU (Portal at document root, overlay click closes it) */}
-      <PositionedPopover
+      <MultiSelectPopover
         isOpen={isOpen}
         coords={coords}
         close={close}
-        panelClassName="fixed w-48 max-h-64 overflow-y-auto bg-card border border-border rounded-md shadow-2xl p-1 animate-in fade-in zoom-in-95 duration-100"
-      >
-        <p className="text-[10px] font-bold uppercase text-muted-foreground px-2 py-1.5 border-b border-border mb-1">
-          Assign Stakeholders
-        </p>
-        {allStakeholders.map((s) => {
-          const isAssigned = currentStakeholderIds.includes(s.id);
-          return (
-            <button
-              key={s.id}
-              onClick={() => toggleStakeholder(s.id)}
-              className="w-full text-left px-2 py-1.5 text-xs flex items-center justify-between hover:bg-secondary rounded-sm transition-colors"
-            >
-              <span>{s.name} <span className="text-[10px] text-muted-foreground ml-1">({s.department})</span></span>
-              {isAssigned && <Check className="w-3.5 h-3.5 text-primary" />}
-            </button>
-          );
-        })}
-      </PositionedPopover>
+        className="w-48"
+        headerLabel="Assign Stakeholders"
+        items={allStakeholders}
+        getId={(s) => s.id}
+        getLabel={(s) => (
+          <span>{s.name} <span className="text-[10px] text-muted-foreground ml-1">({s.department})</span></span>
+        )}
+        selectedIds={currentStakeholderIds}
+        onSave={onSave}
+      />
     </>
   );
 }

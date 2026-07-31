@@ -1,6 +1,6 @@
-import { Check, Link2 } from "lucide-react";
+import { Link2 } from "lucide-react";
 import { usePositionedMenu } from "@/hooks/usePositionedMenu";
-import PositionedPopover from "@/components/shared/PositionedPopover";
+import MultiSelectPopover from "@/components/shared/MultiSelectPopover";
 
 // Multi-select for a project's `related_product_ids` — products this project
 // serves in addition to its primary parent (rendered as connector lines on
@@ -16,14 +16,6 @@ export default function ProductAssigner({
   const { isOpen, coords, triggerRef, toggle, close } = usePositionedMenu({ closeOnScroll: true });
 
   const selectableProducts = allProducts.filter((p) => p.id !== excludeProductId);
-
-  const toggleProduct = (id) => {
-    const newIds = currentProductIds.includes(id)
-      ? currentProductIds.filter((existingId) => existingId !== id)
-      : [...currentProductIds, id];
-    onSave(newIds);
-  };
-
   const linked = selectableProducts.filter((p) => currentProductIds.includes(p.id));
 
   return (
@@ -38,33 +30,19 @@ export default function ProductAssigner({
         {linked.length === 0 ? "Connect Products" : `${linked.length} connected`}
       </button>
 
-      <PositionedPopover
+      <MultiSelectPopover
         isOpen={isOpen}
         coords={coords}
         close={close}
-        panelClassName="fixed w-56 max-h-64 overflow-y-auto bg-card border border-border rounded-md shadow-2xl p-1 animate-in fade-in zoom-in-95 duration-100"
-      >
-        <p className="text-[10px] font-bold uppercase text-muted-foreground px-2 py-1.5 border-b border-border mb-1">
-          Related Products
-        </p>
-        {selectableProducts.length === 0 ? (
-          <p className="text-xs text-muted-foreground px-2 py-2">No other products yet.</p>
-        ) : (
-          selectableProducts.map((p) => {
-            const isLinked = currentProductIds.includes(p.id);
-            return (
-              <button
-                key={p.id}
-                onClick={() => toggleProduct(p.id)}
-                className="w-full text-left px-2 py-1.5 text-xs flex items-center justify-between hover:bg-secondary rounded-sm transition-colors"
-              >
-                <span>{p.title}</span>
-                {isLinked && <Check className="w-3.5 h-3.5 text-primary" />}
-              </button>
-            );
-          })
-        )}
-      </PositionedPopover>
+        className="w-56"
+        headerLabel="Related Products"
+        items={selectableProducts}
+        getId={(p) => p.id}
+        getLabel={(p) => <span>{p.title}</span>}
+        selectedIds={currentProductIds}
+        onSave={onSave}
+        emptyMessage="No other products yet."
+      />
     </>
   );
 }
