@@ -89,7 +89,11 @@ export const AuthProvider = ({ children }) => {
         }
         setIsLoadingPublicSettings(false);
       } catch (appError) {
-        console.error('App state check failed:', appError);
+        // Log only message/status, never the full error object — Base44Error
+        // keeps the raw axios error (including the Authorization header) as
+        // an accessible `originalError` property, which console.error would
+        // otherwise print in full to DevTools.
+        console.error('App state check failed:', appError.message, appError.status);
         
         // Handle app-level errors
         if (appError.status === 403 && appError.data?.extra_data?.reason) {
@@ -120,7 +124,7 @@ export const AuthProvider = ({ children }) => {
         setIsLoadingAuth(false);
       }
     } catch (error) {
-      console.error('Unexpected error:', error);
+      console.error('Unexpected error:', error.message, error.status);
       setAuthError({
         type: 'unknown',
         message: error.message || 'An unexpected error occurred'
@@ -140,7 +144,7 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingAuth(false);
       setAuthChecked(true);
     } catch (error) {
-      console.error('User auth check failed:', error);
+      console.error('User auth check failed:', error.message, error.status);
       setIsLoadingAuth(false);
       setIsAuthenticated(false);
       setAuthChecked(true);
