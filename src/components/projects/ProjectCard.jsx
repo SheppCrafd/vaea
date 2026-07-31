@@ -190,14 +190,17 @@ export default function ProjectCard({ project, stakeholderIds = [] }) {
             style={hasRisks ? { color: "#FCA5A5" } : undefined}
             aria-label={hasRisks ? `${riskNotes.length} risk${riskNotes.length === 1 ? "" : "s"}` : "No risks"}
           >
-            <title>{hasRisks ? `${riskNotes.length} risk${riskNotes.length === 1 ? "" : "s"}` : "No risks"}</title>
+            {/* The mini tile only has room for the flag icon, not the risk
+                text itself — the hover tooltip is the one place that text
+                still reads in full, not just as a count. */}
+            <title>{hasRisks ? riskNotes.map((n) => n.content).join("\n") : "No risks"}</title>
           </AlertTriangle>
           <HelpCircle
             className={`w-3.5 h-3.5 ${hasQuestions ? "" : "text-muted-foreground/35"}`}
             style={hasQuestions ? { color: "#FDBA74" } : undefined}
             aria-label={hasQuestions ? `${questionNotes.length} question${questionNotes.length === 1 ? "" : "s"}` : "No open questions"}
           >
-            <title>{hasQuestions ? `${questionNotes.length} question${questionNotes.length === 1 ? "" : "s"}` : "No open questions"}</title>
+            <title>{hasQuestions ? questionNotes.map((n) => n.content).join("\n") : "No open questions"}</title>
           </HelpCircle>
         </div>
       </div>

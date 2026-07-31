@@ -44,7 +44,7 @@ export default function AttachmentsAndLinks({ project, onSave }) {
         <div className="flex flex-col gap-1.5 mb-2">
           {attachments.map((a, i) => (
             <div key={i} className="flex items-center justify-between gap-2 text-xs bg-secondary/20 border border-border rounded px-2 py-1.5">
-              <a href={sanitizeHttpUrl(a.url) || "#"} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-primary hover:underline truncate min-w-0">
+              <a href={sanitizeHttpUrl(a.url) || "#"} target="_blank" rel="noreferrer" title={a.name} className="flex items-center gap-1.5 text-primary hover:underline truncate min-w-0">
                 <Paperclip className="w-3 h-3 shrink-0" />
                 <span className="truncate">{a.name}</span>
               </a>
@@ -66,7 +66,13 @@ export default function AttachmentsAndLinks({ project, onSave }) {
         <div className="flex flex-col gap-1.5 mb-2">
           {links.map((l, i) => (
             <div key={i} className="flex items-center justify-between gap-2 text-xs bg-secondary/20 border border-border rounded px-2 py-1.5">
-              <a href={sanitizeHttpUrl(l.url) || "#"} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-primary hover:underline truncate min-w-0">
+              <a
+                href={sanitizeHttpUrl(l.url) || "#"}
+                target="_blank"
+                rel="noreferrer"
+                title={l.label && l.label !== l.url ? `${l.label} — ${l.url}` : l.url}
+                className="flex items-center gap-1.5 text-primary hover:underline truncate min-w-0"
+              >
                 <Link2 className="w-3 h-3 shrink-0" />
                 <span className="truncate">{l.label}</span>
               </a>

@@ -115,6 +115,7 @@ export default function ProductCard({ product, forceFullProjects = false }) {
           onInput={handleInput}
           onBlur={handleTitleBlur}
           onKeyDown={handleTitleKeyDown}
+          tooltip={title}
           className="font-heading font-semibold min-w-0 cursor-text"
         />
         

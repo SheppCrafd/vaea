@@ -107,6 +107,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
           onInput={handleInput}
           onBlur={handleTitleBlur}
           onKeyDown={handleTitleKeyDown}
+          tooltip={title}
           className="font-heading font-semibold text-lg pl-6 pr-16 min-w-0"
         />
         <div className="mt-1 min-w-0">

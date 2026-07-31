@@ -122,7 +122,13 @@ function LinksCorner({ links, onSave }) {
         <div className="flex flex-col gap-1 mb-1">
           {links.map((l, i) => (
             <div key={i} className="flex items-center justify-between gap-1 text-xs px-1 py-1 hover:bg-secondary rounded-sm">
-              <a href={sanitizeHttpUrl(l.url) || "#"} target="_blank" rel="noreferrer" className="truncate text-primary hover:underline min-w-0">
+              <a
+                href={sanitizeHttpUrl(l.url) || "#"}
+                target="_blank"
+                rel="noreferrer"
+                title={l.label && l.label !== l.url ? `${l.label} — ${l.url}` : l.url}
+                className="truncate text-primary hover:underline min-w-0"
+              >
                 {l.label}
               </a>
               <button onClick={() => removeLink(i)} aria-label="Remove link" className="shrink-0 text-muted-foreground hover:text-destructive">
@@ -284,6 +290,7 @@ export default function ProjectCardFull({ project, stakeholderIds = [] }) {
           onInput={handleTitleInput}
           onBlur={handleTitleBlur}
           onKeyDown={handleTitleKeyDown}
+          tooltip={title}
           className="font-heading font-semibold text-sm text-center cursor-text w-full px-1"
         />
         <EditableText

@@ -51,7 +51,11 @@ export default function StakeholderAssigner({
               </div>
             ))}
             {assigned.length > 5 && (
-              <div className="w-6 h-6 rounded-full bg-muted border-2 border-background flex items-center justify-center text-[10px] font-bold" style={{ marginLeft: '-10px', zIndex: 0 }}>
+              <div
+                className="w-6 h-6 rounded-full bg-muted border-2 border-background flex items-center justify-center text-[10px] font-bold"
+                style={{ marginLeft: '-10px', zIndex: 0 }}
+                title={assigned.slice(5).map((s) => s.name).join(", ")}
+              >
                 +{assigned.length - 5}
               </div>
             )}
