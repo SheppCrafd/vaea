@@ -21,8 +21,8 @@ import ChatReflectionConsent from "@/components/ai/ChatReflectionConsent";
 // component only owns its own open/collapsed chrome. When open, the panel is
 // a draggable/resizable window (useWindowGeometry) rather than pinned to a
 // fixed corner, with its position/size persisted across sessions.
-export default function ChatBox({ activeProjectId }) {
-  const [isChatOpen, setIsChatOpen] = useState(false);
+export default function ChatBox({ activeProjectId, startOpen = false }) {
+  const [isChatOpen, setIsChatOpen] = useState(startOpen);
   const [isSessionListOpen, setIsSessionListOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const containerRef = useRef(null);

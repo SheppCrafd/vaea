@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { MessageCircle, Bot, Sparkles, HelpCircle, Smile } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { localDb } from "@/lib/localDb";
 import { executeAction, executeActionSequence, describeToolCall, describePlan, stripToolLog, DESTRUCTIVE_ACTIONS, NON_EXECUTABLE_ACTIONS, filterReflectionActions } from "@/lib/chatActions";
@@ -20,18 +19,8 @@ import { useAiIdentity } from "@/hooks/useAiIdentity";
 import { computeWorkspaceDelta, buildReflectionInstruction } from "@/lib/reflectionSummary";
 import { runReflectionIfDue } from "@/lib/reflectionTrigger";
 import { loadReflectionPreferences, saveReflectionPreferences, VAULT_TIDY_INTERVAL_MS, DREAM_INTERVAL_MS, VAULT_LOG_IDLE_MS } from "@/lib/reflectionPreferences";
+import { ICON_STORAGE_KEY, loadIconChoice } from "@/lib/chatIcon";
 
-// Icon component references only (no JSX here) so this can stay a plain .js
-// module — actual rendering happens in ChatIcon.jsx.
-export const CHAT_ICON_OPTIONS = [
-  { key: "message-circle", Icon: MessageCircle },
-  { key: "bot", Icon: Bot },
-  { key: "sparkles", Icon: Sparkles },
-  { key: "help-circle", Icon: HelpCircle },
-  { key: "smile", Icon: Smile },
-];
-
-const ICON_STORAGE_KEY = "vaea_chat_icon";
 const SESSION_STORAGE_KEY = "vaea_chat_active_session";
 
 // Query keys that can change as a result of an AI-driven mutation — kept
@@ -75,14 +64,6 @@ function removeStorage(key) {
     localStorage.removeItem(key);
   } catch {
     // best-effort
-  }
-}
-
-function loadIconChoice() {
-  try {
-    return JSON.parse(readStorage(ICON_STORAGE_KEY)) || { key: "message-circle" };
-  } catch {
-    return { key: "message-circle" };
   }
 }
 

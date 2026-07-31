@@ -1,4 +1,4 @@
-import { CHAT_ICON_OPTIONS } from "@/hooks/useChatController";
+import { CHAT_ICON_OPTIONS } from "@/lib/chatIcon";
 import PositionedPopover from "@/components/shared/PositionedPopover";
 
 // The icon-choice popover — pick a preset or type a custom emoji. Shared by

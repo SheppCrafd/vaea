@@ -10,12 +10,20 @@ import Avatar from "@/components/shared/Avatar";
 import { useGlobalDragEnd } from "@/hooks/useGlobalDragEnd";
 import { useAppStore } from "@/lib/store";
 import { useCardView } from "@/lib/CardViewContext";
+import ChatLauncherButton from "@/components/ai/ChatLauncherButton";
 
 // Code-split, like /chat and /settings already are (see App.jsx) — ChatBox
 // pulls in react-markdown (message rendering) and its own session/action
-// machinery, none of which every dashboard visitor needs downloaded and
-// parsed before first paint just because the widget happens to always be
-// mounted. This alone was the main-bundle's single biggest chunk.
+// machinery (chatActions, byokChat, githubApi, the reflection system), none
+// of which every dashboard visitor needs downloaded and parsed. lazy() alone
+// used to code-split this into its own chunk but NOT defer loading it — the
+// component was still unconditionally rendered below (inside Suspense) on
+// every dashboard visit, so React kicked off the dynamic import() the
+// instant AppShell mounted regardless of whether the widget was ever
+// opened. Real deferral needs the render itself gated: ChatBox doesn't even
+// enter the tree (isChatMounted below) until the lightweight
+// ChatLauncherButton (a real, cheap button, not a loading placeholder) is
+// actually clicked.
 const ChatBox = lazy(() => import("@/components/ai/ChatBox"));
 
 // Locks the dashboard into a CSS grid: stakeholders left, main content
@@ -39,6 +47,10 @@ export default function AppShell({ children }) {
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeDragData, setActiveDragData] = useState(null);
+  // Once true, stays true for the rest of the session — ChatBox owns its
+  // own open/collapsed toggling internally from here on, same as before
+  // this split existed. See the ChatBox import comment above.
+  const [isChatMounted, setIsChatMounted] = useState(false);
   const isLeftSidebarOpen = useAppStore((s) => s.isLeftSidebarOpen);
   const toggleLeftSidebar = useAppStore((s) => s.toggleLeftSidebar);
   const isRightSidebarOpen = useAppStore((s) => s.isRightSidebarOpen);
@@ -181,9 +193,13 @@ export default function AppShell({ children }) {
           )}
         </aside>
 
-        <Suspense fallback={null}>
-          <ChatBox />
-        </Suspense>
+        {isChatMounted ? (
+          <Suspense fallback={null}>
+            <ChatBox startOpen />
+          </Suspense>
+        ) : (
+          <ChatLauncherButton onOpen={() => setIsChatMounted(true)} />
+        )}
 
         <button
           onClick={() => setIsArchiveOpen(true)}

@@ -1,4 +1,4 @@
-import { CHAT_ICON_OPTIONS } from "@/hooks/useChatController";
+import { CHAT_ICON_OPTIONS } from "@/lib/chatIcon";
 
 // Renders the chosen chat icon — an emoji if the user typed a custom one,
 // otherwise the picked preset lucide icon. Shared by the floating widget's
