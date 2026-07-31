@@ -5,6 +5,7 @@ import { useAreas } from "@/hooks/useAreas";
 import { useProducts } from "@/hooks/useProducts";
 import { useCreateProject } from "@/hooks/useProjects";
 import { useStakeholders } from "@/hooks/useStakeholders";
+import { useToast } from "@/components/ui/use-toast";
 import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
 import DateField from "@/components/shared/DateField";
 import FormField from "@/components/shared/FormField";
@@ -22,12 +23,13 @@ export default function ProjectForm({ onDone }) {
   const { data: products = [] } = useProducts();
   const { data: allStakeholders = [] } = useStakeholders();
   const createProject = useCreateProject();
+  const { toast } = useToast();
 
   const availableProducts = products.filter((p) => p.parent_area_id === areaId);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!title.trim() || !areaId) return;
+    if (!title.trim() || !areaId || createProject.isPending) return;
     const payload = {
       title,
       parent_area_id: areaId,
@@ -38,8 +40,16 @@ export default function ProjectForm({ onDone }) {
     if (ownerName.trim()) payload.owner_name = ownerName.trim();
     if (dueDate) payload.due_date = dueDate;
     if (stakeholderIds.length) payload.stakeholder_ids = stakeholderIds;
-    createProject.mutate(payload);
-    onDone?.();
+    createProject.mutate(payload, {
+      onSuccess: () => onDone?.(),
+      onError: (err) => {
+        toast({
+          variant: "destructive",
+          title: "Couldn't create project",
+          description: err?.message || "Something went wrong — try again.",
+        });
+      },
+    });
   };
 
   return (
@@ -88,7 +98,9 @@ export default function ProjectForm({ onDone }) {
           onSave={setStakeholderIds}
         />
       </FormField>
-      <Button type="submit" className="w-full" disabled={!areaId || !title.trim()}>Create Project</Button>
+      <Button type="submit" className="w-full" disabled={!areaId || !title.trim() || createProject.isPending}>
+        {createProject.isPending ? "Creating…" : "Create Project"}
+      </Button>
     </form>
   );
 }

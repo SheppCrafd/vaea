@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAreas } from "@/hooks/useAreas";
 import { useCreateProduct } from "@/hooks/useProducts";
+import { useToast } from "@/components/ui/use-toast";
 import FormField from "@/components/shared/FormField";
 import EntitySelect from "@/components/shared/EntitySelect";
 
@@ -12,12 +13,24 @@ export default function ProductForm({ onDone }) {
   const [areaId, setAreaId] = useState("");
   const { data: areas = [] } = useAreas();
   const createProduct = useCreateProduct();
+  const { toast } = useToast();
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!title.trim() || !areaId) return;
-    createProduct.mutate({ parent_area_id: areaId, title, description });
-    onDone?.();
+    if (!title.trim() || !areaId || createProduct.isPending) return;
+    createProduct.mutate(
+      { parent_area_id: areaId, title, description },
+      {
+        onSuccess: () => onDone?.(),
+        onError: (err) => {
+          toast({
+            variant: "destructive",
+            title: "Couldn't create product",
+            description: err?.message || "Something went wrong — try again.",
+          });
+        },
+      }
+    );
   };
 
   return (
@@ -37,7 +50,9 @@ export default function ProductForm({ onDone }) {
       <FormField label="Description" htmlFor="new-product-description">
         <Input id="new-product-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional description" />
       </FormField>
-      <Button type="submit" className="w-full" disabled={!areaId || !title.trim()}>Create Product</Button>
+      <Button type="submit" className="w-full" disabled={!areaId || !title.trim() || createProduct.isPending}>
+        {createProduct.isPending ? "Creating…" : "Create Product"}
+      </Button>
     </form>
   );
 }
