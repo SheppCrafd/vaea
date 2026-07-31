@@ -18,7 +18,8 @@ import { useUpdateProject, useDeleteProject } from "@/hooks/useProjects";
 import { useEditableField } from "@/hooks/useEditableField";
 import { useHighlightMatch } from "@/hooks/useHighlightDim";
 import { useHighlight } from "@/lib/HighlightContext";
-import { confirmThen, sanitizeHttpUrl, titleWithBreakHints } from "@/lib/entityUtils";
+import { confirmThen, sanitizeHttpUrl } from "@/lib/entityUtils";
+import EditableTitle from "@/components/shared/EditableTitle";
 import { filterActiveTasks, getQuadrantCounts, isTaskDone, STATUS_COLORS } from "@/lib/taskUtils";
 import { getDueDateColorClass, DUE_DATE_STATUS_OPTIONS } from "@/lib/projectUtils";
 
@@ -277,16 +278,14 @@ export default function ProjectCardFull({ project, stakeholderIds = [] }) {
           reserved margins are the corner icons' own footprints (grip left,
           expand/delete right). */}
       <div className="pl-7 pr-14 flex flex-col items-center gap-1">
-        <h4
-          className="font-heading font-semibold text-sm text-center outline-none focus:ring-1 focus:ring-primary/40 rounded cursor-text w-full px-1"
-          contentEditable
-          suppressContentEditableWarning
+        <EditableTitle
+          as="h4"
+          value={title}
           onInput={handleTitleInput}
           onBlur={handleTitleBlur}
           onKeyDown={handleTitleKeyDown}
-        >
-          {titleWithBreakHints(title)}
-        </h4>
+          className="font-heading font-semibold text-sm text-center cursor-text w-full px-1"
+        />
         <EditableText
           value={project.objective}
           onSave={(v) => updateProject.mutate({ id: project.id, data: { objective: v } })}

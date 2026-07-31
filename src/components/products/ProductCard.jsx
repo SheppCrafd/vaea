@@ -7,8 +7,9 @@ import { useTasksForProjects } from "@/hooks/useTasks";
 import { useUpdateProduct, useDeleteProduct } from "@/hooks/useProducts";
 import { useEditableField } from "@/hooks/useEditableField";
 import { useHighlightMatch } from "@/hooks/useHighlightDim";
-import { confirmThen, sortByPosition, titleWithBreakHints } from "@/lib/entityUtils";
+import { confirmThen, sortByPosition } from "@/lib/entityUtils";
 import EditableText from "@/components/shared/EditableText";
+import EditableTitle from "@/components/shared/EditableTitle";
 import CardCustomFields from "@/components/shared/CardCustomFields";
 import ProjectsGrid from "@/components/shared/ProjectsGrid";
 import ProductDetailModal from "@/components/products/ProductDetailModal";
@@ -108,16 +109,14 @@ export default function ProductCard({ product, forceFullProjects = false }) {
       </div>
 
       <div className="relative z-[1] min-w-0 pr-12 pl-6">
-        <h3
-          className="font-heading font-semibold min-w-0 outline-none focus:ring-1 focus:ring-primary/40 rounded cursor-text"
-          contentEditable
-          suppressContentEditableWarning
+        <EditableTitle
+          as="h3"
+          value={title}
           onInput={handleInput}
           onBlur={handleTitleBlur}
           onKeyDown={handleTitleKeyDown}
-        >
-          {titleWithBreakHints(title)}
-        </h3>
+          className="font-heading font-semibold min-w-0 cursor-text"
+        />
         
         <div className="mt-0.5 min-w-0">
            <EditableText

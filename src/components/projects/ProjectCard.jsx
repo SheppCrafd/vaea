@@ -9,8 +9,9 @@ import { useEditableField } from "@/hooks/useEditableField";
 import { useHighlightMatch } from "@/hooks/useHighlightDim";
 import { useHighlight } from "@/lib/HighlightContext";
 import { useUpdateProject, useDeleteProject } from "@/hooks/useProjects";
-import { confirmThen, titleWithBreakHints } from "@/lib/entityUtils";
+import { confirmThen } from "@/lib/entityUtils";
 import { getQuadrantCounts, getMiniStatusCounts, STATUS_COLORS } from "@/lib/taskUtils";
+import EditableTitle from "@/components/shared/EditableTitle";
 
 // Mini card: the dashboard's default project face is deliberately just
 // title + quadrant + a 3-bucket stats bar. Everything else that used to live
@@ -98,17 +99,15 @@ export default function ProjectCard({ project, stakeholderIds = [] }) {
           <GripVertical className="w-3 h-3" />
         </div>
 
-        <h4
-          className="flex-1 min-w-0 font-heading font-semibold text-[11px] leading-tight text-center outline-none focus:ring-1 focus:ring-primary/40 rounded cursor-text line-clamp-2"
-          contentEditable
-          suppressContentEditableWarning
+        <EditableTitle
+          as="h4"
+          value={title}
           onInput={handleTitleInput}
           onBlur={handleTitleBlur}
           onKeyDown={handleTitleKeyDown}
-          title={title}
-        >
-          {titleWithBreakHints(title)}
-        </h4>
+          tooltip={title}
+          className="flex-1 min-w-0 font-heading font-semibold text-[11px] leading-tight text-center cursor-text line-clamp-2"
+        />
 
         <div className="shrink-0 flex items-center gap-0.5">
           <button
