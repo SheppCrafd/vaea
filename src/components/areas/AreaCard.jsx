@@ -74,7 +74,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
 
       <div className="relative">
         <div
-          className="absolute top-0 left-0 z-20 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-0.5"
+          className="absolute top-0 left-0 z-20 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1.5"
           aria-label="Drag to reorder area"
           title="Drag to reorder"
           {...attributes}
@@ -85,7 +85,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
         <div className="absolute top-0 right-0 flex items-center gap-1 z-20">
           <button
             onClick={onExpand}
-            className="text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 rounded-md transition-colors"
+            className="text-muted-foreground hover:text-foreground hover:bg-accent p-2 rounded-md transition-colors"
             title="Expand Area"
             aria-label="Expand Area"
           >
@@ -93,7 +93,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
           </button>
           <button
             onClick={handleDelete}
-            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 p-1.5 rounded-md transition-colors"
+            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 p-2 rounded-md transition-colors"
             title="Delete Area"
             aria-label="Delete Area"
           >

@@ -118,7 +118,7 @@ export default function AppShell({ children }) {
                 <button
                   onClick={toggleLeftSidebar}
                   aria-label="Collapse stakeholders panel"
-                  className="text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 rounded-md transition-colors shrink-0"
+                  className="text-muted-foreground hover:text-foreground hover:bg-accent p-2 rounded-md transition-colors shrink-0"
                 >
                   <PanelLeftClose className="w-4 h-4" />
                 </button>
@@ -142,7 +142,7 @@ export default function AppShell({ children }) {
               <button
                 onClick={() => (isMobile ? setIsMobileLeftDrawerOpen(true) : toggleLeftSidebar())}
                 aria-label="Expand stakeholders panel"
-                className="text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 -ml-1.5 rounded-md transition-colors shrink-0"
+                className="text-muted-foreground hover:text-foreground hover:bg-accent p-2 -ml-2 rounded-md transition-colors shrink-0"
               >
                 <PanelLeft className="w-4 h-4" />
               </button>
@@ -174,7 +174,7 @@ export default function AppShell({ children }) {
               <button
                 onClick={() => (isMobile ? setIsMobileRightDrawerOpen(true) : toggleRightSidebar())}
                 aria-label="Expand focus panel"
-                className="ml-auto text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 rounded-md transition-colors shrink-0"
+                className="ml-auto text-muted-foreground hover:text-foreground hover:bg-accent p-2 rounded-md transition-colors shrink-0"
               >
                 <PanelRight className="w-4 h-4" />
               </button>
@@ -194,7 +194,7 @@ export default function AppShell({ children }) {
                 <button
                   onClick={toggleRightSidebar}
                   aria-label="Collapse focus panel"
-                  className="text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 rounded-md transition-colors shrink-0"
+                  className="text-muted-foreground hover:text-foreground hover:bg-accent p-2 rounded-md transition-colors shrink-0"
                 >
                   <PanelRightClose className="w-4 h-4" />
                 </button>

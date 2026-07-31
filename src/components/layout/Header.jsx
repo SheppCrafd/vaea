@@ -93,7 +93,7 @@ export default function Header() {
                   <button
                     onClick={(e) => handleCloseTab(e, tab, active)}
                     aria-label={`Close ${label} tab`}
-                    className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full p-1 mr-1 transition-colors"
+                    className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full p-1.5 mr-1 transition-colors"
                   >
                     <X className="w-3 h-3" />
                   </button>

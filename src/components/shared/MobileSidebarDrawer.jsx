@@ -42,13 +42,13 @@ export default function MobileSidebarDrawer({ isOpen, onClose, label, side = "le
         {isLeft ? (
           <>
             <p className="text-sm font-semibold truncate">{label}</p>
-            <button onClick={onClose} aria-label={`Close ${label} panel`} className="text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 rounded-md transition-colors shrink-0">
+            <button onClick={onClose} aria-label={`Close ${label} panel`} className="text-muted-foreground hover:text-foreground hover:bg-accent p-2.5 -m-1 rounded-md transition-colors shrink-0">
               <X className="w-4 h-4" />
             </button>
           </>
         ) : (
           <>
-            <button onClick={onClose} aria-label={`Close ${label} panel`} className="text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 rounded-md transition-colors shrink-0">
+            <button onClick={onClose} aria-label={`Close ${label} panel`} className="text-muted-foreground hover:text-foreground hover:bg-accent p-2.5 -m-1 rounded-md transition-colors shrink-0">
               <X className="w-4 h-4" />
             </button>
             <p className="text-sm font-semibold truncate">{label}</p>

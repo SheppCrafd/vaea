@@ -101,7 +101,7 @@ export default function ChatPage() {
             <button
               onClick={toggleSidebar}
               aria-label="Collapse chat history panel"
-              className="text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 rounded-md transition-colors shrink-0"
+              className="text-muted-foreground hover:text-foreground hover:bg-accent p-2 rounded-md transition-colors shrink-0"
             >
               <PanelLeftClose className="w-4 h-4" />
             </button>
@@ -127,7 +127,7 @@ export default function ChatPage() {
             <button
               onClick={() => (isMobile ? setIsMobileDrawerOpen(true) : toggleSidebar())}
               aria-label="Expand chat history panel"
-              className="text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 -ml-1.5 rounded-md transition-colors shrink-0"
+              className="text-muted-foreground hover:text-foreground hover:bg-accent p-2 -ml-2 rounded-md transition-colors shrink-0"
             >
               <PanelLeft className="w-4 h-4" />
             </button>

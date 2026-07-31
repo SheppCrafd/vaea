@@ -249,15 +249,15 @@ export default function ProjectCardFull({ project, stakeholderIds = [] }) {
       <div
         {...attributes}
         {...listeners}
-        className="absolute top-2 left-1 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground hover:bg-accent p-1 rounded-md z-20 transition-colors"
+        className="absolute top-1.5 left-0.5 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 rounded-md z-20 transition-colors"
       >
         <GripVertical className="w-4 h-4" />
       </div>
 
-      <div className="absolute top-2 right-2 flex items-center gap-0.5 z-20">
+      <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 z-20">
         <button
           onClick={() => setIsDetailOpen(true)}
-          className="text-muted-foreground hover:text-foreground p-1 rounded hover:bg-muted transition-colors"
+          className="text-muted-foreground hover:text-foreground p-1.5 rounded hover:bg-muted transition-colors"
           title="Expand Project"
           aria-label="Expand project"
         >
@@ -265,7 +265,7 @@ export default function ProjectCardFull({ project, stakeholderIds = [] }) {
         </button>
         <button
           onClick={handleDelete}
-          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 p-1 rounded transition-colors"
+          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 p-1.5 rounded transition-colors"
           title="Delete Project"
           aria-label="Delete project"
         >

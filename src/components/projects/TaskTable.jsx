@@ -179,15 +179,15 @@ function TaskRow({ task, allStakeholders, isMatched, updateTask, onToggleTopThre
         />
       </td>
       <td className="p-2 text-center">
-        <button onClick={() => onToggleTopThree(task)} aria-label="Toggle top 3">
+        <button onClick={() => onToggleTopThree(task)} aria-label="Toggle top 3" className="p-1 -m-1 rounded hover:bg-accent transition-colors">
           <Star className={`w-4 h-4 ${task.is_today_top_three ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`} />
         </button>
       </td>
       <td className="p-2 text-center flex items-center justify-center gap-2">
-        <button onClick={() => updateTask.mutate({ id: task.id, data: { archived_at: new Date().toISOString() } })} aria-label="Archive task" className="text-muted-foreground hover:text-foreground">
+        <button onClick={() => updateTask.mutate({ id: task.id, data: { archived_at: new Date().toISOString() } })} aria-label="Archive task" className="p-1 -m-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
           <Archive className="w-4 h-4" />
         </button>
-        <button onClick={() => onDelete(task)} aria-label="Delete task" className="text-muted-foreground hover:text-destructive">
+        <button onClick={() => onDelete(task)} aria-label="Delete task" className="p-1 -m-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
           <Trash2 className="w-3.5 h-3.5" />
         </button>
       </td>

@@ -81,7 +81,7 @@ export default function ProductCard({ product, forceFullProjects = false }) {
       className={`relative z-10 bg-muted/50 rounded-xl p-4 overflow-hidden transition-colors shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.04)] ${sizingClass} ${isMatched ? "bg-primary/10 ring-1 ring-primary/30" : ""} ${isOver ? "ring-2 ring-primary ring-offset-1" : ""}`}
     >
       <div
-        className="absolute top-3 left-3 z-20 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+        className="absolute top-1.5 left-1.5 z-20 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1.5"
         aria-label="Drag to reorder product"
         title="Drag to reorder"
         {...attributes}
@@ -89,10 +89,10 @@ export default function ProductCard({ product, forceFullProjects = false }) {
       >
         <GripVertical className="w-4 h-4" />
       </div>
-      <div className="absolute top-3 right-3 flex items-center gap-1 z-20">
+      <div className="absolute top-1.5 right-1.5 flex items-center gap-1 z-20">
         <button
           onClick={() => setIsDetailOpen(true)}
-          className="text-muted-foreground hover:text-foreground hover:bg-card p-1 rounded-md transition-colors"
+          className="text-muted-foreground hover:text-foreground hover:bg-card p-1.5 rounded-md transition-colors"
           title="Expand Product"
           aria-label="Expand product"
         >
@@ -100,7 +100,7 @@ export default function ProductCard({ product, forceFullProjects = false }) {
         </button>
         <button
           onClick={handleDelete}
-          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 p-1 rounded-md transition-colors"
+          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 p-1.5 rounded-md transition-colors"
           title="Delete Product"
           aria-label="Delete product"
         >
