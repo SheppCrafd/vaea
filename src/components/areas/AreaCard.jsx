@@ -122,7 +122,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
 
       {products.length > 0 && (
         <div
-          className="mt-2 grid items-start gap-4"
+          className={`mt-2 grid items-start ${cardView === "mini" ? "-mx-5" : "gap-4"}`}
           // Full Cards' project card is a fixed 420px, and a Product needs
           // room for at least one without clipping it (420 + this card's
           // own p-4 padding ≈ 452px) — a 460px floor for Full mode. Full
@@ -144,15 +144,21 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
           // recentering the block as a whole: `auto-fit` collapses any
           // trailing column no row actually uses (so the math below isn't
           // thrown off by phantom empty tracks), and `justify-content:
-          // space-between` (Mini only) pins the real columns to the row's
-          // left/right edges and spreads the leftover as extra gap between
-          // Products, on top of the gap-4 baseline. That keeps the margin
-          // between the outermost Product and this Area card's own edge
-          // (its p-5) constant — only the whitespace *between* Products
-          // breathes as the window resizes or the user zooms. A lone
-          // Product has no "between" to distribute into, so it's centered
-          // instead (the one case space-between would otherwise
-          // left-anchor).
+          // space-evenly` (Mini only, `gap` left at its default 0) splits
+          // whatever's left into equal-size slices everywhere — left edge to
+          // first Product, between each pair, and last Product to right edge
+          // — so for N products there are N+1 identical gaps.
+          //
+          // The `-mx-5` (Mini only) is what makes that math come out even:
+          // it cancels this Area card's own p-5 so the row's box spans the
+          // card's full inner width instead of the padding-narrowed content
+          // width. Without it, the left/right edges get p-5's fixed 20px
+          // *plus* their space-evenly slice while the middle gaps only get
+          // the slice — same slice size, but the edges come out ~20px
+          // bigger, which reads as uneven even though the distribution math
+          // was technically working. Bleeding the row out to the border and
+          // letting space-evenly own 100% of the edge spacing keeps all N+1
+          // gaps literally the same number, not just proportioned the same.
           //
           // Grid columns are shared across every row (not recomputed per
           // row), which is what makes row 2+ line up under row 1's columns
@@ -162,9 +168,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
               cardView === "full"
                 ? `repeat(auto-fill, minmax(460px, 1fr))`
                 : `repeat(auto-fit, 280px)`,
-            ...(cardView === "mini"
-              ? { justifyContent: products.length === 1 ? "center" : "space-between" }
-              : {}),
+            ...(cardView === "mini" ? { justifyContent: "space-evenly" } : {}),
           }}
         >
           {products.map((product) => (
