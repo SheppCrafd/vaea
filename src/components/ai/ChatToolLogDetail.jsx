@@ -156,7 +156,7 @@ export default function ChatToolLogDetail({ detail, onClose }) {
       isOpen
       onClose={onClose}
       label={title}
-      overlayClassName="fixed inset-0 bg-black/40 flex items-center justify-center z-[200]"
+      overlayClassName="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-[200]"
       panelClassName="bg-card rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col p-4"
     >
       <div className="flex items-center justify-between mb-3">

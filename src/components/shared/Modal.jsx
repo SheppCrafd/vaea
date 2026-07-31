@@ -20,7 +20,13 @@ export default function Modal({
   isOpen,
   onClose,
   panelClassName,
-  overlayClassName = "fixed inset-0 bg-black/40 flex items-center justify-center z-50",
+  // p-4: the four callers that never override this (CreateModal, FilterModal,
+  // DeleteAccountDialog, AddStakeholderModal) all use a `w-full max-w-*`
+  // panel with no gutter of their own — below that max-width (i.e. on any
+  // mobile viewport) the panel sat flush against both screen edges. Most
+  // other callers already added their own p-4/p-6 to their overlay override;
+  // this just gives the ones that don't override at all the same floor.
+  overlayClassName = "fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50",
   closeOnBackdropClick = true,
   label,
   children,
