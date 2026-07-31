@@ -3,7 +3,7 @@ import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { Expand, Trash2, GripVertical } from "lucide-react";
 import { useFilter } from "@/lib/FilterContext";
 import { useProjects } from "@/hooks/useProjects";
-import { useAllTasks } from "@/hooks/useTasks";
+import { useTasksForProjects } from "@/hooks/useTasks";
 import { useUpdateProduct, useDeleteProduct } from "@/hooks/useProducts";
 import { useEditableField } from "@/hooks/useEditableField";
 import { useHighlightMatch } from "@/hooks/useHighlightDim";
@@ -17,7 +17,6 @@ import TaskStatistics from "@/components/shared/TaskStatistics";
 export default function ProductCard({ product, forceFullProjects = false }) {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const { data: allProjects = [] } = useProjects();
-  const { data: allTasks = [] } = useAllTasks();
   const { excludedIds } = useFilter();
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
@@ -52,7 +51,7 @@ export default function ProductCard({ product, forceFullProjects = false }) {
   const isMatched = useHighlightMatch(product.stakeholder_ids || [], "products");
 
   const projectIds = projects.map((p) => p.id);
-  const productTasks = allTasks.filter((t) => projectIds.includes(t.project_id));
+  const { data: productTasks = [] } = useTasksForProjects(projectIds);
 
   const handleDelete = () => {
     confirmThen(

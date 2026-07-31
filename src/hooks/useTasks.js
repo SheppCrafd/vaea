@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { localDb } from "@/lib/localDb";
 import { filterActiveTasks, isTaskArchived, isTaskDeleted } from "@/lib/taskUtils";
@@ -57,6 +57,29 @@ export function useAllTasks() {
     // Local-only data — see the matching comment in useAreas.js.
     staleTime: Infinity,
   });
+}
+
+// FETCH TASKS BELONGING TO A SET OF PROJECTS — the shared shape behind
+// AreaCard's/ProductCard's/ProductDetailModal's own task-count rollups,
+// which used to each subscribe to useAllTasks() and re-run their own
+// `.filter(t => ids.includes(t.project_id))` inline in the render body.
+// Every Area/Product card shares the same flat allTasks cache, so editing
+// any one task anywhere invalidates it for all of them regardless — that
+// re-render is inherent to the shared-cache shape, not something a filter
+// hook fixes. What this does fix: without useMemo, each of those cards
+// re-ran its own O(totalTasks) filter on *every* render, including ones
+// where allTasks hadn't actually changed. `projectIds` is typically a
+// fresh array each render (callers build it inline via .map), so it's
+// memoized keyed on its joined-string identity, not its reference.
+export function useTasksForProjects(projectIds = []) {
+  const { data: allTasks = [], ...rest } = useAllTasks();
+  const idsKey = projectIds.join(",");
+  const tasks = useMemo(
+    () => allTasks.filter((t) => projectIds.includes(t.project_id)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- idsKey is projectIds' stable identity
+    [allTasks, idsKey]
+  );
+  return { ...rest, data: tasks };
 }
 
 // 3. CREATE TASK (SUPPORTS ANY CUSTOM PAYLOADS LIKE STAKEHOLDER_ID)

@@ -4,7 +4,7 @@ import Modal from "@/components/shared/Modal";
 import { useStakeholders } from "@/hooks/useStakeholders";
 import { useUpdateProduct, useDeleteProduct } from "@/hooks/useProducts";
 import { useProjects } from "@/hooks/useProjects";
-import { useAllTasks } from "@/hooks/useTasks";
+import { useTasksForProjects } from "@/hooks/useTasks";
 import { useAreas, useUpdateArea } from "@/hooks/useAreas";
 import { isTaskDone } from "@/lib/taskUtils";
 import { confirmThen, sortByPosition } from "@/lib/entityUtils";
@@ -16,7 +16,6 @@ import ProjectCardFull from "@/components/projects/ProjectCardFull";
 export default function ProductDetailModal({ product, onClose }) {
   const { data: allStakeholders = [] } = useStakeholders();
   const { data: allProjects = [] } = useProjects();
-  const { data: allTasks = [] } = useAllTasks();
   const { data: allAreas = [] } = useAreas();
   const updateProduct = useUpdateProduct();
   const updateArea = useUpdateArea();
@@ -28,7 +27,7 @@ export default function ProductDetailModal({ product, onClose }) {
 
   const projects = sortByPosition(allProjects.filter((p) => p.parent_product_id === product.id));
   const projectIds = projects.map((p) => p.id);
-  const productTasks = allTasks.filter((t) => projectIds.includes(t.project_id));
+  const { data: productTasks = [] } = useTasksForProjects(projectIds);
   const doneCount = productTasks.filter(isTaskDone).length;
   const completionPct = productTasks.length ? Math.round((doneCount / productTasks.length) * 100) : 0;
 

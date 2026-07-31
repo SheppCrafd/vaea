@@ -1,7 +1,7 @@
 import { Trash2, Expand, GripVertical } from "lucide-react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { useUpdateArea, useDeleteArea } from "@/hooks/useAreas";
-import { useAllTasks } from "@/hooks/useTasks";
+import { useTasksForProjects } from "@/hooks/useTasks";
 import { useEditableField } from "@/hooks/useEditableField";
 import { confirmThen, titleWithBreakHints } from "@/lib/entityUtils";
 import { useCardView } from "@/lib/CardViewContext";
@@ -21,8 +21,6 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
   const updateArea = useUpdateArea();
   const deleteArea = useDeleteArea();
   const { cardView } = useCardView();
-
-  const { data: allTasks = [] } = useAllTasks();
 
   const { setNodeRef, isOver } = useDroppable({ id: area.id, data: { type: "area", id: area.id } });
 
@@ -64,7 +62,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
     ...products.flatMap((p) => p.projects?.map((proj) => proj.id) || []),
     ...orphanProjects.map((p) => p.id),
   ];
-  const areaTasks = allTasks.filter((t) => areaProjectIds.includes(t.project_id));
+  const { data: areaTasks = [] } = useTasksForProjects(areaProjectIds);
 
   return (
     <article
