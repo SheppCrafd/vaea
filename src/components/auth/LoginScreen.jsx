@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
+import { sanitizeReturnTo } from "@/lib/entityUtils";
 import AuthAmbience from "@/components/auth/AuthAmbience";
 
 // Rendered at the real, linkable /login route (src/pages/marketing/LoginPage.jsx)
@@ -31,7 +32,12 @@ export default function LoginScreen() {
   const navigate = useNavigate();
   const { continueAsGuest } = useAuth();
 
-  const returnTo = searchParams.get("from") || "/app";
+  // searchParams.get("from") is attacker-controllable (a link someone else
+  // shares, not app-generated input) — sanitizeReturnTo rejects anything
+  // that isn't a same-origin relative path before it reaches navigate(),
+  // the OAuth provider's own redirect target, or the raw location.href
+  // assignment below (see its own comment in entityUtils.js).
+  const returnTo = sanitizeReturnTo(searchParams.get("from"));
 
   const handleSkip = () => {
     continueAsGuest();
@@ -153,7 +159,7 @@ export default function LoginScreen() {
 
         <p className="text-center text-xs text-muted-foreground">
           New here?{" "}
-          <Link to={`/signup${searchParams.get("from") ? `?from=${searchParams.get("from")}` : ""}`} className="underline hover:text-foreground transition-colors">
+          <Link to={`/signup${searchParams.get("from") ? `?from=${sanitizeReturnTo(searchParams.get("from"))}` : ""}`} className="underline hover:text-foreground transition-colors">
             Create an account
           </Link>
           {" · "}

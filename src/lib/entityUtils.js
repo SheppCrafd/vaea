@@ -73,3 +73,18 @@ export function sanitizeHttpUrl(url) {
   }
   return protocol === "http:" || protocol === "https:" ? trimmed : null;
 }
+
+// LoginScreen/SignUpScreen read `?from=` (an attacker-shareable link, not
+// app-generated input at read time) and hand it straight to navigate()/
+// window.location.href/the OAuth provider's own post-login redirect target —
+// exactly the shape of an open-redirect bug, and worse for the raw
+// location.href assignment (a "javascript:" value there can execute).
+// Must be a same-origin relative path: a bare "/app" is fine, but
+// "https://evil.com", "//evil.com" (protocol-relative), "/\evil.com"
+// (browsers normalize a leading backslash to a second forward slash before
+// parsing — the exact bug behind GHSA-wrjc-x8rr-h8h6), and "javascript:..."
+// all resolve off-site or execute, despite some of them "starting with /".
+export function sanitizeReturnTo(value, fallback = "/app") {
+  if (typeof value !== "string" || !/^\/(?!\/|\\)/.test(value)) return fallback;
+  return value;
+}

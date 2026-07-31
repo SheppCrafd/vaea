@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { sortByPosition, reorderPositions } from "./entityUtils.js";
+import { sortByPosition, reorderPositions, sanitizeReturnTo } from "./entityUtils.js";
 
 describe("sortByPosition", () => {
   it("sorts ascending by position", () => {
@@ -32,5 +32,48 @@ describe("reorderPositions", () => {
   it("appends at the end when the target isn't in the list", () => {
     const result = reorderPositions(["a", "b"], "a", "missing");
     expect(result).toEqual({ b: 0, a: 1 });
+  });
+});
+
+describe("sanitizeReturnTo", () => {
+  it("allows a plain same-origin relative path", () => {
+    expect(sanitizeReturnTo("/app/chat")).toBe("/app/chat");
+  });
+
+  it("allows a relative path with a query string", () => {
+    expect(sanitizeReturnTo("/app/settings?tab=account")).toBe("/app/settings?tab=account");
+  });
+
+  it("falls back for a missing value", () => {
+    expect(sanitizeReturnTo(null)).toBe("/app");
+    expect(sanitizeReturnTo(undefined)).toBe("/app");
+    expect(sanitizeReturnTo("")).toBe("/app");
+  });
+
+  it("falls back for a full external URL", () => {
+    expect(sanitizeReturnTo("https://evil.com")).toBe("/app");
+    expect(sanitizeReturnTo("http://evil.com/phish")).toBe("/app");
+  });
+
+  it("falls back for a protocol-relative URL", () => {
+    expect(sanitizeReturnTo("//evil.com")).toBe("/app");
+  });
+
+  it("falls back for a backslash-prefixed path (browsers normalize \\ to // before parsing)", () => {
+    expect(sanitizeReturnTo("/\\evil.com")).toBe("/app");
+    expect(sanitizeReturnTo("\\\\evil.com")).toBe("/app");
+  });
+
+  it("falls back for a javascript: URI", () => {
+    expect(sanitizeReturnTo("javascript:alert(1)")).toBe("/app");
+  });
+
+  it("falls back for a non-string value", () => {
+    expect(sanitizeReturnTo(123)).toBe("/app");
+    expect(sanitizeReturnTo({})).toBe("/app");
+  });
+
+  it("respects a custom fallback", () => {
+    expect(sanitizeReturnTo("https://evil.com", "/safe")).toBe("/safe");
   });
 });
