@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { ThemeProvider } from "next-themes"
 import { Toaster } from "@/components/ui/toaster"
+import ConfirmDialog from "@/components/shared/ConfirmDialog"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
@@ -147,6 +148,7 @@ function App() {
                   </ErrorBoundary>
                 </Router>
                 <Toaster />
+                <ConfirmDialog />
               </CardViewProvider>
             </FilterProvider>
           </HighlightProvider>

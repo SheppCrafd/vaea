@@ -64,6 +64,19 @@ export const useAppStore = create((set) => ({
   closeCommandPalette: () => set({ isCommandPaletteOpen: false }),
   toggleCommandPalette: () => set((s) => ({ isCommandPaletteOpen: !s.isCommandPaletteOpen })),
 
+  // Backs entityUtils.js's confirmThen — every destructive/consequential
+  // action in the app (delete an Area/Product/Project/Task/Department/
+  // Stakeholder, switch storage backends, restore a backup) used to gate
+  // itself on the native window.confirm(), an unstyled OS dialog completely
+  // outside this app's own design system. confirmThen is a plain function
+  // called from all over the codebase, not just components, so it can't
+  // render JSX itself — it calls this store's vanilla getState().requestConfirm
+  // instead, and the one <ConfirmDialog/> mounted in App.jsx (alongside
+  // Toaster/CommandPalette) is what actually renders the real, styled Modal.
+  confirmDialog: null, // { message, onConfirm } | null
+  requestConfirm: (message, onConfirm) => set({ confirmDialog: { message, onConfirm } }),
+  closeConfirmDialog: () => set({ confirmDialog: null }),
+
   // AppShell's stakeholders panel — moved here from AppShell's own useState
   // so Header can toggle it too, now that Header renders once above every
   // route (App.jsx) instead of inside AppShell.

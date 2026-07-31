@@ -302,7 +302,7 @@ export default function ProjectDetailModal({ project, onClose }) {
             <div className="flex items-center gap-2">
               <button
                 onClick={() =>
-                  confirmThen("Are you sure you want to delete this project?", () => {
+                  confirmThen(`Delete project "${project.title}"? This cannot be undone.`, () => {
                     deleteProject.mutate(project.id);
                     onClose();
                   })

@@ -1,11 +1,18 @@
 // Small generic helpers shared across the entity hooks and destructive UI actions.
+import { useAppStore } from "@/lib/store";
 
 export function excludeSoftDeleted(items = []) {
   return items.filter((item) => !item.deleted_at);
 }
 
+// Every call site here is a plain event handler, not always inside a
+// component that could call a hook — this needs Zustand's vanilla
+// getState() API, not the useAppStore() hook, so it works the same way
+// whether it's called from a card's onClick or deep inside a settings
+// section's async handler. See store.js's confirmDialog slice and
+// ConfirmDialog.jsx (mounted once in App.jsx) for what actually renders.
 export function confirmThen(message, action) {
-  if (window.confirm(message)) action();
+  useAppStore.getState().requestConfirm(message, action);
 }
 
 // Sorts by a `position` field (ascending) that not every record has yet —
