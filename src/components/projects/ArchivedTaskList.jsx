@@ -7,6 +7,7 @@ import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
 import TaskAttachments from "@/components/projects/TaskAttachments";
 import EditableText from "@/components/shared/EditableText";
 import QuadrantSelect from "@/components/shared/QuadrantSelect";
+import Spinner from "@/components/shared/Spinner";
 
 // A project's archived tasks — a secondary, occasionally-visited view, but
 // per spec "archived objects can be edited just like active objects", so
@@ -19,7 +20,7 @@ export default function ArchivedTaskList({ projectId }) {
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
 
-  if (isLoading) return <p className="text-xs text-muted-foreground p-2">Loading archived tasks...</p>;
+  if (isLoading) return <div className="flex justify-center p-4"><Spinner className="w-5 h-5" /></div>;
   if (tasks.length === 0) return <p className="text-xs text-muted-foreground p-2">No archived tasks.</p>;
 
   const handleDelete = (task) => {

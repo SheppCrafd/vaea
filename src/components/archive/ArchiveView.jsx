@@ -4,6 +4,7 @@ import { useArchivedProjects, useRestoreProject, useProject } from "@/hooks/useP
 import ProjectDetailModal from "@/components/projects/ProjectDetailModal";
 import QueryError from "@/components/shared/QueryError";
 import DateField from "@/components/shared/DateField";
+import Spinner from "@/components/shared/Spinner";
 
 // Archive/history shell: ISO-8601 date range filter hitting the
 // archivedProjects function, which reconstructs every project whose active
@@ -48,7 +49,7 @@ export default function ArchiveView() {
 
       <div className="space-y-3 mt-4">
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading archive...</p>
+          <div className="flex justify-center py-10"><Spinner className="w-6 h-6" /></div>
         ) : isError ? (
           <QueryError error={error} onRetry={refetch} label="Couldn't load the archive." />
         ) : archivedProjects.length === 0 ? (

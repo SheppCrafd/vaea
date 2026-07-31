@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Save, Cloud, HardDrive } from "lucide-react";
 import { Link } from "react-router-dom";
+import Spinner from "@/components/shared/Spinner";
 import {
   supportsFileSystemAccess,
   getStatus,
@@ -240,7 +241,7 @@ export default function DeviceStorageGate({ children }) {
   if (phase === "checking") {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-background">
-        <div className="w-8 h-8 border-4 border-border border-t-foreground rounded-full animate-spin"></div>
+        <Spinner />
       </div>
     );
   }

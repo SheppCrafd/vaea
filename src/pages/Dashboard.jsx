@@ -10,6 +10,7 @@ import AreaModal from "@/components/areas/AreaModal";
 import CreateModal from "@/components/modals/CreateModal";
 import ProductConnectionLines from "@/components/products/ProductConnectionLines";
 import QueryError from "@/components/shared/QueryError";
+import Spinner from "@/components/shared/Spinner";
 import ProductDetailModal from "@/components/products/ProductDetailModal";
 import ProjectDetailModal from "@/components/projects/ProjectDetailModal";
 
@@ -113,7 +114,11 @@ export default function Dashboard() {
   );
 
   if (areasLoading) {
-    return <div className="text-sm text-muted-foreground">Loading areas...</div>;
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Spinner />
+      </div>
+    );
   }
 
   if (areasError || productsError || projectsError) {
