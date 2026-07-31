@@ -22,9 +22,20 @@ function headers(token) {
 }
 
 // Encode each path segment separately — encodeURIComponent alone would
-// also escape the "/" separators a repo path needs to keep.
+// also escape the "/" separators a repo path needs to keep. Rejects '.',
+// '..', and empty segments before they reach GitHub's Contents API — the
+// same defense-in-depth guard entry.ts's own encodeRepoPath has (mirror
+// this file's own comment there: not a fix for an exploitable bug, since
+// the API resolves paths within the repo the token is already scoped to,
+// not a filesystem, but a cheap guard against a constructed path resolving
+// somewhere unintended within that repo). Was missed here when the other
+// one was added — same fix, just applied to its client-side sibling.
 function encodePath(path) {
-  return path.split("/").map(encodeURIComponent).join("/");
+  const segments = path.split("/");
+  if (segments.some((s) => s === "" || s === "." || s === "..")) {
+    throw new Error(`Invalid vault path "${path}"`);
+  }
+  return segments.map(encodeURIComponent).join("/");
 }
 
 // btoa/atob only handle Latin1 — this is the standard workaround for

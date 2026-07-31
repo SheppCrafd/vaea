@@ -201,7 +201,12 @@ async function githubFetch(url, token, init) {
 }
 
 async function listVaultNoteRepo(owner, repo, branch, token) {
-  const data = await githubFetch(`${GITHUB_API}/repos/${owner}/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`, token);
+  // owner/repo come straight from the user's own Vaea Vault settings form —
+  // encoded here (not left to callers) so every caller of this helper gets
+  // it for free, matching branch/path's own encoding on this same URL and
+  // the client-side githubApi.js, which already encodes owner/repo at every
+  // one of its call sites.
+  const data = await githubFetch(`${GITHUB_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/trees/${encodeURIComponent(branch)}?recursive=1`, token);
   return (data.tree || []).filter((entry) => entry.type === 'blob' && entry.path.endsWith('.md')).map((entry) => entry.path);
 }
 
@@ -723,7 +728,7 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, emit }) {
         if (!externalVault?.owner || !externalVault?.repo || !externalVault?.token) return vaultNotConnected();
         try {
           const branch = externalVault.branch || 'main';
-          const data = await githubFetch(`${GITHUB_API}/repos/${externalVault.owner}/${externalVault.repo}/contents/${encodeRepoPath(path)}?ref=${encodeURIComponent(branch)}`, externalVault.token);
+          const data = await githubFetch(`${GITHUB_API}/repos/${encodeURIComponent(externalVault.owner)}/${encodeURIComponent(externalVault.repo)}/contents/${encodeRepoPath(path)}?ref=${encodeURIComponent(branch)}`, externalVault.token);
           const content = base64ToUtf8(data.content);
           trace(`read_vault_note("${path}")`, { path, content });
           return { connected: true, path, content };
@@ -769,7 +774,7 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, emit }) {
           const outgoing = new Map(); // path -> Set(linked titles, lowercased)
           const linkRegex = /\[\[([^\]|#]+)/g;
           for (const path of scanned) {
-            const data = await githubFetch(`${GITHUB_API}/repos/${owner}/${repo}/contents/${encodeRepoPath(path)}?ref=${encodeURIComponent(branch)}`, token);
+            const data = await githubFetch(`${GITHUB_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodeRepoPath(path)}?ref=${encodeURIComponent(branch)}`, token);
             const content = base64ToUtf8(data.content);
             const links = new Set();
             let m;
