@@ -124,44 +124,47 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
           className="mt-2 grid items-start gap-4"
           // Full Cards' project card is a fixed 420px, and a Product needs
           // room for at least one without clipping it (420 + this card's
-          // own p-4 padding ≈ 452px) — a 460px floor for Full mode.
+          // own p-4 padding ≈ 452px) — a 460px floor for Full mode. Full
+          // mode keeps the old auto-fill/1fr growth: leftover row width
+          // grows each Product's own column.
           //
-          // Mini mode's 242px floor is a deliberate target, not a leftover
-          // default: at the dashboard's floating-panel canvas overhead
-          // (px-3 canvas padding + the two column gaps + <main>'s px-1 +
-          // AreaCard's own p-5 ≈ 96px fixed, before either sidebar), a
-          // ~1512px-wide browser window (a laptop-class target, chosen
-          // since the actual window width varies per user and device)
-          // lands exactly the row-count progression this was tuned for:
-          // 3 Product columns with both sidebars open, 4 with either one
-          // closed, 5 with both closed — each sidebar toggle costs or gains
-          // exactly one column. 242px sits at the dead center of the ~223–
-          // 261px window that keeps that exact progression (narrower drops
-          // a column sooner, wider adds one sooner, but the per-sidebar
-          // math still holds either way).
+          // Mini mode is a fixed 280px, never wider — the exact width a
+          // Product needs to hold two Mini project tiles side by side with
+          // zero slack: two 112px tiles + ProjectsGrid's own 8px inter-tile
+          // gap (232px) + ProjectsGrid's p-2 (16px) + ProductCard's own p-4
+          // (32px) = 280px. A Product must never be narrower than that (a
+          // lone project tile would still fit, but the guarantee is for
+          // two), and per spec it must never grow past it either — a
+          // Mini Product is always exactly 280px regardless of how much
+          // row width is available.
           //
-          // That target column count wins over guaranteeing Mini's 112px
-          // project tiles fit two-across inside a Product — a column here
-          // lands ~261-272px wide depending on state, short of the ~280px
-          // two tiles need with their own padding, so they stack instead
-          // (confirmed against a real render, not just the arithmetic —
-          // auto-fill gives every reserved track the same share whether
-          // it's occupied or not, so a Product isn't wider just because its
-          // row has fewer of them; see the auto-fill note below). Was
-          // briefly a 288px floor for that exact guarantee; reverted
-          // because it cost a whole column per row, and re-confirmed (not
-          // restored) when this 3/4/5 progression was tuned instead.
+          // Since the card itself can't absorb leftover row width, that
+          // width has to go somewhere else instead of vanishing or
+          // recentering the block as a whole: `auto-fit` collapses any
+          // trailing column no row actually uses (so the math below isn't
+          // thrown off by phantom empty tracks), and `justify-content:
+          // space-between` (Mini only) pins the real columns to the row's
+          // left/right edges and spreads the leftover as extra gap between
+          // Products, on top of the gap-4 baseline. That keeps the margin
+          // between the outermost Product and this Area card's own edge
+          // (its p-5) constant — only the whitespace *between* Products
+          // breathes as the window resizes or the user zooms. A lone
+          // Product has no "between" to distribute into, so it's centered
+          // instead (the one case space-between would otherwise
+          // left-anchor).
           //
-          // auto-fill, not auto-fit: same reasoning as ProjectsGrid's Full
-          // mode — auto-fit stretches a lone Product to consume the entire
-          // row's width, wasting space where a sibling could otherwise land.
-          // auto-fill reserves as many floor-width tracks as the row has
-          // room for and splits leftover space across all of them (occupied
-          // or not), so an existing Product only grows to roughly one
-          // track's share. Areas deliberately don't get this — they're
-          // always a single full-width column, never sharing a row with a
-          // sibling Area to begin with.
-          style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${cardView === "full" ? 460 : 242}px, 1fr))` }}
+          // Grid columns are shared across every row (not recomputed per
+          // row), which is what makes row 2+ line up under row 1's columns
+          // instead of re-centering as their own subset.
+          style={{
+            gridTemplateColumns:
+              cardView === "full"
+                ? `repeat(auto-fill, minmax(460px, 1fr))`
+                : `repeat(auto-fit, 280px)`,
+            ...(cardView === "mini"
+              ? { justifyContent: products.length === 1 ? "center" : "space-between" }
+              : {}),
+          }}
         >
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />
