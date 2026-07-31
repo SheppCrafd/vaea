@@ -4,6 +4,7 @@ import { useChatController } from "@/hooks/useChatController";
 import { useChatSessions } from "@/hooks/useChatSessions";
 import { useSlashCommand } from "@/hooks/useSlashCommand";
 import { useChatInputHistory } from "@/hooks/useChatInputHistory";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { useAppStore } from "@/lib/store";
 import ChatIcon from "@/components/ai/ChatIcon";
 import ChatIconPicker from "@/components/ai/ChatIconPicker";
@@ -13,6 +14,43 @@ import ChatCommandMenu from "@/components/ai/ChatCommandMenu";
 import ChatSettingsModal from "@/components/ai/ChatSettingsModal";
 import ChatAuthPrompt from "@/components/ai/ChatAuthPrompt";
 import ChatReflectionConsent from "@/components/ai/ChatReflectionConsent";
+import MobileSidebarDrawer from "@/components/shared/MobileSidebarDrawer";
+
+// The session list's own content (New chat button + the list itself) —
+// factored out so the desktop docked <aside> and the mobile
+// MobileSidebarDrawer can both render it without duplicating the JSX.
+function ChatHistoryPanelContent({ chat, sessions }) {
+  return (
+    <>
+      <div className="p-3">
+        <button
+          onClick={chat.handleNewChat}
+          className="w-full flex items-center justify-center gap-1.5 text-sm px-3 py-2 bg-secondary/80 text-secondary-foreground rounded-xl hover:bg-secondary transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          New chat
+        </button>
+      </div>
+      <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-2">
+        {sessions.length === 0 ? (
+          <p className="text-xs text-muted-foreground p-2">No previous sessions yet.</p>
+        ) : (
+          <div className="flex flex-col gap-0.5">
+            {sessions.map((s) => (
+              <ChatSessionRow
+                key={s.id}
+                session={s}
+                isActive={s.id === chat.activeSessionId}
+                onSelect={chat.handleSelectSession}
+                onDeleted={chat.handleNewChat}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
 
 // Full-page chat — a dedicated /chat route (outside the dashboard's AppShell
 // chrome entirely) laid out like a standalone chat app: a persistent session
@@ -39,6 +77,15 @@ export default function ChatPage() {
   const slashCommand = useSlashCommand(chat.input, chat.setInput);
   const inputHistory = useChatInputHistory({ messages: chat.chatState.messages, input: chat.input, setInput: chat.setInput });
 
+  // Same reasoning as AppShell.jsx's mobile drawers: below md the aside
+  // never docks (a 256px sidebar squeezes the thread into an unusable
+  // sliver on a phone), and the drawer's own open state is page-local and
+  // non-persisted rather than reusing isSidebarOpen, so a mobile visit never
+  // force-opens a full-screen drawer just because a desktop session left it
+  // open.
+  const isMobile = useIsMobile();
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+
   // The page itself IS "opened" — no isChatOpen-style toggle here the way
   // ChatBox has one, so this just fires once per real navigation to /chat.
   useEffect(() => {
@@ -47,7 +94,7 @@ export default function ChatPage() {
 
   return (
     <div className="h-full flex overflow-hidden gap-3 px-3 pb-3">
-      {isSidebarOpen && (
+      {!isMobile && isSidebarOpen && (
         <aside className="text-sidebar-foreground w-64 shrink-0 overflow-hidden rounded-2xl bg-sidebar shadow-xl flex flex-col">
           <div className="h-14 shrink-0 flex items-center justify-between pl-4 pr-3">
             <p className="text-sm font-semibold text-foreground truncate">Chat History</p>
@@ -59,40 +106,26 @@ export default function ChatPage() {
               <PanelLeftClose className="w-4 h-4" />
             </button>
           </div>
-          <div className="p-3">
-            <button
-              onClick={chat.handleNewChat}
-              className="w-full flex items-center justify-center gap-1.5 text-sm px-3 py-2 bg-secondary/80 text-secondary-foreground rounded-xl hover:bg-secondary transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              New chat
-            </button>
-          </div>
-          <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-2">
-            {sessions.length === 0 ? (
-              <p className="text-xs text-muted-foreground p-2">No previous sessions yet.</p>
-            ) : (
-              <div className="flex flex-col gap-0.5">
-                {sessions.map((s) => (
-                  <ChatSessionRow
-                    key={s.id}
-                    session={s}
-                    isActive={s.id === chat.activeSessionId}
-                    onSelect={chat.handleSelectSession}
-                    onDeleted={chat.handleNewChat}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+          <ChatHistoryPanelContent chat={chat} sessions={sessions} />
         </aside>
+      )}
+
+      {isMobile && (
+        <MobileSidebarDrawer
+          isOpen={isMobileDrawerOpen}
+          onClose={() => setIsMobileDrawerOpen(false)}
+          label="Chat History"
+          side="left"
+        >
+          <ChatHistoryPanelContent chat={chat} sessions={sessions} />
+        </MobileSidebarDrawer>
       )}
 
       <div className="flex-1 min-w-0 flex flex-col">
         <div className="h-14 shrink-0 flex items-center gap-3 px-4">
-          {!isSidebarOpen && (
+          {(isMobile || !isSidebarOpen) && (
             <button
-              onClick={toggleSidebar}
+              onClick={() => (isMobile ? setIsMobileDrawerOpen(true) : toggleSidebar())}
               aria-label="Expand chat history panel"
               className="text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 -ml-1.5 rounded-md transition-colors shrink-0"
             >

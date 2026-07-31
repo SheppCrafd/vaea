@@ -9,6 +9,8 @@ import StorageSection from "@/components/settings/StorageSection";
 import ExternalVaultSection from "@/components/settings/ExternalVaultSection";
 import ResourcesSection from "@/components/settings/ResourcesSection";
 import { useAppStore } from "@/lib/store";
+import { useIsMobile } from "@/hooks/useIsMobile";
+import MobileSidebarDrawer from "@/components/shared/MobileSidebarDrawer";
 
 const SECTIONS = [
   { key: "account", label: "Account", Component: AccountSection },
@@ -20,6 +22,26 @@ const SECTIONS = [
   { key: "vault", label: "Vaea Vault", Component: ExternalVaultSection },
   { key: "resources", label: "Resources", Component: ResourcesSection },
 ];
+
+// The section-nav list's own content — factored out so the desktop docked
+// <aside> and the mobile MobileSidebarDrawer can both render it without
+// duplicating the JSX.
+function SectionNavContent({ activeSection, onSelect }) {
+  return (
+    <nav className="flex-1 min-h-0 overflow-y-auto p-2 flex flex-col gap-0.5">
+      {SECTIONS.map(({ key, label }) => (
+        <button
+          key={key}
+          onClick={() => onSelect(key)}
+          aria-current={activeSection === key ? "true" : undefined}
+          className={`text-left text-sm px-3 py-2 rounded-md transition-colors ${activeSection === key ? "bg-secondary text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"}`}
+        >
+          {label}
+        </button>
+      ))}
+    </nav>
+  );
+}
 
 // A standalone /settings route (outside AppShell's three-column dashboard
 // chrome, same treatment ChatPage gets) — a persistent section-nav sidebar
@@ -69,9 +91,20 @@ export default function SettingsPage() {
     sectionRefs.current[key]?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  // Same reasoning as AppShell.jsx's mobile drawers and ChatPage.jsx's own
+  // copy of this pattern: below md the aside never docks, and the drawer's
+  // open state is page-local/non-persisted rather than reusing isSidebarOpen.
+  const isMobile = useIsMobile();
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+
+  const selectSectionMobile = (key) => {
+    scrollToSection(key);
+    setIsMobileDrawerOpen(false);
+  };
+
   return (
     <div className="h-full flex overflow-hidden gap-3 px-3 pb-3">
-      {isSidebarOpen && (
+      {!isMobile && isSidebarOpen && (
         <aside className="text-sidebar-foreground w-56 shrink-0 overflow-hidden rounded-2xl bg-sidebar shadow-xl flex flex-col">
           <div className="h-14 shrink-0 flex items-center justify-between pl-4 pr-3">
             <p className="text-sm font-semibold text-foreground truncate">Sections</p>
@@ -83,26 +116,26 @@ export default function SettingsPage() {
               <PanelLeftClose className="w-4 h-4" />
             </button>
           </div>
-          <nav className="flex-1 min-h-0 overflow-y-auto p-2 flex flex-col gap-0.5">
-            {SECTIONS.map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => scrollToSection(key)}
-                aria-current={activeSection === key ? "true" : undefined}
-                className={`text-left text-sm px-3 py-2 rounded-md transition-colors ${activeSection === key ? "bg-secondary text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"}`}
-              >
-                {label}
-              </button>
-            ))}
-          </nav>
+          <SectionNavContent activeSection={activeSection} onSelect={scrollToSection} />
         </aside>
+      )}
+
+      {isMobile && (
+        <MobileSidebarDrawer
+          isOpen={isMobileDrawerOpen}
+          onClose={() => setIsMobileDrawerOpen(false)}
+          label="Sections"
+          side="left"
+        >
+          <SectionNavContent activeSection={activeSection} onSelect={selectSectionMobile} />
+        </MobileSidebarDrawer>
       )}
 
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         <div className="h-14 shrink-0 flex items-center gap-3 px-4">
-          {!isSidebarOpen && (
+          {(isMobile || !isSidebarOpen) && (
             <button
-              onClick={toggleSidebar}
+              onClick={() => (isMobile ? setIsMobileDrawerOpen(true) : toggleSidebar())}
               aria-label="Expand settings sections panel"
               className="text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 -ml-1.5 rounded-md transition-colors shrink-0"
             >

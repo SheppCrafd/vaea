@@ -8,9 +8,11 @@ import ArchivePanel from "@/components/archive/ArchivePanel";
 import FilterModal from "@/components/modals/FilterModal";
 import Avatar from "@/components/shared/Avatar";
 import { useGlobalDragEnd } from "@/hooks/useGlobalDragEnd";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { useAppStore } from "@/lib/store";
 import { useCardView } from "@/lib/CardViewContext";
 import ChatLauncherButton from "@/components/ai/ChatLauncherButton";
+import MobileSidebarDrawer from "@/components/shared/MobileSidebarDrawer";
 
 // Code-split, like /chat and /settings already are (see App.jsx) — ChatBox
 // pulls in react-markdown (message rendering) and its own session/action
@@ -59,6 +61,16 @@ export default function AppShell({ children }) {
   const handleDragEnd = useGlobalDragEnd();
   const { cardView, setCardView } = useCardView();
 
+  // Below md, the grid stops reserving space for either sidebar regardless
+  // of the desktop-persisted isLeftSidebarOpen/isRightSidebarOpen — a 280px+
+  // 320px sidebar pair alone exceeds any phone viewport. Mobile gets its own
+  // page-local, non-persisted drawer state instead (below), so a returning
+  // mobile visitor never has a full-screen drawer force itself open just
+  // because a previous desktop session left a sidebar open.
+  const isMobile = useIsMobile();
+  const [isMobileLeftDrawerOpen, setIsMobileLeftDrawerOpen] = useState(false);
+  const [isMobileRightDrawerOpen, setIsMobileRightDrawerOpen] = useState(false);
+
   return (
     <DndContext
       // pointerWithin, not closestCenter: Area cards are now real drop
@@ -90,14 +102,16 @@ export default function AppShell({ children }) {
         className="h-full grid overflow-hidden gap-3 px-3 pb-3 transition-[grid-template-columns] duration-200 ease-in-out"
         style={{
           gridTemplateAreas: `"leftsidebar main sidebar"`,
-          gridTemplateColumns: `${isLeftSidebarOpen ? "280px" : "0px"} 1fr ${isRightSidebarOpen ? "320px" : "0px"}`,
+          gridTemplateColumns: isMobile
+            ? "0px 1fr 0px"
+            : `${isLeftSidebarOpen ? "280px" : "0px"} 1fr ${isRightSidebarOpen ? "320px" : "0px"}`,
         }}
       >
         {/* text-foreground re-resolves inherited `color` against the dark
             token scope — without it, unclassed text inside inherits the
             page's light-mode color and vanishes on the dark panel. */}
-        <aside style={{ gridArea: "leftsidebar" }} className={`text-sidebar-foreground overflow-hidden rounded-2xl flex flex-col ${isLeftSidebarOpen ? "bg-sidebar shadow-xl" : ""}`}>
-          {isLeftSidebarOpen && (
+        <aside style={{ gridArea: "leftsidebar" }} className={`text-sidebar-foreground overflow-hidden rounded-2xl flex flex-col ${!isMobile && isLeftSidebarOpen ? "bg-sidebar shadow-xl" : ""}`}>
+          {!isMobile && isLeftSidebarOpen && (
             <>
               <div className="h-14 shrink-0 flex items-center justify-between pl-4 pr-3">
                 <p className="text-sm font-semibold text-foreground truncate">Stakeholders</p>
@@ -124,9 +138,9 @@ export default function AppShell({ children }) {
               sits boxed inside the dashboard's own floating-panel canvas
               rather than running full-bleed edge to edge. */}
           <div className="h-14 shrink-0 flex items-center gap-2 px-3 mb-2 rounded-2xl bg-background/70 supports-[backdrop-filter]:bg-background/55 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_1px_0_0_hsl(var(--foreground)/0.06),0_16px_32px_-24px_hsl(200_30%_12%/0.3)] dark:shadow-[0_1px_0_0_hsl(var(--foreground)/0.08),0_0_24px_-8px_hsl(var(--foreground)/0.10)]">
-            {!isLeftSidebarOpen && (
+            {(isMobile || !isLeftSidebarOpen) && (
               <button
-                onClick={toggleLeftSidebar}
+                onClick={() => (isMobile ? setIsMobileLeftDrawerOpen(true) : toggleLeftSidebar())}
                 aria-label="Expand stakeholders panel"
                 className="text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 -ml-1.5 rounded-md transition-colors shrink-0"
               >
@@ -156,9 +170,9 @@ export default function AppShell({ children }) {
                 Full Cards
               </button>
             </div>
-            {!isRightSidebarOpen && (
+            {(isMobile || !isRightSidebarOpen) && (
               <button
-                onClick={toggleRightSidebar}
+                onClick={() => (isMobile ? setIsMobileRightDrawerOpen(true) : toggleRightSidebar())}
                 aria-label="Expand focus panel"
                 className="ml-auto text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 rounded-md transition-colors shrink-0"
               >
@@ -173,8 +187,8 @@ export default function AppShell({ children }) {
 
         {/* Same treatment as the left rail (and Chat/Settings' rails) — all
             four side panels share one token-driven surface. */}
-        <aside style={{ gridArea: "sidebar" }} className={`text-sidebar-foreground overflow-hidden rounded-2xl flex flex-col ${isRightSidebarOpen ? "bg-sidebar shadow-xl" : ""}`}>
-          {isRightSidebarOpen && (
+        <aside style={{ gridArea: "sidebar" }} className={`text-sidebar-foreground overflow-hidden rounded-2xl flex flex-col ${!isMobile && isRightSidebarOpen ? "bg-sidebar shadow-xl" : ""}`}>
+          {!isMobile && isRightSidebarOpen && (
             <>
               <div className="h-14 shrink-0 flex items-center justify-between pl-3 pr-4">
                 <button
@@ -192,6 +206,30 @@ export default function AppShell({ children }) {
             </>
           )}
         </aside>
+
+        {/* Mobile-only drawer equivalents of the two docked panels above —
+            same inner content components (LeftSidebar/Sidebar), just
+            portaled as an overlay instead of taking a grid column. */}
+        {isMobile && (
+          <>
+            <MobileSidebarDrawer
+              isOpen={isMobileLeftDrawerOpen}
+              onClose={() => setIsMobileLeftDrawerOpen(false)}
+              label="Stakeholders"
+              side="left"
+            >
+              <LeftSidebar />
+            </MobileSidebarDrawer>
+            <MobileSidebarDrawer
+              isOpen={isMobileRightDrawerOpen}
+              onClose={() => setIsMobileRightDrawerOpen(false)}
+              label="Focus & Stats"
+              side="right"
+            >
+              <Sidebar />
+            </MobileSidebarDrawer>
+          </>
+        )}
 
         {isChatMounted ? (
           <Suspense fallback={null}>
