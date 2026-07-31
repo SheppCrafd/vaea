@@ -7,6 +7,8 @@ import { useCreateProject } from "@/hooks/useProjects";
 import { useStakeholders } from "@/hooks/useStakeholders";
 import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
 import DateField from "@/components/shared/DateField";
+import FormField from "@/components/shared/FormField";
+import EntitySelect from "@/components/shared/EntitySelect";
 
 export default function ProjectForm({ onDone }) {
   const [title, setTitle] = useState("");
@@ -42,57 +44,50 @@ export default function ProjectForm({ onDone }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label htmlFor="project-area" className="text-sm font-medium block mb-1">Area</label>
-        <select
+      <FormField label="Area" htmlFor="project-area">
+        <EntitySelect
           id="project-area"
           value={areaId}
           onChange={(e) => { setAreaId(e.target.value); setProductId(""); }}
-          className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md"
-        >
-          <option value="">Select an area...</option>
-          {areas.map((a) => <option key={a.id} value={a.id}>{a.title}</option>)}
-        </select>
-      </div>
-      <div>
-        <label htmlFor="project-product" className="text-sm font-medium block mb-1">Product (optional — leave blank for standalone)</label>
-        <select
+          placeholder="Select an area..."
+          options={areas.map((a) => ({ value: a.id, label: a.title }))}
+        />
+      </FormField>
+      <FormField label="Product (optional — leave blank for standalone)" htmlFor="project-product">
+        <EntitySelect
           id="project-product"
           value={productId}
           onChange={(e) => setProductId(e.target.value)}
-          className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md"
           disabled={!areaId}
-        >
-          <option value="">No product (standalone)</option>
-          {availableProducts.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
-        </select>
-      </div>
-      <div>
-        <label htmlFor="project-title" className="text-sm font-medium block mb-1">Project title</label>
+          placeholder="No product (standalone)"
+          options={availableProducts.map((p) => ({ value: p.id, label: p.title }))}
+        />
+      </FormField>
+      <FormField label="Project title" htmlFor="project-title">
         <Input id="project-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Admin Tasks" autoFocus />
-      </div>
-      <div>
-        <label htmlFor="project-objective" className="text-sm font-medium block mb-1">Objective (optional)</label>
+      </FormField>
+      <FormField label="Objective (optional)" htmlFor="project-objective">
         <Input id="project-objective" value={objective} onChange={(e) => setObjective(e.target.value)} placeholder="What this project delivers" />
-      </div>
+      </FormField>
       <div className="flex gap-3">
         <div className="flex-1">
-          <label htmlFor="project-owner" className="text-sm font-medium block mb-1">Owner (optional)</label>
-          <Input id="project-owner" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} placeholder="e.g. Jordan" />
+          <FormField label="Owner (optional)" htmlFor="project-owner">
+            <Input id="project-owner" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} placeholder="e.g. Jordan" />
+          </FormField>
         </div>
         <div className="flex-1">
-          <label htmlFor="project-due-date" className="text-sm font-medium block mb-1">Due date (optional)</label>
-          <DateField id="project-due-date" value={dueDate} onSave={(v) => setDueDate(v || "")} className="w-full" />
+          <FormField label="Due date (optional)" htmlFor="project-due-date">
+            <DateField id="project-due-date" value={dueDate} onSave={(v) => setDueDate(v || "")} className="w-full" />
+          </FormField>
         </div>
       </div>
-      <div>
-        <label className="text-sm font-medium block mb-1">Stakeholders (optional)</label>
+      <FormField label="Stakeholders (optional)">
         <StakeholderAssigner
           currentStakeholderIds={stakeholderIds}
           allStakeholders={allStakeholders}
           onSave={setStakeholderIds}
         />
-      </div>
+      </FormField>
       <Button type="submit" className="w-full" disabled={!areaId || !title.trim()}>Create Project</Button>
     </form>
   );

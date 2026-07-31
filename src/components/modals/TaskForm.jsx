@@ -6,6 +6,8 @@ import { useCreateTask } from "@/hooks/useTasks";
 import { useStakeholders } from "@/hooks/useStakeholders";
 import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
 import QuadrantOptions from "@/components/shared/QuadrantOptions";
+import FormField from "@/components/shared/FormField";
+import EntitySelect from "@/components/shared/EntitySelect";
 
 export default function TaskForm({ onDone }) {
   const [description, setDescription] = useState("");
@@ -28,43 +30,30 @@ export default function TaskForm({ onDone }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label htmlFor="task-project" className="text-sm font-medium block mb-1">Project</label>
-        <select
+      <FormField label="Project" htmlFor="task-project">
+        <EntitySelect
           id="task-project"
           value={projectId}
           onChange={(e) => setProjectId(e.target.value)}
-          className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md"
-        >
-          <option value="">Select a project...</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>{p.title}</option>
-          ))}
-        </select>
-      </div>
-      <div>
-        <label htmlFor="task-description" className="text-sm font-medium block mb-1">Task description</label>
+          placeholder="Select a project..."
+          options={projects.map((p) => ({ value: p.id, label: p.title }))}
+        />
+      </FormField>
+      <FormField label="Task description" htmlFor="task-description">
         <Input id="task-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. Write API docs" autoFocus />
-      </div>
-      <div>
-        <label htmlFor="task-quadrant" className="text-sm font-medium block mb-1">Quadrant (optional)</label>
-        <select
-          id="task-quadrant"
-          value={quadrant}
-          onChange={(e) => setQuadrant(e.target.value)}
-          className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md"
-        >
+      </FormField>
+      <FormField label="Quadrant (optional)" htmlFor="task-quadrant">
+        <EntitySelect id="task-quadrant" value={quadrant} onChange={(e) => setQuadrant(e.target.value)}>
           <QuadrantOptions />
-        </select>
-      </div>
-      <div>
-        <label className="text-sm font-medium block mb-1">Stakeholders (optional)</label>
+        </EntitySelect>
+      </FormField>
+      <FormField label="Stakeholders (optional)">
         <StakeholderAssigner
           currentStakeholderIds={stakeholderIds}
           allStakeholders={allStakeholders}
           onSave={setStakeholderIds}
         />
-      </div>
+      </FormField>
       <Button type="submit" className="w-full" disabled={!projectId || !description.trim()}>Add Task</Button>
     </form>
   );
