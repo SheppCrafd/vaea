@@ -13,7 +13,8 @@ import TaskAttachments from "@/components/projects/TaskAttachments";
 import EditableText from "@/components/shared/EditableText";
 import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
 import ColumnFilterMenu from "@/components/shared/ColumnFilterMenu";
-import QuadrantOptions from "@/components/shared/QuadrantOptions";
+import QuadrantSelect from "@/components/shared/QuadrantSelect";
+import FlagToggleButton from "@/components/shared/FlagToggleButton";
 
 const MAX_ROWS = 20;
 const QUADRANT_OPTIONS = [
@@ -125,30 +126,28 @@ function TaskRow({ task, allStakeholders, isMatched, updateTask, onToggleTopThre
             {task.is_highly_important ? "H" : ""}
             {task.is_quick_task ? "Q" : ""}
           </span>
-          <select
+          <QuadrantSelect
             value={task.quadrant ?? ""}
-            onChange={(e) => updateTask.mutate({ id: task.id, data: { quadrant: e.target.value === "" ? null : Number(e.target.value) } })}
-            className="text-[10px] bg-transparent border border-border rounded px-1 py-0.5"
-            aria-label={`Quadrant for task ${task.id}`}
-          >
-            <QuadrantOptions />
-          </select>
-          <button
-            onClick={() => updateTask.mutate({ id: task.id, data: { is_highly_important: !task.is_highly_important } })}
-            aria-label="Toggle highly important"
+            onChange={(v) => updateTask.mutate({ id: task.id, data: { quadrant: v === "" ? null : Number(v) } })}
+            className="bg-transparent"
+            ariaLabel={`Quadrant for task ${task.id}`}
+          />
+          <FlagToggleButton
+            active={task.is_highly_important}
+            onToggle={() => updateTask.mutate({ id: task.id, data: { is_highly_important: !task.is_highly_important } })}
+            label="H"
             title="Highly important"
-            className={`w-4 h-4 text-[9px] font-bold rounded border ${task.is_highly_important ? "bg-red-500 text-white border-red-500" : "text-muted-foreground border-border"}`}
-          >
-            H
-          </button>
-          <button
-            onClick={() => updateTask.mutate({ id: task.id, data: { is_quick_task: !task.is_quick_task } })}
-            aria-label="Toggle quick task"
+            ariaLabel="Toggle highly important"
+            color="red"
+          />
+          <FlagToggleButton
+            active={task.is_quick_task}
+            onToggle={() => updateTask.mutate({ id: task.id, data: { is_quick_task: !task.is_quick_task } })}
+            label="Q"
             title="Quick task"
-            className={`w-4 h-4 text-[9px] font-bold rounded border ${task.is_quick_task ? "bg-blue-500 text-white border-blue-500" : "text-muted-foreground border-border"}`}
-          >
-            Q
-          </button>
+            ariaLabel="Toggle quick task"
+            color="blue"
+          />
         </div>
       </td>
       <td className="p-2 whitespace-nowrap">
@@ -432,34 +431,28 @@ export default function TaskTable({ project }) {
             </td>
             <td className="p-2">
               <div className="flex items-center gap-1">
-                <select
+                <QuadrantSelect
                   value={newQuadrant}
-                  onChange={(e) => setNewQuadrant(e.target.value)}
-                  className="text-[10px] bg-background border border-border rounded px-1 py-0.5"
-                  aria-label="Quadrant for new task"
-                >
-                  <QuadrantOptions />
-                </select>
-                <button
-                  type="button"
-                  onClick={() => setNewHighlyImportant((v) => !v)}
-                  aria-label="Highly important for new task"
-                  aria-pressed={newHighlyImportant}
+                  onChange={setNewQuadrant}
+                  className="bg-background"
+                  ariaLabel="Quadrant for new task"
+                />
+                <FlagToggleButton
+                  active={newHighlyImportant}
+                  onToggle={() => setNewHighlyImportant((v) => !v)}
+                  label="H"
                   title="Highly important"
-                  className={`w-4 h-4 text-[9px] font-bold rounded border ${newHighlyImportant ? "bg-red-500 text-white border-red-500" : "text-muted-foreground border-border"}`}
-                >
-                  H
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setNewQuickTask((v) => !v)}
-                  aria-label="Quick task for new task"
-                  aria-pressed={newQuickTask}
+                  ariaLabel="Highly important for new task"
+                  color="red"
+                />
+                <FlagToggleButton
+                  active={newQuickTask}
+                  onToggle={() => setNewQuickTask((v) => !v)}
+                  label="Q"
                   title="Quick task"
-                  className={`w-4 h-4 text-[9px] font-bold rounded border ${newQuickTask ? "bg-blue-500 text-white border-blue-500" : "text-muted-foreground border-border"}`}
-                >
-                  Q
-                </button>
+                  ariaLabel="Quick task for new task"
+                  color="blue"
+                />
               </div>
             </td>
             <td className="p-2 whitespace-nowrap">

@@ -6,7 +6,7 @@ import StatusDropdown from "@/components/projects/StatusDropdown";
 import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
 import TaskAttachments from "@/components/projects/TaskAttachments";
 import EditableText from "@/components/shared/EditableText";
-import QuadrantOptions from "@/components/shared/QuadrantOptions";
+import QuadrantSelect from "@/components/shared/QuadrantSelect";
 
 // A project's archived tasks — a secondary, occasionally-visited view, but
 // per spec "archived objects can be edited just like active objects", so
@@ -57,14 +57,12 @@ export default function ArchivedTaskList({ projectId }) {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <StatusDropdown task={task} onStatusChange={(status) => updateTask.mutate({ id: task.id, data: { status } })} />
-            <select
+            <QuadrantSelect
               value={task.quadrant ?? ""}
-              onChange={(e) => updateTask.mutate({ id: task.id, data: { quadrant: e.target.value === "" ? null : Number(e.target.value) } })}
-              className="text-[10px] bg-transparent border border-border rounded px-1 py-0.5"
-              aria-label={`Quadrant for task ${task.id}`}
-            >
-              <QuadrantOptions />
-            </select>
+              onChange={(v) => updateTask.mutate({ id: task.id, data: { quadrant: v === "" ? null : Number(v) } })}
+              className="bg-transparent"
+              ariaLabel={`Quadrant for task ${task.id}`}
+            />
             <StakeholderAssigner
               currentStakeholderIds={task.stakeholder_ids || []}
               allStakeholders={allStakeholders}
