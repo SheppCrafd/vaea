@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Search, X, LayoutDashboard, MessageCircle, Settings as SettingsIcon } from "lucide-react";
+import { Search, X, Menu, LayoutDashboard, MessageCircle, Settings as SettingsIcon } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import UserMenu from "@/components/layout/UserMenu";
 
@@ -21,6 +21,7 @@ const TABS = [
 export default function Header() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const openCommandPalette = useAppStore((s) => s.openCommandPalette);
   const openTabKeys = useAppStore((s) => s.openTabKeys);
@@ -34,6 +35,14 @@ export default function Header() {
     const match = TABS.find((t) => t.isActive(location.pathname));
     if (match) ensureTabOpen(match.key);
   }, [location.pathname, ensureTabOpen]);
+
+  // Below md, the header collapses to logo + this one hamburger — the tab
+  // nav's own browser-tab metaphor (close buttons, only-open-tabs-shown)
+  // doesn't translate to a cramped dropdown, so the mobile menu just lists
+  // all three destinations plainly instead of mirroring openTabs/closeTab.
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
 
   const openTabs = TABS.filter((t) => openTabKeys.includes(t.key));
 
@@ -94,17 +103,67 @@ export default function Header() {
         </nav>
       </div>
       <div className="flex items-center gap-2">
+        {/* Same md threshold as the tab nav above — one control shows search
+            at a time: this pill at md+, the hamburger's own Search row below
+            it. Used to be `sm:flex`, independent of the tab nav's own `md`
+            cutoff, which left a 640-767px sliver showing both this pill and
+            (once the hamburger existed) its Search row redundantly. */}
         <button
           onClick={openCommandPalette}
           aria-label="Search everything"
-          className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground px-4 py-1.5 rounded-full bg-card/70 shadow-[0_0_0_1px_hsl(var(--foreground)/0.05),0_1px_2px_0_hsl(200_30%_12%/0.06)] hover:text-foreground hover:bg-card transition-colors"
+          className="hidden md:flex items-center gap-2 text-sm text-muted-foreground px-4 py-1.5 rounded-full bg-card/70 shadow-[0_0_0_1px_hsl(var(--foreground)/0.05),0_1px_2px_0_hsl(200_30%_12%/0.06)] hover:text-foreground hover:bg-card transition-colors"
         >
           <Search className="w-3.5 h-3.5" />
           Search
           <kbd className="text-[10px] font-mono bg-muted/80 rounded-md px-1.5 py-0.5">/</kbd>
         </button>
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen((v) => !v)}
+          aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+          aria-expanded={mobileMenuOpen}
+          aria-controls="mobile-nav-menu"
+          className="md:hidden flex items-center justify-center w-9 h-9 rounded-full bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+        >
+          {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+        </button>
         <UserMenu />
       </div>
+
+      {/* Below md, the whole tab nav + search pill above are hidden — this
+          is their one shared replacement, same frosted-panel treatment as
+          the header itself, anchored right under it. All three destinations
+          always listed (not just openTabs) — see the comment on
+          mobileMenuOpen's effect above for why. */}
+      {mobileMenuOpen && (
+        <nav
+          id="mobile-nav-menu"
+          className="md:hidden absolute top-16 inset-x-0 z-20 bg-background/95 backdrop-blur-2xl shadow-[inset_0_1px_0_0_hsl(var(--foreground)/0.06),0_16px_32px_-24px_hsl(200_30%_12%/0.3)] px-4 py-3 flex flex-col gap-1"
+        >
+          <button
+            type="button"
+            onClick={() => { openCommandPalette(); setMobileMenuOpen(false); }}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground px-3 py-2.5 rounded-lg hover:bg-card transition-colors text-left"
+          >
+            <Search className="w-4 h-4" />
+            Search
+          </button>
+          {TABS.map(({ key, label, to, Icon, isActive }) => {
+            const active = isActive(location.pathname);
+            return (
+              <Link
+                key={key}
+                to={to}
+                aria-current={active ? "page" : undefined}
+                className={`flex items-center gap-2 text-sm px-3 py-2.5 rounded-lg transition-colors ${active ? "bg-card text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-card/60"}`}
+              >
+                <Icon className="w-4 h-4" />
+                {label}
+              </Link>
+            );
+          })}
+        </nav>
+      )}
     </header>
   );
 }
