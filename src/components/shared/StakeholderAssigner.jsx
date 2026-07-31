@@ -73,6 +73,7 @@ export default function StakeholderAssigner({
         )}
         selectedIds={currentStakeholderIds}
         onSave={onSave}
+        emptyMessage="No stakeholders yet — add one from the Stakeholders panel."
       />
     </>
   );

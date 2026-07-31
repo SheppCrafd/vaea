@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Search, X, Menu, LayoutDashboard, MessageCircle, Settings as SettingsIcon } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import UserMenu from "@/components/layout/UserMenu";
+import Modal from "@/components/shared/Modal";
 
 const TABS = [
   { key: "dashboard", label: "Dashboard", to: "/app", Icon: LayoutDashboard, isActive: (path) => path === "/app" },
@@ -122,7 +123,6 @@ export default function Header() {
           onClick={() => setMobileMenuOpen((v) => !v)}
           aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
           aria-expanded={mobileMenuOpen}
-          aria-controls="mobile-nav-menu"
           className="md:hidden flex items-center justify-center w-9 h-9 rounded-full bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
         >
           {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
@@ -134,36 +134,45 @@ export default function Header() {
           is their one shared replacement, same frosted-panel treatment as
           the header itself, anchored right under it. All three destinations
           always listed (not just openTabs) — see the comment on
-          mobileMenuOpen's effect above for why. */}
-      {mobileMenuOpen && (
-        <nav
-          id="mobile-nav-menu"
-          className="md:hidden absolute top-16 inset-x-0 z-20 bg-background/95 backdrop-blur-2xl shadow-[inset_0_1px_0_0_hsl(var(--foreground)/0.06),0_16px_32px_-24px_hsl(200_30%_12%/0.3)] px-4 py-3 flex flex-col gap-1"
+          mobileMenuOpen's effect above for why.
+          Built on Modal.jsx/useDialogA11y (same infra MobileSidebarDrawer
+          uses), not a bare div — every other menu in the app gets outside-
+          click-close, Escape-close, and a focus trap for free from shared
+          infrastructure; this one used to hand-roll none of it. The overlay
+          is transparent (`top-16`, not `inset-0` — starts below the header
+          instead of covering it, so the hamburger button that toggles this
+          stays clickable) and exists only to catch the outside click; the
+          panel carries all the actual visual chrome. */}
+      <Modal
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        label="Navigation menu"
+        overlayClassName="md:hidden fixed inset-x-0 top-16 bottom-0 z-20"
+        panelClassName="md:hidden absolute top-0 inset-x-0 bg-background/95 backdrop-blur-2xl shadow-[inset_0_1px_0_0_hsl(var(--foreground)/0.06),0_16px_32px_-24px_hsl(200_30%_12%/0.3)] px-4 py-3 flex flex-col gap-1 outline-none"
+      >
+        <button
+          type="button"
+          onClick={() => { openCommandPalette(); setMobileMenuOpen(false); }}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground px-3 py-2.5 rounded-lg hover:bg-card transition-colors text-left"
         >
-          <button
-            type="button"
-            onClick={() => { openCommandPalette(); setMobileMenuOpen(false); }}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground px-3 py-2.5 rounded-lg hover:bg-card transition-colors text-left"
-          >
-            <Search className="w-4 h-4" />
-            Search
-          </button>
-          {TABS.map(({ key, label, to, Icon, isActive }) => {
-            const active = isActive(location.pathname);
-            return (
-              <Link
-                key={key}
-                to={to}
-                aria-current={active ? "page" : undefined}
-                className={`flex items-center gap-2 text-sm px-3 py-2.5 rounded-lg transition-colors ${active ? "bg-card text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-card/60"}`}
-              >
-                <Icon className="w-4 h-4" />
-                {label}
-              </Link>
-            );
-          })}
-        </nav>
-      )}
+          <Search className="w-4 h-4" />
+          Search
+        </button>
+        {TABS.map(({ key, label, to, Icon, isActive }) => {
+          const active = isActive(location.pathname);
+          return (
+            <Link
+              key={key}
+              to={to}
+              aria-current={active ? "page" : undefined}
+              className={`flex items-center gap-2 text-sm px-3 py-2.5 rounded-lg transition-colors ${active ? "bg-card text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-card/60"}`}
+            >
+              <Icon className="w-4 h-4" />
+              {label}
+            </Link>
+          );
+        })}
+      </Modal>
     </header>
   );
 }
