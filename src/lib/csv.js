@@ -53,10 +53,18 @@ export function parseCsv(text) {
 
 function csvEscape(value) {
   const str = value === null || value === undefined ? "" : String(value);
-  if (/[",\n\r]/.test(str)) {
-    return `"${str.replace(/"/g, '""')}"`;
+  // Formula/CSV injection (CWE-1236): a cell starting with =, +, -, @, tab,
+  // or CR is treated as an executable formula by Excel/Sheets/LibreOffice
+  // when the file is opened — an entirely ordinary user-typed title like
+  // "-5% budget cut" or "=review by Friday" would otherwise round-trip
+  // straight into a live formula in whatever this gets exported to. A
+  // leading "'" is the standard mitigation: every one of those apps
+  // renders it as inert text (and doesn't display the quote itself).
+  const safe = /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
+  if (/[",\n\r]/.test(safe)) {
+    return `"${safe.replace(/"/g, '""')}"`;
   }
-  return str;
+  return safe;
 }
 
 export function toCsv(headers, records) {

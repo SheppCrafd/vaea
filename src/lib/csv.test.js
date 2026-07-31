@@ -64,6 +64,31 @@ describe("toCsv", () => {
     const csv = toCsv(["a", "b"], [{ a: "1", b: "2" }]);
     expect(csv).toBe("a,b\r\n1,2");
   });
+
+  it("neutralizes a leading =, +, -, @, tab, or CR to prevent formula/CSV injection", () => {
+    const headers = ["title"];
+    const leading = ["=SUM(A1)", "+1+1", "-5% budget cut", "@import", "\tHIDDEN", "\rHIDDEN"];
+    for (const value of leading) {
+      const csv = toCsv(headers, [{ title: value }]);
+      const cell = csv.split("\r\n")[1];
+      // A quoted-and-escaped cell (tab/CR force quoting) still has the
+      // neutralizing "'" right after the opening quote; an unquoted one
+      // has it right at the start of the line.
+      const bareValue = cell.startsWith('"') ? cell.slice(1) : cell;
+      expect(bareValue.startsWith("'")).toBe(true);
+    }
+  });
+
+  it("does not prefix an ordinary value that merely contains (not starts with) a trigger character", () => {
+    const csv = toCsv(["title"], [{ title: "Q3 = growth" }]);
+    expect(csv).toBe("title\r\nQ3 = growth");
+  });
+
+  it("round-trips a neutralized formula-looking value back through parseCsv unchanged from what was written", () => {
+    const csv = toCsv(["title"], [{ title: "=HYPERLINK(\"http://evil.com\")" }]);
+    const { records } = parseCsv(csv);
+    expect(records[0].title.startsWith("'=")).toBe(true);
+  });
 });
 
 describe("buildHierarchyPlan", () => {
