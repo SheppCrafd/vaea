@@ -148,8 +148,18 @@ function githubHeaders(token, extra) {
   };
 }
 
+// Rejects '.', '..', and empty segments before they ever reach GitHub's
+// Contents API. Not a fix for an actual traversal bug — the API resolves
+// paths within the repo the token is already scoped to, not a filesystem,
+// so '..' can't escape the vault repo today — but it's a cheap
+// defense-in-depth guard against the model constructing a path that
+// resolves somewhere the user didn't ask it to look inside that repo.
 function encodeRepoPath(path) {
-  return path.split('/').map(encodeURIComponent).join('/');
+  const segments = path.split('/');
+  if (segments.some((s) => s === '' || s === '.' || s === '..')) {
+    throw new Error(`Invalid vault path "${path}"`);
+  }
+  return segments.map(encodeURIComponent).join('/');
 }
 
 // atob/btoa (both available in Deno) only handle Latin1 — this decodes

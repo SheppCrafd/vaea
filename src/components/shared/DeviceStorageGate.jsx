@@ -26,6 +26,7 @@ import { readLegacyLocalStorageIdentity, clearLegacyLocalStorageIdentity, AI_IDE
 import {
   readLegacyLocalStorageVaultConnection,
   clearLegacyLocalStorageVaultConnection,
+  migrateLegacyVaultConnectionIfPresent,
   VAULT_CONNECTION_KEY,
 } from "@/lib/vaultConnection";
 
@@ -87,6 +88,8 @@ export default function DeviceStorageGate({ children }) {
         if (cancelled) return;
         if (deviceStatus === "connected" || deviceStatus === "manual-ready") {
           setStorageMode("device");
+          await migrateLegacyVaultConnectionIfPresent();
+          if (cancelled) return;
           setPhase("ready");
           return;
         }
@@ -96,6 +99,8 @@ export default function DeviceStorageGate({ children }) {
       const status = await getStatus();
       if (cancelled) return;
       if (status === "cloud-connected" || status === "connected" || status === "manual-ready") {
+        await migrateLegacyVaultConnectionIfPresent();
+        if (cancelled) return;
         setPhase("ready");
         return;
       }

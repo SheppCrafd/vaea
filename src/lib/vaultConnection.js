@@ -68,3 +68,19 @@ export function clearLegacyLocalStorageVaultConnection() {
     // best-effort
   }
 }
+
+// DeviceStorageGate only ever called the two functions above from its
+// first-connection flow (finishConnecting/handleChooseCloud) — every return
+// visit for an already-connected user takes an early "status is already
+// connected" path straight to phase "ready", which never touched this at
+// all. For anyone who connected device storage before this migration
+// existed, that meant a plaintext GitHub token could sit in localStorage
+// indefinitely, since the one-time carry-forward that was supposed to
+// clear it never actually ran for them. Exported so DeviceStorageGate can
+// call it from those early-return paths too, not just first-connection.
+export async function migrateLegacyVaultConnectionIfPresent() {
+  const legacy = readLegacyLocalStorageVaultConnection();
+  if (!legacy) return;
+  await writeKey(VAULT_CONNECTION_KEY, legacy);
+  clearLegacyLocalStorageVaultConnection();
+}
