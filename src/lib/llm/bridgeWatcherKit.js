@@ -499,18 +499,31 @@ Vaea wrote these files the moment you connected this folder:
                          right-click -> Open, since it isn't signed; or run
                          "chmod +x run_watcher.command" once in a terminal)
 
+On a work/managed device, skip the double-click and run it from an
+already-open terminal instead: open Command Prompt/PowerShell (or VS Code's
+own integrated terminal) and type
+  python bridge_watcher.py . --...
+directly. This isn't just a fallback — it's the more reliable way to start
+this on a locked-down machine, since IT policies that block double-clicking
+unsigned .bat/.cmd/.ps1 files from Explorer (Group Policy, AppLocker,
+Windows Defender Application Control) generally don't block typing a
+command into an interpreter that's already trusted and already running.
+If you see "This app can't run on your PC" when you DO double-click
+run_watcher.bat, that's exactly this — not a Vaea bug, not fixable by
+editing the script, and the terminal route above is the fix. If the device
+can't even do that, ask IT to allow run_watcher.bat/bridge_watcher.py by
+name (a normal allowlist request, not a workaround).
+
 No Python installed? The launchers check for it themselves and offer to
 install it for you (winget on Windows, Homebrew on Mac) — you'll get a real
 yes/no prompt before anything installs.
 
-"This app can't run on your PC" when you double-click run_watcher.bat? On a
-work/managed device this is almost always Group Policy, AppLocker, or
-Windows Defender Application Control blocking unsigned scripts launched
-from Explorer — not a Vaea bug, and not fixable by editing the script.
-Ask IT to allow it, or open Command Prompt/PowerShell yourself and run
-"python bridge_watcher.py . --..." directly — that's often not caught by
-the same rule, since it targets double-click execution of .bat/.cmd/.ps1
-specifically, not python.exe itself.
+Already have a local model with its own HTTP endpoint (Ollama, LM Studio)?
+The "Local HTTP" provider in Settings -> AI Model skips this folder/script
+setup entirely — Vaea's browser tab calls it directly, so there's no
+separate process for any IT policy to block at all. Worth trying first if
+your device is network-reachable to localhost but this folder-based setup
+keeps hitting policy blocks.
 
 ${statusBlock}
 
@@ -526,7 +539,9 @@ Claude Code, Windsurf, anything with real file read/write tools) and would
 rather hand it one prompt by hand than run a persistent watcher process at
 all? See AGENT_RELAY_INSTRUCTIONS.md, also in this folder — paste something
 like "check backdoor/prompts and answer what's there, per
-AGENT_RELAY_INSTRUCTIONS.md" into it.
+AGENT_RELAY_INSTRUCTIONS.md" into it. Using Claude Code specifically? A real
+Skill is already sitting in .claude/skills/backdoor-relay/ — just type
+"/backdoor-relay" in its chat instead of pasting anything.
 `;
 }
 
@@ -589,5 +604,64 @@ If your agent is Claude Code specifically, bridge_watcher.py's own
 --claude-code mode already does exactly this in a loop — no per-message
 prompting needed. See the full setup guide (Settings -> AI Model -> "Set up
 your local watcher script") for details.
+`;
+}
+
+// A proper Claude Code Skill (.claude/skills/backdoor-relay/SKILL.md) —
+// same steps as AGENT_RELAY_INSTRUCTIONS.md, but discoverable and
+// invocable as "/backdoor-relay" from Claude Code's own chat (CLI sidebar
+// or VS Code extension) instead of having to paste the whole instructions
+// by hand every time. This is specifically for someone using Claude Code
+// interactively (typing in ITS chat, not bridge_watcher.py's automated
+// --claude-code loop, which already needs no per-message trigger at all) —
+// e.g. the "captive AI already open in VS Code" scenario, where re-pasting
+// a full instructions block each turn is the actual friction. Other agents
+// (Copilot Chat, Cursor, Windsurf) don't share Claude Code's skill format,
+// so AGENT_RELAY_INSTRUCTIONS.md stays the plain-language fallback for them
+// — this file is additive, not a replacement.
+export function buildBackdoorSkill() {
+  return `---
+name: backdoor-relay
+description: Answer one pending Vaea Chat message waiting in this folder's backdoor/prompts (or prompts/) directory, using this agent's own real tools, then write the reply where Vaea expects it. Use when the user says something like "check backdoor", "answer the pending prompt", or "run the backdoor relay".
+---
+
+You're answering ONE pending Vaea Chat message on behalf of the user, using
+your own real tools (file read/write, search, etc.) — not by running any
+separate script.
+
+1. List files in prompts/ in this folder (the folder this skill lives
+   under, i.e. the one Vaea's Backdoor Mode is connected to). For each one
+   with no same-named file yet in responses/, it's unanswered — pick the
+   oldest.
+
+2. Read it — JSON shaped like {"round": N, "messages": [...]}. Only round
+   0's file carries "system" and "tools" (identical every round of one
+   turn, written once to keep prompt files small). If this file's round > 0
+   and you don't already have system/tools from earlier in this session,
+   read the matching round 0 file first — check prompts/<same-id>-r0.json,
+   then processed/prompts/<same-id>-r0.json if Vaea already filed it away.
+
+3. The LAST item in "messages" is the actual question to answer right now —
+   treat it exactly as if the user asked you directly in this chat, with
+   "system" as the app's own behavior instructions. Use your own tools
+   freely (reading files, searching the web, planning across multiple
+   steps) to answer it well.
+
+4. Do NOT use your own tools to directly create, edit, or delete anything
+   in the user's Vaea workspace as a way of accomplishing what they asked —
+   the only way to make Vaea actually do something is a "tool_use" block in
+   your JSON reply, using one of the tools listed in "tools" and matching
+   its input_schema exactly. Vaea applies it afterward, with its own
+   confirm-before-destructive step — that gate has to stay real regardless
+   of what answered this prompt.
+
+5. Write your answer to responses/<the exact same filename> as raw JSON:
+   {"content": [...]}, each item either {"type": "text", "text": "..."} or
+   {"type": "tool_use", "id": "toolu_1", "name": "TOOL_NAME", "input": {...}}.
+
+6. Don't delete the prompt file — Vaea moves the pair into processed/ once
+   it reads your answer. If your reply had a tool_use block, Vaea runs it
+   and writes the next round's prompt file; check prompts/ again and repeat
+   from step 1 if a new one appears.
 `;
 }

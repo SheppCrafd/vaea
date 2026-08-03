@@ -80,8 +80,11 @@ export async function runByokChat({ providerConfig, contextArgs, onEvent }) {
       throw new Error("Connect your Backdoor Mode folder in Settings -> AI Model first (or re-grant access if you've already picked one).");
     }
   } else {
-    if (!providerConfig.apiKey) {
+    if (provider.keyRequired !== false && !providerConfig.apiKey) {
       throw new Error(`Add your ${provider.label} API key in Settings -> AI Model first.`);
+    }
+    if (provider.needsBaseUrl && !providerConfig.baseUrl) {
+      throw new Error(`Enter your local server's URL in Settings -> AI Model first.`);
     }
     if (!providerConfig.model) {
       throw new Error(`Pick a ${provider.label} model in Settings -> AI Model first.`);
@@ -118,7 +121,7 @@ export async function runByokChat({ providerConfig, contextArgs, onEvent }) {
     : isLocalBridge
     ? await callLocalBridge({ systemPrompt, contextPrompt, tools: toAnthropicTools(), runTool })
     : await callOpenAiCompatible({
-        baseUrl: provider.baseUrl, apiKey: providerConfig.apiKey, model: providerConfig.model, systemPrompt, contextPrompt,
+        baseUrl: provider.baseUrl || providerConfig.baseUrl, apiKey: providerConfig.apiKey, model: providerConfig.model, systemPrompt, contextPrompt,
         tools: toOpenAiCompatibleTools(), runTool, onEvent, providerId: provider.id,
       });
 

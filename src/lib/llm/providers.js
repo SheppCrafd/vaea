@@ -72,6 +72,28 @@ export const PROVIDERS = {
       { id: "grok-4-fast", label: "Grok 4 Fast" },
     ],
   },
+  // A real HTTP call, same as anthropic/openai/google/xai above — the
+  // difference is baseUrl isn't fixed here, it's typed by the user in
+  // AiModelSection.jsx and carried on providerConfig.baseUrl, because it
+  // points at a server running on THIS device (Ollama, LM Studio, etc.),
+  // not a fixed vendor endpoint. That's also why keyRequired is false:
+  // local servers usually don't check one. Exists specifically for
+  // enterprise-managed machines where Group Policy/AppLocker/WDAC blocks
+  // launching Backdoor Mode's watcher script — a plain fetch() from this
+  // tab to localhost never launches a new process, so that policy never
+  // engages. See byokChat.js's use of `needsBaseUrl`/`keyRequired`.
+  "local-http": {
+    id: "local-http",
+    label: "Local HTTP (Ollama, LM Studio, etc.)",
+    adapter: "openai-compatible",
+    description: "Your own local server, called directly — no script to launch",
+    keyPlaceholder: "optional — only if your server requires one",
+    keyHelpUrl: "",
+    keyRequired: false,
+    needsBaseUrl: true,
+    baseUrl: "",
+    models: [],
+  },
   // No API key, no HTTP call at all — the request/reply round-trip happens
   // through two folders on disk instead (see localBridgeStorage.js /
   // localBridgeAdapter.js), for an enterprise's own on-prem or air-gapped

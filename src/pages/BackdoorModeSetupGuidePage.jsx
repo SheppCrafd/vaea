@@ -59,12 +59,15 @@ const STEPS = [
       <>
         Double-click <span className="font-terminal text-xs text-foreground">run_watcher.bat</span> (Windows) or{" "}
         <span className="font-terminal text-xs text-foreground">run_watcher.command</span> (Mac) inside the
-        connected folder — it starts in test mode until you pick a real one in Settings. Ollama, LM Studio,
-        GPT4All, text-generation-webui, the real Claude API, and a local Claude Code CLI are all built in: pick
-        one from the dropdown, type the model name (Claude Code needs none — it uses whatever session the "claude"
-        CLI is already logged into), and click "Update watcher files" — no script to write yourself. No Python?
-        The launcher checks and offers to install it for you (winget on Windows, Homebrew on Mac) — a real
-        yes/no prompt gates it, nothing installs silently.
+        connected folder — it starts in test mode until you pick a real one in Settings.{" "}
+        <strong className="text-foreground">On a work/managed device, type the command into an already-open
+        terminal instead of double-clicking</strong> (see "Good to know" below) — it's the more reliable path
+        when IT policy blocks launching scripts from Explorer. Ollama, LM Studio, GPT4All, text-generation-webui,
+        the real Claude API, and a local Claude Code CLI are all built in: pick one from the dropdown, type the
+        model name (Claude Code needs none — it uses whatever session the "claude" CLI is already logged into),
+        and click "Update watcher files" — no script to write yourself. No Python? The launcher checks and offers
+        to install it for you (winget on Windows, Homebrew on Mac) — a real yes/no prompt gates it, nothing
+        installs silently.
       </>
     ),
   },
@@ -220,6 +223,18 @@ export default function BackdoorModeSetupGuidePage() {
           </p>
           <TerminalBlock title="terminal" code={`python bridge_watcher.py . --claude-code`} showPrompt={false} />
           <p className="text-sm text-muted-foreground mt-4 mb-4">
+            Rather work in Claude Code's own chat (CLI or the VS Code extension) than run a background process at
+            all? A real <span className="font-terminal text-xs text-foreground">/backdoor-relay</span> Skill is
+            already sitting in{" "}
+            <span className="font-terminal text-xs text-foreground">.claude/skills/backdoor-relay/</span> inside
+            your connected folder — type <span className="font-terminal text-xs text-foreground">/backdoor-relay</span> whenever
+            you want it to check for and answer a pending prompt, using its own file/search tools the same way it
+            would for anything else you ask it. Other agents without a skills system (Copilot Chat, Cursor,
+            Windsurf) can still do the same thing manually — see{" "}
+            <span className="font-terminal text-xs text-foreground">AGENT_RELAY_INSTRUCTIONS.md</span> in the
+            folder.
+          </p>
+          <p className="text-sm text-muted-foreground mt-4 mb-4">
             Already speaking Vaea's own request shape some other way, or want to write your own translation
             layer? <span className="font-terminal text-xs text-foreground">--url</span> forwards raw, or import
             the watcher and supply just the model call:
@@ -230,6 +245,40 @@ export default function BackdoorModeSetupGuidePage() {
         <div className="mt-14 pt-10 border-t border-border">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">Good to know</p>
           <div className="flex flex-col gap-4">
+            <div className="flex items-start gap-3.5 rounded-xl border border-border bg-card p-4">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <TriangleAlert className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="font-heading font-semibold text-sm mb-1">On a managed work device? Start from a terminal, not a double-click</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  "This app can't run on your PC" (especially on Windows 11 Enterprise) is almost always Group
+                  Policy, AppLocker, or Windows Defender Application Control blocking unsigned scripts launched
+                  from Explorer — an IT-configured policy, not a Vaea bug, and nothing here can be fixed by
+                  editing the script's contents. Open Command Prompt/PowerShell yourself (or VS Code's own
+                  integrated terminal, if that's already installed and approved) and run{" "}
+                  <span className="font-terminal text-xs text-foreground">python bridge_watcher.py . --...</span> directly
+                  — typing a command into an already-running, already-trusted interpreter isn't the same action
+                  AppLocker/WDAC is blocking, since that policy specifically targets double-click execution of{" "}
+                  <span className="font-terminal text-xs text-foreground">.bat</span>/
+                  <span className="font-terminal text-xs text-foreground">.cmd</span>/
+                  <span className="font-terminal text-xs text-foreground">.ps1</span> files from Explorer, not{" "}
+                  <span className="font-terminal text-xs text-foreground">python.exe</span> itself run from an
+                  interactive shell. Double-clicking{" "}
+                  <span className="font-terminal text-xs text-foreground">bridge_watcher.py</span> directly usually
+                  won't help either — Windows typically opens{" "}
+                  <span className="font-terminal text-xs text-foreground">.py</span> files in a text editor rather
+                  than running them. If the device can't reach even <span className="font-terminal text-xs text-foreground">localhost</span>{" "}
+                  via a terminal at all, ask IT to allow{" "}
+                  <span className="font-terminal text-xs text-foreground">run_watcher.bat</span>/
+                  <span className="font-terminal text-xs text-foreground">bridge_watcher.py</span> by name — that's
+                  a normal AppLocker/WDAC allowlist request, not a workaround. And if your local model already
+                  exposes an HTTP endpoint (Ollama, LM Studio), the <strong className="text-foreground">Local
+                  HTTP</strong> provider in Settings → AI Model skips this folder/script setup entirely — Vaea's
+                  browser tab calls your model directly, so there's no separate process for policy to block at all.
+                </p>
+              </div>
+            </div>
             <div className="flex items-start gap-3.5 rounded-xl border border-border bg-card p-4">
               <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                 <ShieldCheck className="w-4 h-4 text-primary" />
@@ -251,34 +300,6 @@ export default function BackdoorModeSetupGuidePage() {
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   Web search — running your own model means no hosted search to inherit. Reading attached files
                   and Vaea Vault notes both still work normally.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3.5 rounded-xl border border-border bg-card p-4">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                <TriangleAlert className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <p className="font-heading font-semibold text-sm mb-1">"This app can't run on your PC" when you double-click the launcher</p>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  On a work/managed device (especially Windows 11 Enterprise), this is almost always Group
-                  Policy, AppLocker, or Windows Defender Application Control blocking unsigned scripts launched
-                  from Explorer — an IT-configured policy, not a Vaea bug, and nothing here can be fixed by
-                  editing the script's contents. Two things to try: ask IT to allow{" "}
-                  <span className="font-terminal text-xs text-foreground">run_watcher.bat</span>/
-                  <span className="font-terminal text-xs text-foreground">bridge_watcher.py</span>, or open Command
-                  Prompt/PowerShell yourself (already-signed, generally always allowed to launch) and run the{" "}
-                  <span className="font-terminal text-xs text-foreground">python bridge_watcher.py . --...</span> command
-                  directly — that often isn't caught by the same rule, since it's a policy specifically targeting
-                  double-click execution of{" "}
-                  <span className="font-terminal text-xs text-foreground">.bat</span>/
-                  <span className="font-terminal text-xs text-foreground">.cmd</span>/
-                  <span className="font-terminal text-xs text-foreground">.ps1</span> files, not{" "}
-                  <span className="font-terminal text-xs text-foreground">python.exe</span> itself. Double-clicking{" "}
-                  <span className="font-terminal text-xs text-foreground">bridge_watcher.py</span> directly usually
-                  won't help on its own — Windows typically opens{" "}
-                  <span className="font-terminal text-xs text-foreground">.py</span> files in a text editor rather
-                  than running them, unless Python's installer specifically registered it to execute.
                 </p>
               </div>
             </div>

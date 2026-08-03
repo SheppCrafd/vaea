@@ -6,6 +6,7 @@
 // key is only ever read client-side, to call that provider's API directly
 // (see src/lib/llm/byokChat.js).
 import { readKey, writeKey, removeKey } from "@/lib/deviceStorage";
+import { PROVIDERS } from "@/lib/llm/providers";
 
 export const AI_PROVIDER_CONFIG_KEY = "vaea_llm_provider_config";
 
@@ -24,6 +25,10 @@ export const DEFAULTS = {
   backdoorConnector: "echo",
   backdoorModel: "",
   backdoorUrl: "",
+  // "local-http" provider only — the local server's own base URL (e.g.
+  // http://localhost:11434/v1), typed by the user since (unlike the fixed
+  // vendor providers above) there's no single right answer here.
+  baseUrl: "",
 };
 
 export async function loadAiProviderConfig() {
@@ -52,7 +57,12 @@ export async function clearAiProviderConfig() {
 }
 
 export function isByokConfigured(config) {
-  return !!(config?.provider && config.provider !== "base44" && config.apiKey && config.model);
+  if (!config?.provider || config.provider === "base44" || !config.model) return false;
+  const provider = PROVIDERS[config.provider];
+  if (!provider) return false;
+  if (provider.keyRequired !== false && !config.apiKey) return false;
+  if (provider.needsBaseUrl && !config.baseUrl) return false;
+  return true;
 }
 
 // "Backdoor Mode" (src/lib/llm/localBridgeAdapter.js) has no key or model to

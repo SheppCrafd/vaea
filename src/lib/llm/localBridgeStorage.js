@@ -31,7 +31,9 @@
 //                                          restarted watcher can never
 //                                          re-answer history
 //   bridge_watcher.py, run_watcher.bat/.command, README_BACKDOOR_MODE.txt,
-//   AGENT_RELAY_INSTRUCTIONS.md         — written automatically on connect
+//   AGENT_RELAY_INSTRUCTIONS.md,
+//   .claude/skills/backdoor-relay/SKILL.md
+//                                        — written automatically on connect
 //                                          (writeWatcherKit) so "choose a
 //                                          folder" already leaves a runnable
 //                                          watcher behind, not just an empty
@@ -46,8 +48,14 @@
 //                                          Code, etc.), for anyone who'd
 //                                          rather not run a persistent
 //                                          watcher process at all.
+//                                          SKILL.md is the same idea
+//                                          packaged as a real Claude Code
+//                                          Skill, invocable as
+//                                          "/backdoor-relay" instead of
+//                                          pasting the whole relay
+//                                          instructions by hand each turn.
 
-import { BRIDGE_WATCHER_SCRIPT, buildBatLauncher, buildShLauncher, buildReadme, buildAgentRelayInstructions } from "./bridgeWatcherKit";
+import { BRIDGE_WATCHER_SCRIPT, buildBatLauncher, buildShLauncher, buildReadme, buildAgentRelayInstructions, buildBackdoorSkill } from "./bridgeWatcherKit";
 
 export const supportsFileSystemAccess =
   typeof window !== "undefined" && typeof window.showDirectoryPicker === "function";
@@ -169,6 +177,13 @@ export async function writeWatcherKit(config = { connector: "echo" }) {
     await writeFile(rootHandle, "run_watcher.command", buildShLauncher(config));
     await writeFile(rootHandle, "README_BACKDOOR_MODE.txt", buildReadme(config));
     await writeFile(rootHandle, "AGENT_RELAY_INSTRUCTIONS.md", buildAgentRelayInstructions());
+    // A discoverable Claude Code Skill, for anyone with the Claude Code CLI
+    // or VS Code extension already open who'd rather type "/backdoor-relay"
+    // than paste AGENT_RELAY_INSTRUCTIONS.md's whole text in by hand.
+    const claudeDir = await rootHandle.getDirectoryHandle(".claude", { create: true });
+    const skillsDir = await claudeDir.getDirectoryHandle("skills", { create: true });
+    const relayDir = await skillsDir.getDirectoryHandle("backdoor-relay", { create: true });
+    await writeFile(relayDir, "SKILL.md", buildBackdoorSkill());
     return true;
   } catch {
     return false;

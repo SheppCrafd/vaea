@@ -34,6 +34,8 @@ export default function AiModelSection() {
   const isByok = provider.id !== "base44";
   const isLocalBridge = provider.id === "local-bridge";
   const isKeyBased = isByok && !isLocalBridge;
+  const keyOptional = provider.keyRequired === false;
+  const needsBaseUrl = !!provider.needsBaseUrl;
 
   const persist = async (next) => {
     setConfig(next);
@@ -47,11 +49,12 @@ export default function AiModelSection() {
     // Switching providers invalidates whatever model was picked for the
     // previous one — default to that provider's first model, not a
     // leftover id it doesn't recognize.
-    persist({ ...config, provider: providerId, model: nextProvider.models?.[0]?.id || "", apiKey: "" });
+    persist({ ...config, provider: providerId, model: nextProvider.models?.[0]?.id || "", apiKey: "", baseUrl: "" });
   };
 
   const handleModelChange = (model) => persist({ ...config, model });
   const handleKeyChange = (apiKey) => persist({ ...config, apiKey });
+  const handleBaseUrlChange = (baseUrl) => persist({ ...config, baseUrl });
 
   return (
     <div className="bg-card border border-border rounded-xl p-6">
@@ -66,8 +69,10 @@ export default function AiModelSection() {
       <p className="text-xs text-muted-foreground mb-4">
         Vaea Chat answers using its own built-in model by default. Bring your own API key instead to use Claude,
         ChatGPT, Gemini, or Grok directly — your key is sent from this browser straight to that provider, never
-        through Vaea's own servers. Or pick Backdoor Mode to route every prompt to your own local/on-prem model
-        through a folder on this device — no network call at all.
+        through Vaea's own servers. Pick Local HTTP to call a model server already running on this device (Ollama,
+        LM Studio, etc.) directly — no folder, no script, nothing for IT policy to block. Or pick Backdoor Mode to
+        route every prompt through a folder on this device instead — no network call at all, for fully air-gapped
+        setups.
       </p>
 
       <div className="flex flex-col gap-3">
@@ -89,22 +94,55 @@ export default function AiModelSection() {
 
         {isKeyBased && (
           <>
+            {needsBaseUrl && (
+              <div>
+                <label htmlFor="ai-model-base-url" className="text-sm font-medium mb-1.5 block">Server URL</label>
+                <input
+                  id="ai-model-base-url"
+                  type="text"
+                  value={config.baseUrl}
+                  onChange={(e) => handleBaseUrlChange(e.target.value)}
+                  placeholder="http://localhost:11434/v1"
+                  autoComplete="off"
+                  className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all font-terminal"
+                />
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  Ollama's OpenAI-compatible endpoint is <span className="font-terminal">http://localhost:11434/v1</span> by
+                  default; LM Studio's is usually <span className="font-terminal">http://localhost:1234/v1</span>.
+                </p>
+              </div>
+            )}
+
             <div>
               <label htmlFor="ai-model-model" className="text-sm font-medium mb-1.5 block">Model</label>
-              <select
-                id="ai-model-model"
-                value={config.model}
-                onChange={(e) => handleModelChange(e.target.value)}
-                className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all"
-              >
-                {provider.models.map((m) => (
-                  <option key={m.id} value={m.id}>{m.label}</option>
-                ))}
-              </select>
+              {provider.models.length > 0 ? (
+                <select
+                  id="ai-model-model"
+                  value={config.model}
+                  onChange={(e) => handleModelChange(e.target.value)}
+                  className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all"
+                >
+                  {provider.models.map((m) => (
+                    <option key={m.id} value={m.id}>{m.label}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  id="ai-model-model"
+                  type="text"
+                  value={config.model}
+                  onChange={(e) => handleModelChange(e.target.value)}
+                  placeholder="the model name your server is serving, e.g. llama3.2"
+                  autoComplete="off"
+                  className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all font-terminal"
+                />
+              )}
             </div>
 
             <div>
-              <label htmlFor="ai-model-api-key" className="text-sm font-medium mb-1.5 block">{provider.label} API key</label>
+              <label htmlFor="ai-model-api-key" className="text-sm font-medium mb-1.5 block">
+                {provider.label} API key{keyOptional ? " (optional)" : ""}
+              </label>
               <div className="relative">
                 <input
                   id="ai-model-api-key"
@@ -125,10 +163,13 @@ export default function AiModelSection() {
                 </button>
               </div>
               <p className="text-xs text-muted-foreground mt-1.5">
-                Stored on this device only — used to call {provider.label} directly, one request at a time.{" "}
-                <a href={provider.keyHelpUrl} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">
-                  Get a key
-                </a>
+                {keyOptional
+                  ? "Most local servers don't check this — leave it blank unless yours does."
+                  : <>Stored on this device only — used to call {provider.label} directly, one request at a time.{" "}
+                      <a href={provider.keyHelpUrl} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">
+                        Get a key
+                      </a>
+                    </>}
               </p>
             </div>
           </>
