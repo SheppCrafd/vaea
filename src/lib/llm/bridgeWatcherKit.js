@@ -503,6 +503,15 @@ No Python installed? The launchers check for it themselves and offer to
 install it for you (winget on Windows, Homebrew on Mac) — you'll get a real
 yes/no prompt before anything installs.
 
+"This app can't run on your PC" when you double-click run_watcher.bat? On a
+work/managed device this is almost always Group Policy, AppLocker, or
+Windows Defender Application Control blocking unsigned scripts launched
+from Explorer — not a Vaea bug, and not fixable by editing the script.
+Ask IT to allow it, or open Command Prompt/PowerShell yourself and run
+"python bridge_watcher.py . --..." directly — that's often not caught by
+the same rule, since it targets double-click execution of .bat/.cmd/.ps1
+specifically, not python.exe itself.
+
 ${statusBlock}
 
 Built in, no scripting required: Ollama, LM Studio, GPT4All,

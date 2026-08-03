@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, FolderOpen, RefreshCw, Cpu, ShieldCheck, FileJson, TerminalSquare, Settings } from "lucide-react";
+import { ArrowLeft, FolderOpen, RefreshCw, Cpu, ShieldCheck, FileJson, TerminalSquare, Settings, TriangleAlert } from "lucide-react";
 import TerminalBlock from "@/components/settings/TerminalBlock";
 import { BRIDGE_WATCHER_SCRIPT } from "@/lib/llm/bridgeWatcherKit";
 
@@ -251,6 +251,34 @@ export default function BackdoorModeSetupGuidePage() {
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   Web search — running your own model means no hosted search to inherit. Reading attached files
                   and Vaea Vault notes both still work normally.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3.5 rounded-xl border border-border bg-card p-4">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <TriangleAlert className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="font-heading font-semibold text-sm mb-1">"This app can't run on your PC" when you double-click the launcher</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  On a work/managed device (especially Windows 11 Enterprise), this is almost always Group
+                  Policy, AppLocker, or Windows Defender Application Control blocking unsigned scripts launched
+                  from Explorer — an IT-configured policy, not a Vaea bug, and nothing here can be fixed by
+                  editing the script's contents. Two things to try: ask IT to allow{" "}
+                  <span className="font-terminal text-xs text-foreground">run_watcher.bat</span>/
+                  <span className="font-terminal text-xs text-foreground">bridge_watcher.py</span>, or open Command
+                  Prompt/PowerShell yourself (already-signed, generally always allowed to launch) and run the{" "}
+                  <span className="font-terminal text-xs text-foreground">python bridge_watcher.py . --...</span> command
+                  directly — that often isn't caught by the same rule, since it's a policy specifically targeting
+                  double-click execution of{" "}
+                  <span className="font-terminal text-xs text-foreground">.bat</span>/
+                  <span className="font-terminal text-xs text-foreground">.cmd</span>/
+                  <span className="font-terminal text-xs text-foreground">.ps1</span> files, not{" "}
+                  <span className="font-terminal text-xs text-foreground">python.exe</span> itself. Double-clicking{" "}
+                  <span className="font-terminal text-xs text-foreground">bridge_watcher.py</span> directly usually
+                  won't help on its own — Windows typically opens{" "}
+                  <span className="font-terminal text-xs text-foreground">.py</span> files in a text editor rather
+                  than running them, unless Python's installer specifically registered it to execute.
                 </p>
               </div>
             </div>
