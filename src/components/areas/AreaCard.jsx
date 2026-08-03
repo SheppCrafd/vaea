@@ -129,15 +129,12 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
           // mode keeps the old auto-fill/1fr growth: leftover row width
           // grows each Product's own column.
           //
-          // Mini mode is a fixed 280px, never wider — the exact width a
-          // Product needs to hold two Mini project tiles side by side with
-          // zero slack: two 112px tiles + ProjectsGrid's own 8px inter-tile
-          // gap (232px) + ProjectsGrid's p-2 (16px) + ProductCard's own p-4
-          // (32px) = 280px. A Product must never be narrower than that (a
-          // lone project tile would still fit, but the guarantee is for
-          // two), and per spec it must never grow past it either — a
-          // Mini Product is always exactly 280px regardless of how much
-          // row width is available.
+          // Mini mode is a fixed 241px, never wider — 39px narrower than
+          // the old 280px (which fit two 112px project tiles side by side
+          // with zero slack). At 241px a Product only has room for one
+          // 112px tile per row; a second tile wraps to the row below
+          // instead of sitting beside the first. A Mini Product is always
+          // exactly 241px regardless of how much row width is available.
           //
           // Since the card itself can't absorb leftover row width, that
           // width has to go somewhere else instead of vanishing or
@@ -167,7 +164,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
             gridTemplateColumns:
               cardView === "full"
                 ? `repeat(auto-fill, minmax(460px, 1fr))`
-                : `repeat(auto-fit, 280px)`,
+                : `repeat(auto-fit, 241px)`,
             ...(cardView === "mini" ? { justifyContent: "space-evenly" } : {}),
           }}
         >

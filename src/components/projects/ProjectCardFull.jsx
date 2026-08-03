@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Expand, GripVertical, Link2, Plus, Trash2, X, Star } from "lucide-react";
+import { Expand, GripVertical, Link2, Plus, Trash2, X } from "lucide-react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { usePositionedMenu } from "@/hooks/usePositionedMenu";
 import PositionedPopover from "@/components/shared/PositionedPopover";
@@ -352,14 +352,6 @@ export default function ProjectCardFull({ project, stakeholderIds = [] }) {
               }`}
               style={q.hasHighlightedStakeholder ? { backgroundColor: STATUS_COLORS.DONE } : undefined}
             >
-              {/* A shape marker, not just a color, distinguishes "this
-                  week's focus" from "highlighted stakeholder" — the two
-                  states are both a bold fill and could otherwise read the
-                  same to anyone who can't rely on the green/mint hue
-                  difference. */}
-              {q.hasFocus && !q.hasHighlightedStakeholder && (
-                <Star className="absolute top-0.5 right-0.5 w-2.5 h-2.5 fill-current" aria-hidden="true" />
-              )}
               {q.count}
             </div>
           ))}

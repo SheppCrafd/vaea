@@ -11,7 +11,7 @@ const BUILD_STEPS = [
       <>
         Download it from <strong className="text-foreground">obsidian.md</strong> — free, Windows/Mac/Linux.
         On first launch, choose <strong className="text-foreground">"Open folder as vault"</strong> and point
-        it at an empty folder. That folder <em>is</em> the vault — there's nothing else to install.
+        it at an empty folder.
       </>
     ),
   },
@@ -39,22 +39,22 @@ const BUILD_STEPS = [
           </table>
         </div>
         <p className="mt-3 text-sm text-muted-foreground">
-          Link related notes with double brackets — <span className="font-terminal text-xs text-foreground">[[Other Note Name]]</span>.
-          Obsidian turns these into clickable links and a visual graph automatically, no extra setup required.
+          Link notes with <span className="font-terminal text-xs text-foreground">[[Other Note Name]]</span> — Obsidian
+          turns these into clickable links automatically.
         </p>
       </>
     ),
   },
   {
     title: "Turn the folder into a git repository",
-    body: "This is what makes the vault versioned and recoverable, not just loose local files.",
+    body: "Makes the vault versioned and recoverable, not just loose local files.",
   },
   {
     title: "Create a GitHub repository",
     body: (
       <>
         Go to <strong className="text-foreground">github.com/new</strong>, name it, choose public or private —
-        and don't initialize it with a README, since your folder already has content. Leave it empty.
+        leave it empty, no README.
       </>
     ),
   },
@@ -70,9 +70,8 @@ const CONNECT_STEPS = [
     body: (
       <>
         On GitHub: <strong className="text-foreground">Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token</strong>.
-        Scope it to <strong className="text-foreground">only this one repository</strong>, and under Permissions
-        give it <strong className="text-foreground">Contents: Read and write</strong> — nothing else is needed.
-        A scoped token like this is safer than a classic all-repo one, since a leak only exposes this vault.
+        Scope it to <strong className="text-foreground">only this one repository</strong>, with{" "}
+        <strong className="text-foreground">Contents: Read and write</strong>.
       </>
     ),
   },
@@ -80,12 +79,9 @@ const CONNECT_STEPS = [
     title: "Connect it in Vaea",
     body: (
       <>
-        In Vaea, open <strong className="text-foreground">Settings → Vaea Vault</strong> (or click the{" "}
-        <Settings className="w-3.5 h-3.5 inline -mt-0.5" /> icon in chat for the same thing without leaving
-        the conversation). Enter the GitHub username/org, the repo name, the branch (usually{" "}
-        <span className="font-terminal text-xs text-foreground">main</span>), and the token from the step
-        above, then hit <strong className="text-foreground">Connect</strong>. That's the whole setup — the
-        token stays on this device and only reaches Vaea's backend for the moment a read actually happens.
+        Open <strong className="text-foreground">Settings → Vaea Vault</strong> (or the{" "}
+        <Settings className="w-3.5 h-3.5 inline -mt-0.5" /> icon in chat). Enter the GitHub username/org, repo,
+        branch, and the token from the step above, then hit <strong className="text-foreground">Connect</strong>.
       </>
     ),
   },
@@ -102,22 +98,22 @@ const USES = [
   {
     Icon: Search,
     title: "Ask naturally",
-    body: 'search_vault, read_vault_note, and list_vault_notes are live tools the assistant reaches for on its own — try "what did I decide about X?" or "what\'s in my notes about Y?"',
+    body: 'The assistant searches and reads notes on its own — try "what did I decide about X?"',
   },
   {
     Icon: PenLine,
     title: "/vault-log",
-    body: "Writes a session summary straight to Daily/<today>.md in the connected repo, as a real commit — the Decisions folder too, if a real decision came up.",
+    body: "Writes a session summary to Daily/<today>.md as a real commit — Decisions too, if one came up.",
   },
   {
     Icon: Wrench,
     title: "/vault-tidy",
-    body: "Scans every note's [[wikilinks]] for broken links and isolated notes, then proposes fixes as a normal confirmable plan — the same audit-then-propose pattern as /tidy.",
+    body: "Scans every note's [[wikilinks]] for broken links, then proposes fixes as a confirmable plan.",
   },
   {
     Icon: Sparkles,
     title: "Proactive check-ins",
-    body: 'If you opt in (a banner in chat, or Settings → AI Assistant → "Proactive check-ins"), this vault also becomes where the assistant keeps its own notes automatically — including a roughly-daily self-review of its own replies, and, only with a second explicit opt-in, patterns it notices in how you communicate. Nothing here needs the assistant to be asked first.',
+    body: 'Opt in via Settings → AI Assistant, and the vault also becomes where the assistant keeps its own notes automatically.',
   },
 ];
 
@@ -136,17 +132,16 @@ function ConnectedVaultWalkthrough({ connection }) {
       <p className="text-sm text-muted-foreground mb-5">
         Settings → Vaea Vault is already pointed at{" "}
         <span className="font-terminal text-xs text-foreground">{connection.owner}/{connection.repo}</span>{" "}
-        (branch <span className="font-terminal text-xs text-foreground">{connection.branch}</span>). Vaea itself
-        reads and writes it straight over the GitHub API — nothing to install for that. What's left is getting
-        <em> you</em> a real, editable copy of the same notes on this device.
+        (branch <span className="font-terminal text-xs text-foreground">{connection.branch}</span>). Vaea reads
+        and writes it over the GitHub API already — what's left is a real, editable copy on this device.
       </p>
 
       <ol className="relative mb-6">
         <div className="absolute left-[15px] top-2 bottom-2 w-px bg-border" aria-hidden="true" />
         {[
-          { Icon: Download, title: "Clone it", body: "Pulls down whatever's already in the repo — existing notes, or nothing yet if Vaea created it empty." },
-          { Icon: FolderOpen, title: "Open it in Obsidian", body: <>Install Obsidian from <strong className="text-foreground">obsidian.md</strong> if you haven't, then <strong className="text-foreground">"Open folder as vault"</strong> and point it at the folder you just cloned.</> },
-          { Icon: RefreshCw, title: "Keep it in sync", body: "Vaea writes on its own schedule (chat, \"/vault-log\"), your clone doesn't see that automatically — pull before you start editing, push once you're done, same as working alongside any other collaborator." },
+          { Icon: Download, title: "Clone it", body: "Pulls down whatever's already in the repo." },
+          { Icon: FolderOpen, title: "Open it in Obsidian", body: <>Install Obsidian from <strong className="text-foreground">obsidian.md</strong> if you haven't, then <strong className="text-foreground">"Open folder as vault"</strong> on the folder you cloned.</> },
+          { Icon: RefreshCw, title: "Keep it in sync", body: "Vaea writes on its own schedule — pull before editing, push when done, same as any collaborator." },
         ].map(({ Icon, title, body }, i) => (
           <li key={title} className="relative pl-11 pb-6 last:pb-0">
             <span className="absolute left-0 top-0 w-8 h-8 rounded-full border border-border bg-card flex items-center justify-center text-primary">
@@ -174,10 +169,10 @@ git push`}
       />
 
       <p className="text-sm text-muted-foreground leading-relaxed mt-6">
-        Never used this repo with Obsidian before, or want to change the folder structure — <span className="font-terminal text-xs text-foreground">/Projects</span>,{" "}
+        Want to set up the folder structure — <span className="font-terminal text-xs text-foreground">/Projects</span>,{" "}
         <span className="font-terminal text-xs text-foreground">/Decisions</span>,{" "}
-        <span className="font-terminal text-xs text-foreground">/Daily</span>, etc — Part 1 below still applies, it just
-        starts from step 2 since the repo and connection already exist.
+        <span className="font-terminal text-xs text-foreground">/Daily</span>, etc — Part 1 below still applies,
+        just starting from step 2.
       </p>
     </div>
   );
@@ -213,9 +208,8 @@ export default function VaultSetupGuidePage() {
           Set up Vaea Vault
         </h2>
         <p className="text-muted-foreground leading-relaxed mb-8">
-          Vaea Vault is a personal, freeform space for decisions, things you learned, a running daily log — the
-          notes that don't fit a structured project tracker. Obsidian for writing, git and GitHub for keeping it
-          safe — and once it's connected, Vaea's assistant reads and writes it right alongside your workspace.
+          A personal, freeform space for decisions, things you learned, and a running daily log — Obsidian for
+          writing, GitHub for backup, and once connected, Vaea's assistant reads and writes it too.
         </p>
 
         <div className="flex items-center justify-center gap-3 mb-12 py-6 rounded-xl border border-border bg-card">
@@ -283,8 +277,7 @@ git push -u origin main`}
         </div>
 
         <p className="text-sm text-muted-foreground leading-relaxed mt-8">
-          That's the vault itself sorted — open the folder in Obsidian, and from then on a commit from inside
-          it backs up every change to GitHub. Next: give Vaea access to it.
+          Vault's sorted. Next: give Vaea access to it.
         </p>
 
         <div className="mt-14 pt-10 border-t border-border">
@@ -328,7 +321,7 @@ git push -u origin main`}
         </div>
 
         <p className="text-sm text-muted-foreground leading-relaxed mt-12 pt-8 border-t border-border">
-          That's Vaea Vault — a real personal vault, and an assistant that actually reads and writes it.
+          A real personal vault, and an assistant that reads and writes it.
         </p>
       </div>
     </div>

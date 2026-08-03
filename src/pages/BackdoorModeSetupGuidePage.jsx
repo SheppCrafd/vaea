@@ -106,15 +106,11 @@ const STEPS = [
     body: (
       <>
         In <strong className="text-foreground">Settings → AI Model</strong>, pick{" "}
-        <strong className="text-foreground">Backdoor Mode</strong> as the provider, then choose (or create) an
-        empty folder. Vaea creates two subfolders inside it automatically —{" "}
-        <span className="font-terminal text-xs text-foreground">prompts/</span> and{" "}
-        <span className="font-terminal text-xs text-foreground">responses/</span> — and remembers the folder for
-        next time (Chrome/Edge desktop only — this uses the File System Access API, which Firefox and Safari
-        don't support). Once a prompt has been answered and Vaea has read the answer, the pair is filed away
-        into a third folder, <span className="font-terminal text-xs text-foreground">processed/</span> — so{" "}
-        <span className="font-terminal text-xs text-foreground">prompts/</span> only ever holds what's still
-        waiting, and Settings shows you both counts at a glance.
+        <strong className="text-foreground">Backdoor Mode</strong>, then choose (or create) an empty folder.
+        Vaea creates <span className="font-terminal text-xs text-foreground">prompts/</span> and{" "}
+        <span className="font-terminal text-xs text-foreground">responses/</span> subfolders automatically
+        (Chrome/Edge desktop only). Answered pairs get filed into{" "}
+        <span className="font-terminal text-xs text-foreground">processed/</span>.
       </>
     ),
   },
@@ -122,19 +118,17 @@ const STEPS = [
     title: "Run a watcher script against it",
     body: (
       <>
-        Nothing polls the folder on its own — that's a script you (or your IT/platform team) run, on this device
-        or wherever your model actually lives, as long as it can see the same folder (a local path, or a synced/
-        shared/mounted one). The prebuilt{" "}
-        <span className="font-terminal text-xs text-foreground">bridge_watcher.py</span> below handles all the
-        folder inspection — run it with <span className="font-terminal text-xs text-foreground">--echo</span> to
-        prove the wiring works, then point it at your model with{" "}
-        <span className="font-terminal text-xs text-foreground">--url</span> (or import it and bring your own).
+        Nothing polls the folder on its own — run the prebuilt{" "}
+        <span className="font-terminal text-xs text-foreground">bridge_watcher.py</span> below, wherever your
+        model lives, as long as it can see the same folder. Test with{" "}
+        <span className="font-terminal text-xs text-foreground">--echo</span> first, then point it at your
+        model with <span className="font-terminal text-xs text-foreground">--url</span>.
       </>
     ),
   },
   {
     title: "Chat normally",
-    body: "Send a message in Vaea Chat like always. Every capability (creating/updating projects and tasks, the /slash commands, multi-step plans) works the same way it does with any other provider — see \"What your script needs to handle\" below for the one thing that's different: staying in the loop for follow-up tool rounds.",
+    body: "Send a message like always — every capability works the same as any other provider. See \"What your script needs to handle\" below for the one difference: staying in the loop for follow-up tool rounds.",
   },
 ];
 
@@ -160,11 +154,9 @@ export default function BackdoorModeSetupGuidePage() {
           Answer Vaea Chat without a network call
         </h2>
         <p className="text-muted-foreground leading-relaxed mb-8">
-          Every other mode — Vaea's built-in model, or bring-your-own-key — sends a request to some company's API.
-          Backdoor Mode doesn't: Vaea writes each prompt as a plain JSON file on your own device, and a script you
-          control (running wherever your model actually lives — your laptop, an internal server, an air-gapped
-          box) picks it up, runs it against your own model, and writes the answer back the same way. Nothing ever
-          leaves the folder you chose.
+          Every other mode sends a request to some company's API. Backdoor Mode doesn't: Vaea writes each prompt
+          as a plain JSON file on your device, a script you control picks it up and runs it against your own
+          model, and writes the answer back the same way. Nothing leaves the folder you chose.
         </p>
 
         <div className="flex items-center justify-center gap-3 mb-12 py-6 rounded-xl border border-border bg-card overflow-x-auto">
@@ -199,11 +191,10 @@ export default function BackdoorModeSetupGuidePage() {
         <div className="mb-14">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">The prebuilt watcher — save it once, reuse it for everything</p>
           <p className="text-sm text-muted-foreground mb-4">
-            Save this as <span className="font-terminal text-xs text-foreground">bridge_watcher.py</span> (Python
-            3, no extra packages) and run it with{" "}
-            <span className="font-terminal text-xs text-foreground">--echo</span> pointed at the folder you
-            connected, then send any message in Vaea Chat — you should see it print the round it received and get
-            "Hello from your local watcher script." back as the reply.
+            Save as <span className="font-terminal text-xs text-foreground">bridge_watcher.py</span> (Python 3,
+            no extra packages), run with <span className="font-terminal text-xs text-foreground">--echo</span> against
+            your connected folder, then send a message in Vaea Chat — you should get "Hello from your local
+            watcher script." back.
           </p>
           <TerminalBlock title="bridge_watcher.py" code={WATCHER_SCRIPT} showPrompt={false} />
         </div>
@@ -211,10 +202,9 @@ export default function BackdoorModeSetupGuidePage() {
         <div className="mt-14 pt-10 border-t border-border">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">Part 2 · The file protocol</p>
           <p className="text-sm text-muted-foreground leading-relaxed mb-6">
-            Each turn of the conversation can take several rounds — the model replies with tool calls (create this
-            task, update that project), Vaea runs them, and your script needs to send the results back for another
-            round, same as it would in a normal back-and-forth tool-calling API. The only difference is the
-            transport: instead of one HTTP request per round, it's one file pair per round.
+            Each turn can take several rounds — the model replies with tool calls, Vaea runs them, and your
+            script sends results back for another round, same as any tool-calling API. The only difference is
+            the transport: a file pair per round instead of an HTTP request.
           </p>
 
           <div className="grid sm:grid-cols-2 gap-4 mb-6">
@@ -237,30 +227,18 @@ export default function BackdoorModeSetupGuidePage() {
           </div>
 
           <p className="text-sm text-muted-foreground leading-relaxed mb-6">
-            <span className="font-semibold text-foreground">What your script needs to handle:</span> if your
-            model's reply contains any <span className="font-terminal text-xs text-foreground">tool_use</span>{" "}
-            blocks, Vaea runs those tools and immediately writes the <em>next</em> round file (same id, round + 1)
-            with the results appended to <span className="font-terminal text-xs text-foreground">messages</span> —
-            your script just needs to keep watching{" "}
-            <span className="font-terminal text-xs text-foreground">prompts/</span> and repeat the same call. Once
-            a reply has no tool_use blocks left, that round's text is the final answer and the turn is done. Vaea
-            polls for each response every 5 seconds, so there's no strict latency requirement — but a script that's
-            not running at all just means the chat waits (and eventually times out with a clear error) rather than
-            failing silently. After Vaea reads each answer it files the round's pair into{" "}
-            <span className="font-terminal text-xs text-foreground">processed/</span> — anything still sitting in{" "}
-            <span className="font-terminal text-xs text-foreground">prompts/</span> is by definition new and
-            unanswered, which is exactly the rule{" "}
-            <span className="font-terminal text-xs text-foreground">bridge_watcher.py</span> uses to never
-            re-answer history after a restart.
+            <span className="font-semibold text-foreground">What your script needs to handle:</span> if the
+            reply has <span className="font-terminal text-xs text-foreground">tool_use</span> blocks, Vaea runs
+            them and writes the next round file — your script just keeps watching{" "}
+            <span className="font-terminal text-xs text-foreground">prompts/</span> and repeats the call. No
+            tool_use blocks left means that round's text is the final answer. A script that isn't running just
+            means the chat waits and eventually times out, not a silent failure.
           </p>
 
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Forwarding to a real model</p>
           <p className="text-sm text-muted-foreground mb-4">
-            The <span className="font-terminal text-xs text-foreground">system</span>/
-            <span className="font-terminal text-xs text-foreground">tools</span>/
-            <span className="font-terminal text-xs text-foreground">messages</span> fields in the request are
-            already shaped like Anthropic's Messages API — if your local/on-prem model speaks that shape (or you
-            put a small translation layer in front of it), the same prebuilt watcher forwards directly:
+            The request is already shaped like Anthropic's Messages API — if your model speaks that shape (or
+            you put a small translation layer in front), the same prebuilt watcher forwards directly:
           </p>
           <TerminalBlock
             title="terminal"
@@ -268,8 +246,7 @@ export default function BackdoorModeSetupGuidePage() {
             showPrompt={false}
           />
           <p className="text-sm text-muted-foreground mt-4 mb-4">
-            Speaking some other shape? Import the watcher and supply just the model call — the folder handling
-            never has to be written again:
+            Some other shape? Import the watcher and supply just the model call:
           </p>
           <TerminalBlock title="your_model_watcher.py" code={CUSTOM_MODEL_SNIPPET} showPrompt={false} />
         </div>
@@ -284,9 +261,8 @@ export default function BackdoorModeSetupGuidePage() {
               <div>
                 <p className="font-heading font-semibold text-sm mb-1">Same safety rules as every other mode</p>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Destructive actions (deleting things, bulk changes) still require an explicit "Yes, do it" click
-                  in the chat UI before they run — your model can propose them, but Vaea's own client-side executor
-                  is what actually applies anything, exactly like the built-in and bring-your-own-key modes.
+                  Destructive actions still require an explicit "Yes, do it" click before they run — your model
+                  can propose them, but Vaea's own client-side executor applies anything, same as every other mode.
                 </p>
               </div>
             </div>
@@ -297,10 +273,8 @@ export default function BackdoorModeSetupGuidePage() {
               <div>
                 <p className="font-heading font-semibold text-sm mb-1">The one thing it can't do</p>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Web search — Anthropic and xAI's own models have that built in natively, but Backdoor Mode's
-                  whole point is running your own model, so there's no hosted search to inherit. Reading attached
-                  files and your Vaea Vault notes both work normally; the assistant is told about the search gap
-                  outright and won't pretend otherwise.
+                  Web search — running your own model means no hosted search to inherit. Reading attached files
+                  and Vaea Vault notes both still work normally.
                 </p>
               </div>
             </div>
@@ -308,7 +282,7 @@ export default function BackdoorModeSetupGuidePage() {
         </div>
 
         <p className="text-sm text-muted-foreground leading-relaxed mt-12 pt-8 border-t border-border">
-          That's the whole thing — a folder, a script you control, and a model that never talks to anything outside it.
+          A folder, a script you control, and a model that never talks to anything outside it.
         </p>
       </div>
     </div>

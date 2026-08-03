@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Expand, GripVertical, AlertTriangle, HelpCircle, Trash2, Star } from "lucide-react";
+import { Expand, GripVertical, AlertTriangle, HelpCircle, Trash2 } from "lucide-react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import TaskTableModal from "@/components/projects/TaskTableModal";
 import ProjectDetailModal from "@/components/projects/ProjectDetailModal";
@@ -168,14 +168,6 @@ export default function ProjectCard({ project, stakeholderIds = [] }) {
               }`}
               style={q.hasHighlightedStakeholder ? { backgroundColor: STATUS_COLORS.DONE } : undefined}
             >
-              {/* A shape marker, not just a color, distinguishes "this
-                  week's focus" from "highlighted stakeholder" — the two
-                  states are both a bold fill and could otherwise read the
-                  same to anyone who can't rely on the green/mint hue
-                  difference. */}
-              {q.hasFocus && !q.hasHighlightedStakeholder && (
-                <Star className="absolute top-0 right-0 w-2 h-2 fill-current" aria-hidden="true" />
-              )}
               {q.count}
             </div>
           ))}
