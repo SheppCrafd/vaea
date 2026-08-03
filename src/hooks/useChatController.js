@@ -546,10 +546,19 @@ export function useChatController({ activeProjectId } = {}) {
       // "recent" page uses — this is a standalone fetch (the session may no
       // longer be the active one by the time this fires, so chatState's own
       // cached messages can't be trusted to still be for THIS session), not
-      // a call through that hook.
-      const desc = await base44.entities.ChatMessage.filter({ session_id: sessionId }, "-created_date", 200);
-      if (!desc.length) return; // nothing was ever said here — nothing to log
-      const messages = [...desc].reverse();
+      // a call through that hook. Branches to the same local backend
+      // useChatMessages.js/useChatSessions.js use for Backdoor Mode — see
+      // their shared comment.
+      const providerConfig = await loadAiProviderConfig();
+      let messages;
+      if (isLocalBridgeConfigured(providerConfig)) {
+        const all = await localDb.chatMessages.filter({ session_id: sessionId });
+        messages = all.slice().sort((a, b) => new Date(a.created_date) - new Date(b.created_date)).slice(-200);
+      } else {
+        const desc = await base44.entities.ChatMessage.filter({ session_id: sessionId }, "-created_date", 200);
+        messages = [...desc].reverse();
+      }
+      if (!messages.length) return; // nothing was ever said here — nothing to log
       const conversationHistory = messages
         .map((m) => `${m.role.toUpperCase()}: ${stripToolLog(m.content)}`)
         .join("\n");

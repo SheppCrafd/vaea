@@ -1,9 +1,15 @@
 // Local-first data layer for all non-AI app data (areas, products, projects,
-// tasks, stakeholders, departments, project notes). Mirrors the subset of
-// the base44 entities API (list/get/filter/create/update/delete/subscribe)
-// that the app's hooks used, so this is a drop-in swap behind those hooks.
-// Chat data (ChatMessage/ChatSession) stays on base44 and does not go
-// through this module.
+// tasks, stakeholders, departments, project notes), plus chat sessions/
+// messages specifically for Backdoor Mode (see useChatSessions.js/
+// useChatMessages.js — Base44-hosted ChatSession/ChatMessage stay the
+// storage for every other provider, since those need a real account
+// regardless). Mirrors the subset of the base44 entities API (list/get/
+// filter/create/update/delete/subscribe) that the app's hooks used, so this
+// is a drop-in swap behind those hooks — with one deliberate gap: no
+// sort/limit/offset/operator support in `filter`, since chatMessages' own
+// hook does that client-side over the (typically small) local result set
+// instead of teaching this generic layer server-style querying for one
+// caller.
 //
 // Two backing stores, chosen automatically per session:
 // - File-backed (dev/preview only): real JSON files in a gitignored `data/`
@@ -21,12 +27,17 @@
 // Both stores expose the exact same shape below; nothing outside this file
 // needs to know or care which one is actually active.
 
-import { readKey, writeKey, seedManual, supportsFileSystemAccess } from "@/lib/deviceStorage";
+import { readKey, writeKey, seedManual, supportsFileSystemAccess, isFileBackedModeAvailable } from "@/lib/deviceStorage";
 import { withKeyLock } from "@/lib/asyncKeyLock";
 
-const COLLECTIONS = ["areas", "products", "projects", "tasks", "stakeholders", "departments", "projectNotes"];
+// Re-exported for existing callers (DeviceStorageGate.jsx) — the probe
+// itself now lives in deviceStorage.js since readKey/writeKey need it too
+// (see that module's own comment), not just this file's collections.
+export { isFileBackedModeAvailable };
 
-const FILE_API_PREFIX = "/__localdb/";
+const COLLECTIONS = ["areas", "products", "projects", "tasks", "stakeholders", "departments", "projectNotes", "chatSessions", "chatMessages"];
+
+const FILE_API_PREFIX = "/__localdb/"; // collection reads/writes below still talk to this directly (array shape, not readKey/writeKey's single-object contract)
 
 // Pre-existing browser-storage copy of entity data from before device
 // storage existed (old prefix from when the app was named Portfolio
@@ -79,21 +90,6 @@ export async function seedCollections(data) {
   } else {
     seedManual(entries);
   }
-}
-
-// A single shared probe, not one per collection — if the dev-server
-// middleware isn't there, it isn't there for any collection. Memoized so
-// every caller (every collection, every read) awaits the same in-flight
-// check instead of each re-probing independently.
-let fileBackedModePromise = null;
-export function isFileBackedModeAvailable() {
-  if (!fileBackedModePromise) {
-    fileBackedModePromise = fetch(`${FILE_API_PREFIX}__probe`)
-      .then((res) => (res.ok ? res.json() : Promise.reject()))
-      .then(() => true)
-      .catch(() => false);
-  }
-  return fileBackedModePromise;
 }
 
 // In-memory mirror of each collection, populated once (from whichever store

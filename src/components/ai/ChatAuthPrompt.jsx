@@ -1,10 +1,13 @@
 import { LogIn } from "lucide-react";
 
-// Chat is the one feature in this app that genuinely needs Base44 auth
-// (ChatSession/ChatMessage are hosted entities, RLS-gated) — everything else
-// works fine for an anonymous visitor by design (requiresAuth: false, see
-// AuthContext.jsx). Shown in place of the composer once useChatController
-// catches a 401/403 from Base44, instead of the send silently doing nothing.
+// Chat is the one feature in this app that genuinely needs Base44 auth —
+// ChatSession/ChatMessage are hosted entities, RLS-gated — for every
+// provider except Backdoor Mode, which keeps its own chat history entirely
+// local instead (see useChatSessions.js/useChatMessages.js) and so never
+// hits this prompt. Everything else already works fine for an anonymous
+// visitor by design (requiresAuth: false, see AuthContext.jsx). Shown in
+// place of the composer once useChatController catches a 401/403 from
+// Base44, instead of the send silently doing nothing.
 export default function ChatAuthPrompt({ onSignIn, onDismiss }) {
   return (
     <div className="px-3 py-2.5 bg-secondary/60 border-t border-border flex items-center gap-2.5 text-xs">

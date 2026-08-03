@@ -33,6 +33,61 @@ import { appParams } from "@/lib/app-params";
 export const supportsFileSystemAccess =
   typeof window !== "undefined" && typeof window.showDirectoryPicker === "function";
 
+// Dev/preview-only escape hatch (see vite-localdb-plugin.js): when the Vite
+// dev server's own file-backed middleware is present, every key this module
+// stores — not just localDb.js's own entity collections, which already
+// checked this same probe before this existed — round-trips through real
+// files in the repo's own `data/` folder instead of requiring a real FSA
+// folder grant or cloud sign-in. Without this, `npm run dev` could render
+// the whole app (DeviceStorageGate itself already skips its folder-connect
+// flow the same way) while every read/write here silently failed against a
+// never-connected `dirHandle` — the app looked done setting up, but nothing
+// written through readKey/writeKey (AI Model provider, AI identity, vault
+// connection) ever actually persisted past that one render. A production
+// build, the Base44-hosted preview, and the standalone distributions have no
+// Node process behind them at all, so this probe always resolves false
+// there and every call below falls through to the real cloud/device logic
+// exactly as before. Single source of truth for the probe — localDb.js
+// imports this same export rather than keeping its own copy.
+const FILE_API_PREFIX = "/__localdb/";
+let fileBackedModePromise = null;
+export function isFileBackedModeAvailable() {
+  if (!fileBackedModePromise) {
+    fileBackedModePromise = fetch(`${FILE_API_PREFIX}__probe`)
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then(() => true)
+      .catch(() => false);
+  }
+  return fileBackedModePromise;
+}
+
+async function readFileBackedKey(key) {
+  const res = await fetch(`${FILE_API_PREFIX}${key}`);
+  if (!res.ok) return null;
+  const value = await res.json();
+  // The dev middleware answers a never-written key with `[]` (it's built
+  // for localDb.js's own array-shaped collections) — every caller through
+  // this module stores a single object, so treat that placeholder as "not
+  // set yet", same as every other backend's null-for-missing contract.
+  return Array.isArray(value) && value.length === 0 ? null : value;
+}
+
+async function writeFileBackedKey(key, value) {
+  await fetch(`${FILE_API_PREFIX}${key}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(value),
+  });
+}
+
+async function removeFileBackedKey(key) {
+  await fetch(`${FILE_API_PREFIX}${key}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify([]),
+  });
+}
+
 // Which backend readKey/writeKey/getStatus dispatch to — 'device' (FSA or
 // manual, chosen by capability as before) or 'cloud'. This has to live
 // outside every backend it's choosing between, so — like app-params.js's own
@@ -355,11 +410,13 @@ export async function writeDeviceKey(key, value) {
 }
 
 export async function readKey(key) {
+  if (await isFileBackedModeAvailable()) return readFileBackedKey(key);
   if (isCloudMode()) return cloudStorage.readKey(key);
   return readDeviceKey(key);
 }
 
 export async function writeKey(key, value) {
+  if (await isFileBackedModeAvailable()) return writeFileBackedKey(key, value);
   if (isCloudMode()) return cloudStorage.writeKey(key, value);
   return writeDeviceKey(key, value);
 }
@@ -380,6 +437,7 @@ export async function removeDeviceKey(key) {
 }
 
 export async function removeKey(key) {
+  if (await isFileBackedModeAvailable()) return removeFileBackedKey(key);
   if (isCloudMode()) return cloudStorage.removeKey(key);
   return removeDeviceKey(key);
 }
