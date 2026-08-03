@@ -15,6 +15,7 @@ import { FilterProvider } from '@/lib/FilterContext';
 import { CardViewProvider } from '@/lib/CardViewContext';
 import ErrorBoundary from '@/components/shared/ErrorBoundary';
 import DeviceStorageGate from '@/components/shared/DeviceStorageGate';
+import { ChatControllerProvider } from '@/lib/ChatControllerContext';
 import AppShell from '@/components/layout/AppShell';
 import Header from '@/components/layout/Header';
 import Dashboard from '@/pages/Dashboard';
@@ -98,23 +99,31 @@ const AuthenticatedApp = () => {
   // reason.
   return (
     <DeviceStorageGate>
-      <div className="h-screen flex flex-col overflow-hidden">
-        <Header />
-        <div className="flex-1 min-h-0">
-          <Suspense fallback={null}>
-            <CommandPalette />
-            <Routes>
-              <Route path="chat" element={<ChatPage />} />
-              <Route path="settings" element={<SettingsPage />} />
-              <Route path="settings/vault-setup" element={<VaultSetupGuidePage />} />
-              <Route path="settings/backdoor-setup" element={<BackdoorModeSetupGuidePage />} />
-              {/* Add your page Route elements here */}
-              <Route index element={<AppShell><Dashboard /></AppShell>} />
-              <Route path="*" element={<AppShell><PageNotFound /></AppShell>} />
-            </Routes>
-          </Suspense>
+      {/* One real chat controller, created here — above every route — so
+          navigating between Dashboard (the floating ChatBox widget) and
+          /chat (the full-page ChatPage) never orphans an in-flight
+          generation. See ChatControllerContext.jsx's own header for why
+          each route calling useChatController itself was the actual bug
+          behind live replies/typing appearing to "stop" on navigation. */}
+      <ChatControllerProvider>
+        <div className="h-screen flex flex-col overflow-hidden">
+          <Header />
+          <div className="flex-1 min-h-0">
+            <Suspense fallback={null}>
+              <CommandPalette />
+              <Routes>
+                <Route path="chat" element={<ChatPage />} />
+                <Route path="settings" element={<SettingsPage />} />
+                <Route path="settings/vault-setup" element={<VaultSetupGuidePage />} />
+                <Route path="settings/backdoor-setup" element={<BackdoorModeSetupGuidePage />} />
+                {/* Add your page Route elements here */}
+                <Route index element={<AppShell><Dashboard /></AppShell>} />
+                <Route path="*" element={<AppShell><PageNotFound /></AppShell>} />
+              </Routes>
+            </Suspense>
+          </div>
         </div>
-      </div>
+      </ChatControllerProvider>
     </DeviceStorageGate>
   );
 };

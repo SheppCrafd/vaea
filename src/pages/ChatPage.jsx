@@ -1,6 +1,6 @@
 import { Plus, Paperclip, Info, Settings, PanelLeft, PanelLeftClose } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useChatController } from "@/hooks/useChatController";
+import { useSharedChatController } from "@/lib/ChatControllerContext";
 import { useChatSessions } from "@/hooks/useChatSessions";
 import { useSlashCommand } from "@/hooks/useSlashCommand";
 import { useChatInputHistory } from "@/hooks/useChatInputHistory";
@@ -56,8 +56,12 @@ function ChatHistoryPanelContent({ chat, sessions }) {
 // chrome entirely) laid out like a standalone chat app: a persistent session
 // sidebar on the left (always visible, not a popup, unlike the floating
 // widget's history caret) and a full-height centered message thread with the
-// composer pinned at the bottom. Shares useChatController with the floating
-// ChatBox widget, so switching between the two never loses a session.
+// composer pinned at the bottom. Reads the one shared useChatController
+// instance (ChatControllerContext.jsx, provided once above the router,
+// outside this route entirely) instead of creating its own — so navigating
+// here, away, and back (or switching to the floating ChatBox widget) never
+// loses a session OR orphans an in-flight generation the way two separate
+// controller instances used to.
 //
 // The sidebar's own header row (label + collapse button at the seam
 // nearest the main column) and the main column's own header row (which
@@ -71,7 +75,7 @@ export default function ChatPage() {
   const isSidebarOpen = useAppStore((s) => s.isChatSidebarOpen);
   const toggleSidebar = useAppStore((s) => s.toggleChatSidebar);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const chat = useChatController({});
+  const chat = useSharedChatController();
   const { data: sessions = [] } = useChatSessions();
   const messageInputRef = useRef(null);
   const slashCommand = useSlashCommand(chat.input, chat.setInput);

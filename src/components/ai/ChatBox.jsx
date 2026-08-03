@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { X, Plus, ChevronLeft, Paperclip, Maximize2, Info, Settings } from "lucide-react";
-import { useChatController } from "@/hooks/useChatController";
+import { useSharedChatController } from "@/lib/ChatControllerContext";
 import { useWindowGeometry } from "@/hooks/useWindowGeometry";
 import { useSlashCommand } from "@/hooks/useSlashCommand";
 import { useChatInputHistory } from "@/hooks/useChatInputHistory";
@@ -16,12 +16,13 @@ import ChatAuthPrompt from "@/components/ai/ChatAuthPrompt";
 import ChatReflectionConsent from "@/components/ai/ChatReflectionConsent";
 
 // Floating quick-access chat widget. All the actual chat behavior (sessions,
-// sending, confirm/undo, icon persistence, attachments) lives in
-// useChatController, shared with the full-page chat at /chat — this
-// component only owns its own open/collapsed chrome. When open, the panel is
-// a draggable/resizable window (useWindowGeometry) rather than pinned to a
-// fixed corner, with its position/size persisted across sessions.
-export default function ChatBox({ activeProjectId, startOpen = false }) {
+// sending, confirm/undo, icon persistence, attachments) lives in the one
+// shared useChatController instance (ChatControllerContext.jsx, provided
+// once above the router) — this component only owns its own open/collapsed
+// chrome. When open, the panel is a draggable/resizable window
+// (useWindowGeometry) rather than pinned to a fixed corner, with its
+// position/size persisted across sessions.
+export default function ChatBox({ startOpen = false }) {
   const [isChatOpen, setIsChatOpen] = useState(startOpen);
   const [isSessionListOpen, setIsSessionListOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -29,7 +30,7 @@ export default function ChatBox({ activeProjectId, startOpen = false }) {
   const messageInputRef = useRef(null);
   const navigate = useNavigate();
 
-  const chat = useChatController({ activeProjectId });
+  const chat = useSharedChatController();
   const { geometry, startMove, startResize } = useWindowGeometry();
   const slashCommand = useSlashCommand(chat.input, chat.setInput);
   const inputHistory = useChatInputHistory({ messages: chat.chatState.messages, input: chat.input, setInput: chat.setInput });
