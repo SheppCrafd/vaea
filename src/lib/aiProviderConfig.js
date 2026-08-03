@@ -14,10 +14,16 @@ export const DEFAULTS = {
   model: "",
   apiKey: "",
   // Backdoor Mode only — baked into the watcher launcher scripts
-  // (localBridgeStorage.js's writeWatcherKit) so the folder itself carries a
-  // ready-to-run pointer at whatever local/on-prem model the user has,
-  // rather than the user hand-editing a command every time.
-  backdoorEndpoint: "",
+  // (localBridgeStorage.js's writeWatcherKit, bridgeWatcherKit.js) so the
+  // folder itself carries a ready-to-run pointer at whatever local model the
+  // user picked, rather than them hand-editing a command every time.
+  // `backdoorConnector`: "echo" | "ollama" | "lmstudio" | "gpt4all" |
+  // "textgen" | "anthropic" | "custom" — the first six are built-in presets
+  // bridge_watcher.py already knows how to talk to; "custom" falls back to
+  // `backdoorUrl`, a raw endpoint already speaking Vaea's own request shape.
+  backdoorConnector: "echo",
+  backdoorModel: "",
+  backdoorUrl: "",
 };
 
 export async function loadAiProviderConfig() {

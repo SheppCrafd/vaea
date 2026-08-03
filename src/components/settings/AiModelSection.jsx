@@ -134,7 +134,12 @@ export default function AiModelSection() {
         )}
 
         {isLocalBridge && (
-          <BackdoorModeConnect endpoint={config.backdoorEndpoint} onEndpointChange={(v) => persist({ ...config, backdoorEndpoint: v })} />
+          <BackdoorModeConnect
+            backdoorConnector={config.backdoorConnector}
+            backdoorModel={config.backdoorModel}
+            backdoorUrl={config.backdoorUrl}
+            onBackdoorChange={(patch) => persist({ ...config, ...patch })}
+          />
         )}
 
         {isByok && provider.id !== "anthropic" && provider.id !== "xai" && (
@@ -150,17 +155,36 @@ export default function AiModelSection() {
   );
 }
 
-// Folder-connect UI for "Backdoor Mode" — no key or model to enter here;
-// instead the user grants access to a folder Vaea writes prompts/ and
-// responses/ into (localBridgeStorage.js), and their own local watcher
-// script (see the setup guide) answers by polling it. Deliberately mirrors
+// Every connector bridge_watcher.py knows how to talk to directly — found
+// (by actually running Backdoor Mode against a real local Ollama model, not
+// just guessing) to be the single biggest gap for anyone without Python/API
+// experience: Ollama's own API doesn't speak Vaea's request shape natively,
+// so getting a real reply used to require hand-writing a translation
+// script. These six presets mean picking one from a dropdown and typing a
+// model name is the whole job now — see bridgeWatcherKit.js's own header
+// for why one generic translator covers four of them.
+const BACKDOOR_CONNECTORS = [
+  { id: "echo", label: "Test only — no real model", needsModel: false },
+  { id: "ollama", label: "Ollama", needsModel: true, modelPlaceholder: "llama3.2" },
+  { id: "lmstudio", label: "LM Studio", needsModel: true, modelPlaceholder: "the model name shown in LM Studio" },
+  { id: "gpt4all", label: "GPT4All", needsModel: true, modelPlaceholder: "the model name shown in GPT4All" },
+  { id: "textgen", label: "text-generation-webui / llama.cpp server", needsModel: true, modelPlaceholder: "the model name it's serving" },
+  { id: "anthropic", label: "Real Claude API", needsModel: true, modelPlaceholder: "claude-sonnet-5" },
+  { id: "custom", label: "Custom endpoint (advanced)", needsModel: false },
+];
+
+// Folder-connect UI for "Backdoor Mode" — the user grants access to a
+// folder Vaea writes prompts/ and responses/ into (localBridgeStorage.js),
+// picks which local model answers, and their own local watcher script (see
+// the setup guide) answers by polling it. Deliberately mirrors
 // ExternalVaultSection.jsx's connect/disconnect button pattern.
-function BackdoorModeConnect({ endpoint, onEndpointChange }) {
+function BackdoorModeConnect({ backdoorConnector, backdoorModel, backdoorUrl, onBackdoorChange }) {
   const [status, setStatus] = useState("checking");
   const [folderName, setFolderName] = useState(null);
   const [error, setError] = useState("");
   const [stats, setStats] = useState(null); // { pending: [names], processed: n }
   const [kitJustWritten, setKitJustWritten] = useState(false);
+  const activeConnector = BACKDOOR_CONNECTORS.find((c) => c.id === backdoorConnector) || BACKDOOR_CONNECTORS[0];
 
   const refresh = async () => {
     const s = await getBridgeStatus();
@@ -206,7 +230,7 @@ function BackdoorModeConnect({ endpoint, onEndpointChange }) {
 
   const handleRewriteKit = async () => {
     setError("");
-    const ok = await writeWatcherKit(endpoint.trim());
+    const ok = await writeWatcherKit({ connector: backdoorConnector, model: backdoorModel.trim(), url: backdoorUrl.trim() });
     if (ok) {
       setKitJustWritten(true);
       setTimeout(() => setKitJustWritten(false), 2000);
@@ -259,25 +283,55 @@ function BackdoorModeConnect({ endpoint, onEndpointChange }) {
           )}
 
           <div className="mb-3">
-            <label htmlFor="backdoor-endpoint" className="text-xs font-medium mb-1 block">
-              Local model endpoint <span className="text-muted-foreground font-normal">(optional)</span>
-            </label>
-            <input
-              id="backdoor-endpoint"
-              type="text"
-              value={endpoint}
-              onChange={(e) => onEndpointChange(e.target.value)}
-              placeholder="http://localhost:11434/v1/messages — leave blank to test with --echo"
-              autoComplete="off"
-              className="w-full text-xs px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all font-terminal"
-            />
-            <div className="flex items-center gap-2 mt-1.5">
+            <label htmlFor="backdoor-connector" className="text-xs font-medium mb-1 block">Local model</label>
+            <select
+              id="backdoor-connector"
+              value={backdoorConnector}
+              onChange={(e) => onBackdoorChange({ backdoorConnector: e.target.value })}
+              className="w-full text-xs px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all mb-2"
+            >
+              {BACKDOOR_CONNECTORS.map((c) => (
+                <option key={c.id} value={c.id}>{c.label}</option>
+              ))}
+            </select>
+
+            {activeConnector.needsModel && (
+              <input
+                type="text"
+                value={backdoorModel}
+                onChange={(e) => onBackdoorChange({ backdoorModel: e.target.value })}
+                placeholder={activeConnector.modelPlaceholder}
+                autoComplete="off"
+                className="w-full text-xs px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all font-terminal mb-1.5"
+              />
+            )}
+
+            {backdoorConnector === "anthropic" && (
+              <p className="text-xs text-muted-foreground mb-1.5">
+                Set <span className="font-terminal">ANTHROPIC_API_KEY</span> in your own terminal before running the
+                watcher — Vaea never asks for, stores, or sees this key. If you just want Claude answering Vaea Chat
+                with no folder or script involved, pick "Anthropic — Claude" as the Provider above instead.
+              </p>
+            )}
+
+            {backdoorConnector === "custom" && (
+              <input
+                type="text"
+                value={backdoorUrl}
+                onChange={(e) => onBackdoorChange({ backdoorUrl: e.target.value })}
+                placeholder="http://localhost:PORT/endpoint — already speaking Vaea's own request shape"
+                autoComplete="off"
+                className="w-full text-xs px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all font-terminal mb-1.5"
+              />
+            )}
+
+            <div className="flex items-center gap-2 mt-1">
               <button
                 type="button"
                 onClick={handleRewriteKit}
                 className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
               >
-                Update watcher files with this endpoint
+                Update watcher files with this configuration
               </button>
               {kitJustWritten && (
                 <span className="flex items-center gap-1 text-[11px] text-primary font-medium">

@@ -144,13 +144,13 @@ async function writeFile(dirHandle, name, contents) {
 // explaining both. Best-effort: a write failure here (e.g. a read-only
 // mount) shouldn't block the folder from connecting, since the transport
 // itself only needs prompts/ and responses/ to exist, not these files.
-export async function writeWatcherKit(url = "") {
+export async function writeWatcherKit(config = { connector: "echo" }) {
   if (!rootHandle) return false;
   try {
     await writeFile(rootHandle, "bridge_watcher.py", BRIDGE_WATCHER_SCRIPT);
-    await writeFile(rootHandle, "run_watcher.bat", buildBatLauncher(url));
-    await writeFile(rootHandle, "run_watcher.command", buildShLauncher(url));
-    await writeFile(rootHandle, "README_BACKDOOR_MODE.txt", buildReadme(url));
+    await writeFile(rootHandle, "run_watcher.bat", buildBatLauncher(config));
+    await writeFile(rootHandle, "run_watcher.command", buildShLauncher(config));
+    await writeFile(rootHandle, "README_BACKDOOR_MODE.txt", buildReadme(config));
     return true;
   } catch {
     return false;

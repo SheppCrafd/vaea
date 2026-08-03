@@ -59,10 +59,9 @@ const STEPS = [
       <>
         Double-click <span className="font-terminal text-xs text-foreground">run_watcher.bat</span> (Windows) or{" "}
         <span className="font-terminal text-xs text-foreground">run_watcher.command</span> (Mac) inside the
-        connected folder — it starts in test mode (<span className="font-terminal text-xs text-foreground">--echo</span>)
-        until you add your model's URL in Settings and click "Update watcher files," which bakes it into the
-        launchers directly. Prefer a terminal, or point it wherever your model actually lives? The commands
-        below still work the same way.
+        connected folder — it starts in test mode until you pick a real one in Settings. Ollama, LM Studio,
+        GPT4All, text-generation-webui, and the real Claude API are all built in: pick one from the dropdown,
+        type the model name, and click "Update watcher files" — no script to write yourself.
       </>
     ),
   },
@@ -177,19 +176,27 @@ export default function BackdoorModeSetupGuidePage() {
             means the chat waits and eventually times out, not a silent failure.
           </p>
 
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Forwarding to a real model</p>
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Five built-in models, no scripting</p>
           <p className="text-sm text-muted-foreground mb-4">
-            The request is already shaped like Anthropic's Messages API — if your model speaks that shape (or
-            you put a small translation layer in front), the same prebuilt watcher forwards directly. Paste the
-            URL into Settings and click "Update watcher files" to bake it into the launchers, or run it directly:
+            Ollama, LM Studio, GPT4All, and text-generation-webui/llama.cpp's server all happen to implement the
+            same OpenAI-compatible chat API at different local ports — <span className="font-terminal text-xs text-foreground">bridge_watcher.py</span> already
+            speaks it. Pick one in Settings (or run it directly) and just give it a model name:
           </p>
           <TerminalBlock
             title="terminal"
-            code={`python bridge_watcher.py . --url http://localhost:11434/v1/messages`}
+            code={`python bridge_watcher.py . --ollama llama3.2\npython bridge_watcher.py . --lmstudio some-model\npython bridge_watcher.py . --gpt4all some-model\npython bridge_watcher.py . --textgen some-model`}
             showPrompt={false}
           />
           <p className="text-sm text-muted-foreground mt-4 mb-4">
-            Some other shape? Import the watcher and supply just the model call:
+            The real Claude API works the same way — reads{" "}
+            <span className="font-terminal text-xs text-foreground">ANTHROPIC_API_KEY</span> from your own
+            terminal, never from Vaea:
+          </p>
+          <TerminalBlock title="terminal" code={`python bridge_watcher.py . --anthropic claude-sonnet-5`} showPrompt={false} />
+          <p className="text-sm text-muted-foreground mt-4 mb-4">
+            Already speaking Vaea's own request shape some other way, or want to write your own translation
+            layer? <span className="font-terminal text-xs text-foreground">--url</span> forwards raw, or import
+            the watcher and supply just the model call:
           </p>
           <TerminalBlock title="your_model_watcher.py" code={CUSTOM_MODEL_SNIPPET} showPrompt={false} />
         </div>
