@@ -74,12 +74,22 @@ export default function ChatBox({ activeProjectId, startOpen = false }) {
 
   return (
     <>
-      {isChatOpen ? (
-        <div
-          ref={containerRef}
-          style={{ position: "fixed", left: geometry.x, top: geometry.y, width: geometry.width, height: geometry.height }}
-          className="z-[110] font-sans bg-card shadow-[0_0_0_1px_hsl(var(--foreground)/0.06),0_28px_58px_-12px_hsl(200_30%_12%/0.35)] rounded-2xl flex flex-col overflow-hidden animate-in fade-in duration-150 transition-none"
-        >
+      {/* Always mounted once open the first time, visibility toggled by
+          `hidden` rather than the whole subtree unmounting/remounting on
+          every open/close — ChatMessageList's typewriter reveal
+          (useTypewriter, a requestAnimationFrame loop) used to get its
+          cleanup fired the instant a click outside the panel closed it,
+          losing all progress; reopening then restarted the whole message
+          from scratch instead of showing it as it actually was. `display:
+          none` doesn't touch rAF (only the tab itself being backgrounded
+          does), so a hidden-but-mounted panel keeps animating/streaming
+          exactly as if it were still visible — reopening just reveals
+          whatever state it's already reached, live generation included. */}
+      <div
+        ref={containerRef}
+        style={isChatOpen ? { position: "fixed", left: geometry.x, top: geometry.y, width: geometry.width, height: geometry.height } : undefined}
+        className={`z-[110] font-sans bg-card shadow-[0_0_0_1px_hsl(var(--foreground)/0.06),0_28px_58px_-12px_hsl(200_30%_12%/0.35)] rounded-2xl flex flex-col overflow-hidden transition-none ${isChatOpen ? "" : "hidden"}`}
+      >
           <ChatResizeHandles startResize={startResize} />
 
           <div
@@ -217,9 +227,12 @@ export default function ChatBox({ activeProjectId, startOpen = false }) {
             </form>
           )}
         </div>
-      ) : (
+
+      {/* No shared ref with the panel above (unlike before) — it's a plain
+          collapsed/expanded toggle, not itself something outside-click
+          detection needs to reason about. */}
+      {!isChatOpen && (
         <button
-          ref={containerRef}
           onClick={() => setIsChatOpen(true)}
           // `fixed` already establishes a positioning context for an
           // absolutely-positioned child (the unread dot below) on its own —

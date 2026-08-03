@@ -284,8 +284,8 @@ function BackdoorModeConnect({ backdoorConnector, backdoorModel, backdoorUrl, on
             <p className="flex items-start gap-1.5 text-xs text-primary mb-3">
               <Check className="w-3.5 h-3.5 shrink-0 mt-0.5" />
               Found {BACKDOOR_CONNECTORS.find((c) => c.id === autoDetected.connector)?.label} already running —
-              configured it with model "{autoDetected.model}" automatically. Double-click the launcher in the
-              folder to start answering.
+              configured it with model "{autoDetected.model}" automatically. Double-click the launcher
+              (<span className="font-terminal">run_watcher.bat</span>) in the folder to start answering.
             </p>
           )}
           {stats && (
