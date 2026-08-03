@@ -60,10 +60,11 @@ const STEPS = [
         Double-click <span className="font-terminal text-xs text-foreground">run_watcher.bat</span> (Windows) or{" "}
         <span className="font-terminal text-xs text-foreground">run_watcher.command</span> (Mac) inside the
         connected folder — it starts in test mode until you pick a real one in Settings. Ollama, LM Studio,
-        GPT4All, text-generation-webui, and the real Claude API are all built in: pick one from the dropdown,
-        type the model name, and click "Update watcher files" — no script to write yourself. No Python? The
-        launcher checks and offers to install it for you (winget on Windows, Homebrew on Mac) — a real yes/no
-        prompt gates it, nothing installs silently.
+        GPT4All, text-generation-webui, the real Claude API, and a local Claude Code CLI are all built in: pick
+        one from the dropdown, type the model name (Claude Code needs none — it uses whatever session the "claude"
+        CLI is already logged into), and click "Update watcher files" — no script to write yourself. No Python?
+        The launcher checks and offers to install it for you (winget on Windows, Homebrew on Mac) — a real
+        yes/no prompt gates it, nothing installs silently.
       </>
     ),
   },
@@ -178,7 +179,18 @@ export default function BackdoorModeSetupGuidePage() {
             means the chat waits and eventually times out, not a silent failure.
           </p>
 
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Five built-in models, no scripting</p>
+          <p className="text-sm text-muted-foreground leading-relaxed mb-6">
+            <span className="font-semibold text-foreground">Only round 0's file actually contains{" "}
+            <span className="font-terminal text-xs text-foreground">system</span>/
+            <span className="font-terminal text-xs text-foreground">tools</span>:</span> they're identical on
+            every round of one turn — repeating them was pure duplication, real workspaces were hitting tens of
+            thousands of tokens per round file. <span className="font-terminal text-xs text-foreground">bridge_watcher.py</span> caches
+            round 0's copy and reconstructs the full request before your <span className="font-terminal text-xs text-foreground">answer()</span> function
+            ever sees it, so this is invisible if you're using the prebuilt watcher — only relevant if you're
+            reading raw prompt files directly, or writing your own from scratch.
+          </p>
+
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Six built-in models, no scripting</p>
           <p className="text-sm text-muted-foreground mb-4">
             Ollama, LM Studio, GPT4All, and text-generation-webui/llama.cpp's server all happen to implement the
             same OpenAI-compatible chat API at different local ports — <span className="font-terminal text-xs text-foreground">bridge_watcher.py</span> already
@@ -195,6 +207,18 @@ export default function BackdoorModeSetupGuidePage() {
             terminal, never from Vaea:
           </p>
           <TerminalBlock title="terminal" code={`python bridge_watcher.py . --anthropic claude-sonnet-5`} showPrompt={false} />
+          <p className="text-sm text-muted-foreground mt-4 mb-4">
+            Already have a{" "}
+            <a href="https://claude.com/claude-code" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">
+              Claude Code
+            </a>{" "}
+            CLI session open (in VS Code's terminal, or anywhere else)? Point the watcher at it directly — no API
+            key, it just runs <span className="font-terminal text-xs text-foreground">claude -p</span> for each
+            round using whatever you're already signed into. It has its own real file/web tools and is told to
+            use them for reading/research only — every actual change to your workspace still comes back as a
+            tool-call for Vaea itself to run, through the same confirm-before-destructive gate as any other model:
+          </p>
+          <TerminalBlock title="terminal" code={`python bridge_watcher.py . --claude-code`} showPrompt={false} />
           <p className="text-sm text-muted-foreground mt-4 mb-4">
             Already speaking Vaea's own request shape some other way, or want to write your own translation
             layer? <span className="font-terminal text-xs text-foreground">--url</span> forwards raw, or import

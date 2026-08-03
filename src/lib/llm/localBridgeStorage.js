@@ -10,7 +10,15 @@
 // Layout inside the chosen folder, created automatically on first connect:
 //   prompts/<requestId>-r<round>.json    — written by this browser; only ever
 //                                          holds rounds still waiting for an
-//                                          answer (the "new" list)
+//                                          answer (the "new" list). Only
+//                                          round 0 carries `system`/`tools`
+//                                          (identical, and large, on every
+//                                          round of one turn — see
+//                                          localBridgeAdapter.js's own
+//                                          comment); bridge_watcher.py
+//                                          reconstructs the full request
+//                                          before a watcher script ever
+//                                          sees it.
 //   responses/<requestId>-r<round>.json  — written by the user's own local
 //                                          watcher script (see
 //                                          BackdoorModeSetupGuidePage.jsx for
@@ -22,15 +30,24 @@
 //                                          the permanent "known" list, so a
 //                                          restarted watcher can never
 //                                          re-answer history
-//   bridge_watcher.py, run_watcher.bat/.command, README_BACKDOOR_MODE.txt
-//                                        — written automatically on connect
+//   bridge_watcher.py, run_watcher.bat/.command, README_BACKDOOR_MODE.txt,
+//   AGENT_RELAY_INSTRUCTIONS.md         — written automatically on connect
 //                                          (writeWatcherKit) so "choose a
 //                                          folder" already leaves a runnable
 //                                          watcher behind, not just an empty
 //                                          prompts/responses pair the user
 //                                          has to populate by hand.
+//                                          AGENT_RELAY_INSTRUCTIONS.md is
+//                                          the manual-relay path — plain
+//                                          instructions for handing ONE
+//                                          pending prompt to any coding
+//                                          agent with real file tools
+//                                          (Copilot Chat, Cursor, Claude
+//                                          Code, etc.), for anyone who'd
+//                                          rather not run a persistent
+//                                          watcher process at all.
 
-import { BRIDGE_WATCHER_SCRIPT, buildBatLauncher, buildShLauncher, buildReadme } from "./bridgeWatcherKit";
+import { BRIDGE_WATCHER_SCRIPT, buildBatLauncher, buildShLauncher, buildReadme, buildAgentRelayInstructions } from "./bridgeWatcherKit";
 
 export const supportsFileSystemAccess =
   typeof window !== "undefined" && typeof window.showDirectoryPicker === "function";
@@ -151,6 +168,7 @@ export async function writeWatcherKit(config = { connector: "echo" }) {
     await writeFile(rootHandle, "run_watcher.bat", buildBatLauncher(config));
     await writeFile(rootHandle, "run_watcher.command", buildShLauncher(config));
     await writeFile(rootHandle, "README_BACKDOOR_MODE.txt", buildReadme(config));
+    await writeFile(rootHandle, "AGENT_RELAY_INSTRUCTIONS.md", buildAgentRelayInstructions());
     return true;
   } catch {
     return false;

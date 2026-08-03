@@ -46,7 +46,19 @@ export async function callLocalBridge({ systemPrompt, contextPrompt, tools, runT
   const thinking = [];
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-    await writeRequestFile(requestId, round, { round, system: systemPrompt, tools, messages });
+    // system/tools are large (the full instruction text plus the whole
+    // Zod-derived tool catalog — tens of thousands of tokens for a real
+    // workspace) and byte-for-byte identical on every round of the SAME
+    // turn, so only round 0 actually writes them — a real user's own
+    // multi-round conversation was hitting the on-disk prompt file at
+    // ~44,000 tokens per round before this, almost entirely duplicated
+    // content. bridge_watcher.py caches round 0's copy per requestId (or
+    // recovers it from processed/prompts/ if the watcher restarted
+    // mid-conversation) and reconstructs the full request before handing it
+    // to whichever connector answers it — every existing connector function
+    // (echo/ollama/lmstudio/etc.) needed zero changes for this.
+    const payload = round === 0 ? { round, system: systemPrompt, tools, messages } : { round, messages };
+    await writeRequestFile(requestId, round, payload);
     const response = await pollForResponseFile(requestId, round, { intervalMs: pollIntervalMs });
 
     const content = response?.content;

@@ -58,6 +58,11 @@ describe("localBridgeAdapter: file-based round loop", () => {
       role: "user",
       content: [{ type: "tool_result", tool_use_id: "toolu_1", content: JSON.stringify({ count: 1 }) }],
     });
+    // system/tools are large and identical every round of the same turn —
+    // only round 0 actually writes them to disk (bridge_watcher.py
+    // reconstructs the rest); round 1's own file must not repeat them.
+    expect(body1).not.toHaveProperty("system");
+    expect(body1).not.toHaveProperty("tools");
   });
 
   it("splits reply from reasoning even when a SINGLE round's own text has multiple paragraphs — a model very often writes its whole build-up and its conclusion together, with no tool call forcing a second round at all", async () => {

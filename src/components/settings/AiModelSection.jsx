@@ -171,6 +171,7 @@ const BACKDOOR_CONNECTORS = [
   { id: "gpt4all", label: "GPT4All", needsModel: true, modelPlaceholder: "the model name shown in GPT4All" },
   { id: "textgen", label: "text-generation-webui / llama.cpp server", needsModel: true, modelPlaceholder: "the model name it's serving" },
   { id: "anthropic", label: "Real Claude API", needsModel: true, modelPlaceholder: "claude-sonnet-5" },
+  { id: "claude-code", label: "Claude Code CLI (already open on this device)", needsModel: false },
   { id: "custom", label: "Custom endpoint (advanced)", needsModel: false },
 ];
 
@@ -333,6 +334,18 @@ function BackdoorModeConnect({ backdoorConnector, backdoorModel, backdoorUrl, on
                 Set <span className="font-terminal">ANTHROPIC_API_KEY</span> in your own terminal before running the
                 watcher — Vaea never asks for, stores, or sees this key. If you just want Claude answering Vaea Chat
                 with no folder or script involved, pick "Anthropic — Claude" as the Provider above instead.
+              </p>
+            )}
+
+            {backdoorConnector === "claude-code" && (
+              <p className="text-xs text-muted-foreground mb-1.5">
+                Runs <span className="font-terminal">claude -p</span> on this device for each message — needs the{" "}
+                <a href="https://claude.com/claude-code" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">
+                  Claude Code CLI
+                </a>{" "}
+                installed and already signed in (no separate API key). It can read files or search the web to help
+                answer, but every actual change to your workspace still goes through the same tool-call + confirm
+                flow as any other model.
               </p>
             )}
 
