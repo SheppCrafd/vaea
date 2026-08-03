@@ -31,7 +31,12 @@ def scan_new_prompts(root):
         if (responses / f.name).exists():
             continue  # answered — Vaea will file the pair into processed/
         try:
-            yield f.name, json.loads(f.read_text())
+            # Vaea writes these as real UTF-8 (the browser's File System
+            # Access API always does) — explicit here because Python's
+            # read_text() otherwise defaults to the OS's own codepage, which
+            # on Windows is rarely UTF-8 and crashes on the em dashes this
+            # app's own prompts/system text is full of.
+            yield f.name, json.loads(f.read_text(encoding="utf-8"))
         except (FileNotFoundError, json.JSONDecodeError):
             continue  # mid-write or just archived; the next pass gets it
 
@@ -42,7 +47,7 @@ def run_watcher(root, answer, interval=5):
         for name, request in scan_new_prompts(root):
             print(f"Got round {request['round']} from {name}")
             reply = answer(request)
-            (responses / name).write_text(json.dumps(reply, indent=2))
+            (responses / name).write_text(json.dumps(reply, indent=2), encoding="utf-8")
             print(f"Answered {name}")
         time.sleep(interval)
 
