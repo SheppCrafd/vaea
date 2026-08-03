@@ -13,6 +13,11 @@ export const DEFAULTS = {
   provider: "base44",
   model: "",
   apiKey: "",
+  // Backdoor Mode only — baked into the watcher launcher scripts
+  // (localBridgeStorage.js's writeWatcherKit) so the folder itself carries a
+  // ready-to-run pointer at whatever local/on-prem model the user has,
+  // rather than the user hand-editing a command every time.
+  backdoorEndpoint: "",
 };
 
 export async function loadAiProviderConfig() {

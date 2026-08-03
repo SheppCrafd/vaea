@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft, FolderOpen, RefreshCw, Cpu, ShieldCheck, FileJson, TerminalSquare, Settings } from "lucide-react";
 import TerminalBlock from "@/components/settings/TerminalBlock";
+import { BRIDGE_WATCHER_SCRIPT } from "@/lib/llm/bridgeWatcherKit";
 
 const PIPELINE = [
   { Icon: FolderOpen, label: "Connect a folder" },
@@ -8,69 +9,6 @@ const PIPELINE = [
   { Icon: RefreshCw, label: "Your script polls" },
   { Icon: Cpu, label: "Your model answers" },
 ];
-
-const WATCHER_SCRIPT = `#!/usr/bin/env python3
-# bridge_watcher.py — the prebuilt Backdoor Mode watcher. The folder
-# inspection lives here once, so it never has to be re-written per script:
-# a prompt counts as NEW only while it has no response yet, which makes
-# restarts safe — answered prompts are never re-answered, even before Vaea
-# files the pair away into processed/.
-#
-#   python bridge_watcher.py <folder> --echo     # wiring test, no model
-#   python bridge_watcher.py <folder> --url http://localhost:11434/v1/messages
-#
-# Or import it and bring your own model (see "Forwarding to a real model"):
-#   from bridge_watcher import run_watcher
-#   run_watcher("<folder>", my_answer_function)
-
-import argparse, json, time, urllib.request
-from pathlib import Path
-
-def scan_new_prompts(root):
-    """Yield (name, request) for each prompt that has no response yet."""
-    prompts, responses = Path(root) / "prompts", Path(root) / "responses"
-    for f in sorted(prompts.glob("*.json")):
-        if (responses / f.name).exists():
-            continue  # answered — Vaea will file the pair into processed/
-        try:
-            yield f.name, json.loads(f.read_text())
-        except (FileNotFoundError, json.JSONDecodeError):
-            continue  # mid-write or just archived; the next pass gets it
-
-def run_watcher(root, answer, interval=5):
-    responses = Path(root) / "responses"
-    print(f"Watching {Path(root) / 'prompts'} every {interval}s...")
-    while True:
-        for name, request in scan_new_prompts(root):
-            print(f"Got round {request['round']} from {name}")
-            reply = answer(request)
-            (responses / name).write_text(json.dumps(reply, indent=2))
-            print(f"Answered {name}")
-        time.sleep(interval)
-
-def echo_model(request):
-    return {"content": [{"type": "text", "text": "Hello from your local watcher script."}]}
-
-def http_model(url):
-    def answer(request):
-        body = json.dumps({
-            "system": request["system"],
-            "tools": request["tools"],
-            "messages": request["messages"],
-        }).encode()
-        req = urllib.request.Request(url, data=body, headers={"content-type": "application/json"})
-        with urllib.request.urlopen(req) as res:
-            return json.loads(res.read())  # expected shape: {"content": [...]}
-    return answer
-
-if __name__ == "__main__":
-    p = argparse.ArgumentParser()
-    p.add_argument("folder")
-    mode = p.add_mutually_exclusive_group(required=True)
-    mode.add_argument("--echo", action="store_true", help="reply with a fixed test message")
-    mode.add_argument("--url", help="forward each round to a Claude-compatible endpoint")
-    args = p.parse_args()
-    run_watcher(args.folder, echo_model if args.echo else http_model(args.url))`;
 
 const CUSTOM_MODEL_SNIPPET = `# your_model_watcher.py — bring any model; the folder handling is already done.
 from bridge_watcher import run_watcher
@@ -80,7 +18,7 @@ def answer(request):
     # you like and return {"content": [...]} (text and/or tool_use blocks).
     ...
 
-run_watcher("/path/to/the/folder/you/connected", answer)`;
+run_watcher(".", answer)`;
 
 const REQUEST_SHAPE = `{
   "round": 0,
@@ -106,23 +44,25 @@ const STEPS = [
     body: (
       <>
         In <strong className="text-foreground">Settings → AI Model</strong>, pick{" "}
-        <strong className="text-foreground">Backdoor Mode</strong>, then choose (or create) an empty folder.
-        Vaea creates <span className="font-terminal text-xs text-foreground">prompts/</span> and{" "}
-        <span className="font-terminal text-xs text-foreground">responses/</span> subfolders automatically
-        (Chrome/Edge desktop only). Answered pairs get filed into{" "}
-        <span className="font-terminal text-xs text-foreground">processed/</span>.
+        <strong className="text-foreground">Backdoor Mode</strong>, then choose (or create) an empty folder
+        (Chrome/Edge desktop only). That's it — Vaea creates{" "}
+        <span className="font-terminal text-xs text-foreground">prompts/</span> and{" "}
+        <span className="font-terminal text-xs text-foreground">responses/</span> subfolders and writes a
+        ready-to-run <span className="font-terminal text-xs text-foreground">bridge_watcher.py</span> plus
+        double-click launchers straight into the folder — nothing to save or copy yourself.
       </>
     ),
   },
   {
-    title: "Run a watcher script against it",
+    title: "Run the watcher it already wrote",
     body: (
       <>
-        Nothing polls the folder on its own — run the prebuilt{" "}
-        <span className="font-terminal text-xs text-foreground">bridge_watcher.py</span> below, wherever your
-        model lives, as long as it can see the same folder. Test with{" "}
-        <span className="font-terminal text-xs text-foreground">--echo</span> first, then point it at your
-        model with <span className="font-terminal text-xs text-foreground">--url</span>.
+        Double-click <span className="font-terminal text-xs text-foreground">run_watcher.bat</span> (Windows) or{" "}
+        <span className="font-terminal text-xs text-foreground">run_watcher.command</span> (Mac) inside the
+        connected folder — it starts in test mode (<span className="font-terminal text-xs text-foreground">--echo</span>)
+        until you add your model's URL in Settings and click "Update watcher files," which bakes it into the
+        launchers directly. Prefer a terminal, or point it wherever your model actually lives? The commands
+        below still work the same way.
       </>
     ),
   },
@@ -189,14 +129,16 @@ export default function BackdoorModeSetupGuidePage() {
         </ol>
 
         <div className="mb-14">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">The prebuilt watcher — save it once, reuse it for everything</p>
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">The watcher, already sitting in your folder</p>
           <p className="text-sm text-muted-foreground mb-4">
-            Save as <span className="font-terminal text-xs text-foreground">bridge_watcher.py</span> (Python 3,
-            no extra packages), run with <span className="font-terminal text-xs text-foreground">--echo</span> against
-            your connected folder, then send a message in Vaea Chat — you should get "Hello from your local
-            watcher script." back.
+            This is <span className="font-terminal text-xs text-foreground">bridge_watcher.py</span> (Python 3,
+            no extra packages) — shown here for reference or if you want to customize it, but it's already been
+            written into the folder you connected. Run the launcher (or{" "}
+            <span className="font-terminal text-xs text-foreground">python bridge_watcher.py . --echo</span> in a
+            terminal there) and send a message in Vaea Chat — you should get "Hello from your local watcher
+            script." back.
           </p>
-          <TerminalBlock title="bridge_watcher.py" code={WATCHER_SCRIPT} showPrompt={false} />
+          <TerminalBlock title="bridge_watcher.py" code={BRIDGE_WATCHER_SCRIPT} showPrompt={false} />
         </div>
 
         <div className="mt-14 pt-10 border-t border-border">
@@ -238,11 +180,12 @@ export default function BackdoorModeSetupGuidePage() {
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Forwarding to a real model</p>
           <p className="text-sm text-muted-foreground mb-4">
             The request is already shaped like Anthropic's Messages API — if your model speaks that shape (or
-            you put a small translation layer in front), the same prebuilt watcher forwards directly:
+            you put a small translation layer in front), the same prebuilt watcher forwards directly. Paste the
+            URL into Settings and click "Update watcher files" to bake it into the launchers, or run it directly:
           </p>
           <TerminalBlock
             title="terminal"
-            code={`python bridge_watcher.py /path/to/your/folder --url http://localhost:11434/v1/messages`}
+            code={`python bridge_watcher.py . --url http://localhost:11434/v1/messages`}
             showPrompt={false}
           />
           <p className="text-sm text-muted-foreground mt-4 mb-4">

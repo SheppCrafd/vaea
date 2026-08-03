@@ -11,6 +11,7 @@ import {
   reconnectBridgeFolder,
   disconnectBridgeFolder,
   inspectBridgeFolder,
+  writeWatcherKit,
 } from "@/lib/llm/localBridgeStorage";
 
 // Which model actually answers Vaea Chat — Vaea's own hosted default, or a
@@ -132,7 +133,9 @@ export default function AiModelSection() {
           </>
         )}
 
-        {isLocalBridge && <BackdoorModeConnect />}
+        {isLocalBridge && (
+          <BackdoorModeConnect endpoint={config.backdoorEndpoint} onEndpointChange={(v) => persist({ ...config, backdoorEndpoint: v })} />
+        )}
 
         {isByok && provider.id !== "anthropic" && provider.id !== "xai" && (
           <p className="text-xs text-muted-foreground">
@@ -152,11 +155,12 @@ export default function AiModelSection() {
 // responses/ into (localBridgeStorage.js), and their own local watcher
 // script (see the setup guide) answers by polling it. Deliberately mirrors
 // ExternalVaultSection.jsx's connect/disconnect button pattern.
-function BackdoorModeConnect() {
+function BackdoorModeConnect({ endpoint, onEndpointChange }) {
   const [status, setStatus] = useState("checking");
   const [folderName, setFolderName] = useState(null);
   const [error, setError] = useState("");
   const [stats, setStats] = useState(null); // { pending: [names], processed: n }
+  const [kitJustWritten, setKitJustWritten] = useState(false);
 
   const refresh = async () => {
     const s = await getBridgeStatus();
@@ -174,6 +178,9 @@ function BackdoorModeConnect() {
   const handleConnect = async () => {
     setError("");
     try {
+      // connectBridgeFolder already drops a runnable watcher kit (script +
+      // launchers + README) into the folder on its own — nothing left here
+      // to write until the user actually customizes the endpoint below.
       await connectBridgeFolder();
       await refresh();
     } catch (err) {
@@ -197,6 +204,17 @@ function BackdoorModeConnect() {
     await refresh();
   };
 
+  const handleRewriteKit = async () => {
+    setError("");
+    const ok = await writeWatcherKit(endpoint.trim());
+    if (ok) {
+      setKitJustWritten(true);
+      setTimeout(() => setKitJustWritten(false), 2000);
+    } else {
+      setError("Couldn't write the watcher files to that folder. Try reconnecting it.");
+    }
+  };
+
   if (!bridgeSupported) {
     return (
       <p className="flex items-start gap-1.5 text-xs text-destructive">
@@ -217,9 +235,9 @@ function BackdoorModeConnect() {
         )}
       </div>
       <p className="text-xs text-muted-foreground mb-3">
-        Every prompt is written to a <span className="font-terminal">prompts/</span> folder on this device and read
-        back from a <span className="font-terminal">responses/</span> folder next to it — nothing is sent over the
-        network. Your own local script watches that folder and answers using your company's model.
+        Choose a folder and Vaea does the rest: it creates <span className="font-terminal">prompts/</span> and{" "}
+        <span className="font-terminal">responses/</span> folders and writes a ready-to-run watcher script straight
+        into it — no copying, pasting, or hand-typing a command. Nothing is sent over the network.
       </p>
 
       {status === "connected" && (
@@ -239,6 +257,36 @@ function BackdoorModeConnect() {
               </button>
             </p>
           )}
+
+          <div className="mb-3">
+            <label htmlFor="backdoor-endpoint" className="text-xs font-medium mb-1 block">
+              Local model endpoint <span className="text-muted-foreground font-normal">(optional)</span>
+            </label>
+            <input
+              id="backdoor-endpoint"
+              type="text"
+              value={endpoint}
+              onChange={(e) => onEndpointChange(e.target.value)}
+              placeholder="http://localhost:11434/v1/messages — leave blank to test with --echo"
+              autoComplete="off"
+              className="w-full text-xs px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all font-terminal"
+            />
+            <div className="flex items-center gap-2 mt-1.5">
+              <button
+                type="button"
+                onClick={handleRewriteKit}
+                className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+              >
+                Update watcher files with this endpoint
+              </button>
+              {kitJustWritten && (
+                <span className="flex items-center gap-1 text-[11px] text-primary font-medium">
+                  <Check className="w-3.5 h-3.5" /> Written
+                </span>
+              )}
+            </div>
+          </div>
+
           <button
             type="button"
             onClick={handleDisconnect}

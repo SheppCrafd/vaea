@@ -22,6 +22,15 @@
 //                                          the permanent "known" list, so a
 //                                          restarted watcher can never
 //                                          re-answer history
+//   bridge_watcher.py, run_watcher.bat/.command, README_BACKDOOR_MODE.txt
+//                                        — written automatically on connect
+//                                          (writeWatcherKit) so "choose a
+//                                          folder" already leaves a runnable
+//                                          watcher behind, not just an empty
+//                                          prompts/responses pair the user
+//                                          has to populate by hand.
+
+import { BRIDGE_WATCHER_SCRIPT, buildBatLauncher, buildShLauncher, buildReadme } from "./bridgeWatcherKit";
 
 export const supportsFileSystemAccess =
   typeof window !== "undefined" && typeof window.showDirectoryPicker === "function";
@@ -123,6 +132,31 @@ async function openSubfolders(handle) {
   responsesHandle = await handle.getDirectoryHandle("responses", { create: true });
 }
 
+async function writeFile(dirHandle, name, contents) {
+  const fh = await dirHandle.getFileHandle(name, { create: true });
+  const writable = await fh.createWritable();
+  await writable.write(contents);
+  await writable.close();
+}
+
+// Drops a ready-to-run watcher straight into the connected folder — the
+// script itself, a double-click launcher for Windows and Mac, and a README
+// explaining both. Best-effort: a write failure here (e.g. a read-only
+// mount) shouldn't block the folder from connecting, since the transport
+// itself only needs prompts/ and responses/ to exist, not these files.
+export async function writeWatcherKit(url = "") {
+  if (!rootHandle) return false;
+  try {
+    await writeFile(rootHandle, "bridge_watcher.py", BRIDGE_WATCHER_SCRIPT);
+    await writeFile(rootHandle, "run_watcher.bat", buildBatLauncher(url));
+    await writeFile(rootHandle, "run_watcher.command", buildShLauncher(url));
+    await writeFile(rootHandle, "README_BACKDOOR_MODE.txt", buildReadme(url));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // Must be called from a click handler — showDirectoryPicker requires a user
 // gesture.
 export async function connectBridgeFolder() {
@@ -130,6 +164,7 @@ export async function connectBridgeFolder() {
   await openSubfolders(handle);
   rootHandle = handle;
   await setStoredHandle(handle);
+  await writeWatcherKit();
   notify();
   return handle;
 }
