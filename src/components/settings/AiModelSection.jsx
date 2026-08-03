@@ -13,6 +13,7 @@ import {
   inspectBridgeFolder,
   writeWatcherKit,
 } from "@/lib/llm/localBridgeStorage";
+import { detectLocalModel } from "@/lib/llm/localModelDetect";
 
 // Which model actually answers Vaea Chat — Vaea's own hosted default, or a
 // provider the user brings their own API key for. A BYOK key is used
@@ -184,6 +185,7 @@ function BackdoorModeConnect({ backdoorConnector, backdoorModel, backdoorUrl, on
   const [error, setError] = useState("");
   const [stats, setStats] = useState(null); // { pending: [names], processed: n }
   const [kitJustWritten, setKitJustWritten] = useState(false);
+  const [autoDetected, setAutoDetected] = useState(null); // { connector, model } — just-detected, for the confirmation line
   const activeConnector = BACKDOOR_CONNECTORS.find((c) => c.id === backdoorConnector) || BACKDOOR_CONNECTORS[0];
 
   const refresh = async () => {
@@ -201,12 +203,24 @@ function BackdoorModeConnect({ backdoorConnector, backdoorModel, backdoorUrl, on
 
   const handleConnect = async () => {
     setError("");
+    setAutoDetected(null);
     try {
       // connectBridgeFolder already drops a runnable watcher kit (script +
-      // launchers + README) into the folder on its own — nothing left here
-      // to write until the user actually customizes the endpoint below.
+      // launchers + README) into the folder on its own, in --echo test
+      // mode. Right after, try to find an already-running local model on
+      // this device (Ollama, LM Studio, GPT4All, text-generation-webui) —
+      // best-effort (see localModelDetect.js's own header on why this can't
+      // always succeed) — and if one's found, configure and rewrite the
+      // kit for it immediately, so picking a folder is genuinely the whole
+      // job for anyone who already has one of these running.
       await connectBridgeFolder();
       await refresh();
+      const detected = await detectLocalModel();
+      if (detected) {
+        onBackdoorChange({ backdoorConnector: detected.connector, backdoorModel: detected.model });
+        await writeWatcherKit({ connector: detected.connector, model: detected.model });
+        setAutoDetected(detected);
+      }
     } catch (err) {
       if (err.name !== "AbortError") setError("Couldn't get access to that folder. Try again.");
     }
@@ -266,6 +280,14 @@ function BackdoorModeConnect({ backdoorConnector, backdoorModel, backdoorUrl, on
 
       {status === "connected" && (
         <>
+          {autoDetected && (
+            <p className="flex items-start gap-1.5 text-xs text-primary mb-3">
+              <Check className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              Found {BACKDOOR_CONNECTORS.find((c) => c.id === autoDetected.connector)?.label} already running —
+              configured it with model "{autoDetected.model}" automatically. Double-click the launcher in the
+              folder to start answering.
+            </p>
+          )}
           {stats && (
             <p className="text-xs text-muted-foreground mb-3">
               <span className="font-terminal text-foreground">{stats.pending.length}</span> prompt{stats.pending.length === 1 ? "" : "s"} waiting ·{" "}

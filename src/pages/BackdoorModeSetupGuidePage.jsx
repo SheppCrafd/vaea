@@ -61,7 +61,9 @@ const STEPS = [
         <span className="font-terminal text-xs text-foreground">run_watcher.command</span> (Mac) inside the
         connected folder — it starts in test mode until you pick a real one in Settings. Ollama, LM Studio,
         GPT4All, text-generation-webui, and the real Claude API are all built in: pick one from the dropdown,
-        type the model name, and click "Update watcher files" — no script to write yourself.
+        type the model name, and click "Update watcher files" — no script to write yourself. No Python? The
+        launcher checks and offers to install it for you (winget on Windows, Homebrew on Mac) — a real yes/no
+        prompt gates it, nothing installs silently.
       </>
     ),
   },

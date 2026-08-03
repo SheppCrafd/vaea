@@ -217,12 +217,68 @@ function watcherArgs(config) {
 // they live in (so `bridge_watcher.py`'s relative "." resolves correctly
 // regardless of where the folder actually is) and run it with whatever
 // connector was configured in Settings when the kit was last written.
+//
+// Both also check for Python first and, if it's missing, offer to install
+// it via the OS's own package manager — winget (built into Windows 10 2004+
+// and Windows 11, so nothing extra to fetch first) or Homebrew — rather
+// than just failing with "'python' is not recognized". This can't happen
+// from Vaea itself: a browser tab has no way to install anything on the
+// device (the same hard sandboxing boundary that stops it from launching
+// the watcher process in the first place — see the setup guide). A local
+// script the user runs themselves has no such limit, so that's where this
+// lives. Consent is real, not assumed: an explicit y/n prompt gates the
+// install before anything runs, on top of whatever winget/Homebrew (and,
+// on Windows, UAC) ask on their own.
 export function buildBatLauncher(config) {
-  return `@echo off\r\ncd /d "%~dp0"\r\npython bridge_watcher.py . ${watcherArgs(config)}\r\npause\r\n`;
+  return `@echo off\r
+cd /d "%~dp0"\r
+where python >nul 2>nul\r
+if %errorlevel% neq 0 (\r
+  echo Python wasn't found on this device.\r
+  set /p INSTALL_PY="Install it now via winget? [y/N] "\r
+  if /I not "%INSTALL_PY%"=="y" (\r
+    echo Skipped. Install Python yourself from https://python.org/downloads, then run this again.\r
+    pause\r
+    exit /b 1\r
+  )\r
+  where winget >nul 2>nul\r
+  if %errorlevel% neq 0 (\r
+    echo winget isn't available on this device either. Install Python from https://python.org/downloads, then run this again.\r
+    pause\r
+    exit /b 1\r
+  )\r
+  winget install -e --id Python.Python.3.12 --accept-package-agreements --accept-source-agreements\r
+  echo.\r
+  echo Python installed. Close this window and double-click run_watcher.bat again so it picks up the new install.\r
+  pause\r
+  exit /b 0\r
+)\r
+python bridge_watcher.py . ${watcherArgs(config)}\r
+pause\r
+`;
 }
 
 export function buildShLauncher(config) {
-  return `#!/bin/bash\ncd "$(dirname "$0")"\npython3 bridge_watcher.py . ${watcherArgs(config)}\n`;
+  return `#!/bin/bash
+cd "$(dirname "$0")"
+if ! command -v python3 &>/dev/null; then
+  echo "Python 3 wasn't found on this device."
+  read -p "Install it now via Homebrew? [y/N] " INSTALL_PY
+  if [[ ! "$INSTALL_PY" =~ ^[Yy]$ ]]; then
+    echo "Skipped. Install Python yourself from https://python.org/downloads, then run this again."
+    read -p "Press Enter to close..."
+    exit 1
+  fi
+  if ! command -v brew &>/dev/null; then
+    echo "Homebrew isn't installed either. Install it from https://brew.sh, or get Python directly from https://python.org/downloads, then run this again."
+    read -p "Press Enter to close..."
+    exit 1
+  fi
+  brew install python3
+  echo "Python installed."
+fi
+python3 bridge_watcher.py . ${watcherArgs(config)}
+`;
 }
 
 const CONNECTOR_LABELS = {
@@ -260,6 +316,10 @@ Vaea wrote these files the moment you connected this folder:
   run_watcher.command   double-click to run it on Mac (first time only:
                          right-click -> Open, since it isn't signed; or run
                          "chmod +x run_watcher.command" once in a terminal)
+
+No Python installed? The launchers check for it themselves and offer to
+install it for you (winget on Windows, Homebrew on Mac) — you'll get a real
+yes/no prompt before anything installs.
 
 ${statusBlock}
 
