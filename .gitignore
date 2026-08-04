@@ -47,3 +47,7 @@ base44/.app.jsonc
 # from a cloned repo — see src/lib/localDb.js and README.md's "Local data
 # storage" section. Never committed; this is per-clone user data, not source.
 /data
+
+# One-time Playwright QA pass (chat providers x localhost/hosted) — throwaway
+# scripts + findings log, not a maintained e2e suite. See qa-e2e/bugs.md.
+/qa-e2e
