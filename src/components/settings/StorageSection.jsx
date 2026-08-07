@@ -11,7 +11,7 @@ import {
   downloadSnapshotFile,
 } from "@/lib/deviceStorage";
 import * as cloudStorage from "@/lib/cloudStorage";
-import { copyAllKeys } from "@/lib/storageMigration";
+import { copyAllKeys, destinationHasData } from "@/lib/storageMigration";
 import { appParams } from "@/lib/app-params";
 import { confirmThen } from "@/lib/entityUtils";
 
@@ -43,6 +43,15 @@ export default function StorageSection() {
         setError("");
         setBusy(true);
         try {
+          // Refuse to silently overwrite real data already sitting in the
+          // cloud (e.g. from a different device that already switched to
+          // cloud storage) — copyAllKeys itself has no such check, it just
+          // overwrites every key unconditionally. See storageMigration.js.
+          if (await destinationHasData({ read: cloudStorage.readKey })) {
+            setError("Your cloud storage already has data in it — switching would overwrite it. Back it up first (Settings → Backup & Restore), or clear the cloud data before switching.");
+            setBusy(false);
+            return;
+          }
           await copyAllKeys({ read: readDeviceKey, write: cloudStorage.writeKey });
           setStorageMode("cloud");
           window.location.reload();
@@ -62,7 +71,12 @@ export default function StorageSection() {
         setBusy(true);
         try {
           if (supportsFileSystemAccess) {
-            await connectFolder(); // user-gesture-gated folder picker
+            await connectFolder(); // user-gesture-gated folder picker — can pick ANY folder, including one already full of real data from a previous device-storage session
+            if (await destinationHasData({ read: readDeviceKey })) {
+              setError("That folder already has Vaea data in it — switching would overwrite it. Choose an empty folder, or back up this folder's data first before reusing it.");
+              setBusy(false);
+              return;
+            }
             await copyAllKeys({ read: cloudStorage.readKey, write: writeDeviceKey });
           } else {
             startFreshManual();

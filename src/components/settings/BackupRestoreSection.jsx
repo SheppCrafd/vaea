@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { RotateCcw, Check } from "lucide-react";
 import { listSnapshots, restoreSnapshot } from "@/lib/backupSnapshots";
 import { confirmThen } from "@/lib/entityUtils";
+import { useToast } from "@/components/ui/use-toast";
 
 const COLLECTION_LABELS = {
   areas: "areas", products: "products", projects: "projects", tasks: "tasks",
@@ -24,6 +25,7 @@ export default function BackupRestoreSection() {
   const [snapshots, setSnapshots] = useState([]);
   const [restoringId, setRestoringId] = useState(null);
   const [justRestoredId, setJustRestoredId] = useState(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     listSnapshots().then(setSnapshots);
@@ -39,6 +41,16 @@ export default function BackupRestoreSection() {
           setSnapshots(await listSnapshots());
           setJustRestoredId(id);
           setTimeout(() => setJustRestoredId(null), 2000);
+        } catch (error) {
+          // Used to be a bare try/finally — a thrown restoreSnapshot error
+          // became an unhandled promise rejection with the button just
+          // silently resetting, no indication the restore didn't happen and
+          // no way to tell what state the data was actually left in.
+          toast({
+            variant: "destructive",
+            title: "Restore failed",
+            description: error?.message || "Something went wrong restoring this backup — your data may be unchanged, but double-check before assuming the restore happened.",
+          });
         } finally {
           setRestoringId(null);
         }

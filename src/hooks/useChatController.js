@@ -611,16 +611,27 @@ export function useChatController({ activeProjectId } = {}) {
     }
   };
 
+  // Returns { hadAction, ok, error? } instead of swallowing a failure
+  // silently — this used to pop the entry off actionHistory BEFORE
+  // attempting it and empty-catch any error with a comment claiming it was
+  // "surfaced via the assistant's own reply already." That was never true:
+  // the model's reply text is generated in the same turn, before this
+  // actually runs, so it has no way to know whether the undo succeeded —
+  // a failed undo was completely invisible, and the popped entry was gone
+  // for good with no way to retry it. Now the entry only leaves history on
+  // real success, so a failure can be retried, and the caller (handleSend,
+  // right below) can show the user what actually happened.
   const runUndo = async () => {
     const last = actionHistory[actionHistory.length - 1];
-    if (!last) return;
-    setActionHistory((prev) => prev.slice(0, -1));
+    if (!last) return { hadAction: false, ok: true };
     const { type, ...args } = last;
     try {
       await executeAction(type, args);
       await invalidateAppQueries();
-    } catch {
-      // best-effort — surfaced via the assistant's own reply already
+      setActionHistory((prev) => prev.slice(0, -1));
+      return { hadAction: true, ok: true };
+    } catch (error) {
+      return { hadAction: true, ok: false, error };
     }
   };
 
@@ -728,14 +739,20 @@ export function useChatController({ activeProjectId } = {}) {
       const skipTypewriter = liveThinkingShown ? {} : { onSuccess: (created) => markMessageNew(created.id) };
 
       if (actions.length === 0 || actions.every((a) => NON_EXECUTABLE_ACTIONS.has(a.action))) {
+        // The model's `reply` text was written before this actually runs, so
+        // it can't know whether the undo succeeded — append a real,
+        // post-hoc note whenever it didn't (see runUndo's own comment).
+        let replyText = reply;
         if (actions[0]?.action === "UNDO_LAST_ACTION") {
-          await runUndo();
+          const undoResult = await runUndo();
+          if (!undoResult.hadAction) replyText += "\n\n⚠️ There was nothing to undo.";
+          else if (!undoResult.ok) replyText += `\n\n⚠️ Undo failed: ${undoResult.error.message}`;
         }
         setLiveSteps([]);
         await createMessage.mutateAsync(
           {
             session_id: sessionId, role: "assistant",
-            content: buildLoggedContent(reply, liveTrace.map((l) => l.label)),
+            content: buildLoggedContent(replyText, liveTrace.map((l) => l.label)),
             ...(liveTrace.length ? { tool_log_detail: { liveTrace } } : {}),
           },
           skipTypewriter
@@ -816,8 +833,21 @@ export function useChatController({ activeProjectId } = {}) {
       if (error.status === 401 || error.status === 403) {
         setAuthPromptVisible(true);
       } else {
+        // A plan that failed partway through executeActionSequence carries
+        // its already-completed steps on the error (see chatActions.js) —
+        // register their undo info (otherwise a real UPDATE_TASK_STATUS/etc.
+        // that DID succeed becomes permanently un-undoable via chat) and
+        // show them in the error message's own tool-log, so "3 of 5 steps
+        // already ran" is something the user actually sees, not just
+        // error.message's own parenthetical count.
+        const completedSteps = error.completedSteps || [];
+        const undos = completedSteps.map((r) => r.toolResult?.undo).filter(Boolean);
+        if (undos.length) setActionHistory((prev) => [...prev, ...undos]);
+        const content = completedSteps.length
+          ? buildLoggedContent(`⚠️ Error: ${error.message}`, completedSteps.map(describeToolCall))
+          : `⚠️ Error: ${error.message}`;
         await createMessage.mutateAsync(
-          { session_id: sessionId, role: "assistant", content: `⚠️ Error: ${error.message}` },
+          { session_id: sessionId, role: "assistant", content, ...(completedSteps.length ? { tool_log_detail: { steps: completedSteps } } : {}) },
           { onSuccess: (created) => markMessageNew(created.id) }
         );
       }
@@ -875,8 +905,17 @@ export function useChatController({ activeProjectId } = {}) {
         // best-effort — worst case the message still shows stale
         // Confirm/Cancel buttons, no worse than before this fix
       }
+      // Same partial-completion handling as handleSend's catch above — see
+      // chatActions.js's executeActionSequence for where completedSteps
+      // comes from.
+      const completedSteps = error.completedSteps || [];
+      const undos = completedSteps.map((r) => r.toolResult?.undo).filter(Boolean);
+      if (undos.length) setActionHistory((prev) => [...prev, ...undos]);
+      const content = completedSteps.length
+        ? buildLoggedContent(`⚠️ Couldn't complete that: ${error.message}`, completedSteps.map(describeToolCall))
+        : `⚠️ Couldn't complete that: ${error.message}`;
       await createMessage.mutateAsync(
-        { session_id: message.session_id, role: "assistant", content: `⚠️ Couldn't complete that: ${error.message}` },
+        { session_id: message.session_id, role: "assistant", content, ...(completedSteps.length ? { tool_log_detail: { steps: completedSteps } } : {}) },
         { onSuccess: (created) => markMessageNew(created.id) }
       );
     } finally {

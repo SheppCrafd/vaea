@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { localDb } from "@/lib/localDb";
 import { useAreas } from "@/hooks/useAreas";
@@ -28,6 +29,25 @@ export function useGlobalDragEnd() {
   const updateProduct = useUpdateProduct();
   const updateTask = useUpdateTask();
   const updateStakeholder = useUpdateStakeholder();
+
+  // Serializes sibling-reorder writes (project/area/product drag-to-reorder,
+  // the three branches below that recompute a WHOLE position map from
+  // "current sibling order"). Without this, dragging card A onto B, then
+  // immediately dragging C onto D before the first drag's write +
+  // invalidateQueries + refetch had actually landed, computed the second
+  // drag's new position map from the stale pre-first-drag React Query cache
+  // (staleTime: Infinity, only refreshed after a previous write's own
+  // .then()) — silently reverting the first drag's reorder. Each queued
+  // operation re-reads live data straight from localDb right before
+  // computing, rather than trusting the hook's closure-captured `areas`/
+  // `projects`/`products`, so it always sees the true post-previous-write
+  // state regardless of React's own re-render timing.
+  const reorderQueueRef = useRef(Promise.resolve());
+  function enqueueReorder(run) {
+    const next = reorderQueueRef.current.then(run, run);
+    reorderQueueRef.current = next.catch(() => {});
+    return next;
+  }
 
   return (event) => {
     const { active, over } = event;
@@ -70,26 +90,32 @@ export function useGlobalDragEnd() {
       // level up. Coming from a different parent, the same computation
       // moves it there landing at that spot instead of tacked on the end.
       if (overData.type === "project" && overData.id !== project.id) {
-        const target = projects.find((p) => p.id === overData.id);
-        if (!target) return;
-        const targetProductId = target.parent_product_id ?? null;
-        const targetAreaId = target.parent_area_id ?? null;
-        const siblingIds = sortByPosition(
-          projects.filter(
-            (p) =>
-              (p.parent_product_id ?? null) === targetProductId &&
-              (p.parent_area_id ?? null) === targetAreaId &&
-              p.id !== project.id
-          )
-        ).map((p) => p.id);
-        const positions = reorderPositions([...siblingIds, project.id], project.id, target.id);
-        localDb.projects
-          .updateMany(Object.keys(positions), (item) => (
-            item.id === project.id
+        const draggedId = project.id;
+        const targetId = overData.id;
+        enqueueReorder(async () => {
+          const liveProjects = await localDb.projects.list();
+          const dragged = liveProjects.find((p) => p.id === draggedId && !p.deleted_at);
+          const target = liveProjects.find((p) => p.id === targetId && !p.deleted_at);
+          if (!dragged || !target) return;
+          const targetProductId = target.parent_product_id ?? null;
+          const targetAreaId = target.parent_area_id ?? null;
+          const siblingIds = sortByPosition(
+            liveProjects.filter(
+              (p) =>
+                !p.deleted_at &&
+                (p.parent_product_id ?? null) === targetProductId &&
+                (p.parent_area_id ?? null) === targetAreaId &&
+                p.id !== draggedId
+            )
+          ).map((p) => p.id);
+          const positions = reorderPositions([...siblingIds, draggedId], draggedId, targetId);
+          await localDb.projects.updateMany(Object.keys(positions), (item) => (
+            item.id === draggedId
               ? { position: positions[item.id], parent_product_id: targetProductId, parent_area_id: targetAreaId }
               : { position: positions[item.id] }
-          ))
-          .then(() => queryClient.invalidateQueries({ queryKey: ["projects"] }));
+          ));
+          queryClient.invalidateQueries({ queryKey: ["projects"] });
+        });
         return;
       }
 
@@ -121,17 +147,23 @@ export function useGlobalDragEnd() {
     // same drop target already works for both.
     if (activeData.type === "area") {
       if (overData.type !== "area" || overData.id === activeData.id) return;
-      const orderedIds = sortByPosition(areas).map((a) => a.id);
-      const positions = reorderPositions(orderedIds, activeData.id, overData.id);
-      const changedIds = Object.keys(positions).filter((id) => {
-        const area = areas.find((a) => a.id === id);
-        return area && (area.position ?? null) !== positions[id];
+      const draggedId = activeData.id;
+      const targetId = overData.id;
+      enqueueReorder(async () => {
+        const liveAreas = await localDb.areas.list();
+        const activeAreas = liveAreas.filter((a) => !a.deleted_at);
+        const orderedIds = sortByPosition(activeAreas).map((a) => a.id);
+        if (!orderedIds.includes(draggedId) || !orderedIds.includes(targetId)) return;
+        const positions = reorderPositions(orderedIds, draggedId, targetId);
+        const changedIds = Object.keys(positions).filter((id) => {
+          const area = activeAreas.find((a) => a.id === id);
+          return area && (area.position ?? null) !== positions[id];
+        });
+        if (changedIds.length) {
+          await localDb.areas.updateMany(changedIds, (item) => ({ position: positions[item.id] }));
+          queryClient.invalidateQueries({ queryKey: ["areas"] });
+        }
       });
-      if (changedIds.length) {
-        localDb.areas
-          .updateMany(changedIds, (item) => ({ position: positions[item.id] }))
-          .then(() => queryClient.invalidateQueries({ queryKey: ["areas"] }));
-      }
       return;
     }
 
@@ -147,18 +179,25 @@ export function useGlobalDragEnd() {
       if (!product) return;
 
       if (overData.type === "product" && overData.id !== product.id) {
-        const targetProduct = products.find((p) => p.id === overData.id);
-        if (!targetProduct) return;
-        const targetAreaId = targetProduct.parent_area_id;
-        const siblingIds = sortByPosition(products.filter((p) => p.parent_area_id === targetAreaId && p.id !== product.id)).map((p) => p.id);
-        const positions = reorderPositions([...siblingIds, product.id], product.id, targetProduct.id);
-        localDb.products
-          .updateMany(Object.keys(positions), (item) => (
-            item.id === product.id
+        const draggedId = product.id;
+        const targetId = overData.id;
+        enqueueReorder(async () => {
+          const liveProducts = await localDb.products.list();
+          const dragged = liveProducts.find((p) => p.id === draggedId && !p.deleted_at);
+          const target = liveProducts.find((p) => p.id === targetId && !p.deleted_at);
+          if (!dragged || !target) return;
+          const targetAreaId = target.parent_area_id;
+          const siblingIds = sortByPosition(
+            liveProducts.filter((p) => !p.deleted_at && p.parent_area_id === targetAreaId && p.id !== draggedId)
+          ).map((p) => p.id);
+          const positions = reorderPositions([...siblingIds, draggedId], draggedId, targetId);
+          await localDb.products.updateMany(Object.keys(positions), (item) => (
+            item.id === draggedId
               ? { position: positions[item.id], parent_area_id: targetAreaId }
               : { position: positions[item.id] }
-          ))
-          .then(() => queryClient.invalidateQueries({ queryKey: ["products"] }));
+          ));
+          queryClient.invalidateQueries({ queryKey: ["products"] });
+        });
       } else if (overData.type === "area" && overData.id !== product.parent_area_id) {
         const siblings = sortByPosition(products.filter((p) => p.parent_area_id === overData.id));
         const nextPosition = siblings.length ? Math.max(...siblings.map((p, i) => p.position ?? i)) + 1 : 0;

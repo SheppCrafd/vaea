@@ -14,7 +14,7 @@
 import { localDb } from "@/lib/localDb";
 import { withKeyLock } from "@/lib/asyncKeyLock";
 import { toCsv } from "@/lib/csv";
-import { excludeSoftDeleted } from "@/lib/entityUtils";
+import { excludeSoftDeleted, assertLiveParent } from "@/lib/entityUtils";
 import { filterActiveTasks } from "@/lib/taskUtils";
 import { CARD_VIEW_STORAGE_KEY, CARD_VIEW_CHANGE_EVENT } from "@/lib/cardViewConstants";
 import { loadAiIdentity, saveAiIdentity } from "@/lib/aiPreferences";
@@ -143,9 +143,19 @@ const BULK_DELETE_ACTION_AND_ID_KEY_BY_TYPE = {
 // so the failure was invisible until someone went looking at the actual
 // board. Failing loudly here turns that into a real, visible "⚠️ Couldn't
 // complete that: ..." error instead.
-async function assertParentExists(collection, id, label) {
-  const parent = await collection.get(id);
-  if (!parent || parent.deleted_at) throw new Error(`${label} "${id}" doesn't exist — the plan's parent reference didn't resolve to a real record.`);
+// See entityUtils.js's assertLiveParent for the shared implementation (also
+// used directly by the plain UI mutation hooks now, not just here) — kept
+// under this name locally since every call site below already uses it.
+const assertParentExists = assertLiveParent;
+
+// Same guard, applied to every id in an array field (stakeholder_ids,
+// related_product_ids) — a model-issued plan can tag these with unresolved
+// "$temp_id" placeholders (resolvePlaceholders leaves an unresolved one as
+// the literal string) or a genuinely stale id, and unlike the single parent
+// reference above, nothing was catching that before: it would land verbatim
+// in a real record as a silent dangling reference.
+async function assertLiveIds(collection, ids, label) {
+  for (const id of ids || []) await assertParentExists(collection, id, label);
 }
 
 export async function executeAction(action, args) {
@@ -165,6 +175,7 @@ export async function executeAction(action, args) {
 
     case "CREATE_PRODUCT": {
       await assertParentExists(localDb.areas, args.parent_area_id, "Area");
+      await assertLiveIds(localDb.stakeholders, args.stakeholder_ids, "Stakeholder");
       const product = await createProduct({
         parent_area_id: args.parent_area_id,
         title: args.title,
@@ -175,6 +186,7 @@ export async function executeAction(action, args) {
     }
     case "UPDATE_PRODUCT": {
       const { product_id, ...rest } = args;
+      if (rest.stakeholder_ids) await assertLiveIds(localDb.stakeholders, rest.stakeholder_ids, "Stakeholder");
       const product = await updateProduct({ id: product_id, data: rest });
       return { toolResult: { product } };
     }
@@ -186,6 +198,8 @@ export async function executeAction(action, args) {
     case "CREATE_PROJECT": {
       await assertParentExists(localDb.areas, args.parent_area_id, "Area");
       if (args.parent_product_id) await assertParentExists(localDb.products, args.parent_product_id, "Product");
+      await assertLiveIds(localDb.stakeholders, args.stakeholder_ids, "Stakeholder");
+      await assertLiveIds(localDb.products, args.related_product_ids, "Related product");
       const project = await createProject({
         parent_area_id: args.parent_area_id,
         parent_product_id: args.parent_product_id || null,
@@ -202,6 +216,13 @@ export async function executeAction(action, args) {
     }
     case "UPDATE_PROJECT": {
       const { project_id, ...rest } = args;
+      // Unlike MOVE_PROJECT (the intended path for re-parenting), nothing
+      // stops a model from including a parent field directly in a plain
+      // UPDATE_PROJECT — this used to skip validation entirely.
+      if (rest.parent_area_id) await assertParentExists(localDb.areas, rest.parent_area_id, "Area");
+      if (rest.parent_product_id) await assertParentExists(localDb.products, rest.parent_product_id, "Product");
+      if (rest.stakeholder_ids) await assertLiveIds(localDb.stakeholders, rest.stakeholder_ids, "Stakeholder");
+      if (rest.related_product_ids) await assertLiveIds(localDb.products, rest.related_product_ids, "Related product");
       const project = await updateProject({ id: project_id, data: rest });
       return { toolResult: { project } };
     }
@@ -229,6 +250,7 @@ export async function executeAction(action, args) {
 
     case "CREATE_NOTE": {
       await assertParentExists(localDb.projects, args.project_id, "Project");
+      await assertLiveIds(localDb.stakeholders, args.stakeholder_ids, "Stakeholder");
       const note = await createProjectNote({
         project_id: args.project_id,
         type: args.type || "NOTE",
@@ -249,6 +271,7 @@ export async function executeAction(action, args) {
 
     case "CREATE_TASK": {
       await assertParentExists(localDb.projects, args.project_id, "Project");
+      await assertLiveIds(localDb.stakeholders, args.stakeholder_ids, "Stakeholder");
       const task = await createTask({
         project_id: args.project_id,
         description: args.description,
@@ -265,6 +288,7 @@ export async function executeAction(action, args) {
     }
     case "UPDATE_TASK": {
       const { task_id, ...rest } = args;
+      if (rest.stakeholder_ids) await assertLiveIds(localDb.stakeholders, rest.stakeholder_ids, "Stakeholder");
       const task = await updateTask({ id: task_id, data: rest });
       return { toolResult: { task } };
     }
@@ -621,7 +645,30 @@ export async function executeActionSequence(actions, { onStep } = {}) {
   const steps = [];
   for (const step of actions) {
     const resolvedArgs = resolvePlaceholders(step.args || {}, tempIdMap);
-    const result = await executeAction(step.action, resolvedArgs);
+    let result;
+    try {
+      result = await executeAction(step.action, resolvedArgs);
+    } catch (err) {
+      // Steps 1..k-1 (`steps` so far) already mutated real data for real —
+      // this used to just throw `err` straight out, so both callers in
+      // useChatController.js only ever saw a generic message with no way to
+      // know some of the plan had already run. Undo info for those already-
+      // succeeded steps (UPDATE_TASK_STATUS, TOGGLE_WEEKLY_FOCUS, etc.) was
+      // silently lost too, since it only ever got registered from this
+      // function's normal return value — never reached on a throw. Attaching
+      // the completed steps to the thrown error lets the caller register
+      // their undo info and tell the user exactly how far the plan got,
+      // instead of losing both.
+      const partialError = new Error(
+        steps.length
+          ? `${err.message} (${steps.length} of ${actions.length} step${actions.length === 1 ? "" : "s"} already completed before this failed.)`
+          : err.message
+      );
+      partialError.completedSteps = steps;
+      partialError.failedStep = { action: step.action, args: resolvedArgs };
+      partialError.cause = err;
+      throw partialError;
+    }
     if (step.temp_id) {
       const created = Object.values(result.toolResult || {})[0];
       if (created && typeof created === "object" && created.id) tempIdMap[step.temp_id] = created.id;

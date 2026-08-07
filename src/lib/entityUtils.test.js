@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { sortByPosition, reorderPositions, sanitizeReturnTo } from "./entityUtils.js";
+import { sortByPosition, reorderPositions, sanitizeReturnTo, requireLiveParent, allowOptionalLiveParent, assertLiveParent } from "./entityUtils.js";
 
 describe("sortByPosition", () => {
   it("sorts ascending by position", () => {
@@ -75,5 +75,64 @@ describe("sanitizeReturnTo", () => {
 
   it("respects a custom fallback", () => {
     expect(sanitizeReturnTo("https://evil.com", "/safe")).toBe("/safe");
+  });
+});
+
+// The orphan-defense helpers behind the real bug this session fixed: a
+// dashboard showing "No areas found" while the sidebar's Task Statistics
+// still counted active tasks whose whole parent chain had already
+// disappeared — see useTasks.js's fetchAllActiveTasks, useProducts.js's
+// fetchActiveProducts, useProjects.js's fetchActiveProjects.
+describe("requireLiveParent", () => {
+  it("keeps items whose parent id is in the live set", () => {
+    const items = [{ id: "t1", project_id: "p1" }, { id: "t2", project_id: "p2" }];
+    const live = new Set(["p1"]);
+    expect(requireLiveParent(items, "project_id", live).map((i) => i.id)).toEqual(["t1"]);
+  });
+
+  it("drops an item whose parent id doesn't resolve at all", () => {
+    const items = [{ id: "t1", project_id: "does-not-exist" }];
+    expect(requireLiveParent(items, "project_id", new Set())).toEqual([]);
+  });
+
+  it("drops an item with no parent id set — a required parent can't be missing", () => {
+    const items = [{ id: "t1" }];
+    expect(requireLiveParent(items, "project_id", new Set(["p1"]))).toEqual([]);
+  });
+});
+
+describe("allowOptionalLiveParent", () => {
+  it("keeps an item with no value set at all (a standalone project has no product)", () => {
+    const items = [{ id: "proj1", parent_product_id: null }, { id: "proj2" }];
+    expect(allowOptionalLiveParent(items, "parent_product_id", new Set()).map((i) => i.id)).toEqual(["proj1", "proj2"]);
+  });
+
+  it("keeps an item whose SET value resolves", () => {
+    const items = [{ id: "proj1", parent_product_id: "prod1" }];
+    expect(allowOptionalLiveParent(items, "parent_product_id", new Set(["prod1"])).map((i) => i.id)).toEqual(["proj1"]);
+  });
+
+  it("drops an item whose SET value doesn't resolve", () => {
+    const items = [{ id: "proj1", parent_product_id: "deleted-product" }];
+    expect(allowOptionalLiveParent(items, "parent_product_id", new Set())).toEqual([]);
+  });
+});
+
+describe("assertLiveParent", () => {
+  const makeCollection = (records) => ({ get: async (id) => records.find((r) => r.id === id) || null });
+
+  it("resolves without throwing for a real, non-deleted record", async () => {
+    const areas = makeCollection([{ id: "a1", title: "Home" }]);
+    await expect(assertLiveParent(areas, "a1", "Area")).resolves.toBeUndefined();
+  });
+
+  it("throws a clear error for an id that doesn't exist", async () => {
+    const areas = makeCollection([]);
+    await expect(assertLiveParent(areas, "ghost", "Area")).rejects.toThrow(/Area "ghost" doesn't exist/);
+  });
+
+  it("throws for an id that exists but is soft-deleted", async () => {
+    const areas = makeCollection([{ id: "a1", deleted_at: "2026-01-01T00:00:00.000Z" }]);
+    await expect(assertLiveParent(areas, "a1", "Area")).rejects.toThrow(/Area "a1" doesn't exist/);
   });
 });

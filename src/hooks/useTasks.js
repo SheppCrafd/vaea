@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { localDb } from "@/lib/localDb";
 import { filterActiveTasks, isTaskArchived, isTaskDeleted } from "@/lib/taskUtils";
+import { excludeSoftDeleted, requireLiveParent, assertLiveParent } from "@/lib/entityUtils";
 
 // 1. FETCH TASKS FOR A SPECIFIC PROJECT (WITH LIVE SUBSCRIPTION POLLING)
 export function useTasks(projectId) {
@@ -46,14 +47,26 @@ export function useArchivedTasks(projectId) {
   });
 }
 
+// A plain exported function, not just inlined in useAllTasks's queryFn below
+// — same reason createTask/deleteTask/etc. already are: directly testable
+// without needing to render the hook.
+export async function fetchAllActiveTasks() {
+  const [tasks, projects] = await Promise.all([localDb.tasks.list(), localDb.projects.list()]);
+  const liveProjectIds = new Set(excludeSoftDeleted(projects).map((p) => p.id));
+  // requireLiveParent: see entityUtils.js — a task whose project was
+  // deleted out from under it (a cascade interrupted mid-write, a stale
+  // write elsewhere) no longer silently counts as "active" in the
+  // sidebar's global Task Statistics — the real bug a user hit, where
+  // the dashboard showed 0 areas while these stats still counted tasks
+  // whose whole parent chain had already disappeared.
+  return requireLiveParent(filterActiveTasks(tasks), "project_id", liveProjectIds);
+}
+
 // 2. FETCH ALL ACTIVE TASKS GLOBALLY (USED BY AGENT CONTEXT & METRICS)
 export function useAllTasks() {
   return useQuery({
     queryKey: ["allTasks"],
-    queryFn: async () => {
-      const tasks = await localDb.tasks.list();
-      return filterActiveTasks(tasks);
-    },
+    queryFn: fetchAllActiveTasks,
     // Local-only data — see the matching comment in useAreas.js.
     staleTime: Infinity,
   });
@@ -87,11 +100,24 @@ export function useTasksForProjects(projectIds = []) {
 // the table's "new row" only sets it if the user explicitly picked one
 // (see TaskTable.jsx's createNewTask), but every status-reading component
 // (StatusDropdown in particular) assumes a task always has a real string.
-export const createTask = (data) => localDb.tasks.create({ status: "NOT_STARTED", ...data });
+// Validates project_id before creating — the AI chat path already had this
+// guard (chatActions.js's own CREATE_TASK case); the regular task-creation
+// UI (TaskTable.jsx's "new row") went straight to localDb with no check,
+// so a stale/deleted project id could silently create a permanently
+// orphaned task — see entityUtils.js's assertLiveParent.
+export async function createTask(data) {
+  await assertLiveParent(localDb.projects, data.project_id, "Project");
+  return localDb.tasks.create({ status: "NOT_STARTED", ...data });
+}
 
 // 4. UPDATE TASK (GENERIC DATA MUTATION - PERFECT FOR ASSIGNING STAKEHOLDERS,
 // ARCHIVING/RESTORING, AND TOGGLING WEEKLY FOCUS - ALL JUST FIELD PATCHES)
-export const updateTask = ({ id, data }) => localDb.tasks.update(id, data);
+// Same guard, only when the update actually re-parents the task to a
+// different project.
+export async function updateTask({ id, data }) {
+  if (data.project_id) await assertLiveParent(localDb.projects, data.project_id, "Project");
+  return localDb.tasks.update(id, data);
+}
 
 // 6. DELETE TASK (SOFT DELETE VIA DELETED_AT TIMESTAMP)
 export const deleteTask = (id) => localDb.tasks.update(id, { deleted_at: new Date().toISOString() });

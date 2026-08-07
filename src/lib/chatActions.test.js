@@ -128,6 +128,41 @@ describe("chatActions: multi-step plans with temp_id placeholders", () => {
     await expect(executeAction("CREATE_PROJECT", { parent_area_id: "not-a-real-id", title: "Launch" })).rejects.toThrow(/doesn't exist/);
   });
 
+  it("a plan that fails partway attaches its already-completed steps to the thrown error, not just a generic message", async () => {
+    // Step 1 and 2 really do mutate real data before step 3 fails — the
+    // caller (useChatController.js) needs to know that to register undo
+    // info for what DID succeed and tell the user how far the plan got,
+    // instead of both being silently lost the way they used to be.
+    const { toolResult: { area } } = await executeAction("CREATE_AREA", { title: "Real area", description: "" });
+    let caught;
+    try {
+      await executeActionSequence([
+        { action: "UPDATE_AREA", args: { area_id: area.id, title: "Renamed", description: "" } },
+        { action: "CREATE_PRODUCT", args: { parent_area_id: area.id, title: "Real product" } },
+        { action: "CREATE_TASK", args: { project_id: "not-a-real-project", description: "This one fails" } },
+      ]);
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeDefined();
+    expect(caught.message).toMatch(/2 of 3 steps already completed/);
+    expect(caught.completedSteps).toHaveLength(2);
+    expect(caught.completedSteps[0].action).toBe("UPDATE_AREA");
+    expect(caught.completedSteps[1].action).toBe("CREATE_PRODUCT");
+    expect(caught.failedStep.action).toBe("CREATE_TASK");
+    // And the real side effects genuinely happened — this isn't just
+    // metadata on the error, the area really was renamed and the product
+    // really was created.
+    expect((await localDb.areas.get(area.id)).title).toBe("Renamed");
+    expect(await localDb.products.list()).toHaveLength(1);
+  });
+
+  it("does not attach a step-count parenthetical when the very FIRST step fails (nothing completed yet)", async () => {
+    await expect(
+      executeActionSequence([{ action: "CREATE_TASK", args: { project_id: "not-a-real-project", description: "fails immediately" } }])
+    ).rejects.toThrow(/^Project "not-a-real-project" doesn't exist/);
+  });
+
   it("CREATE_TASK/CREATE_NOTE/ARCHIVE_DONE_TASKS reject a project id that doesn't exist", async () => {
     // Same bug class as CREATE_PRODUCT/CREATE_PROJECT above, just found
     // later ("task making is broken too") — CREATE_TASK/CREATE_NOTE had no
@@ -219,6 +254,61 @@ describe("chatActions: multi-step plans with temp_id placeholders", () => {
     await expect(
       executeAction("BULK_DELETE", { entity_type: "task", ids: ["a", "b", "c", "d", "e", "f"] })
     ).rejects.toThrow(/up to 5/);
+  });
+});
+
+describe("chatActions: array-field id validation (stakeholder_ids/related_product_ids)", () => {
+  // Unlike a single parent reference (parent_area_id, project_id — always
+  // guarded by assertParentExists), an unresolved $temp_id or stale id
+  // INSIDE an array field used to land verbatim in a real record with no
+  // validation at all — a silent dangling reference, not a thrown error.
+  it("CREATE_TASK rejects a stakeholder id that doesn't exist", async () => {
+    const { toolResult: { area } } = await executeAction("CREATE_AREA", { title: "Area", description: "" });
+    const { toolResult: { project } } = await executeAction("CREATE_PROJECT", { parent_area_id: area.id, title: "Project" });
+    await expect(
+      executeAction("CREATE_TASK", { project_id: project.id, description: "Task", stakeholder_ids: ["ghost-stakeholder"] })
+    ).rejects.toThrow(/Stakeholder "ghost-stakeholder" doesn't exist/);
+    expect(await localDb.tasks.list()).toHaveLength(0);
+  });
+
+  it("CREATE_PROJECT rejects an unresolved related_product_id placeholder", async () => {
+    const { toolResult: { area } } = await executeAction("CREATE_AREA", { title: "Area", description: "" });
+    await expect(
+      executeAction("CREATE_PROJECT", { parent_area_id: area.id, title: "Project", related_product_ids: ["$never_created"] })
+    ).rejects.toThrow(/Related product "\$never_created" doesn't exist/);
+    expect(await localDb.projects.list()).toHaveLength(0);
+  });
+
+  it("CREATE_PROJECT accepts a real stakeholder id", async () => {
+    const { toolResult: { area } } = await executeAction("CREATE_AREA", { title: "Area", description: "" });
+    const { toolResult: { stakeholder } } = await executeAction("CREATE_STAKEHOLDER", { name: "Real Person" });
+    const { toolResult: { project } } = await executeAction("CREATE_PROJECT", { parent_area_id: area.id, title: "Project", stakeholder_ids: [stakeholder.id] });
+    expect(project.stakeholder_ids).toEqual([stakeholder.id]);
+  });
+});
+
+describe("chatActions: UPDATE_PROJECT now validates parent/array fields it accepts (it used to skip validation entirely, unlike MOVE_PROJECT)", () => {
+  it("rejects a stale parent_area_id passed directly to UPDATE_PROJECT", async () => {
+    const { toolResult: { area } } = await executeAction("CREATE_AREA", { title: "Area", description: "" });
+    const { toolResult: { project } } = await executeAction("CREATE_PROJECT", { parent_area_id: area.id, title: "Project" });
+    await expect(
+      executeAction("UPDATE_PROJECT", { project_id: project.id, parent_area_id: "not-a-real-area" })
+    ).rejects.toThrow(/Area "not-a-real-area" doesn't exist/);
+  });
+
+  it("rejects a stale stakeholder_ids entry passed to UPDATE_PROJECT", async () => {
+    const { toolResult: { area } } = await executeAction("CREATE_AREA", { title: "Area", description: "" });
+    const { toolResult: { project } } = await executeAction("CREATE_PROJECT", { parent_area_id: area.id, title: "Project" });
+    await expect(
+      executeAction("UPDATE_PROJECT", { project_id: project.id, stakeholder_ids: ["ghost"] })
+    ).rejects.toThrow(/Stakeholder "ghost" doesn't exist/);
+  });
+
+  it("a plain title/objective update with no parent or array fields still works with no extra lookups", async () => {
+    const { toolResult: { area } } = await executeAction("CREATE_AREA", { title: "Area", description: "" });
+    const { toolResult: { project } } = await executeAction("CREATE_PROJECT", { parent_area_id: area.id, title: "Project" });
+    const { toolResult } = await executeAction("UPDATE_PROJECT", { project_id: project.id, title: "Renamed" });
+    expect(toolResult.project.title).toBe("Renamed");
   });
 });
 

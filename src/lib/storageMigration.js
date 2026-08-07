@@ -21,3 +21,22 @@ export async function copyAllKeys({ read, write }) {
     if (value != null) await write(key, value);
   }
 }
+
+// Real entity collections only (not the AI identity/vault-connection keys
+// above) — those are low-stakes to overwrite; a whole workspace of Areas/
+// Products/Projects/Tasks is not. Checked BEFORE copyAllKeys runs in either
+// direction (StorageSection.jsx) so a switch can never silently clobber real
+// data already sitting at the destination — e.g. picking a folder that was
+// used for a previous device-storage session, or switching back to cloud
+// after it had already accumulated data from a different device. Without
+// this, copyAllKeys's own unconditional overwrite-every-key loop just wins,
+// with no warning and no way back once the tab reloads into the new mode.
+const DESTINATION_CHECK_KEYS = ["areas", "products", "projects", "tasks"];
+
+export async function destinationHasData({ read }) {
+  for (const key of DESTINATION_CHECK_KEYS) {
+    const value = await read(key);
+    if (Array.isArray(value) && value.length > 0) return true;
+  }
+  return false;
+}

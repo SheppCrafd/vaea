@@ -5,6 +5,41 @@ export function excludeSoftDeleted(items = []) {
   return items.filter((item) => !item.deleted_at);
 }
 
+// Defense in depth against orphaned data: a soft-delete cascade interrupted
+// partway through (see useAreas.js's deleteArea), a stale-parent write from
+// a race condition, or any future bug that manages to leave a child pointing
+// at a parent that no longer resolves. Without this, an orphan silently
+// counts as "active" everywhere it's read — the real bug a user hit, where
+// the dashboard showed 0 areas while the sidebar's Task Statistics still
+// counted 6 tasks whose parent chain no longer existed. `parentKey` is
+// required to be present and resolve to something in `liveParentIds`.
+export function requireLiveParent(items = [], parentKey, liveParentIds) {
+  return items.filter((item) => liveParentIds.has(item[parentKey]));
+}
+
+// Same idea, for an optional parent reference (a Project's parent_product_id
+// — "standalone" projects legitimately have none) — passes through anything
+// with no value set, but still filters out a SET value that doesn't resolve.
+export function allowOptionalLiveParent(items = [], parentKey, liveParentIds) {
+  return items.filter((item) => !item[parentKey] || liveParentIds.has(item[parentKey]));
+}
+
+// Throws a clear, catchable error if `id` doesn't resolve to a real,
+// non-deleted record in `collection` (a localDb collection — areas/products/
+// projects) — the guard against creating or re-parenting a child onto a
+// stale/deleted parent in the first place. Used to be enforced ONLY inside
+// the AI chat action executor (chatActions.js's own now-removed local copy);
+// callers there create/move records through the exact same plain functions
+// below, so sharing this one implementation means a chat-driven plan and a
+// regular form submission get identical protection instead of the form path
+// silently having none at all.
+export async function assertLiveParent(collection, id, label) {
+  const parent = await collection.get(id);
+  if (!parent || parent.deleted_at) {
+    throw new Error(`${label} "${id}" doesn't exist — the record it should belong to was deleted, moved, or never existed.`);
+  }
+}
+
 // Every call site here is a plain event handler, not always inside a
 // component that could call a hook — this needs Zustand's vanilla
 // getState() API, not the useAppStore() hook, so it works the same way
