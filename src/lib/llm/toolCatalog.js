@@ -538,11 +538,11 @@ export const TOOL_CATALOG = [
   {
     name: "read_project_link",
     staged: false,
-    description: "Read the real content at a URL from a project's \"links\" array (see [DATABASE STATE]) — a spec doc, a design file, a GitHub repo, a doc — instead of only seeing its label and URL text. Runs immediately as a plain client-side fetch (not an LLM-driven browse), so some sites will block it via CORS; if that happens you'll get a clear error back — tell the user plainly rather than guessing at the content.",
+    description: "Read the real content at ANY URL — a URL from a project's \"links\" array (see [DATABASE STATE]), OR a URL the user just pasted/shared directly in this conversation (a Google Drive file, a doc, a GitHub repo, a spec) — instead of only seeing a label/URL string or guessing at what's there. Always call this the instant a request needs to know what a link actually contains, whether it came from a project's own links array or straight from the user's own message. Runs immediately as a plain client-side fetch (not an LLM-driven browse), so some sites will block it via CORS, and an auth-gated URL (e.g. a private Google Drive/Docs link needing sign-in) will come back as an unreadable shell rather than real content — if either happens you'll get a clear error/empty-content result back; tell the user plainly rather than guessing, and ask them to paste the actual text/list instead if the link truly can't be read this way.",
     parameters: {
       type: "object",
       properties: {
-        url: { type: "string", description: "The exact URL from the project's links array — look it up in [DATABASE STATE] by the link's label, never invent one." },
+        url: { type: "string", description: "The URL to read — either the exact URL from a project's links array (look it up in [DATABASE STATE] by the link's label, never invent one), or a URL the user directly gave you in this conversation." },
         focus: { type: "string", description: "What to focus on, if the user asked about something specific." },
       },
       required: ["url"],
