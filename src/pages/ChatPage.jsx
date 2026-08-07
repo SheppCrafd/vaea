@@ -211,7 +211,7 @@ export default function ChatPage() {
                 <Plus className="w-5 h-5" />
               </button>
               <input ref={chat.fileInputRef} type="file" onChange={chat.handleFileChange} className="hidden" />
-              <div className="flex-1 flex items-center gap-2 bg-card rounded-2xl px-4 py-3 shadow-[0_0_0_1px_hsl(var(--foreground)/0.05),0_2px_10px_-4px_hsl(200_30%_12%/0.15)] focus-within:ring-2 focus-within:ring-primary/40 transition-all">
+              <div className="flex-1 min-w-0 flex items-center gap-2 bg-card rounded-2xl px-4 py-3 shadow-[0_0_0_1px_hsl(var(--foreground)/0.05),0_2px_10px_-4px_hsl(200_30%_12%/0.15)] focus-within:ring-2 focus-within:ring-primary/40 transition-all">
                 <span className="font-terminal text-primary text-sm select-none">{'>'}</span>
                 <input
                   ref={messageInputRef}
