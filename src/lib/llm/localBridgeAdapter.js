@@ -20,21 +20,16 @@ function newRequestId() {
   return `req-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-// See anthropicAdapter.js's matching comment: the closing paragraph of the
-// full narrative, split on blank lines WITHIN the text rather than on
-// tool-loop round boundaries, since a model very often puts its entire
-// narration in a single round (all its reasoning plus every tool call it
-// doesn't need an intermediate result for, in one completion).
-function lastParagraph(text) {
-  const paragraphs = text.split(/\n\n+/).filter(Boolean);
-  return paragraphs[paragraphs.length - 1] || "";
-}
-
-// Returns {reply, reasoning} for one turn — `reply` is just the last
-// round's own text (the actual conversational answer), `reasoning` is every
-// round's own text joined (the full deliberation, self-corrections
-// included) — see anthropicAdapter.js's matching comment for why these
-// need to be two different strings, not the same one returned twice.
+// Returns {reply, reasoning, thinking} for one turn — `reply` is just the
+// last round's own text, taken whole (the actual conversational answer,
+// however many paragraphs it takes — see anthropicAdapter.js's matching
+// comment for why this is no longer a paragraph-split guess), `reasoning` is
+// every round's own text joined (the full deliberation, self-corrections
+// included), and `thinking` is that same set of rounds as a real array
+// (not yet joined into one string) — this adapter never streams live (see
+// the module comment above), so byokChat.js's simulateLiveReveal needs the
+// real round boundaries back, not just a flat string, to fake the same
+// live "past round dims, new round grows" behavior real streaming gives.
 export async function callLocalBridge({ systemPrompt, contextPrompt, tools, runTool, pollIntervalMs = DEFAULT_POLL_INTERVAL_MS }) {
   const requestId = newRequestId();
   const messages = [{ role: "user", content: contextPrompt }];
@@ -76,10 +71,10 @@ export async function callLocalBridge({ systemPrompt, contextPrompt, tools, runT
     if (roundText) thinking.push(roundText);
 
     if (toolUseBlocks.length === 0) {
-      const reasoning = thinking.join("\n\n");
       return {
-        reply: lastParagraph(reasoning) || "I couldn't come up with a reply — could you rephrase?",
-        reasoning,
+        reply: roundText || "I couldn't come up with a reply — could you rephrase?",
+        reasoning: thinking.join("\n\n"),
+        thinking,
       };
     }
 

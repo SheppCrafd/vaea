@@ -188,17 +188,17 @@ describe("openaiCompatibleAdapter: tool-call loop (streamed)", () => {
     expect(reasoning).toBe("Just a reply.");
   });
 
-  it("splits reply from reasoning even when a SINGLE round's own text has multiple paragraphs — a model very often writes its whole build-up and its conclusion together, with no tool call forcing a second round at all", async () => {
+  it("keeps a genuinely multi-paragraph reply intact when it's the ONLY round (no tool calls at all this turn) — paragraph breaks are not round boundaries", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => streamResponse(roundChunks({
-      content: "I'll set up three areas with a product each.\n\nDone — created three areas with their own products.",
+      content: "Here's the first thing to know.\n\nAnd here's the second, equally real, paragraph.",
     }))));
     const { reply, reasoning } = await callOpenAiCompatible({ baseUrl: "https://api.openai.com/v1", apiKey: "k", model: "gpt-5", systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn() });
-    // "Last round's own text" alone would have made reply === reasoning here
-    // (there's only one round) — the exact regression a real user caught a
-    // second time, even after the round-based version of this fix.
-    expect(reasoning).toBe("I'll set up three areas with a product each.\n\nDone — created three areas with their own products.");
-    expect(reply).toBe("Done — created three areas with their own products.");
-    expect(reply).not.toBe(reasoning);
+    // A single round with zero tool calls has nothing to separate out — the
+    // whole thing, both paragraphs, is the real reply (see
+    // anthropicAdapter.test.js's matching case for why an earlier version of
+    // this code got this wrong).
+    expect(reasoning).toBe("Here's the first thing to know.\n\nAnd here's the second, equally real, paragraph.");
+    expect(reply).toBe(reasoning);
   });
 
   it("surfaces the provider's own error message on a non-2xx response", async () => {

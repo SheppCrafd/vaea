@@ -22,22 +22,6 @@ const MAX_TOOL_ROUNDS = 15;
 // being load-bearing.
 const ANTHROPIC_WEB_SEARCH_TOOL = { type: "web_search_20250305", name: "web_search", max_uses: 5 };
 
-// The closing paragraph of a full multi-round narrative — split on blank
-// lines WITHIN the joined text, not on tool-loop round boundaries, since a
-// model very often puts its entire narration (build-up and conclusion both)
-// in a single round: it doesn't need to see one tool's result before
-// deciding to create three sibling areas, so it just calls all three at
-// once, with all its reasoning in that same completion. Using "the last
-// round's own text" as `reply` made reply === reasoning whenever that
-// happened — paragraph breaks (blank lines) are how the model itself
-// already separates "here's my plan" from "done" prose regardless of how
-// many real round-trips it took, so this is right every time, not just when
-// the model happens to spread itself across multiple rounds.
-function lastParagraph(text) {
-  const paragraphs = text.split(/\n\n+/).filter(Boolean);
-  return paragraphs[paragraphs.length - 1] || "";
-}
-
 // Streams one round via `stream: true` + Anthropic's own SSE format
 // (message_start/content_block_start/content_block_delta/content_block_stop/
 // message_stop — see https://docs.anthropic.com/en/api/messages-streaming),
@@ -137,6 +121,24 @@ export async function callAnthropic({ apiKey, model, systemPrompt, contextPrompt
   // saying "the plan is VERBATIM the text in chat" — the chat bubble and
   // the plan-detail modal literally showed the identical string, since both
   // read from the same joined blob.
+  //
+  // `reply` is the LAST round's own text, taken whole — no further
+  // paragraph-splitting inside it. An earlier version tried to guess "the
+  // real answer" by taking only the final blank-line-separated paragraph of
+  // the full multi-round narrative, on the theory that a model often writes
+  // build-up narration and its actual conclusion in the very same round with
+  // no tool call forcing them apart. That heuristic can't tell a throwaway
+  // build-up sentence from a genuine multi-paragraph answer — they're the
+  // same shape — so it kept silently truncating real multi-paragraph replies
+  // (a bug/architecture explanation, a comparison of two approaches) down to
+  // their last paragraph. The fix is a real, unambiguous signal instead of a
+  // guess: only the LAST round is ever "the reply" (every earlier round, by
+  // definition, made at least one tool call — see the loop below — so it was
+  // narration, not the final answer), and once inside that last round, ALL
+  // of its text belongs to the reply, however many paragraphs it takes.
+  // onEvent's "round-boundary" event (fired below, right before a new round
+  // starts) is what lets the client draw the same line live while streaming
+  // — see ChatMessageList.jsx.
   const thinking = [];
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
@@ -147,13 +149,13 @@ export async function callAnthropic({ apiKey, model, systemPrompt, contextPrompt
     if (roundText) thinking.push(roundText);
 
     if (toolUseBlocks.length === 0) {
-      const reasoning = thinking.join("\n\n");
       return {
-        reply: lastParagraph(reasoning) || "I couldn't come up with a reply — could you rephrase?",
-        reasoning,
+        reply: roundText || "I couldn't come up with a reply — could you rephrase?",
+        reasoning: thinking.join("\n\n"),
       };
     }
 
+    onEvent?.({ type: "round-boundary" });
     messages.push({ role: "assistant", content });
     // Sequential, not Promise.all — runTool is async now (vault tools,
     // read_project_link, analyze_attachment all make real network calls),

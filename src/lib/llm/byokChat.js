@@ -15,28 +15,36 @@ import { getBridgeStatus } from "@/lib/llm/localBridgeStorage";
 // experience — "the same, just not real time" — without touching
 // localBridgeAdapter.js or its documented file contract at all. Duration is
 // capped the same way ChatMessageList.jsx's own useTypewriter caps itself,
-// so a long reply doesn't turn into a multi-second wait. Paces `reasoning`
+// so a long reply doesn't turn into a multi-second wait. Paces `thinking`
 // (every round's own text, not just the final one) since that's what
-// genuinely streams live for every other provider too — the chat bubble
-// still only ever shows `reply` (the last round's own text) once this is
-// done; see anthropicAdapter.js's comment for why those are two different
+// genuinely streams live for every other provider too, one round at a time
+// with a real "round-boundary" event between them — the chat bubble still
+// only ever shows `reply` (the last round's own text, taken whole) once this
+// is done; see anthropicAdapter.js's comment for why those are two different
 // strings now, not the same one shown twice.
 const SIMULATED_STEP_DELAY_MS = 150;
 const SIMULATED_TEXT_DURATION_MS = (text) => Math.min(1800, Math.max(300, text.length * 8));
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function simulateLiveReveal({ liveTrace, reasoning, onEvent }) {
+async function simulateLiveReveal({ liveTrace, thinking, onEvent }) {
   for (const entry of liveTrace) {
     onEvent({ type: "tool-call", label: entry.label, detail: entry.detail });
     await sleep(SIMULATED_STEP_DELAY_MS);
   }
-  // Word-sized chunks (not characters) — plenty granular to read as "typing
-  // live" without the overhead of a delay per character.
-  const chunks = reasoning.match(/\S+\s*/g) || [reasoning];
-  const perChunkDelay = SIMULATED_TEXT_DURATION_MS(reasoning) / chunks.length;
-  for (const chunk of chunks) {
-    onEvent({ type: "thinking-delta", text: chunk });
-    await sleep(perChunkDelay);
+  for (let i = 0; i < thinking.length; i++) {
+    const roundText = thinking[i];
+    // Word-sized chunks (not characters) — plenty granular to read as
+    // "typing live" without the overhead of a delay per character.
+    const chunks = roundText.match(/\S+\s*/g) || [roundText];
+    const perChunkDelay = SIMULATED_TEXT_DURATION_MS(roundText) / chunks.length;
+    for (const chunk of chunks) {
+      onEvent({ type: "thinking-delta", text: chunk });
+      await sleep(perChunkDelay);
+    }
+    // Not fired after the LAST round — nothing follows it, so there's no
+    // boundary to mark; ChatMessageList.jsx already treats "everything
+    // since the last boundary" as the current, undimmed round.
+    if (i < thinking.length - 1) onEvent({ type: "round-boundary" });
   }
 }
 
@@ -113,7 +121,7 @@ export async function runByokChat({ providerConfig, contextArgs, onEvent }) {
   const systemPrompt = buildInstructions({ maxActionsPerRequest: MAX_ACTIONS_PER_REQUEST });
   const contextPrompt = buildContextPrompt(contextArgs);
 
-  const { reply, reasoning } = provider.adapter === "anthropic"
+  const { reply, reasoning, thinking } = provider.adapter === "anthropic"
     ? await callAnthropic({
         apiKey: providerConfig.apiKey, model: providerConfig.model, systemPrompt, contextPrompt,
         tools: toAnthropicTools(), runTool, onEvent,
@@ -126,7 +134,7 @@ export async function runByokChat({ providerConfig, contextArgs, onEvent }) {
       });
 
   if (isLocalBridge && onEvent) {
-    await simulateLiveReveal({ liveTrace, reasoning, onEvent });
+    await simulateLiveReveal({ liveTrace, thinking, onEvent });
   }
 
   return { reply, reasoning, actions: plan, liveTrace };

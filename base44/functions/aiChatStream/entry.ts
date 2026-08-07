@@ -1035,43 +1035,50 @@ Deno.serve(async (req) => {
           // the plan...", genuine deliberation including any real
           // self-correction, not just the destination.
           const reasoning = stepTexts.join('\n\n');
-          // `reply` is ONLY the closing paragraph of that — the actual
-          // conversational answer, the thing that belongs in the chat
-          // transcript without needing to click anything. Split on
-          // paragraph breaks WITHIN the full text, not on tool-loop round
-          // boundaries: a model very often writes its entire narration —
-          // build-up and conclusion both — in one single round (it doesn't
-          // need to see a tool's result before deciding to create three
-          // sibling areas, so it just calls all three at once, with all its
-          // reasoning in that same one completion) which made
+          // `reply` is ONLY the LAST step's own text, taken WHOLE — no
+          // further splitting inside it. This used to instead take only the
+          // final blank-line-separated paragraph of the full `reasoning`
+          // string, on the theory that a model often writes its build-up
+          // narration and its actual conclusion in the very same step (it
+          // doesn't need to see a tool's result before deciding to create
+          // three sibling areas, so it just calls all three at once, with
+          // all its reasoning in that same one completion) — which made
           // "steps[steps.length-1]" identical to the whole thing whenever
-          // that happened — the exact "reply === reasoning" a real user
-          // caught happening again even after the round-based version of
-          // this fix. Paragraph breaks (blank lines) are how the model
-          // itself already separates "here's my plan" from "done" prose
-          // regardless of how many real API round-trips it took, so
-          // splitting on those instead is right every time, not just when
-          // the model happens to spread itself across multiple rounds. A
-          // reply with no paragraph break at all (a short, single-thought
-          // turn) legitimately has reply === reasoning — there's nothing
-          // earlier to separate out — and that's fine.
-          const paragraphs = reasoning.split(/\n\n+/).filter(Boolean);
-          const reply = paragraphs[paragraphs.length - 1] || "I couldn't come up with a reply — could you rephrase?";
+          // that happened. That paragraph-split "fix" then quietly broke a
+          // different, more common case: a genuinely multi-paragraph
+          // conversational answer (an explanation, a comparison of two
+          // approaches) with no plan attached at all, silently truncated to
+          // its last paragraph on persist — the two situations are the same
+          // text shape and can't be told apart by paragraph count alone. The
+          // real, unambiguous signal is the step boundary itself: every step
+          // BEFORE the last one made at least one tool call (that's the only
+          // reason the loop continued — see agent.generate's own stepCountIs
+          // loop above), so it was narration, not the final answer; once
+          // inside the truly last step, everything it wrote belongs to the
+          // reply, however many paragraphs that takes. The 'round-boundary'
+          // events emitted below (between steps, during the paced replay)
+          // let the client draw this same line live — see
+          // ChatMessageList.jsx.
+          const reply = stepTexts[stepTexts.length - 1] || "I couldn't come up with a reply — could you rephrase?";
 
-          // Word-sized paced chunks of the FULL reasoning (every round,
-          // not just the final one) — this is what streams live, the same
-          // "watch it think" experience real streaming gives base44-hosted
-          // when the gateway does support it. Duration capped the same way
-          // ChatMessageList.jsx's own useTypewriter caps itself, so a long
-          // reply doesn't turn into a multi-second wait — see
-          // byokChat.js's simulateLiveReveal for the client-side twin of
-          // this same pacing formula.
-          const liveText = reasoning || reply;
-          const words = liveText.match(/\S+\s*/g) || [liveText];
-          const perWordDelayMs = Math.min(1800, Math.max(300, liveText.length * 8)) / words.length;
-          for (const word of words) {
-            emit({ type: 'thinking-delta', text: word });
-            await new Promise((resolve) => setTimeout(resolve, perWordDelayMs));
+          // Word-sized paced chunks of every step's own text, one step at a
+          // time with a real 'round-boundary' event between them — this is
+          // what streams live, the same "watch it think" experience real
+          // streaming gives base44-hosted when the gateway does support it.
+          // Duration capped the same way ChatMessageList.jsx's own
+          // useTypewriter caps itself, so a long reply doesn't turn into a
+          // multi-second wait — see byokChat.js's simulateLiveReveal for the
+          // client-side twin of this same pacing formula.
+          const liveSteps = stepTexts.length ? stepTexts : [reply];
+          for (let i = 0; i < liveSteps.length; i++) {
+            const stepText = liveSteps[i];
+            const words = stepText.match(/\S+\s*/g) || [stepText];
+            const perWordDelayMs = Math.min(1800, Math.max(300, stepText.length * 8)) / words.length;
+            for (const word of words) {
+              emit({ type: 'thinking-delta', text: word });
+              await new Promise((resolve) => setTimeout(resolve, perWordDelayMs));
+            }
+            if (i < liveSteps.length - 1) emit({ type: 'round-boundary' });
           }
 
           // liveTrace ({label, detail}[]) used to be baked into `reply` as

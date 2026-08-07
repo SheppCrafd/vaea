@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import ChatIcon from "@/components/ai/ChatIcon";
 import ChatToolLogDetail from "@/components/ai/ChatToolLogDetail";
 import { sanitizeUrl } from "@/lib/sanitizeUrl";
+import { ROUND_BOUNDARY_MARKER } from "@/lib/llm/streamUtils";
 
 // Fenced ```tool-log blocks are how useChatController.js encodes everything
 // real the assistant actually did this turn — every live (already-executed)
@@ -255,23 +256,30 @@ export default function ChatMessageList({ messages, isComputing, liveSteps, stre
               any other streaming chat UI.
 
               Split into "past" and "current" round text, "\n\n" (the exact
-              separator every provider joins rounds with — see
-              anthropicAdapter.js's `reasoning`) marking where an earlier
-              round ended and a new one began. Only the LAST round's own
-              text survives once this message is actually persisted (see
-              useChatController.js: `reply` is last-round-only, the earlier
-              rounds only live on in the plan's own reasoning detail) — so
-              every earlier round is shown already dimmed here, live, the
-              moment the NEXT round starts. Without this, a real user
-              watched the full multi-paragraph narrative render at full
-              contrast, then watched the earlier paragraphs vanish the
-              instant it persisted — a jarring "it loaded, then snapped
-              back." Dimming a round the moment it's actually superseded
-              means that disappearance is never a surprise — by the time it
-              persists, the user already watched every earlier round fade
-              to background on its own. */}
+              ROUND_BOUNDARY_MARKER — a private-use-area sentinel
+              useChatController.js's onEvent injects on a real
+              "round-boundary" event from the adapter (see
+              anthropicAdapter.js's callAnthropic), not "\n\n" — a blank line
+              is something the model's own prose can legitimately contain (a
+              genuine multi-paragraph answer), so it can't double as "this
+              round is over" the way an earlier version of this code assumed.
+              Only the LAST round's own text survives once this message is
+              actually persisted (see useChatController.js: `reply` is the
+              last round's own text, taken whole, however many paragraphs —
+              the earlier rounds only live on in the plan's own reasoning
+              detail) — so every earlier round is shown already dimmed here,
+              live, the moment the NEXT round starts. Without this, a real
+              user watched the full multi-round narrative render at full
+              contrast, then watched the earlier rounds vanish the instant it
+              persisted — a jarring "it loaded, then snapped back." Dimming a
+              round the moment it's actually superseded means that
+              disappearance is never a surprise — by the time it persists,
+              the user already watched every earlier round fade to
+              background on its own. A genuine multi-paragraph FINAL round
+              (no boundary after it) is never split further — it all stays
+              at full contrast together, since it's all one real reply. */}
           {streamingText && (() => {
-            const rounds = streamingText.split(/\n\n+/).filter(Boolean);
+            const rounds = streamingText.split(ROUND_BOUNDARY_MARKER).filter(Boolean);
             const current = rounds.length ? rounds[rounds.length - 1] : streamingText;
             const past = rounds.slice(0, -1).join("\n\n");
             return (

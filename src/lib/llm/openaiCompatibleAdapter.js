@@ -22,16 +22,6 @@ const MAX_TOOL_ROUNDS = 15;
 // both are left out rather than guessed at.
 const XAI_SEARCH_PARAMETERS = { mode: "auto" };
 
-// See anthropicAdapter.js's matching comment: the closing paragraph of the
-// full narrative, split on blank lines WITHIN the text rather than on
-// tool-loop round boundaries, since a model very often puts its entire
-// narration in a single round (all its reasoning plus every tool call it
-// doesn't need an intermediate result for, in one completion).
-function lastParagraph(text) {
-  const paragraphs = text.split(/\n\n+/).filter(Boolean);
-  return paragraphs[paragraphs.length - 1] || "";
-}
-
 // Streams one round via `stream: true` + the chat-completions SSE format
 // (each event a "chat.completion.chunk" carrying one incremental `delta`,
 // terminated by a `data: [DONE]` sentinel readSse already swallows),
@@ -93,7 +83,9 @@ async function streamOnce({ baseUrl, apiKey, model, messages, tools, onEvent, se
 }
 
 // Returns {reply, reasoning} for one turn — `reply` is just the last
-// round's own text (the actual conversational answer), `reasoning` is every
+// round's own text, taken whole (the actual conversational answer, however
+// many paragraphs it takes — see anthropicAdapter.js's matching comment for
+// why this is no longer a paragraph-split guess), `reasoning` is every
 // round's own text joined (the full deliberation, self-corrections
 // included) — see anthropicAdapter.js's matching comment for why these
 // need to be two different strings, not the same one returned twice.
@@ -119,13 +111,13 @@ export async function callOpenAiCompatible({ baseUrl, apiKey, model, systemPromp
     if (roundText) thinking.push(roundText);
 
     if (!message.tool_calls?.length) {
-      const reasoning = thinking.join("\n\n");
       return {
-        reply: lastParagraph(reasoning) || "I couldn't come up with a reply — could you rephrase?",
-        reasoning,
+        reply: roundText || "I couldn't come up with a reply — could you rephrase?",
+        reasoning: thinking.join("\n\n"),
       };
     }
 
+    onEvent?.({ type: "round-boundary" });
     messages.push(message);
     for (const call of message.tool_calls) {
       let args = {};

@@ -6,7 +6,7 @@ import { executeAction, executeActionSequence, describeToolCall, describePlan, s
 import { loadAiIdentity, DEFAULTS as IDENTITY_DEFAULTS } from "@/lib/aiPreferences";
 import { loadAiProviderConfig, isByokConfigured, isLocalBridgeConfigured } from "@/lib/aiProviderConfig";
 import { runByokChat } from "@/lib/llm/byokChat";
-import { readNdjson } from "@/lib/llm/streamUtils";
+import { readNdjson, ROUND_BOUNDARY_MARKER } from "@/lib/llm/streamUtils";
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
 import { fetchVaultOverview, SELF_NOTE_PATH } from "@/lib/githubApi";
 import { gatherDreamTranscript } from "@/lib/dreamSummary";
@@ -349,7 +349,7 @@ export function useChatController({ activeProjectId } = {}) {
     let finalPayload = null;
     let streamError = null;
     await readNdjson(response, (event) => {
-      if (event.type === "thinking-delta" || event.type === "tool-call") {
+      if (event.type === "thinking-delta" || event.type === "tool-call" || event.type === "round-boundary") {
         onEvent?.(event);
       } else if (event.type === "done") {
         finalPayload = event;
@@ -679,6 +679,15 @@ export function useChatController({ activeProjectId } = {}) {
           setStreamingText((prev) => prev + event.text);
         } else if (event.type === "tool-call") {
           setLiveSteps((prev) => [...prev, event.label]);
+        } else if (event.type === "round-boundary") {
+          // A real marker for where one tool-loop round's own text ended and
+          // the next began — ROUND_BOUNDARY_MARKER, not "\n\n": a blank line
+          // is something the model's own prose can legitimately contain
+          // (a genuine multi-paragraph answer), so ChatMessageList.jsx can't
+          // safely treat one as "this round is over" the way it used to. See
+          // anthropicAdapter.js's callAnthropic for where this event
+          // actually comes from.
+          setStreamingText((prev) => prev + ROUND_BOUNDARY_MARKER);
         }
       };
 

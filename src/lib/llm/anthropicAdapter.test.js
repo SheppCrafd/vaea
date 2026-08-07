@@ -124,19 +124,51 @@ describe("anthropicAdapter: tool-call loop (streamed)", () => {
     expect(reasoning).toBe("Just a reply.");
   });
 
-  it("splits reply from reasoning even when a SINGLE round's own text has multiple paragraphs — a model very often writes its whole build-up and its conclusion together, with no tool call forcing a second round at all", async () => {
+  it("keeps a genuinely multi-paragraph reply intact when it's the ONLY round (no tool calls at all this turn) — paragraph breaks are not round boundaries", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => streamResponse(roundEvents([
-      { type: "text", text: "I'll set up three areas with a product each.\n\nDone — created three areas with their own products." },
+      { type: "text", text: "Here's the first thing to know.\n\nAnd here's the second, equally real, paragraph." },
     ]))));
     const { reply, reasoning } = await callAnthropic({ apiKey: "k", model: "m", systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn() });
-    // "Last round's own text" alone would have made reply === reasoning here
-    // (there's only one round) — the exact regression a real user caught a
-    // second time, even after the round-based version of this fix. Splitting
-    // on the paragraph break INSIDE that one round's own text is what
-    // actually distinguishes them regardless of round count.
-    expect(reasoning).toBe("I'll set up three areas with a product each.\n\nDone — created three areas with their own products.");
-    expect(reply).toBe("Done — created three areas with their own products.");
-    expect(reply).not.toBe(reasoning);
+    // A single round with zero tool calls has nothing to separate out — the
+    // whole thing, both paragraphs, is the real reply. An earlier version of
+    // this code took only the last blank-line-separated paragraph here,
+    // assuming multi-paragraph text within one round always meant
+    // "build-up + terse conclusion" — which silently truncated a genuine
+    // multi-paragraph answer (the bug this test now guards against).
+    expect(reasoning).toBe("Here's the first thing to know.\n\nAnd here's the second, equally real, paragraph.");
+    expect(reply).toBe(reasoning);
+  });
+
+  it("keeps the FINAL round's own text whole, even with multiple paragraphs, once a real tool-call round preceded it", async () => {
+    const fetchMock = vi.fn(async (url, init) => {
+      const calls = fetchMock.mock.calls.length;
+      if (calls === 1) {
+        return streamResponse(roundEvents([
+          { type: "text", text: "I'll create three areas." },
+          { type: "tool_use", id: "toolu_1", name: "create_area", input: { title: "A" } },
+        ]));
+      }
+      return streamResponse(roundEvents([
+        { type: "text", text: "Done — created the area.\n\nHere's a quick summary of what's in it now." },
+      ]));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const events = [];
+    const { reply, reasoning } = await callAnthropic({
+      apiKey: "k", model: "m", systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn(),
+      onEvent: (e) => events.push(e),
+    });
+    expect(reasoning).toBe("I'll create three areas.\n\nDone — created the area.\n\nHere's a quick summary of what's in it now.");
+    // The first round's own build-up narration is excluded (it's real
+    // deliberation, kept in `reasoning`, but it made a tool call — see the
+    // loop in callAnthropic — so by definition it isn't the final answer);
+    // the final round's own text is kept WHOLE, both its paragraphs, not
+    // trimmed to just the last one.
+    expect(reply).toBe("Done — created the area.\n\nHere's a quick summary of what's in it now.");
+    // A real "round-boundary" event fires once, between the two rounds, so
+    // the client can draw the same "past round vs. current round" line live
+    // that this function draws server-side.
+    expect(events.filter((e) => e.type === "round-boundary")).toHaveLength(1);
   });
 
   it("sends analyze_attachment's image as a real image content block, not just JSON text — the model actually SEES it next round", async () => {

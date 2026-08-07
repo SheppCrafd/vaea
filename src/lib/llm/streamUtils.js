@@ -5,6 +5,16 @@
 // wire format). Neither provider guarantees a chunk boundary lines up with a
 // line/event boundary, so both buffer partial data across reads.
 
+// A private, non-printable sentinel injected into the client's own
+// `streamingText` accumulator (useChatController.js's onEvent) every time a
+// "round-boundary" event arrives — the one unambiguous signal that a
+// tool-loop round genuinely ended, as opposed to a blank line the model's
+// own prose can legitimately contain. ChatMessageList.jsx splits its live
+// preview on this instead of "\n\n" so a real multi-paragraph answer isn't
+// mistaken for multiple rounds mid-stream. U+E000 is in the Unicode Private
+// Use Area — never produced by a real model's text.
+export const ROUND_BOUNDARY_MARKER = "";
+
 // One JSON object per line, newline-delimited. Used for
 // base44/functions/aiChatStream/entry.ts's own streaming response.
 export async function readNdjson(response, onLine) {
