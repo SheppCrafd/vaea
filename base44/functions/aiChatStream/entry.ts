@@ -210,6 +210,24 @@ async function listVaultNoteRepo(owner, repo, branch, token) {
   return (data.tree || []).filter((entry) => entry.type === 'blob' && entry.path.endsWith('.md')).map((entry) => entry.path);
 }
 
+// This server has no way to know the user's own real local time/timezone —
+// `new Date()` here is this Deno function's OWN clock (UTC), which
+// disagrees with "today" for anyone not near that timezone, especially
+// close to midnight (a task due "today" at 11pm Pacific could already read
+// as tomorrow server-side — a real bug this was, not just a missing nicety,
+// since audit_workspace's own overdue-project detection used the same
+// server-UTC "today" below). The browser always knows its own real local
+// time, so the client computes it (src/lib/nowContext.js) and sends it up
+// in the request body as `clientNow`; this only falls back to the old
+// server-UTC behavior if that's somehow missing (a stale cached bundle from
+// before this existed) — degraded but never broken.
+function resolveNow(clientNow) {
+  if (clientNow?.isoDate && clientNow?.display) return clientNow;
+  const date = new Date();
+  const isoDate = date.toISOString().slice(0, 10);
+  return { display: `${isoDate} (server UTC — the client didn't report its own local time this turn)`, isoDate, timeZone: 'UTC' };
+}
+
 // ---------------------------------------------------------------------------
 // Tool factory. Builds one fresh tool set per request, closed over `plan`
 // (the accumulating queued-action list), `base44` (for the 2 live web/file
@@ -218,7 +236,7 @@ async function listVaultNoteRepo(owner, repo, branch, token) {
 // from the request body, so these two tools can see fields the prompt
 // doesn't bother spelling out for every record), and externalVault (for the
 // vault_* tools below, connecting to a personal GitHub-hosted notes repo).
-function buildTools({ base44, plan, liveTrace, dataset, externalVault, emit }) {
+function buildTools({ base44, plan, liveTrace, dataset, externalVault, emit, now }) {
   // Every live (already-executed) tool call gets pushed here as {label,
   // detail} — same shape a client-side executed mutation step gets from
   // describeToolCall (chatActions.js), so ChatMessageList can render both
@@ -707,9 +725,8 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, emit }) {
           .filter((p) => !p.owner_name || !p.due_date)
           .map((p) => ({ id: p.id, title: p.title, missing: [!p.owner_name && 'owner', !p.due_date && 'due_date'].filter(Boolean) }));
 
-        const today = new Date().toISOString().slice(0, 10);
         findings.overdue_projects = dataset.projects
-          .filter((p) => p.due_date && p.due_date < today)
+          .filter((p) => p.due_date && p.due_date < now.isoDate)
           .map((p) => ({ id: p.id, title: p.title, due_date: p.due_date }));
 
         findings.done_tasks_not_yet_archived = dataset.tasks
@@ -900,7 +917,7 @@ SLASH COMMANDS: the composer offers "/" autocomplete for these one-word commands
 - "/focus <task>" -> TOGGLE_WEEKLY_FOCUS
 - "/tidy" (no argument) -> call audit_workspace, then — in this SAME turn, immediately, never asking first (see NEVER ASK FOR VERBAL PERMISSION above) — queue a fix for every real finding as one ordered plan, reusing each finding's own id field directly; if it found nothing, say so
 - "/setup" (no argument) -> start the SETUP INTERVIEW described above
-- "/vault-log" (no argument) -> using [CONVERSATION HISTORY] and [TODAY'S DATE] below, write a session summary via WRITE_VAULT_NOTE to "Daily/<today>.md" (read_vault_note first if that file already exists today, and append rather than overwrite); if a real decision was made this session, also WRITE_VAULT_NOTE a "Decisions/<short title>.md" file with the reasoning. If no Vaea Vault is connected, say so instead of calling anything.
+- "/vault-log" (no argument) -> using [CONVERSATION HISTORY] and [CURRENT DATE & TIME] below, write a session summary via WRITE_VAULT_NOTE to "Daily/<today>.md" (read_vault_note first if that file already exists today, and append rather than overwrite); if a real decision was made this session, also WRITE_VAULT_NOTE a "Decisions/<short title>.md" file with the reasoning. If no Vaea Vault is connected, say so instead of calling anything.
 - "/vault-tidy" (no argument) -> call audit_vault, then — in this SAME turn, immediately, never asking first (see NEVER ASK FOR VERBAL PERMISSION above) — queue a fix for every real finding (missing/broken [[wikilinks]], stub files for isolated notes) using WRITE_VAULT_NOTE, as one ordered plan; if it found nothing, say so. If no Vaea Vault is connected, say so instead of calling anything.
 - "/help" (no argument) -> reply with exactly these 16 commands as a markdown list, no tool call
 If the message starts with a "/" word that isn't one of these, ignore the slash — do not invent an action for it.
@@ -948,7 +965,7 @@ function renderVaultOverview(vaultOverview) {
   return `\n\n[VAULT CONTEXT — force-loaded, not a tool result]\n${parts.join('\n\n')}`;
 }
 
-function buildContextPrompt({ activeProjectId, areas, products, projects, archivedProjects, tasks, archivedTasks, stakeholders, departments, notes, conversationHistory, userText, aiIdentity, externalVault, vaultOverview, protocolReminderRequested }) {
+function buildContextPrompt({ activeProjectId, areas, products, projects, archivedProjects, tasks, archivedTasks, stakeholders, departments, notes, conversationHistory, userText, aiIdentity, externalVault, vaultOverview, protocolReminderRequested, now }) {
   const identity = aiIdentity || {};
   const vaultConnected = !!(externalVault?.owner && externalVault?.repo && externalVault?.token);
   return `[YOUR IDENTITY]
@@ -957,8 +974,9 @@ Identity: ${identity.identity || '(not set)'}
 Soul (tone/protocol): ${identity.soul || '(not set)'}
 About the user: ${identity.userProfile || '(not set)'}
 
-[TODAY'S DATE]
-${new Date().toISOString().slice(0, 10)}
+[CURRENT DATE & TIME]
+${now.display}
+Today's date, for filenames like "Daily/YYYY-MM-DD.md": ${now.isoDate}
 
 [VAEA VAULT]
 ${vaultConnected ? `Connected: ${externalVault.owner}/${externalVault.repo} (branch: ${externalVault.branch || 'main'})` : 'Not connected — vault_* tools will return connected: false.'}${renderVaultOverview(vaultOverview)}
@@ -1002,7 +1020,7 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const {
       message, conversationHistory, activeProjectId, aiIdentity = {}, externalVault = {},
-      vaultOverview = null, protocolReminderRequested = false,
+      vaultOverview = null, protocolReminderRequested = false, clientNow = null,
       areas = [], products = [], projects = [], archivedProjects = [],
       tasks = [], archivedTasks = [], stakeholders = [], departments = [], notes = [],
     } = body;
@@ -1013,6 +1031,11 @@ Deno.serve(async (req) => {
 
     const plan = [];
     const liveTrace = [];
+    // See resolveNow's own comment: this server has no way to know the
+    // user's real local time on its own — clientNow (src/lib/nowContext.js,
+    // computed in useChatController.js right before this request) is the
+    // one real source of truth for it.
+    const now = resolveNow(clientNow);
     // Raw, untrimmed arrays straight from the request body — search_workspace
     // and audit_workspace read from this, not from [DATABASE STATE]'s
     // trimmed prompt projection, so they can see fields the prompt doesn't
@@ -1023,7 +1046,7 @@ Deno.serve(async (req) => {
       activeProjectId, areas, products, projects, archivedProjects,
       tasks, archivedTasks, stakeholders, departments, notes,
       conversationHistory, userText: message, aiIdentity, externalVault,
-      vaultOverview, protocolReminderRequested,
+      vaultOverview, protocolReminderRequested, now,
     });
 
     // Streamed as newline-delimited JSON, one object per line — our own
@@ -1045,7 +1068,7 @@ Deno.serve(async (req) => {
           const agent = new ToolLoopAgent({
             model: models('automatic'),
             instructions: buildInstructions(),
-            tools: buildTools({ base44, plan, liveTrace, dataset, externalVault, emit }),
+            tools: buildTools({ base44, plan, liveTrace, dataset, externalVault, emit, now }),
             stopWhen: stepCountIs(40),
           });
 

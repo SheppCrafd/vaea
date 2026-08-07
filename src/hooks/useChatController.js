@@ -20,6 +20,7 @@ import { computeWorkspaceDelta, buildReflectionInstruction } from "@/lib/reflect
 import { runReflectionIfDue } from "@/lib/reflectionTrigger";
 import { loadReflectionPreferences, saveReflectionPreferences, VAULT_TIDY_INTERVAL_MS, DREAM_INTERVAL_MS, VAULT_LOG_IDLE_MS } from "@/lib/reflectionPreferences";
 import { ICON_STORAGE_KEY, loadIconChoice } from "@/lib/chatIcon";
+import { getNowContext } from "@/lib/nowContext";
 
 const SESSION_STORAGE_KEY = "vaea_chat_active_session";
 
@@ -317,6 +318,11 @@ export function useChatController({ activeProjectId } = {}) {
       body: JSON.stringify({
         ...payload,
         aiIdentity: await loadAiIdentity(),
+        // The server (base44-hosted, Deno) has no way to know the user's
+        // real local time/timezone on its own — see entry.ts's own
+        // resolveNow() comment. Computed fresh per request, not cached,
+        // since a long-open tab could otherwise send a stale time.
+        clientNow: getNowContext(),
         // Sent transiently, per-request, so the vault_* tools can use it for
         // this one turn — never stored server-side, same guarantee as the
         // rest of this payload (see ExternalVaultSection.jsx's disclosure).

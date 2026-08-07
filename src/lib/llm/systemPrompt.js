@@ -17,6 +17,23 @@
 // OpenAI/Google BYOK and Backdoor Mode have none at all (see NOT AVAILABLE
 // IN THIS MODE below) — told to the model outright rather than letting it
 // guess or pretend.
+// Real local date/time/timezone, not a bare UTC date — this file runs
+// client-side, so `new Date()` is already the user's own real local clock,
+// no server-timezone mismatch to worry about (contrast entry.ts's own copy,
+// which has to receive this from the client instead — see its own comment).
+// Hand-kept in sync with src/lib/nowContext.js's own (importable) copy —
+// this file stays deliberately zero-import, same reasoning as
+// renderVaultOverview's own header comment above.
+function getNowContext() {
+  const date = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  const isoDate = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const weekday = date.toLocaleDateString("en-US", { weekday: "long" });
+  const time = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  return { display: `${weekday}, ${isoDate}, ${time} (${timeZone})`, isoDate, timeZone };
+}
+
 export function buildInstructions({ maxActionsPerRequest }) {
   return `You are the admin routing engine for a portfolio-tracking dashboard, acting on behalf of the manager using it. You have full read access to every object in [DATABASE STATE] below, including archived ones.
 
@@ -83,7 +100,7 @@ SLASH COMMANDS: the composer offers "/" autocomplete for these one-word commands
 - "/focus <task>" -> TOGGLE_WEEKLY_FOCUS
 - "/tidy" (no argument) -> call audit_workspace, then — in this SAME turn, immediately, never asking first (see NEVER ASK FOR VERBAL PERMISSION above) — queue a fix for every real finding as one ordered plan, reusing each finding's own id field directly; if it found nothing, say so
 - "/setup" (no argument) -> start the SETUP INTERVIEW described above
-- "/vault-log" (no argument) -> using [CONVERSATION HISTORY] and [TODAY'S DATE] below, write a session summary via WRITE_VAULT_NOTE to "Daily/<today>.md" (read_vault_note first if that file already exists today, and append rather than overwrite); if a real decision was made this session, also WRITE_VAULT_NOTE a "Decisions/<short title>.md" file with the reasoning. If no Vaea Vault is connected, say so instead of calling anything.
+- "/vault-log" (no argument) -> using [CONVERSATION HISTORY] and [CURRENT DATE & TIME] below, write a session summary via WRITE_VAULT_NOTE to "Daily/<today>.md" (read_vault_note first if that file already exists today, and append rather than overwrite); if a real decision was made this session, also WRITE_VAULT_NOTE a "Decisions/<short title>.md" file with the reasoning. If no Vaea Vault is connected, say so instead of calling anything.
 - "/vault-tidy" (no argument) -> call audit_vault, then — in this SAME turn, immediately, never asking first (see NEVER ASK FOR VERBAL PERMISSION above) — queue a fix for every real finding (missing/broken [[wikilinks]], stub files for isolated notes) using WRITE_VAULT_NOTE, as one ordered plan; if it found nothing, say so. If no Vaea Vault is connected, say so instead of calling anything.
 - "/help" (no argument) -> reply with exactly these 16 commands as a markdown list, no tool call
 If the message starts with a "/" word that isn't one of these, ignore the slash — do not invent an action for it.
@@ -130,14 +147,16 @@ function renderVaultOverview(vaultOverview) {
 export function buildContextPrompt({ activeProjectId, areas, products, projects, archivedProjects, tasks, archivedTasks, stakeholders, departments, notes, conversationHistory, userText, aiIdentity, protocolReminderRequested, externalVault, vaultOverview }) {
   const identity = aiIdentity || {};
   const vaultConnected = !!(externalVault?.owner && externalVault?.repo && externalVault?.token);
+  const now = getNowContext();
   return `[YOUR IDENTITY]
 Name: ${identity.name || '(not set — you\'re currently displayed as "Vaea Chat")'}
 Identity: ${identity.identity || "(not set)"}
 Soul (tone/protocol): ${identity.soul || "(not set)"}
 About the user: ${identity.userProfile || "(not set)"}
 
-[TODAY'S DATE]
-${new Date().toISOString().slice(0, 10)}
+[CURRENT DATE & TIME]
+${now.display}
+Today's date, for filenames like "Daily/YYYY-MM-DD.md": ${now.isoDate}
 
 [VAEA VAULT]
 ${vaultConnected ? `Connected: ${externalVault.owner}/${externalVault.repo} (branch: ${externalVault.branch || "main"})` : "Not connected — vault_* tools will return connected: false."}${renderVaultOverview(vaultOverview)}

@@ -35,3 +35,22 @@ describe("buildContextPrompt's vault self-note rendering — the hard read-time 
     expect(prompt).not.toContain("Vaea Self.md");
   });
 });
+
+// Real bug fixed the same session: this used to be a bare UTC date
+// (`new Date().toISOString().slice(0, 10)`) with no time at all — wrong for
+// any user not near UTC, and useless for a genuine "what time is it"
+// question. buildContextPrompt runs entirely client-side (BYOK/Backdoor
+// Mode), so `new Date()` here is already the user's own real local clock.
+describe("buildContextPrompt's [CURRENT DATE & TIME] section", () => {
+  it("includes a real local date, a real clock time, and a timezone name — not the old bare-UTC-date-only block", () => {
+    const prompt = buildContextPrompt(baseArgs);
+    expect(prompt).toContain("[CURRENT DATE & TIME]");
+    expect(prompt).not.toContain("[TODAY'S DATE]");
+    // A real ISO local date (YYYY-MM-DD) appears twice: once in the
+    // human-readable display line, once in the explicit filename-ready line.
+    const isoDateMatches = prompt.match(/\d{4}-\d{2}-\d{2}/g) || [];
+    expect(isoDateMatches.length).toBeGreaterThanOrEqual(2);
+    expect(prompt).toMatch(/\d{1,2}:\d{2}/); // a real clock time
+    expect(prompt).toContain('Today\'s date, for filenames like "Daily/YYYY-MM-DD.md":');
+  });
+});
