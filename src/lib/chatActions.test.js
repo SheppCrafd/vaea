@@ -13,6 +13,23 @@ function makeLocalStorage() {
 }
 globalThis.localStorage = makeLocalStorage();
 
+// Minimal `window` shim — SET_APPEARANCE (and SET_CARD_VIEW before it)
+// dispatch a real CustomEvent for their client-side bridge components to
+// pick up; Node's own EventTarget/CustomEvent globals (stable since Node
+// 19+) are enough to register a real listener and assert what got
+// dispatched, without needing a full DOM. Needs `.location`/`.history`/
+// `.localStorage` too — defining `window` at all flips app-params.js's own
+// `isNode` browser-detection (`typeof window === "undefined"`) to false,
+// so it then genuinely reads window.location.search et al.
+if (typeof globalThis.window === "undefined") {
+  const win = new EventTarget();
+  win.location = { search: "", pathname: "/", hash: "", href: "http://localhost/" };
+  win.history = { replaceState: () => {} };
+  win.localStorage = globalThis.localStorage;
+  globalThis.window = win;
+  if (typeof globalThis.document === "undefined") globalThis.document = { title: "" };
+}
+
 const { executeAction, executeActionSequence, stripToolLog, describePlan, DESTRUCTIVE_ACTIONS, NON_EXECUTABLE_ACTIONS, filterReflectionActions } = await import("./chatActions.js");
 const { SELF_NOTE_PATH, SELF_NOTE_HARD_CAP_CHARS } = await import("./githubApi.js");
 const { localDb } = await import("./localDb.js");
@@ -309,6 +326,128 @@ describe("chatActions: UPDATE_PROJECT now validates parent/array fields it accep
     const { toolResult: { project } } = await executeAction("CREATE_PROJECT", { parent_area_id: area.id, title: "Project" });
     const { toolResult } = await executeAction("UPDATE_PROJECT", { project_id: project.id, title: "Renamed" });
     expect(toolResult.project.title).toBe("Renamed");
+  });
+});
+
+describe("chatActions: MOVE_PRODUCT — chat parity for dragging a Product onto a different Area (the UI could always do this; chat had no equivalent tool at all until now)", () => {
+  it("moves a product to a new area", async () => {
+    const { toolResult: { area: area1 } } = await executeAction("CREATE_AREA", { title: "Area 1", description: "" });
+    const { toolResult: { area: area2 } } = await executeAction("CREATE_AREA", { title: "Area 2", description: "" });
+    const { toolResult: { product } } = await executeAction("CREATE_PRODUCT", { parent_area_id: area1.id, title: "Product" });
+
+    const { toolResult } = await executeAction("MOVE_PRODUCT", { product_id: product.id, parent_area_id: area2.id });
+    expect(toolResult.product.parent_area_id).toBe(area2.id);
+  });
+
+  it("rejects a stale/deleted destination area", async () => {
+    const { toolResult: { area } } = await executeAction("CREATE_AREA", { title: "Area", description: "" });
+    const { toolResult: { product } } = await executeAction("CREATE_PRODUCT", { parent_area_id: area.id, title: "Product" });
+    await expect(executeAction("MOVE_PRODUCT", { product_id: product.id, parent_area_id: "not-a-real-area" })).rejects.toThrow(/doesn't exist/);
+  });
+});
+
+describe("chatActions: DELETE_CUSTOM_FIELD — chat parity for the UI's 'remove field' button (SET_CUSTOM_FIELD only ever covered add/update)", () => {
+  it("removes a previously-set custom field, leaving other fields intact", async () => {
+    const { toolResult: { area } } = await executeAction("CREATE_AREA", { title: "Area", description: "" });
+    await executeAction("SET_CUSTOM_FIELD", { entity_type: "area", entity_id: area.id, label: "Priority", value: "High", show_on_card: true });
+    await executeAction("SET_CUSTOM_FIELD", { entity_type: "area", entity_id: area.id, label: "Owner", value: "Alex" });
+
+    const { toolResult } = await executeAction("DELETE_CUSTOM_FIELD", { entity_type: "area", entity_id: area.id, label: "Priority" });
+
+    expect(toolResult.entity.custom_data.priority).toBeUndefined();
+    expect(toolResult.entity.custom_data.owner).toEqual({ label: "Owner", value: "Alex" });
+    // Also scrubbed from the show-on-card list, not just the value map.
+    expect(toolResult.entity.display_on_card_fields).not.toContain("priority");
+  });
+
+  it("is a harmless no-op removing a field that was never set", async () => {
+    const { toolResult: { area } } = await executeAction("CREATE_AREA", { title: "Area", description: "" });
+    const { toolResult } = await executeAction("DELETE_CUSTOM_FIELD", { entity_type: "area", entity_id: area.id, label: "Never Set" });
+    expect(toolResult.entity.id).toBe(area.id);
+  });
+});
+
+describe("chatActions: REORDER_ENTITY — chat parity for drag-to-reorder (Areas/Products/Projects had no chat equivalent at all until now)", () => {
+  it("reorders areas (one global sibling list)", async () => {
+    const { toolResult: { area: a } } = await executeAction("CREATE_AREA", { title: "A", description: "" });
+    const { toolResult: { area: b } } = await executeAction("CREATE_AREA", { title: "B", description: "" });
+    const { toolResult: { area: c } } = await executeAction("CREATE_AREA", { title: "C", description: "" });
+
+    // "Move C above A" -> C should land at position 0, before A.
+    await executeAction("REORDER_ENTITY", { entity_type: "area", entity_id: c.id, before_id: a.id });
+
+    const areas = await localDb.areas.list();
+    const byId = Object.fromEntries(areas.map((x) => [x.id, x]));
+    expect(byId[c.id].position).toBeLessThan(byId[a.id].position);
+    expect(byId[a.id].position).toBeLessThan(byId[b.id].position);
+  });
+
+  it("reorders products only among siblings sharing the same parent area — a product in a different area is untouched", async () => {
+    const { toolResult: { area: area1 } } = await executeAction("CREATE_AREA", { title: "Area 1", description: "" });
+    const { toolResult: { area: area2 } } = await executeAction("CREATE_AREA", { title: "Area 2", description: "" });
+    const { toolResult: { product: p1 } } = await executeAction("CREATE_PRODUCT", { parent_area_id: area1.id, title: "P1" });
+    const { toolResult: { product: p2 } } = await executeAction("CREATE_PRODUCT", { parent_area_id: area1.id, title: "P2" });
+    const { toolResult: { product: other } } = await executeAction("CREATE_PRODUCT", { parent_area_id: area2.id, title: "Other area's product" });
+    const otherBefore = await localDb.products.get(other.id);
+
+    await executeAction("REORDER_ENTITY", { entity_type: "product", entity_id: p2.id, before_id: p1.id });
+
+    const p1After = await localDb.products.get(p1.id);
+    const p2After = await localDb.products.get(p2.id);
+    const otherAfter = await localDb.products.get(other.id);
+    expect(p2After.position).toBeLessThan(p1After.position);
+    expect(otherAfter.position).toBe(otherBefore.position); // untouched — different area entirely
+  });
+
+  it("moves an entity to the end of its list when before_id is omitted", async () => {
+    const { toolResult: { area: a } } = await executeAction("CREATE_AREA", { title: "A", description: "" });
+    const { toolResult: { area: b } } = await executeAction("CREATE_AREA", { title: "B", description: "" });
+    await executeAction("REORDER_ENTITY", { entity_type: "area", entity_id: a.id });
+    const areas = await localDb.areas.list();
+    const byId = Object.fromEntries(areas.map((x) => [x.id, x]));
+    expect(byId[b.id].position).toBeLessThan(byId[a.id].position);
+  });
+
+  it("rejects reordering a deleted/nonexistent entity", async () => {
+    await expect(executeAction("REORDER_ENTITY", { entity_type: "area", entity_id: "not-real" })).rejects.toThrow(/doesn't exist/);
+  });
+});
+
+describe("chatActions: SET_APPEARANCE — chat parity for Settings -> Appearance (SET_CARD_VIEW already established this 'safe UI preference' pattern)", () => {
+  it("dispatches a real event with the requested theme and accent", async () => {
+    const { APPEARANCE_CHANGE_EVENT } = await import("./appearanceConstants.js");
+    let received;
+    const handler = (e) => { received = e.detail; };
+    window.addEventListener(APPEARANCE_CHANGE_EVENT, handler);
+    try {
+      const { toolResult } = await executeAction("SET_APPEARANCE", { theme: "dark", accent: "emerald" });
+      expect(received).toEqual({ mode: "dark", accent: "emerald" });
+      expect(toolResult).toEqual({ theme: "dark", accent: "emerald" });
+    } finally {
+      window.removeEventListener(APPEARANCE_CHANGE_EVENT, handler);
+    }
+  });
+
+  it("allows setting just one of theme/accent", async () => {
+    const { APPEARANCE_CHANGE_EVENT } = await import("./appearanceConstants.js");
+    let received;
+    const handler = (e) => { received = e.detail; };
+    window.addEventListener(APPEARANCE_CHANGE_EVENT, handler);
+    try {
+      await executeAction("SET_APPEARANCE", { accent: "indigo" });
+      expect(received).toEqual({ mode: undefined, accent: "indigo" });
+    } finally {
+      window.removeEventListener(APPEARANCE_CHANGE_EVENT, handler);
+    }
+  });
+
+  it("rejects an invalid theme/accent value", async () => {
+    await expect(executeAction("SET_APPEARANCE", { theme: "neon" })).rejects.toThrow(/theme must be one of/);
+    await expect(executeAction("SET_APPEARANCE", { accent: "chartreuse" })).rejects.toThrow(/accent must be one of/);
+  });
+
+  it("rejects a call with neither field set", async () => {
+    await expect(executeAction("SET_APPEARANCE", {})).rejects.toThrow(/at least one of/);
   });
 });
 

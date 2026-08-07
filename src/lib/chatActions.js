@@ -14,9 +14,10 @@
 import { localDb } from "@/lib/localDb";
 import { withKeyLock } from "@/lib/asyncKeyLock";
 import { toCsv } from "@/lib/csv";
-import { excludeSoftDeleted, assertLiveParent } from "@/lib/entityUtils";
+import { excludeSoftDeleted, assertLiveParent, sortByPosition, reorderPositions } from "@/lib/entityUtils";
 import { filterActiveTasks } from "@/lib/taskUtils";
 import { CARD_VIEW_STORAGE_KEY, CARD_VIEW_CHANGE_EVENT } from "@/lib/cardViewConstants";
+import { APPEARANCE_CHANGE_EVENT, THEME_MODES, ACCENT_KEYS } from "@/lib/appearanceConstants";
 import { loadAiIdentity, saveAiIdentity } from "@/lib/aiPreferences";
 import { createSnapshot } from "@/lib/backupSnapshots";
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
@@ -389,6 +390,77 @@ export async function executeAction(action, args) {
       return { toolResult: { entity: updated } };
     }
 
+    case "DELETE_CUSTOM_FIELD": {
+      // The UI has a real "remove field" button (CustomFieldsSection.jsx)
+      // with no chat equivalent until now — SET_CUSTOM_FIELD only ever
+      // added/updated one. Same key-slugging as SET_CUSTOM_FIELD above, so
+      // "Remove the 'Priority' field" resolves to the same key it was
+      // stored under.
+      const collectionMap = { project: localDb.projects, product: localDb.products, area: localDb.areas };
+      const collection = collectionMap[args.entity_type];
+      if (!collection) throw new Error(`Unknown entity_type "${args.entity_type}"`);
+      const entity = await collection.get(args.entity_id);
+      if (!entity) throw new Error("Entity not found");
+      const key = String(args.label).trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "field";
+      const custom_data = { ...entity.custom_data };
+      delete custom_data[key];
+      const display_on_card_fields = (entity.display_on_card_fields || []).filter((k) => k !== key);
+      const updated = await collection.update(args.entity_id, { custom_data, display_on_card_fields });
+      return { toolResult: { entity: updated } };
+    }
+
+    case "REORDER_ENTITY": {
+      // The UI's drag-to-reorder (useGlobalDragEnd.js) for Areas/Products/
+      // Projects had no chat equivalent at all — "move X above Y" was
+      // simply impossible to do via chat. Shares the same reorderPositions
+      // helper (entityUtils.js) the real drag handler uses, so a chat-
+      // issued reorder and a real drag land on identical position math.
+      const { entity_type, entity_id, before_id } = args;
+      const collectionMap = { area: localDb.areas, product: localDb.products, project: localDb.projects };
+      const collection = collectionMap[entity_type];
+      if (!collection) throw new Error(`Unknown entity_type "${entity_type}" for REORDER_ENTITY`);
+      const entity = await collection.get(entity_id);
+      if (!entity || entity.deleted_at) throw new Error(`${entity_type} "${entity_id}" doesn't exist — the record to reorder didn't resolve to a real one.`);
+      const all = excludeSoftDeleted(await collection.list());
+      const siblings = all.filter((item) => {
+        if (item.id === entity_id) return false;
+        if (entity_type === "product") return item.parent_area_id === entity.parent_area_id;
+        if (entity_type === "project") {
+          return (item.parent_area_id ?? null) === (entity.parent_area_id ?? null) && (item.parent_product_id ?? null) === (entity.parent_product_id ?? null);
+        }
+        return true; // area: one single global list, no parent to match on
+      });
+      const orderedIds = sortByPosition(siblings).map((s) => s.id);
+      const positions = reorderPositions([...orderedIds, entity_id], entity_id, before_id);
+      await collection.updateMany(Object.keys(positions), (item) => ({ position: positions[item.id] }));
+      const updated = await collection.get(entity_id);
+      return { toolResult: { entity: updated, entity_type } };
+    }
+
+    case "MOVE_PRODUCT": {
+      // MOVE_PROJECT's own equivalent for Products — the UI lets a user
+      // drag a Product onto a different Area to reparent it; chat had no
+      // way to do the same. updateProduct (useProducts.js) already
+      // validates parent_area_id itself (this session's earlier fix), so
+      // no separate assertLiveParent call is needed here.
+      const product = await updateProduct({ id: args.product_id, data: { parent_area_id: args.parent_area_id } });
+      return { toolResult: { product } };
+    }
+
+    case "SET_APPEARANCE": {
+      // Same event-bridge pattern as SET_CARD_VIEW below — theme mode and
+      // accent color both live behind real React hooks (next-themes'
+      // useTheme, useAccentTheme), so this plain module dispatches a window
+      // event instead of calling a setter directly; ChatAppearanceBridge.jsx
+      // (mounted once in App.jsx) is the one real listener.
+      const { theme, accent } = args;
+      if (theme && !THEME_MODES.includes(theme)) throw new Error(`theme must be one of: ${THEME_MODES.join(", ")}`);
+      if (accent && !ACCENT_KEYS.includes(accent)) throw new Error(`accent must be one of: ${ACCENT_KEYS.join(", ")}`);
+      if (!theme && !accent) throw new Error("Pass at least one of theme or accent.");
+      window.dispatchEvent(new CustomEvent(APPEARANCE_CHANGE_EVENT, { detail: { mode: theme, accent } }));
+      return { toolResult: { theme, accent } };
+    }
+
     case "BULK_CREATE": {
       const { entity_type, items } = args;
       const createAction = BULK_CREATE_ACTION_BY_TYPE[entity_type];
@@ -537,7 +609,7 @@ function planNeedsSnapshot(actions) {
 // line with that project's own title, not its id).
 const TOOL_LOG_RESULT_KEY = {
   CREATE_AREA: "area", UPDATE_AREA: "area", DELETE_AREA: "area",
-  CREATE_PRODUCT: "product", UPDATE_PRODUCT: "product", DELETE_PRODUCT: "product",
+  CREATE_PRODUCT: "product", UPDATE_PRODUCT: "product", DELETE_PRODUCT: "product", MOVE_PRODUCT: "product",
   CREATE_PROJECT: "project", UPDATE_PROJECT: "project", MOVE_PROJECT: "project",
   ARCHIVE_PROJECT: "project", RESTORE_PROJECT: "project", DELETE_PROJECT: "project",
   CREATE_TASK: "task", UPDATE_TASK: "task", UPDATE_TASK_STATUS: "task",
@@ -546,7 +618,7 @@ const TOOL_LOG_RESULT_KEY = {
   CREATE_STAKEHOLDER: "stakeholder", UPDATE_STAKEHOLDER: "stakeholder", DELETE_STAKEHOLDER: "stakeholder",
   CREATE_DEPARTMENT: "department", RENAME_DEPARTMENT: "department", DELETE_DEPARTMENT: "department",
   CREATE_NOTE: "note", UPDATE_NOTE: "note",
-  SET_CUSTOM_FIELD: "entity",
+  SET_CUSTOM_FIELD: "entity", DELETE_CUSTOM_FIELD: "entity", REORDER_ENTITY: "entity",
 };
 
 function labelOf(entity) {

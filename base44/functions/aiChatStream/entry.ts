@@ -319,6 +319,14 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, emit }) {
       inputSchema: z.object({ product_id: id('Product') }),
       execute: queue('DELETE_PRODUCT'),
     }),
+    MOVE_PRODUCT: tool({
+      description: 'Move a Product to a different Area.',
+      inputSchema: z.object({
+        product_id: id('Product'),
+        parent_area_id: id('New parent Area'),
+      }),
+      execute: queue('MOVE_PRODUCT'),
+    }),
 
     CREATE_PROJECT: tool({
       description: 'Create a new Project under an Area, optionally attached to a Product.',
@@ -533,6 +541,24 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, emit }) {
       }),
       execute: queue('SET_CUSTOM_FIELD'),
     }),
+    DELETE_CUSTOM_FIELD: tool({
+      description: 'Remove a custom field from a Project/Product/Area.',
+      inputSchema: z.object({
+        entity_type: z.enum(['project', 'product', 'area']),
+        entity_id: z.string(),
+        label: z.string().describe('The exact label of the custom field to remove, as shown in [DATABASE STATE].'),
+      }),
+      execute: queue('DELETE_CUSTOM_FIELD'),
+    }),
+    REORDER_ENTITY: tool({
+      description: 'Move an Area, Product, or Project to a new position among its siblings — the same list it already appears in (e.g. Products within the same Area, Projects within the same Area+Product) — mirroring drag-to-reorder in the UI. "Move X above/before Y" -> before_id: Y\'s id. "Move X to the end/last" -> omit before_id.',
+      inputSchema: z.object({
+        entity_type: z.enum(['area', 'product', 'project']),
+        entity_id: id('The record to reorder'),
+        before_id: z.string().optional().describe('The sibling id to place it immediately before. Omit to move it to the end of its list.'),
+      }),
+      execute: queue('REORDER_ENTITY'),
+    }),
 
     BULK_CREATE: tool({
       description: `Create up to ${MAX_BULK_ITEMS_PER_CALL} records of the SAME type in one shot (e.g. 5 tasks under one project). A bigger request needs several BULK_CREATE calls, each with at most ${MAX_BULK_ITEMS_PER_CALL} items — never one call with more than that. Items here can't be individually referenced later via temp_id — for that, call the single CREATE_* tool repeatedly instead.`,
@@ -560,6 +586,17 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, emit }) {
       description: 'Switch the dashboard\'s card display between "mini" (compact) and "full" (always-editable) mode.',
       inputSchema: z.object({ view: z.enum(['mini', 'full']) }),
       execute: queue('SET_CARD_VIEW'),
+    }),
+    SET_APPEARANCE: tool({
+      description: "Change the app's theme mode and/or accent color (Settings -> Appearance). Pass whichever one the user actually asked to change; omit the other.",
+      // Kept in sync by hand with src/lib/appearanceConstants.js's own
+      // THEME_MODES/ACCENT_KEYS — different runtime, can't share a module,
+      // same reasoning as this file's own SLASH COMMANDS/vault-tools split.
+      inputSchema: z.object({
+        theme: z.enum(['light', 'dark', 'system']).optional().describe('"system" follows the OS/browser setting.'),
+        accent: z.enum(['slate', 'indigo', 'emerald', 'amber']).optional(),
+      }),
+      execute: queue('SET_APPEARANCE'),
     }),
     SET_AI_IDENTITY: tool({
       description: 'Set your own name/identity/soul/user-profile fields (Settings -> AI Assistant). Used by the "/setup" flow after interviewing the user, or any time they explicitly ask to change how you communicate or what you\'re called. Omit a field to leave it unchanged.',

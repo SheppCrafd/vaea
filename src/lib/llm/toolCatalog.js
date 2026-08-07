@@ -21,6 +21,8 @@
 // to images + plain-text files (no client-side PDF/Office parser), and
 // WRITE_VAULT_NOTE/list_vault_notes/read_vault_note/search_vault/
 // audit_vault via githubApi.js's own client-side GitHub layer.
+import { THEME_MODES, ACCENT_KEYS } from "@/lib/appearanceConstants";
+
 const idDesc = (desc) => `${desc} — look this id up from [DATABASE STATE] by name/title; never invent one.`;
 // Same as idDesc, but for a parent-record field on a CREATE_* tool — see the
 // matching parentId() comment in base44/functions/aiChatStream/entry.ts for
@@ -120,6 +122,19 @@ export const TOOL_CATALOG = [
     staged: true,
     description: "Delete a Product.",
     parameters: { type: "object", properties: { product_id: { type: "string", description: idDesc("Product") } }, required: ["product_id"] },
+  },
+  {
+    name: "MOVE_PRODUCT",
+    staged: true,
+    description: "Move a Product to a different Area.",
+    parameters: {
+      type: "object",
+      properties: {
+        product_id: { type: "string", description: idDesc("Product") },
+        parent_area_id: { type: "string", description: idDesc("New parent Area") },
+      },
+      required: ["product_id", "parent_area_id"],
+    },
   },
 
   {
@@ -424,6 +439,34 @@ export const TOOL_CATALOG = [
       required: ["entity_type", "entity_id", "label", "value"],
     },
   },
+  {
+    name: "DELETE_CUSTOM_FIELD",
+    staged: true,
+    description: "Remove a custom field from a Project/Product/Area.",
+    parameters: {
+      type: "object",
+      properties: {
+        entity_type: { type: "string", enum: ["project", "product", "area"] },
+        entity_id: { type: "string" },
+        label: { type: "string", description: "The exact label of the custom field to remove, as shown in [DATABASE STATE]." },
+      },
+      required: ["entity_type", "entity_id", "label"],
+    },
+  },
+  {
+    name: "REORDER_ENTITY",
+    staged: true,
+    description: 'Move an Area, Product, or Project to a new position among its siblings — the same list it already appears in (e.g. Products within the same Area, Projects within the same Area+Product) — mirroring drag-to-reorder in the UI. "Move X above/before Y" -> before_id: Y\'s id. "Move X to the end/last" -> omit before_id.',
+    parameters: {
+      type: "object",
+      properties: {
+        entity_type: { type: "string", enum: ["area", "product", "project"] },
+        entity_id: { type: "string", description: idDesc("The record to reorder") },
+        before_id: { type: "string", description: "The sibling id to place it immediately before. Omit to move it to the end of its list." },
+      },
+      required: ["entity_type", "entity_id"],
+    },
+  },
 
   {
     name: "BULK_CREATE",
@@ -468,6 +511,19 @@ export const TOOL_CATALOG = [
     staged: true,
     description: 'Switch the dashboard\'s card display between "mini" (compact) and "full" (always-editable) mode.',
     parameters: { type: "object", properties: { view: { type: "string", enum: ["mini", "full"] } }, required: ["view"] },
+  },
+  {
+    name: "SET_APPEARANCE",
+    staged: true,
+    description: "Change the app's theme mode and/or accent color (Settings -> Appearance). Pass whichever one the user actually asked to change; omit the other.",
+    parameters: {
+      type: "object",
+      properties: {
+        theme: { type: "string", enum: THEME_MODES, description: '"system" follows the OS/browser setting.' },
+        accent: { type: "string", enum: ACCENT_KEYS },
+      },
+      required: [],
+    },
   },
   {
     name: "SET_AI_IDENTITY",
