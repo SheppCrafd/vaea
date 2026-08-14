@@ -1,4 +1,5 @@
 import { writeRequestFile, pollForResponseFile, archiveProcessedRound } from "@/lib/llm/localBridgeStorage";
+import { extractPlan } from "@/lib/llm/streamUtils";
 
 // "Backdoor Mode" — same plan-then-tools loop shape as anthropicAdapter.js's
 // callAnthropic, but the transport is two folders on disk instead of a
@@ -39,6 +40,10 @@ export async function callLocalBridge({ systemPrompt, contextPrompt, tools, runT
   // then after results come back, "Found two matches, now creating the
   // plan...".
   const thinking = [];
+  // See anthropicAdapter.js's matching comment — any round's text can wrap
+  // part of itself in <plan>...</plan>, collected here and preferred over
+  // `thinking` wholesale as the plan-detail modal's content when present.
+  const planParts = [];
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     // system/tools are large (the full instruction text plus the whole
@@ -67,13 +72,15 @@ export async function callLocalBridge({ systemPrompt, contextPrompt, tools, runT
     // stays in place for debugging. Best-effort — see localBridgeStorage.js.
     await archiveProcessedRound(requestId, round);
     const toolUseBlocks = content.filter((block) => block.type === "tool_use");
-    const roundText = content.filter((block) => block.type === "text").map((block) => block.text).join("\n").trim();
+    const rawRoundText = content.filter((block) => block.type === "text").map((block) => block.text).join("\n").trim();
+    const { text: roundText, plan } = extractPlan(rawRoundText);
+    if (plan) planParts.push(plan);
     if (roundText) thinking.push(roundText);
 
     if (toolUseBlocks.length === 0) {
       return {
         reply: roundText || "I couldn't come up with a reply — could you rephrase?",
-        reasoning: thinking.join("\n\n"),
+        reasoning: planParts.length ? planParts.join("\n\n") : thinking.join("\n\n"),
         thinking,
       };
     }

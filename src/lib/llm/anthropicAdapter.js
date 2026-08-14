@@ -6,7 +6,7 @@
 // is generally unsafe — but that's exactly the trade a BYOK local-first
 // tool like this one is making deliberately, same as this app's local-only
 // GitHub vault token).
-import { readSse } from "@/lib/llm/streamUtils";
+import { readSse, extractPlan } from "@/lib/llm/streamUtils";
 
 const MAX_TOOL_ROUNDS = 15;
 
@@ -140,18 +140,30 @@ export async function callAnthropic({ apiKey, model, systemPrompt, contextPrompt
   // starts) is what lets the client draw the same line live while streaming
   // — see ChatMessageList.jsx.
   const thinking = [];
+  // Any round can wrap part of its own text in <plan>...</plan> (see the
+  // PLAN TAG instruction in systemPrompt.js/entry.ts, required once a turn
+  // has more than 5 actions) — collected across every round the same way
+  // `thinking` is, and preferred over it wholesale as the plan-detail
+  // modal's content when present, since it's the model's own deliberate
+  // "this is the plan" framing rather than a guess stitched from whichever
+  // rounds happened to have text. `<plan>` itself is always stripped from
+  // what actually reaches `thinking`/`reply` — it's never meant to be seen
+  // in the chat bubble.
+  const planParts = [];
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     const response = await streamOnce({ apiKey, model, systemPrompt, messages, tools, onEvent });
     const content = response.content || [];
     const toolUseBlocks = content.filter((block) => block.type === "tool_use");
-    const roundText = content.filter((block) => block.type === "text").map((block) => block.text).join("\n").trim();
+    const rawRoundText = content.filter((block) => block.type === "text").map((block) => block.text).join("\n").trim();
+    const { text: roundText, plan } = extractPlan(rawRoundText);
+    if (plan) planParts.push(plan);
     if (roundText) thinking.push(roundText);
 
     if (toolUseBlocks.length === 0) {
       return {
         reply: roundText || "I couldn't come up with a reply — could you rephrase?",
-        reasoning: thinking.join("\n\n"),
+        reasoning: planParts.length ? planParts.join("\n\n") : thinking.join("\n\n"),
       };
     }
 

@@ -875,6 +875,8 @@ NEVER ASK FOR VERBAL PERMISSION TO PROCEED — EVER: an actionable request ends 
 
 THINK OUT LOUD AS YOU GO: every round of this conversation — not just your final reply — is captured as your own real thinking. Only your LAST round's own text becomes your visible chat reply; every round's own text (this one included) is preserved as the full reasoning trail behind your plan, shown separately if the user chooses to inspect it. That reasoning trail is only ever as real as what you actually write here — if you stay silent through every round and only speak once at the end, there IS no separate reasoning to show, just your final reply repeated with nothing behind it. So: for ANY plan with more than one tool call (almost every CREATE/UPDATE/DELETE-driven request, very much including a routine multi-record populate/seed/fill request — "modest" or "a couple of areas" is not the same as "simple enough to stay silent") narrate at least once per meaningfully different step or decision, not only in a closing summary — what you're about to do and why, specific to this actual request (e.g. "I'll check what's already in the workspace before adding anything new." then, once a search comes back, "That found two related areas — I'll add the new project under the existing one instead of creating a duplicate." then, once you've decided the shape of a multi-part plan, "Now I'll create each area individually so I can attach its own products afterward."). Keep each round's own narration short — one or two real sentences, not a wall of text — and never generic filler ("Let me help you with that!"). Don't narrate the mechanics already covered above (don't say "queued"/"staged"/anything about confirmation) — this is about *why*, not about the plumbing. Reserve total silence for a genuinely single, obvious, one-tool-call turn (e.g. "mark this task done") where there is truly nothing to explain.
 
+PLAN TAG — for any turn whose plan ends up with MORE THAN 5 total actions: wrap your step-by-step deliberation in a single \`<plan>...</plan>\` block (plain text/markdown inside, no nested tags) — this is what actually populates the separate "plan" detail the user can click to inspect, instead of your reply text being reused for both. Put the \`<plan>\` block in whichever round(s) contain that narration (it can span multiple rounds the same as any other narration would); anything you write outside \`<plan>...</plan>\`, in any round, is still a completely normal chat reply — write it in whatever shape actually fits the question (one sentence, several paragraphs, a list — never force it down to one line just because a plan exists alongside it). Below the 5-action threshold, keep narrating exactly as THINK OUT LOUD AS YOU GO already describes and skip the tag entirely — most turns don't need it.
+
 CRITICAL MAPPING RULE: when a tool needs an id, look it up from [DATABASE STATE] by the name/title the user gave. Never invent an id or pass a name where an id is expected.
 
 DOUBLE-CHECK EVERY ID RIGHT BEFORE YOU FINALIZE A PLAN: this matters most exactly when a plan is built from audit_workspace/search_workspace results rather than one simple lookup — that's precisely where a wrong id has actually slipped through and broken a whole plan for real. Before your last tool call in a turn, re-read every id you're about to pass and confirm each one truly came from somewhere real THIS turn: copied verbatim from [DATABASE STATE], from a tool's own result you just received, or a "$temp_id" you registered yourself earlier in this same turn. Never pass an id recalled from memory, guessed at, or reconstructed from a title once you already had a real id available — a plausible-looking id is not the same as a real one. A finding from audit_workspace already IS the fresh lookup: reuse its own id/project_id/ids fields directly, exactly as given, rather than re-deriving an id from its title. Getting this wrong doesn't fail just one step — chatActions.js rejects the id and the ENTIRE plan fails at execution time, after the user already saw (and maybe clicked "Yes, do it" on) a plan that looked complete.
@@ -946,6 +948,21 @@ const SELF_NOTE_MAX_CHARS = 6000;
 function truncateSelfNote(text) {
   if (text.length <= SELF_NOTE_MAX_CHARS) return text;
   return `${text.slice(0, SELF_NOTE_MAX_CHARS)}\n[...truncated — the full note is longer than fits here...]`;
+}
+
+// Local twin of src/lib/llm/streamUtils.js's extractPlan — this function is
+// its own deployment unit (a Deno isolate, not this app's own bundle), so it
+// can't import across that boundary; kept in exact behavioral sync by hand.
+// See the PLAN TAG instruction above and that file's own comment for why
+// this exists: a dedicated <plan>...</plan> block, not a guess stitched
+// from whichever step happened to have text.
+function extractPlanTag(text) {
+  const match = (text || '').match(/<plan>([\s\S]*?)<\/plan>/i);
+  if (!match) return { text: text || '', plan: null };
+  return {
+    text: (text.slice(0, match.index) + text.slice(match.index + match[0].length)).replace(/\n{3,}/g, '\n\n').trim(),
+    plan: match[1].trim(),
+  };
 }
 
 function renderVaultOverview(vaultOverview) {
@@ -1089,12 +1106,26 @@ Deno.serve(async (req) => {
           // byokChat.js's simulateLiveReveal) for the identical underlying
           // reason: the transport under this path can't actually stream.
           const result = await agent.generate({ prompt: contextPrompt });
-          const stepTexts = result.steps.map((step) => step.text?.trim()).filter(Boolean);
-          // `reasoning` is every round's own text, in order — "I'll check
-          // the workspace first...", then "Found two matches, now creating
-          // the plan...", genuine deliberation including any real
+          // Each step's own text can carry a <plan>...</plan> block (see the
+          // PLAN TAG instruction above) — stripped out here before anything
+          // downstream (reply, reasoning fallback, the live paced replay)
+          // ever sees it, and collected separately as `planParts`.
+          const planParts = [];
+          const stepTexts = result.steps
+            .map((step) => step.text?.trim())
+            .filter(Boolean)
+            .map((raw) => {
+              const { text, plan } = extractPlanTag(raw);
+              if (plan) planParts.push(plan);
+              return text;
+            })
+            .filter(Boolean);
+          // `reasoning` is the model's own dedicated <plan> narration when it
+          // wrote one; otherwise every step's own text, in order — "I'll
+          // check the workspace first...", then "Found two matches, now
+          // creating the plan...", genuine deliberation including any real
           // self-correction, not just the destination.
-          const reasoning = stepTexts.join('\n\n');
+          const reasoning = planParts.length ? planParts.join('\n\n') : stepTexts.join('\n\n');
           // `reply` is ONLY the LAST step's own text, taken WHOLE — no
           // further splitting inside it. This used to instead take only the
           // final blank-line-separated paragraph of the full `reasoning`

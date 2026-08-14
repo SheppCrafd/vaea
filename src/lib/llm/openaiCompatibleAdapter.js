@@ -5,7 +5,7 @@
 // request/response shape (streaming included), just a different base
 // URL/model catalog (providers.js), so one adapter covers all three
 // companies.
-import { readSse } from "@/lib/llm/streamUtils";
+import { readSse, extractPlan } from "@/lib/llm/streamUtils";
 
 const MAX_TOOL_ROUNDS = 15;
 
@@ -102,18 +102,23 @@ export async function callOpenAiCompatible({ baseUrl, apiKey, model, systemPromp
   // plan...". Now streamed live via onEvent as each round's text actually
   // arrives, not just collected here for the final joined string.
   const thinking = [];
+  // See anthropicAdapter.js's matching comment — any round's text can wrap
+  // part of itself in <plan>...</plan>, collected here and preferred over
+  // `thinking` wholesale as the plan-detail modal's content when present.
+  const planParts = [];
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     const response = await streamOnce({ baseUrl, apiKey, model, messages, tools, onEvent, searchParameters });
     const message = response.choices?.[0]?.message;
     if (!message) throw new Error("Empty response from the model.");
-    const roundText = message.content?.trim();
+    const { text: roundText, plan } = extractPlan(message.content?.trim());
+    if (plan) planParts.push(plan);
     if (roundText) thinking.push(roundText);
 
     if (!message.tool_calls?.length) {
       return {
         reply: roundText || "I couldn't come up with a reply — could you rephrase?",
-        reasoning: thinking.join("\n\n"),
+        reasoning: planParts.length ? planParts.join("\n\n") : thinking.join("\n\n"),
       };
     }
 

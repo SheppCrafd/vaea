@@ -15,6 +15,48 @@
 // Use Area — never produced by a real model's text.
 export const ROUND_BOUNDARY_MARKER = "";
 
+// Pulls a `<plan>...</plan>` block (see the PLAN TAG instruction in
+// systemPrompt.js / entry.ts) out of one round's raw text. The model is told
+// to wrap its step-by-step narration in these tags for any turn with more
+// than 5 tool-call actions, so that narration can be shown verbatim as the
+// plan-detail modal's content (ChatToolLogDetail.jsx's PlanReasoning)
+// instead of being guessed from whichever round happened to have text —
+// the guess degenerates to "identical to the reply" for a single-round turn,
+// a real bug a user hit ("clicking the plan thing just is the response").
+// Case-insensitive and tolerant of whitespace inside the tags; matches
+// across newlines since the block is prose, not one line. Returns the
+// surrounding text with the tag (and its content) removed and trimmed, plus
+// the tag's inner content, or `null` if this round had no plan tag at all —
+// most rounds won't, and that's fine, existing reasoning/reply behavior
+// covers the rest.
+const PLAN_TAG_RE = /<plan>([\s\S]*?)<\/plan>/i;
+export function extractPlan(text) {
+  const match = (text || "").match(PLAN_TAG_RE);
+  if (!match) return { text: text || "", plan: null };
+  return {
+    text: (text.slice(0, match.index) + text.slice(match.index + match[0].length)).replace(/\n{3,}/g, "\n\n").trim(),
+    plan: match[1].trim(),
+  };
+}
+
+// For the LIVE streaming preview only (ChatMessageList.jsx's `streamingText`
+// render) — extractPlan above only handles a *complete* `<plan>...</plan>`
+// pair, which is exactly right once a round has finished, but mid-stream the
+// opening tag can already have arrived with its closing tag not yet in.
+// Rather than flash the raw `<plan>` characters (and everything typed after
+// it) on screen for however many words it takes the closing tag to arrive,
+// this also truncates right before an as-yet-unclosed opening tag. This is
+// the same category of accepted streaming trade-off ChatMessageList.jsx's
+// own comment already documents for an unclosed "**" — the plan content
+// itself simply doesn't appear live; it shows up like any other completed
+// round once the closing tag lands and extractPlan takes over for good.
+const OPEN_PLAN_TAG_RE = /<plan\b[^>]*>?/i;
+export function stripLivePlanPreview(text) {
+  const { text: withoutClosed } = extractPlan(text);
+  const openMatch = withoutClosed.match(OPEN_PLAN_TAG_RE);
+  return openMatch ? withoutClosed.slice(0, openMatch.index).trimEnd() : withoutClosed;
+}
+
 // One JSON object per line, newline-delimited. Used for
 // base44/functions/aiChatStream/entry.ts's own streaming response.
 export async function readNdjson(response, onLine) {

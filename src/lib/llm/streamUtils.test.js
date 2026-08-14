@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readNdjson, readSse } from "./streamUtils.js";
+import { readNdjson, readSse, extractPlan } from "./streamUtils.js";
 
 function streamFromChunks(chunks) {
   const encoder = new TextEncoder();
@@ -75,5 +75,30 @@ describe("readSse", () => {
     const events = [];
     await readSse(response, (e) => events.push(e));
     expect(events).toEqual([{ a: 1 }]);
+  });
+});
+
+describe("extractPlan", () => {
+  it("returns the text unchanged with a null plan when there's no <plan> tag", () => {
+    expect(extractPlan("Just a normal reply.")).toEqual({ text: "Just a normal reply.", plan: null });
+  });
+
+  it("pulls the plan block out and trims the surrounding text", () => {
+    const result = extractPlan("Before.\n\n<plan>Step one. Step two.</plan>\n\nAfter.");
+    expect(result).toEqual({ text: "Before.\n\nAfter.", plan: "Step one. Step two." });
+  });
+
+  it("is case-insensitive and matches across newlines", () => {
+    const result = extractPlan("<PLAN>\nline one\nline two\n</PLAN>\nreply text");
+    expect(result).toEqual({ text: "reply text", plan: "line one\nline two" });
+  });
+
+  it("collapses to an empty string when the whole message is the plan tag", () => {
+    expect(extractPlan("<plan>only a plan</plan>")).toEqual({ text: "", plan: "only a plan" });
+  });
+
+  it("handles null/undefined input the same as empty text", () => {
+    expect(extractPlan(null)).toEqual({ text: "", plan: null });
+    expect(extractPlan(undefined)).toEqual({ text: "", plan: null });
   });
 });

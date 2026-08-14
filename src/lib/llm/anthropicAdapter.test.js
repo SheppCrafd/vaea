@@ -105,6 +105,26 @@ describe("anthropicAdapter: tool-call loop (streamed)", () => {
     });
   });
 
+  it("prefers a <plan> block's content over the joined round text for `reasoning`, and strips it out of `reply`", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () =>
+      streamResponse(roundEvents([{ type: "text", text: "<plan>I'll create three areas, one per region.</plan>\n\nDone — created three areas." }]))
+    ));
+
+    const { reply, reasoning } = await callAnthropic({ apiKey: "k", model: "m", systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn() });
+
+    expect(reply).toBe("Done — created three areas.");
+    expect(reasoning).toBe("I'll create three areas, one per region.");
+  });
+
+  it("falls back to the joined round text for `reasoning` when no round wrote a <plan> block", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => streamResponse(roundEvents([{ type: "text", text: "Just a reply, no plan tag." }]))));
+
+    const { reply, reasoning } = await callAnthropic({ apiKey: "k", model: "m", systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn() });
+
+    expect(reply).toBe("Just a reply, no plan tag.");
+    expect(reasoning).toBe("Just a reply, no plan tag.");
+  });
+
   it("fires onEvent with each text_delta live, as it streams in — not just the final joined text", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => streamResponse(roundEvents([{ type: "text", text: "Just a reply." }]))));
     const events = [];

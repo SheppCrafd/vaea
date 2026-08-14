@@ -3,7 +3,7 @@ import ReactMarkdown from "react-markdown";
 import ChatIcon from "@/components/ai/ChatIcon";
 import ChatToolLogDetail from "@/components/ai/ChatToolLogDetail";
 import { sanitizeUrl } from "@/lib/sanitizeUrl";
-import { ROUND_BOUNDARY_MARKER } from "@/lib/llm/streamUtils";
+import { ROUND_BOUNDARY_MARKER, stripLivePlanPreview } from "@/lib/llm/streamUtils";
 
 // Fenced ```tool-log blocks are how useChatController.js encodes everything
 // real the assistant actually did this turn — every live (already-executed)
@@ -280,8 +280,14 @@ export default function ChatMessageList({ messages, isComputing, liveSteps, stre
               at full contrast together, since it's all one real reply. */}
           {streamingText && (() => {
             const rounds = streamingText.split(ROUND_BOUNDARY_MARKER).filter(Boolean);
-            const current = rounds.length ? rounds[rounds.length - 1] : streamingText;
-            const past = rounds.slice(0, -1).join("\n\n");
+            // stripLivePlanPreview keeps a <plan>...</plan> block (see the
+            // PLAN TAG instruction in systemPrompt.js) out of this live
+            // preview the same way splitToolLogPrefix/detailForLogLine keep
+            // it out of the persisted message — it's meant for the
+            // plan-detail modal, not a second copy of it flashing through
+            // the chat bubble while it streams.
+            const current = stripLivePlanPreview(rounds.length ? rounds[rounds.length - 1] : streamingText);
+            const past = stripLivePlanPreview(rounds.slice(0, -1).join("\n\n"));
             return (
               <>
                 {past && (
