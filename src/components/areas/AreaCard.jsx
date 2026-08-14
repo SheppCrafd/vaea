@@ -129,16 +129,18 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
           // mode keeps the old auto-fill/1fr growth: leftover row width
           // grows each Product's own column.
           //
-          // Mini mode is a fixed 280px, never wider — restored from a
-          // 241px width that briefly shrank it (deliberately, on direct
-          // instruction, per Amendment 12) at the cost of the two-tile
-          // guarantee below; 280px is back to being required again, on
-          // direct instruction reversing that same call. At 280px a
-          // Product has room for exactly two 112px tiles side by side with
-          // zero slack (112 + 112 + this row's own 8px gap + the
-          // surrounding padding ≈ 280) — a third tile wraps to the row
-          // below. A Mini Product is always exactly 280px regardless of how
-          // much row width is available.
+          // Mini mode is a fixed 248px, never wider. Was 280px, restored
+          // from an earlier 241px on direct instruction to bring back the
+          // two-tile guarantee below — but measured against the real
+          // rendered DOM (getBoundingClientRect, not hand math), 280px
+          // actually left a genuine 40px of dead space after the second
+          // tile: ProjectsGrid's own p-2 (8px) is applied on top of this
+          // card's `-mx-4`-cancelled padding, so the true zero-slack width
+          // is 112 + 112 (two tiles) + 8 (inter-tile gap) + 16 (the grid's
+          // own 8px padding each side) = 248, not 280. A third tile still
+          // wraps to the row below at 248 (three tiles would need 352). A
+          // Mini Product is always exactly 248px regardless of how much row
+          // width is available.
           //
           // Since the card itself can't absorb leftover row width, that
           // width has to go somewhere else instead of vanishing or
@@ -168,7 +170,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
             gridTemplateColumns:
               cardView === "full"
                 ? `repeat(auto-fill, minmax(460px, 1fr))`
-                : `repeat(auto-fit, 280px)`,
+                : `repeat(auto-fit, 248px)`,
             ...(cardView === "mini" ? { justifyContent: "space-evenly" } : {}),
           }}
         >
