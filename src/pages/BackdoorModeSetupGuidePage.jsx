@@ -229,8 +229,11 @@ export default function BackdoorModeSetupGuidePage() {
             <span className="font-terminal text-xs text-foreground">.claude/skills/backdoor-relay/</span> inside
             your connected folder — type <span className="font-terminal text-xs text-foreground">/backdoor-relay</span> whenever
             you want it to check for and answer a pending prompt, using its own file/search tools the same way it
-            would for anything else you ask it. Other agents without a skills system (Copilot Chat, Cursor,
-            Windsurf) can still do the same thing manually — see{" "}
+            would for anything else you ask it. The identical skill is also written under a one-letter name,{" "}
+            <span className="font-terminal text-xs text-foreground">/l</span> (
+            <span className="font-terminal text-xs text-foreground">.claude/skills/l/</span>), for whenever typing
+            the full name each time is the actual friction. Other agents without a skills system (Copilot Chat,
+            Cursor, Windsurf) can still do the same thing manually — see{" "}
             <span className="font-terminal text-xs text-foreground">AGENT_RELAY_INSTRUCTIONS.md</span> in the
             folder.
           </p>

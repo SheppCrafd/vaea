@@ -55,7 +55,7 @@
 //                                          pasting the whole relay
 //                                          instructions by hand each turn.
 
-import { BRIDGE_WATCHER_SCRIPT, buildBatLauncher, buildShLauncher, buildReadme, buildAgentRelayInstructions, buildBackdoorSkill } from "./bridgeWatcherKit";
+import { BRIDGE_WATCHER_SCRIPT, buildBatLauncher, buildShLauncher, buildReadme, buildAgentRelayInstructions, buildBackdoorSkill, buildBackdoorSkillShort } from "./bridgeWatcherKit";
 
 export const supportsFileSystemAccess =
   typeof window !== "undefined" && typeof window.showDirectoryPicker === "function";
@@ -184,6 +184,10 @@ export async function writeWatcherKit(config = { connector: "echo" }) {
     const skillsDir = await claudeDir.getDirectoryHandle("skills", { create: true });
     const relayDir = await skillsDir.getDirectoryHandle("backdoor-relay", { create: true });
     await writeFile(relayDir, "SKILL.md", buildBackdoorSkill());
+    // Same skill again under a one-letter name ("/l") for anyone answering
+    // prompts often enough that "/backdoor-relay" 's keystrokes add up.
+    const shortDir = await skillsDir.getDirectoryHandle("l", { create: true });
+    await writeFile(shortDir, "SKILL.md", buildBackdoorSkillShort());
     return true;
   } catch {
     return false;

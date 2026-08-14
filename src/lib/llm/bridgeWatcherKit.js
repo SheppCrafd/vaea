@@ -619,9 +619,14 @@ your local watcher script") for details.
 // (Copilot Chat, Cursor, Windsurf) don't share Claude Code's skill format,
 // so AGENT_RELAY_INSTRUCTIONS.md stays the plain-language fallback for them
 // — this file is additive, not a replacement.
-export function buildBackdoorSkill() {
+//
+// `name` is parameterized so the exact same steps can also be written out
+// under a second, shorter skill name (see buildBackdoorSkillShort below) —
+// requested by a customer who wanted a one-keystroke command instead of
+// typing "/backdoor-relay" every time a prompt file shows up.
+export function buildBackdoorSkill(name = "backdoor-relay") {
   return `---
-name: backdoor-relay
+name: ${name}
 description: Answer one pending Vaea Chat message waiting in this folder's backdoor/prompts (or prompts/) directory, using this agent's own real tools, then write the reply where Vaea expects it. Use when the user says something like "check backdoor", "answer the pending prompt", or "run the backdoor relay".
 ---
 
@@ -664,4 +669,10 @@ separate script.
    and writes the next round's prompt file; check prompts/ again and repeat
    from step 1 if a new one appears.
 `;
+}
+
+// Same skill, shorter name — "/l" instead of "/backdoor-relay", for anyone
+// answering prompts by hand often enough that the extra keystrokes matter.
+export function buildBackdoorSkillShort() {
+  return buildBackdoorSkill("l");
 }
