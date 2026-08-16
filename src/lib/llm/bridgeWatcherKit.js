@@ -552,6 +552,34 @@ Skill is already sitting in .claude/skills/backdoor-relay/ — just type
 // for Claude Code specifically), written up here in plain language so it
 // works for any agent with real file read/write tools, not just Claude
 // Code's own scriptable -p mode.
+// Shared by AGENT_RELAY_INSTRUCTIONS.md, the Skill, and the Command below —
+// the actual step-6 wait/poll logic they all need. A real customer report:
+// the agent answered round 0 with a tool_use block, then just ended its
+// turn ("I'll pick it up from there if it appears in prompts/") instead of
+// looping — because the old wording only said "check again if a new one
+// appears," never told it to actively WAIT for one. Vaea's own client only
+// executes a tool_use and writes the next round's prompt file after its own
+// 5s poll of responses/ — an agent that checks once and gives up will
+// always lose that race. This makes the wait explicit and bounded (roughly
+// a minute, matching bridge_watcher.py's own default polling window)
+// instead of leaving "how long do I wait" to the model's own judgment.
+function buildRelayWaitStep() {
+  return `6. If your reply included a tool_use block, don't stop here — Vaea needs a
+   few seconds to actually run it and write the next round's prompt file.
+   Wait about 5 seconds (e.g. run \`sleep 5\`, or your own equivalent), then
+   check prompts/ again for a new round of the SAME request id (same id,
+   next round number) with no matching file yet in responses/. If it's
+   there, go back to step 2 and answer it. If it's not there yet, wait and
+   check again — try this up to about 12 times (roughly a minute total)
+   before telling the user Vaea hasn't produced the next round yet, rather
+   than silently ending. Only stop right away, with no waiting, when your
+   OWN reply was text-only (no tool_use block) — that's a genuinely final
+   answer; nothing more is coming for this request.
+
+   Don't delete the prompt file yourself — Vaea moves the pair into
+   processed/ automatically once it reads your answer.`;
+}
+
 export function buildAgentRelayInstructions() {
   return `AGENT_RELAY_INSTRUCTIONS.md — for a coding agent already open in your editor
 (GitHub Copilot Chat, Cursor, Windsurf, Claude Code, or anything similar with
@@ -593,11 +621,7 @@ AGENT_RELAY_INSTRUCTIONS.md"), here's exactly what to do:
    {"type": "tool_use", "id": "toolu_1", "name": "TOOL_NAME", "input": {...}}
    for an action.
 
-6. Don't delete the prompt file yourself — Vaea moves the pair into
-   processed/ automatically once it reads your answer. If your reply
-   included a tool_use block, Vaea runs it and writes the NEXT round's
-   prompt file on its own; check prompts/ again and repeat from step 1 if a
-   new one appears.
+${buildRelayWaitStep()}
 
 Prefer this to be fully automatic instead of triggered by hand each time?
 If your agent is Claude Code specifically, bridge_watcher.py's own
@@ -664,10 +688,7 @@ separate script.
    {"content": [...]}, each item either {"type": "text", "text": "..."} or
    {"type": "tool_use", "id": "toolu_1", "name": "TOOL_NAME", "input": {...}}.
 
-6. Don't delete the prompt file — Vaea moves the pair into processed/ once
-   it reads your answer. If your reply had a tool_use block, Vaea runs it
-   and writes the next round's prompt file; check prompts/ again and repeat
-   from step 1 if a new one appears.
+${buildRelayWaitStep()}
 `;
 }
 
@@ -725,9 +746,6 @@ separate script.
    {"content": [...]}, each item either {"type": "text", "text": "..."} or
    {"type": "tool_use", "id": "toolu_1", "name": "TOOL_NAME", "input": {...}}.
 
-6. Don't delete the prompt file — Vaea moves the pair into processed/ once
-   it reads your answer. If your reply had a tool_use block, Vaea runs it
-   and writes the next round's prompt file; check prompts/ again and repeat
-   from step 1 if a new one appears.
+${buildRelayWaitStep()}
 `;
 }
