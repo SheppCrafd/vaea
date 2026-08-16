@@ -232,7 +232,13 @@ export default function BackdoorModeSetupGuidePage() {
             would for anything else you ask it. The identical skill is also written under a one-letter name,{" "}
             <span className="font-terminal text-xs text-foreground">/l</span> (
             <span className="font-terminal text-xs text-foreground">.claude/skills/l/</span>), for whenever typing
-            the full name each time is the actual friction. Other agents without a skills system (Copilot Chat,
+            the full name each time is the actual friction. The same two are also written as classic Claude Code{" "}
+            <span className="font-terminal text-xs text-foreground">.claude/commands/</span> files (
+            <span className="font-terminal text-xs text-foreground">backdoor-relay.md</span>/
+            <span className="font-terminal text-xs text-foreground">l.md</span>) — an older, more broadly-supported
+            mechanism than Skills — so if one format doesn't show up in your{" "}
+            <span className="font-terminal text-xs text-foreground">/</span> menu, the other usually will; see
+            "Good to know" below if neither does. Other agents without a skills system (Copilot Chat,
             Cursor, Windsurf) can still do the same thing manually — see{" "}
             <span className="font-terminal text-xs text-foreground">AGENT_RELAY_INSTRUCTIONS.md</span> in the
             folder.
@@ -248,6 +254,31 @@ export default function BackdoorModeSetupGuidePage() {
         <div className="mt-14 pt-10 border-t border-border">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">Good to know</p>
           <div className="flex flex-col gap-4">
+            <div className="flex items-start gap-3.5 rounded-xl border border-border bg-card p-4">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <TriangleAlert className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="font-heading font-semibold text-sm mb-1">"/l" or "/backdoor-relay" not showing up in Claude Code's own "/" menu?</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Two things to check, in order — both catch this every time: <strong className="text-foreground">first, restart your
+                  Claude Code session</strong> if it was already open when you connected the folder — it only scans for
+                  commands/skills once, at startup, not live. <strong className="text-foreground">Second, launch{" "}
+                  <span className="font-terminal text-xs text-foreground">claude</span> from inside the connected
+                  folder itself</strong> (or a subfolder of it) — <span className="font-terminal text-xs text-foreground">cd</span>{" "}
+                  there first, since Claude Code only looks for a{" "}
+                  <span className="font-terminal text-xs text-foreground">.claude/</span> folder relative to wherever
+                  it was actually launched, not wherever the connected folder happens to sit on disk. If both are
+                  already true and it still doesn't show up, your Claude Code install likely doesn't support one of
+                  the two formats — that's exactly why both Skills (
+                  <span className="font-terminal text-xs text-foreground">.claude/skills/</span>) and Commands (
+                  <span className="font-terminal text-xs text-foreground">.claude/commands/</span>) get written; try
+                  the other one before falling back to{" "}
+                  <span className="font-terminal text-xs text-foreground">AGENT_RELAY_INSTRUCTIONS.md</span>, which
+                  works with any agent that can read a file, no discovery mechanism required.
+                </p>
+              </div>
+            </div>
             <div className="flex items-start gap-3.5 rounded-xl border border-border bg-card p-4">
               <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                 <TriangleAlert className="w-4 h-4 text-primary" />

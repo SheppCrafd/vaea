@@ -55,7 +55,7 @@
 //                                          pasting the whole relay
 //                                          instructions by hand each turn.
 
-import { BRIDGE_WATCHER_SCRIPT, buildBatLauncher, buildShLauncher, buildReadme, buildAgentRelayInstructions, buildBackdoorSkill, buildBackdoorSkillShort } from "./bridgeWatcherKit";
+import { BRIDGE_WATCHER_SCRIPT, buildBatLauncher, buildShLauncher, buildReadme, buildAgentRelayInstructions, buildBackdoorSkill, buildBackdoorSkillShort, buildBackdoorCommand } from "./bridgeWatcherKit";
 
 export const supportsFileSystemAccess =
   typeof window !== "undefined" && typeof window.showDirectoryPicker === "function";
@@ -188,6 +188,15 @@ export async function writeWatcherKit(config = { connector: "echo" }) {
     // prompts often enough that "/backdoor-relay" 's keystrokes add up.
     const shortDir = await skillsDir.getDirectoryHandle("l", { create: true });
     await writeFile(shortDir, "SKILL.md", buildBackdoorSkillShort());
+    // Also write the same thing as classic Claude Code Commands
+    // (.claude/commands/<name>.md) — the older, more broadly-supported
+    // mechanism, for installs/versions where the newer Skills feature isn't
+    // discovered. Real customer report: "/l" and "/backdoor-relay" never
+    // showed up at all on a locked-down managed device.
+    const commandsDir = await claudeDir.getDirectoryHandle("commands", { create: true });
+    const commandBody = buildBackdoorCommand();
+    await writeFile(commandsDir, "backdoor-relay.md", commandBody);
+    await writeFile(commandsDir, "l.md", commandBody);
     return true;
   } catch {
     return false;
