@@ -1,13 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { callLocalBridge } from "./localBridgeAdapter.js";
+import { callLocalBridge, resumeLocalBridgeRequest } from "./localBridgeAdapter.js";
 
 vi.mock("./localBridgeStorage.js", () => ({
   writeRequestFile: vi.fn(async () => {}),
   pollForResponseFile: vi.fn(),
   archiveProcessedRound: vi.fn(async () => {}),
+  savePendingBackdoorRequest: vi.fn(async () => {}),
+  clearPendingBackdoorRequest: vi.fn(async () => {}),
+  findLatestLivePromptRound: vi.fn(),
+  readPromptFile: vi.fn(),
 }));
 
-import { writeRequestFile, pollForResponseFile } from "./localBridgeStorage.js";
+import {
+  writeRequestFile,
+  pollForResponseFile,
+  savePendingBackdoorRequest,
+  clearPendingBackdoorRequest,
+  findLatestLivePromptRound,
+  readPromptFile,
+} from "./localBridgeStorage.js";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -120,5 +131,103 @@ describe("localBridgeAdapter: file-based round loop", () => {
       callLocalBridge({ systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn(() => ({})) })
     ).rejects.toThrow("Gave up after 15 tool-call rounds");
     expect(writeRequestFile).toHaveBeenCalledTimes(15);
+  });
+});
+
+// A real customer's Backdoor Mode reply went permanently missing: they
+// navigated away while a human was still relaying the answer, and the
+// requestId that would have claimed the eventually-written response only
+// ever lived in one in-memory JS closure — gone the moment that navigation
+// happened, even though the answer sat right there on disk, fully written,
+// forever unread. These tests cover the fix: a durable pending-request
+// pointer (localBridgeStorage.js) recorded before the first round and
+// cleared on any clean outcome, plus resumeLocalBridgeRequest picking a
+// genuinely orphaned exchange back up from whatever's already on disk.
+describe("localBridgeAdapter: orphaned-request pointer + resume", () => {
+  it("saves a pending-request pointer before the first round, and clears it on a clean success", async () => {
+    pollForResponseFile.mockResolvedValueOnce({ content: [{ type: "text", text: "Just a reply." }] });
+
+    await callLocalBridge({ systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn(), sessionId: "sess_1" });
+
+    expect(savePendingBackdoorRequest).toHaveBeenCalledTimes(1);
+    const [{ sessionId, requestId }] = savePendingBackdoorRequest.mock.calls[0];
+    expect(sessionId).toBe("sess_1");
+    expect(requestId).toEqual(expect.any(String));
+    expect(clearPendingBackdoorRequest).toHaveBeenCalledTimes(1);
+    // The pointer has to clear AFTER the real work finishes, not before —
+    // otherwise a tab dying mid-poll would look "already cleared" even
+    // though nothing actually completed.
+    expect(clearPendingBackdoorRequest.mock.invocationCallOrder[0]).toBeGreaterThan(
+      pollForResponseFile.mock.invocationCallOrder[0]
+    );
+  });
+
+  it("clears the pending-request pointer on a clean error too, not just success — nothing left to resume from a real terminal failure", async () => {
+    pollForResponseFile.mockResolvedValueOnce({ notContent: true });
+
+    await expect(
+      callLocalBridge({ systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn(), sessionId: "sess_1" })
+    ).rejects.toThrow("Malformed response");
+
+    expect(savePendingBackdoorRequest).toHaveBeenCalledTimes(1);
+    expect(clearPendingBackdoorRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it("resumeLocalBridgeRequest returns null when nothing is live for that id — already fully resolved, not actually orphaned", async () => {
+    findLatestLivePromptRound.mockResolvedValueOnce(-1);
+
+    const result = await resumeLocalBridgeRequest({ requestId: "req-1", runTool: vi.fn() });
+
+    expect(result).toBeNull();
+    expect(readPromptFile).not.toHaveBeenCalled();
+    expect(writeRequestFile).not.toHaveBeenCalled();
+  });
+
+  it("resumeLocalBridgeRequest picks up the latest live round without re-writing it, using the messages already reconstructed from disk", async () => {
+    findLatestLivePromptRound.mockResolvedValueOnce(2);
+    readPromptFile.mockResolvedValueOnce({
+      round: 2,
+      messages: [
+        { role: "user", content: "original message" },
+        { role: "assistant", content: [{ type: "tool_use", id: "toolu_1", name: "search_workspace", input: {} }] },
+        { role: "user", content: [{ type: "tool_result", tool_use_id: "toolu_1", content: "{}" }] },
+      ],
+    });
+    // The exact bug this closes: the answer was already sitting there,
+    // written while nothing was polling for it.
+    pollForResponseFile.mockResolvedValueOnce({ content: [{ type: "text", text: "Recovered reply." }] });
+
+    const result = await resumeLocalBridgeRequest({ requestId: "req-1", runTool: vi.fn() });
+
+    expect(result).toEqual({ reply: "Recovered reply.", reasoning: "Recovered reply.", thinking: ["Recovered reply."] });
+    // Round 2's own file already exists on disk (that's what got read to
+    // reconstruct `messages`) — writing it again would clobber it.
+    expect(writeRequestFile).not.toHaveBeenCalled();
+    expect(pollForResponseFile).toHaveBeenCalledWith("req-1", 2, expect.any(Object));
+  });
+
+  it("resumeLocalBridgeRequest writes a genuinely NEW round if the resumed exchange still needs another tool call, without re-sending system/tools", async () => {
+    findLatestLivePromptRound.mockResolvedValueOnce(1);
+    readPromptFile.mockResolvedValueOnce({
+      round: 1,
+      messages: [{ role: "user", content: "original message" }],
+    });
+    pollForResponseFile
+      .mockResolvedValueOnce({
+        content: [{ type: "tool_use", id: "toolu_2", name: "search_workspace", input: { query: "x" } }],
+      })
+      .mockResolvedValueOnce({ content: [{ type: "text", text: "Done after resuming." }] });
+
+    const runTool = vi.fn(() => ({ found: true }));
+    const result = await resumeLocalBridgeRequest({ requestId: "req-1", runTool });
+
+    expect(result.reply).toBe("Done after resuming.");
+    // Round 1 (what was resumed from) never gets re-written; only the new
+    // round 2 does, and — being a non-zero round — without system/tools.
+    expect(writeRequestFile).toHaveBeenCalledTimes(1);
+    const [, round, body] = writeRequestFile.mock.calls[0];
+    expect(round).toBe(2);
+    expect(body).not.toHaveProperty("system");
+    expect(body).not.toHaveProperty("tools");
   });
 });

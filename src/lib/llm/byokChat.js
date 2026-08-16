@@ -4,7 +4,7 @@ import { buildInstructions, buildContextPrompt } from "@/lib/llm/systemPrompt";
 import { makeToolRunner, MAX_ACTIONS_PER_REQUEST } from "@/lib/llm/toolRunner";
 import { callAnthropic } from "@/lib/llm/anthropicAdapter";
 import { callOpenAiCompatible } from "@/lib/llm/openaiCompatibleAdapter";
-import { callLocalBridge } from "@/lib/llm/localBridgeAdapter";
+import { callLocalBridge, resumeLocalBridgeRequest } from "@/lib/llm/localBridgeAdapter";
 import { getBridgeStatus } from "@/lib/llm/localBridgeStorage";
 
 // A short pause between each simulated "live" chunk shown for Backdoor
@@ -127,7 +127,7 @@ export async function runByokChat({ providerConfig, contextArgs, onEvent }) {
         tools: toAnthropicTools(), runTool, onEvent,
       })
     : isLocalBridge
-    ? await callLocalBridge({ systemPrompt, contextPrompt, tools: toAnthropicTools(), runTool })
+    ? await callLocalBridge({ systemPrompt, contextPrompt, tools: toAnthropicTools(), runTool, sessionId: contextArgs.sessionId })
     : await callOpenAiCompatible({
         baseUrl: provider.baseUrl || providerConfig.baseUrl, apiKey: providerConfig.apiKey, model: providerConfig.model, systemPrompt, contextPrompt,
         tools: toOpenAiCompatibleTools(), runTool, onEvent, providerId: provider.id,
@@ -138,4 +138,37 @@ export async function runByokChat({ providerConfig, contextArgs, onEvent }) {
   }
 
   return { reply, reasoning, actions: plan, liveTrace };
+}
+
+// The other half of the orphaned-request fix (see localBridgeAdapter.js's
+// resumeLocalBridgeRequest and localBridgeStorage.js's
+// savePendingBackdoorRequest for the real incident this closes): called on
+// load/reconnect, not from a live user send, so there's no fresh chat
+// message driving it — just a leftover pointer saying "this session had a
+// Backdoor Mode reply still in flight." Builds the exact same dataset/tool
+// runner a real send would (in case the resumed conversation still needs
+// another tool-call round to finish), but skips buildInstructions/
+// buildContextPrompt entirely — round 0's own system/tools are already
+// sitting in whatever prompt file this is resuming from, never re-sent.
+// Returns null (nothing to show) when the request turns out to have already
+// fully resolved rather than actually being orphaned.
+export async function resumeOrphanedBackdoorRequest({ requestId, contextArgs, onEvent }) {
+  const plan = [];
+  const liveTrace = [];
+  const dataset = {
+    areas: contextArgs.areas,
+    products: contextArgs.products,
+    projects: contextArgs.projects,
+    archivedProjects: contextArgs.archivedProjects,
+    tasks: contextArgs.tasks,
+    archivedTasks: contextArgs.archivedTasks,
+    stakeholders: contextArgs.stakeholders,
+    notes: contextArgs.notes,
+  };
+  const runTool = makeToolRunner({ plan, liveTrace, dataset, externalVault: contextArgs.externalVault, onEvent: undefined });
+
+  const result = await resumeLocalBridgeRequest({ requestId, runTool });
+  if (!result) return null;
+
+  return { reply: result.reply, reasoning: result.reasoning, actions: plan, liveTrace };
 }

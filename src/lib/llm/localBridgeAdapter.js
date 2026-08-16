@@ -1,4 +1,4 @@
-import { writeRequestFile, pollForResponseFile, archiveProcessedRound } from "@/lib/llm/localBridgeStorage";
+import { writeRequestFile, pollForResponseFile, archiveProcessedRound, savePendingBackdoorRequest, clearPendingBackdoorRequest, findLatestLivePromptRound, readPromptFile } from "@/lib/llm/localBridgeStorage";
 import { extractPlan } from "@/lib/llm/streamUtils";
 
 // "Backdoor Mode" — same plan-then-tools loop shape as anthropicAdapter.js's
@@ -21,44 +21,38 @@ function newRequestId() {
   return `req-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-// Returns {reply, reasoning, thinking} for one turn — `reply` is just the
-// last round's own text, taken whole (the actual conversational answer,
-// however many paragraphs it takes — see anthropicAdapter.js's matching
-// comment for why this is no longer a paragraph-split guess), `reasoning` is
-// every round's own text joined (the full deliberation, self-corrections
-// included), and `thinking` is that same set of rounds as a real array
-// (not yet joined into one string) — this adapter never streams live (see
-// the module comment above), so byokChat.js's simulateLiveReveal needs the
-// real round boundaries back, not just a flat string, to fake the same
-// live "past round dims, new round grows" behavior real streaming gives.
-export async function callLocalBridge({ systemPrompt, contextPrompt, tools, runTool, pollIntervalMs = DEFAULT_POLL_INTERVAL_MS }) {
-  const requestId = newRequestId();
-  const messages = [{ role: "user", content: contextPrompt }];
-  // Every round's own text — not just the final round's — is real thinking
-  // the model produced as it worked through the request (see THINK OUT LOUD
-  // AS YOU GO in systemPrompt.js): "I'll check the workspace first...",
-  // then after results come back, "Found two matches, now creating the
-  // plan...".
+// The actual poll-and-continue loop, extracted so both a fresh send
+// (callLocalBridge, starting at round 0 with nothing written yet) and a
+// resumed one (resumeLocalBridgeRequest, starting wherever the previous
+// browser session left off, with that round's own file already on disk)
+// run through exactly the same logic — no separate "resume" copy to drift
+// out of sync with the real thing. `firstRoundAlreadyWritten` is what tells
+// the two apart: false for a fresh call (round 0 genuinely needs writing),
+// true for a resume (the starting round's file already exists — writing it
+// again would clobber the real system/tools with the undefined ones a
+// resume never has). Returns {reply, reasoning, thinking} — see
+// callLocalBridge's own comment for what each means.
+async function runToolLoop({ requestId, startRound, messages, runTool, pollIntervalMs, systemPrompt, tools, firstRoundAlreadyWritten = false }) {
   const thinking = [];
-  // See anthropicAdapter.js's matching comment — any round's text can wrap
-  // part of itself in <plan>...</plan>, collected here and preferred over
-  // `thinking` wholesale as the plan-detail modal's content when present.
   const planParts = [];
 
-  for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-    // system/tools are large (the full instruction text plus the whole
-    // Zod-derived tool catalog — tens of thousands of tokens for a real
-    // workspace) and byte-for-byte identical on every round of the SAME
-    // turn, so only round 0 actually writes them — a real user's own
-    // multi-round conversation was hitting the on-disk prompt file at
-    // ~44,000 tokens per round before this, almost entirely duplicated
-    // content. bridge_watcher.py caches round 0's copy per requestId (or
-    // recovers it from processed/prompts/ if the watcher restarted
-    // mid-conversation) and reconstructs the full request before handing it
-    // to whichever connector answers it — every existing connector function
-    // (echo/ollama/lmstudio/etc.) needed zero changes for this.
-    const payload = round === 0 ? { round, system: systemPrompt, tools, messages } : { round, messages };
-    await writeRequestFile(requestId, round, payload);
+  for (let round = startRound; round < MAX_TOOL_ROUNDS; round++) {
+    const isFirstIteration = round === startRound;
+    if (!isFirstIteration || !firstRoundAlreadyWritten) {
+      // system/tools are large (the full instruction text plus the whole
+      // Zod-derived tool catalog — tens of thousands of tokens for a real
+      // workspace) and byte-for-byte identical on every round of the SAME
+      // turn, so only round 0 actually writes them — a real user's own
+      // multi-round conversation was hitting the on-disk prompt file at
+      // ~44,000 tokens per round before this, almost entirely duplicated
+      // content. bridge_watcher.py caches round 0's copy per requestId (or
+      // recovers it from processed/prompts/ if the watcher restarted
+      // mid-conversation) and reconstructs the full request before handing
+      // it to whichever connector answers it — every existing connector
+      // function (echo/ollama/lmstudio/etc.) needed zero changes for this.
+      const payload = round === 0 ? { round, system: systemPrompt, tools, messages } : { round, messages };
+      await writeRequestFile(requestId, round, payload);
+    }
     const response = await pollForResponseFile(requestId, round, { intervalMs: pollIntervalMs });
 
     const content = response?.content;
@@ -112,4 +106,60 @@ export async function callLocalBridge({ systemPrompt, contextPrompt, tools, runT
   }
 
   throw new Error(`Gave up after ${MAX_TOOL_ROUNDS} tool-call rounds without a final reply.`);
+}
+
+// Returns {reply, reasoning, thinking} for one turn — `reply` is just the
+// last round's own text, taken whole (the actual conversational answer,
+// however many paragraphs it takes — see anthropicAdapter.js's matching
+// comment for why this is no longer a paragraph-split guess), `reasoning` is
+// every round's own text joined (the full deliberation, self-corrections
+// included), and `thinking` is that same set of rounds as a real array
+// (not yet joined into one string) — this adapter never streams live (see
+// the module comment above), so byokChat.js's simulateLiveReveal needs the
+// real round boundaries back, not just a flat string, to fake the same
+// live "past round dims, new round grows" behavior real streaming gives.
+//
+// `sessionId` is only used to record the pending-request pointer
+// (localBridgeStorage.js) so an interrupted browser session (reload, tab
+// killed while backgrounded, crash) can be resumed later instead of the
+// eventual answer sitting unread on disk forever — see
+// resumeLocalBridgeRequest below and its own header comment for the real
+// incident this closes.
+export async function callLocalBridge({ systemPrompt, contextPrompt, tools, runTool, sessionId, pollIntervalMs = DEFAULT_POLL_INTERVAL_MS }) {
+  const requestId = newRequestId();
+  const messages = [{ role: "user", content: contextPrompt }];
+  await savePendingBackdoorRequest({ sessionId, requestId });
+  try {
+    const result = await runToolLoop({ requestId, startRound: 0, messages, runTool, pollIntervalMs, systemPrompt, tools });
+    await clearPendingBackdoorRequest();
+    return result;
+  } catch (err) {
+    // A clean failure (malformed response, gave up after MAX_TOOL_ROUNDS,
+    // the poll itself timing out after 10 minutes) is a real terminal state
+    // the user already sees surfaced as an error — nothing left to resume,
+    // so the pointer should clear here too. It's specifically an UNCLEAN
+    // exit (the tab dying mid-poll, never reaching either branch of this
+    // catch at all) that's supposed to leave the pointer behind.
+    await clearPendingBackdoorRequest();
+    throw err;
+  }
+}
+
+// The resume path: called on load/reconnect when a leftover pointer is
+// found (localBridgeStorage.js's getPendingBackdoorRequest). Reconstructs
+// exactly where the previous browser session left off from what's already
+// sitting on disk — no separate persisted copy of the conversation needed —
+// and picks the SAME poll-and-continue loop back up. Returns null if the
+// request turns out to already be fully resolved (every round archived,
+// nothing live) rather than genuinely orphaned, so the caller can just clear
+// the stale pointer without treating it as a real answer.
+export async function resumeLocalBridgeRequest({ requestId, runTool, pollIntervalMs = DEFAULT_POLL_INTERVAL_MS }) {
+  const latestRound = await findLatestLivePromptRound(requestId);
+  if (latestRound < 0) return null; // nothing live — already fully resolved, or never really started
+
+  const latestPrompt = await readPromptFile(requestId, latestRound);
+  if (!latestPrompt) return null;
+  const messages = latestPrompt.messages || [];
+
+  return runToolLoop({ requestId, startRound: latestRound, messages, runTool, pollIntervalMs, firstRoundAlreadyWritten: true });
 }

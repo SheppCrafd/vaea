@@ -56,6 +56,7 @@
 //                                          instructions by hand each turn.
 
 import { BRIDGE_WATCHER_SCRIPT, buildBatLauncher, buildShLauncher, buildReadme, buildAgentRelayInstructions, buildBackdoorSkill, buildBackdoorSkillShort, buildBackdoorCommand } from "./bridgeWatcherKit";
+import { readKey, writeKey, removeKey } from "@/lib/deviceStorage";
 
 export const supportsFileSystemAccess =
   typeof window !== "undefined" && typeof window.showDirectoryPicker === "function";
@@ -244,6 +245,92 @@ function requireConnected() {
 
 function fileNameFor(requestId, round) {
   return `${requestId}-r${round}.json`;
+}
+
+// A real customer's Backdoor Mode reply went permanently missing: they
+// navigated away (reloaded the page) while a human was still relaying the
+// answer through Claude Code, and the requestId that would have claimed the
+// eventually-written response only ever lived in one in-memory JS closure —
+// gone the moment that navigation happened, even though the answer itself
+// sat right there on disk, fully written, forever unread. This is a small,
+// durable pointer (deviceStorage, survives a reload the same way any other
+// app setting does) recording which chat session/request is still
+// outstanding, written the instant a send begins and cleared the instant it
+// finishes cleanly. If the app loads and finds a leftover pointer, that's
+// the signal an exchange got orphaned and needs resuming — see
+// resumeLocalBridgeRequest() in localBridgeAdapter.js, and the on-disk
+// reconstruction helpers below it (findLatestLivePromptRound/readPromptFile)
+// that make the resume possible without needing to persist anything else:
+// the conversation's own system/tools/messages are already sitting in the
+// live prompt files, the same recovery bridge_watcher.py's own
+// --claude-code mode already relies on.
+const PENDING_REQUEST_KEY = "vaea_backdoor_pending_request";
+
+export async function savePendingBackdoorRequest({ sessionId, requestId }) {
+  try {
+    await writeKey(PENDING_REQUEST_KEY, { sessionId, requestId, savedAt: Date.now() });
+  } catch {
+    // best-effort — worst case a reload mid-request just can't resume
+  }
+}
+
+export async function clearPendingBackdoorRequest() {
+  try {
+    await removeKey(PENDING_REQUEST_KEY);
+  } catch {
+    // best-effort
+  }
+}
+
+export async function getPendingBackdoorRequest() {
+  try {
+    return (await readKey(PENDING_REQUEST_KEY)) || null;
+  } catch {
+    return null;
+  }
+}
+
+// Scans the LIVE prompts/ folder (not processed/) for the highest round
+// number still on disk for this requestId — that's the exact round the app
+// was mid-poll on when it got interrupted. Returns -1 if none are live
+// (either nothing was ever written, or every round already got answered and
+// archived — a completed conversation, not actually orphaned).
+export async function findLatestLivePromptRound(requestId) {
+  requireConnected();
+  const prefix = `${requestId}-r`;
+  let highest = -1;
+  for await (const entry of promptsHandle.values()) {
+    if (entry.kind !== "file" || !entry.name.startsWith(prefix) || !entry.name.endsWith(".json")) continue;
+    const round = parseInt(entry.name.slice(prefix.length, -".json".length), 10);
+    if (Number.isInteger(round) && round > highest) highest = round;
+  }
+  return highest;
+}
+
+// Reads one round's own request payload back off disk — from the live
+// prompts/ folder first, falling back to processed/prompts/ (round 0 is
+// often already archived by the time a later round is the one still live,
+// since only round 0 carries "system"/"tools" and every later round depends
+// on it — same fallback bridge_watcher.py's own recovery already uses).
+// Returns null if genuinely missing from both.
+export async function readPromptFile(requestId, round) {
+  requireConnected();
+  const name = fileNameFor(requestId, round);
+  try {
+    const fh = await promptsHandle.getFileHandle(name, { create: false });
+    return JSON.parse(await (await fh.getFile()).text());
+  } catch (err) {
+    if (err.name !== "NotFoundError") throw err;
+  }
+  try {
+    const processedRoot = await rootHandle.getDirectoryHandle("processed", { create: false });
+    const processedPrompts = await processedRoot.getDirectoryHandle("prompts", { create: false });
+    const fh = await processedPrompts.getFileHandle(name, { create: false });
+    return JSON.parse(await (await fh.getFile()).text());
+  } catch (err) {
+    if (err.name === "NotFoundError") return null;
+    throw err;
+  }
 }
 
 export async function writeRequestFile(requestId, round, data) {

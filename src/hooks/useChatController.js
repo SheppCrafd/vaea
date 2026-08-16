@@ -5,7 +5,8 @@ import { localDb } from "@/lib/localDb";
 import { executeAction, executeActionSequence, describeToolCall, describePlan, stripToolLog, DESTRUCTIVE_ACTIONS, NON_EXECUTABLE_ACTIONS, filterReflectionActions } from "@/lib/chatActions";
 import { loadAiIdentity, DEFAULTS as IDENTITY_DEFAULTS } from "@/lib/aiPreferences";
 import { loadAiProviderConfig, isByokConfigured, isLocalBridgeConfigured } from "@/lib/aiProviderConfig";
-import { runByokChat } from "@/lib/llm/byokChat";
+import { runByokChat, resumeOrphanedBackdoorRequest } from "@/lib/llm/byokChat";
+import { getPendingBackdoorRequest, clearPendingBackdoorRequest, getBridgeStatus, subscribeStatus } from "@/lib/llm/localBridgeStorage";
 import { readNdjson, ROUND_BOUNDARY_MARKER } from "@/lib/llm/streamUtils";
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
 import { fetchVaultOverview, SELF_NOTE_PATH } from "@/lib/githubApi";
@@ -172,6 +173,88 @@ export function useChatController({ activeProjectId } = {}) {
   const createMessage = useCreateChatMessage();
   const updateMessage = useUpdateChatMessage();
 
+  // A real customer's Backdoor Mode reply went permanently missing: they
+  // navigated away while a human was still relaying the answer, and the
+  // requestId that would have claimed the eventually-written response only
+  // ever lived in one in-memory JS closure — gone the moment that
+  // navigation happened, even though the answer sat right there on disk,
+  // fully written, forever unread (localBridgeStorage.js's
+  // savePendingBackdoorRequest has the full incident writeup). This is the
+  // recovery half: whenever the Backdoor Mode folder becomes connected
+  // (on mount with an already-granted permission, or right after a manual
+  // re-grant click), check for a leftover pointer and, if the answer is
+  // sitting there, finish the exchange the same way a live send would —
+  // via applyAssistantReply, defined below — instead of leaving it stranded
+  // a second time.
+  const resumingBackdoorRef = useRef(false);
+  useEffect(() => {
+    let cancelled = false;
+
+    const attemptResume = async () => {
+      if (cancelled || resumingBackdoorRef.current) return;
+      const status = await getBridgeStatus();
+      if (status !== "connected") return;
+      const pending = await getPendingBackdoorRequest();
+      if (!pending?.requestId || !pending?.sessionId) return;
+
+      resumingBackdoorRef.current = true;
+      try {
+        // Only what byokChat.js's own `dataset` shape actually uses for a
+        // tool call (matching runByokChat, which never includes departments
+        // either) — round 0's system/tools (built from the FULL context,
+        // departments included) are already sitting in the prompt file this
+        // is resuming from, never regenerated here.
+        const [areas, products, projects, allTasks, stakeholders, notes] = await Promise.all([
+          localDb.areas.list(),
+          localDb.products.list(),
+          localDb.projects.list(),
+          localDb.tasks.list(),
+          localDb.stakeholders.list(),
+          localDb.projectNotes.list(),
+        ]);
+        const externalVault = await loadVaultConnection();
+        const result = await resumeOrphanedBackdoorRequest({
+          requestId: pending.requestId,
+          contextArgs: {
+            areas: areas.filter((a) => !a.deleted_at),
+            products: products.filter((p) => !p.deleted_at),
+            projects: projects.filter((p) => !p.is_archived && !p.deleted_at),
+            archivedProjects: projects.filter((p) => p.is_archived && !p.deleted_at),
+            tasks: allTasks.filter((t) => !t.archived_at && !t.deleted_at),
+            archivedTasks: allTasks.filter((t) => t.archived_at && !t.deleted_at),
+            stakeholders: stakeholders.filter((s) => !s.deleted_at),
+            notes,
+            externalVault,
+          },
+        });
+        if (!cancelled && result) {
+          await applyAssistantReply(pending.sessionId, result, { onSuccess: (created) => markMessageNew(created.id) });
+        }
+        // Cleared on a definite outcome either way: a real reply just got
+        // attached above, or resumeOrphanedBackdoorRequest returned null
+        // because every round for this id was already archived (fully
+        // resolved some other way already) — either way there's nothing
+        // left to resume.
+        await clearPendingBackdoorRequest();
+      } catch {
+        // A genuine transient failure (permission not actually granted yet,
+        // folder briefly unreadable) — leave the pointer in place so the
+        // next status change or reload gets another attempt, rather than
+        // silently discarding a still-real pending request.
+      } finally {
+        resumingBackdoorRef.current = false;
+      }
+    };
+
+    attemptResume();
+    const unsubscribe = subscribeStatus(attemptResume);
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const invalidateAppQueries = async () => {
     APP_QUERY_KEYS.forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
     // SET_AI_IDENTITY writes straight through deviceStorage (chatActions.js),
@@ -284,6 +367,7 @@ export function useChatController({ activeProjectId } = {}) {
         providerConfig,
         onEvent,
         contextArgs: {
+          sessionId: payload.sessionId,
           activeProjectId: payload.activeProjectId,
           userText: payload.message,
           conversationHistory: payload.conversationHistory,
@@ -641,6 +725,81 @@ export function useChatController({ activeProjectId } = {}) {
     }
   };
 
+  // The part of a successful assistant turn that turns {reply, reasoning,
+  // actions, liveTrace} into real chat messages/mutations — extracted out
+  // of handleSend so the exact same logic also drives a RESUMED Backdoor
+  // Mode reply (see resumePendingBackdoorRequest below), not a second,
+  // separately-maintained copy of it. `messageOptions` is only ever the
+  // typewriter-skip/markMessageNew choice handleSend already made; a
+  // resumed reply always gets the normal markMessageNew treatment since
+  // nothing streamed live for it.
+  const applyAssistantReply = async (sessionId, data, messageOptions = {}) => {
+    const reply = data.reply || "Done.";
+    const reasoning = data.reasoning || reply;
+    const actions = data.actions || [];
+    const liveTrace = data.liveTrace || [];
+
+    if (actions.length === 0 || actions.every((a) => NON_EXECUTABLE_ACTIONS.has(a.action))) {
+      let replyText = reply;
+      if (actions[0]?.action === "UNDO_LAST_ACTION") {
+        const undoResult = await runUndo();
+        if (!undoResult.hadAction) replyText += "\n\n⚠️ There was nothing to undo.";
+        else if (!undoResult.ok) replyText += `\n\n⚠️ Undo failed: ${undoResult.error.message}`;
+      }
+      setLiveSteps([]);
+      await createMessage.mutateAsync(
+        {
+          session_id: sessionId, role: "assistant",
+          content: buildLoggedContent(replyText, liveTrace.map((l) => l.label)),
+          ...(liveTrace.length ? { tool_log_detail: { liveTrace } } : {}),
+        },
+        messageOptions
+      );
+      return;
+    }
+
+    const executable = actions.filter((a) => !NON_EXECUTABLE_ACTIONS.has(a.action));
+
+    if (executable.some((a) => DESTRUCTIVE_ACTIONS.has(a.action))) {
+      setLiveSteps([]);
+      await createMessage.mutateAsync(
+        {
+          session_id: sessionId, role: "assistant",
+          content: buildLoggedContent(reply, liveTrace.map((l) => l.label)),
+          pending_action: { actions: executable },
+          ...(liveTrace.length ? { tool_log_detail: { liveTrace } } : {}),
+        },
+        messageOptions
+      );
+      return;
+    }
+
+    setLiveSteps((prev) => [...prev, describePlan(executable)]);
+    const paceReveal = executable.length <= MAX_PACED_STEPS;
+    const results = await executeActionSequence(executable, {
+      onStep: async (step) => {
+        setLiveSteps((prev) => [...prev, describeToolCall(step)]);
+        if (paceReveal) await sleep(STEP_REVEAL_DELAY_MS);
+      },
+    });
+    const undos = results.map((r) => r.toolResult?.undo).filter(Boolean);
+    if (undos.length) {
+      setActionHistory((prev) => [...prev, ...undos]);
+    }
+
+    const toolLog = [...liveTrace.map((l) => l.label), describePlan(executable), ...results.map(describeToolCall)];
+    const content = buildLoggedContent(reply, toolLog);
+    setLiveSteps([]);
+    await createMessage.mutateAsync(
+      {
+        session_id: sessionId, role: "assistant", content,
+        tool_log_detail: { liveTrace, plan: executable, steps: results, reasoning },
+      },
+      messageOptions
+    );
+    await invalidateAppQueries();
+  };
+
   const handleSend = async (e) => {
     e.preventDefault();
     if (!input.trim() && !attachedFile) return;
@@ -712,29 +871,6 @@ export function useChatController({ activeProjectId } = {}) {
         message: userText, conversationHistory, activeProjectId, sessionId,
         protocolReminderRequested: matchesProtocolTrigger(userText),
       }, onEvent);
-      // ChatMessage.content is a required field on Base44's side — never
-      // forward a falsy reply from aiChatStream (a stale deploy, a model
-      // hiccup) straight into a create call, or the write gets rejected
-      // with a 422 ("Field required") instead of showing the user anything.
-      const reply = data.reply || "Done.";
-      // The full multi-round narrative (deliberation included) — distinct
-      // from `reply` (just the last round's own text) since a real user
-      // caught these two being the exact same string: the plan line's own
-      // modal used to show `reply` too, which is already fully visible in
-      // the chat bubble right above it, making the click pointless. Falls
-      // back to `reply` itself so a single-round turn (nothing to separate
-      // out) or an old cached response shape still shows something.
-      const reasoning = data.reasoning || reply;
-      const actions = data.actions || [];
-      // Read tools (web_search, analyze_attachment, read_project_link,
-      // search_workspace, audit_workspace, the vault_* readers) already ran
-      // for real, server/BYOK-side, during this same turn, and — via onEvent
-      // above — were already shown live the instant each one finished, not
-      // just discoverable once the whole response was back. liveTrace is
-      // still persisted onto the final message below so every kind of thing
-      // the assistant can do stays a real, clickable action line after a
-      // reload too, not just the ones that write data.
-      const liveTrace = data.liveTrace || [];
       // Skips markMessageNew (and so the typewriter) for the reply-bearing
       // message below when its text was already shown live via
       // streamingText — replaying the same text a second time, now via
@@ -743,93 +879,7 @@ export function useChatController({ activeProjectId } = {}) {
       // mark-as-new/typewriter treatment on the rare turn that streamed no
       // narration at all (e.g. a reply of just "Done.").
       const skipTypewriter = liveThinkingShown ? {} : { onSuccess: (created) => markMessageNew(created.id) };
-
-      if (actions.length === 0 || actions.every((a) => NON_EXECUTABLE_ACTIONS.has(a.action))) {
-        // The model's `reply` text was written before this actually runs, so
-        // it can't know whether the undo succeeded — append a real,
-        // post-hoc note whenever it didn't (see runUndo's own comment).
-        let replyText = reply;
-        if (actions[0]?.action === "UNDO_LAST_ACTION") {
-          const undoResult = await runUndo();
-          if (!undoResult.hadAction) replyText += "\n\n⚠️ There was nothing to undo.";
-          else if (!undoResult.ok) replyText += `\n\n⚠️ Undo failed: ${undoResult.error.message}`;
-        }
-        setLiveSteps([]);
-        await createMessage.mutateAsync(
-          {
-            session_id: sessionId, role: "assistant",
-            content: buildLoggedContent(replyText, liveTrace.map((l) => l.label)),
-            ...(liveTrace.length ? { tool_log_detail: { liveTrace } } : {}),
-          },
-          skipTypewriter
-        );
-        return;
-      }
-
-      const executable = actions.filter((a) => !NON_EXECUTABLE_ACTIONS.has(a.action));
-
-      if (executable.some((a) => DESTRUCTIVE_ACTIONS.has(a.action))) {
-        setLiveSteps([]);
-        await createMessage.mutateAsync(
-          {
-            session_id: sessionId, role: "assistant",
-            content: buildLoggedContent(reply, liveTrace.map((l) => l.label)),
-            pending_action: { actions: executable },
-            ...(liveTrace.length ? { tool_log_detail: { liveTrace } } : {}),
-          },
-          skipTypewriter
-        );
-        return;
-      }
-
-      // Any live tool calls already appeared live above (onEvent) — now the
-      // plan, then each mutation as it actually runs — executeActionSequence's
-      // onStep fires only once that step has really executed.
-      // STEP_REVEAL_DELAY_MS just paces the *reveal* so a sub-frame localDb
-      // write is still readable; it doesn't fake anything that didn't happen.
-      setLiveSteps((prev) => [...prev, describePlan(executable)]);
-      const paceReveal = executable.length <= MAX_PACED_STEPS;
-      const results = await executeActionSequence(executable, {
-        onStep: async (step) => {
-          setLiveSteps((prev) => [...prev, describeToolCall(step)]);
-          if (paceReveal) await sleep(STEP_REVEAL_DELAY_MS);
-        },
-      });
-      // A response can carry a whole plan's worth of steps (mass
-      // populate/delete) instead of just one — collect every step's undo
-      // info, if any, so each stays individually undoable via
-      // UNDO_LAST_ACTION (which only ever pops the single most recent one).
-      const undos = results.map((r) => r.toolResult?.undo).filter(Boolean);
-      if (undos.length) {
-        setActionHistory((prev) => [...prev, ...undos]);
-      }
-
-      // A fenced ```tool-log block, parsed and styled by ChatMessageList —
-      // the same live-reveal lines just shown, now persisted so they survive
-      // a reload. tool_log_detail carries the real data behind each line
-      // (each live call's own args/result, the plan's own actions/args, and
-      // each step's resolved args + toolResult) so a line stays clickable to
-      // reveal it verbatim. Trails the reply now, not leads it — the reply
-      // is the assistant's own account of *why*, so it reads as the
-      // headline; the tool-log is the concrete supporting detail underneath
-      // it, the same relationship a commit summary has to its own diff.
-      const toolLog = [...liveTrace.map((l) => l.label), describePlan(executable), ...results.map(describeToolCall)];
-      const content = buildLoggedContent(reply, toolLog);
-      setLiveSteps([]);
-      await createMessage.mutateAsync(
-        {
-          session_id: sessionId, role: "assistant", content,
-          // `reasoning` (the full multi-round narrative, NOT the same string
-          // as `content`'s own `reply`) carried alongside the structured
-          // plan/steps data so the plan line's own click-to-inspect modal
-          // shows the model's real deliberation instead of either a
-          // structured action breakdown or a pointless echo of what's
-          // already visible in the chat bubble — see ChatToolLogDetail.jsx.
-          tool_log_detail: { liveTrace, plan: executable, steps: results, reasoning },
-        },
-        skipTypewriter
-      );
-      await invalidateAppQueries();
+      await applyAssistantReply(sessionId, data, skipTypewriter);
     } catch (error) {
       // A session token that expired mid-conversation (session already
       // existed, so the earlier 401/403 check above never ran) used to fall
