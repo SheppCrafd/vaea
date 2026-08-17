@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState, lazy, Suspense } from "react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { Expand, Trash2, GripVertical } from "lucide-react";
 import { useFilter } from "@/lib/FilterContext";
@@ -12,10 +12,13 @@ import EditableText from "@/components/shared/EditableText";
 import EditableTitle from "@/components/shared/EditableTitle";
 import CardCustomFields from "@/components/shared/CardCustomFields";
 import ProjectsGrid from "@/components/shared/ProjectsGrid";
-import ProductDetailModal from "@/components/products/ProductDetailModal";
 import TaskStatistics from "@/components/shared/TaskStatistics";
 
-export default function ProductCard({ product, forceFullProjects = false }) {
+// Lazy: only needed once a user opens the detail view, not on the initial
+// card-grid render — same reasoning as Dashboard.jsx's modal imports.
+const ProductDetailModal = lazy(() => import("@/components/products/ProductDetailModal"));
+
+function ProductCard({ product, forceFullProjects = false }) {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const { data: allProjects = [] } = useProjects();
   const { excludedIds } = useFilter();
@@ -155,7 +158,13 @@ export default function ProductCard({ product, forceFullProjects = false }) {
         className="relative z-[1] mt-3 pt-3 border-t border-foreground/[0.06] flex flex-wrap gap-x-3 gap-y-1"
       />
 
-      {isDetailOpen && <ProductDetailModal product={product} onClose={() => setIsDetailOpen(false)} />}
+      {isDetailOpen && (
+        <Suspense fallback={null}>
+          <ProductDetailModal product={product} onClose={() => setIsDetailOpen(false)} />
+        </Suspense>
+      )}
     </div>
   );
 }
+
+export default memo(ProductCard);

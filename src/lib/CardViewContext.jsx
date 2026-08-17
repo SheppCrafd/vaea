@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { CARD_VIEW_STORAGE_KEY, CARD_VIEW_CHANGE_EVENT } from "@/lib/cardViewConstants";
 
 function loadView() {
@@ -39,7 +39,9 @@ export function CardViewProvider({ children }) {
     return () => window.removeEventListener(CARD_VIEW_CHANGE_EVENT, onExternalChange);
   }, []);
 
-  return <CardViewContext.Provider value={{ cardView, setCardView }}>{children}</CardViewContext.Provider>;
+  const value = useMemo(() => ({ cardView, setCardView }), [cardView]);
+
+  return <CardViewContext.Provider value={value}>{children}</CardViewContext.Provider>;
 }
 
 export function useCardView() {

@@ -1,11 +1,9 @@
-import { useState } from "react";
+import { memo, useState, lazy, Suspense } from "react";
 import { Expand, GripVertical, Link2, Plus, Trash2, X } from "lucide-react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { usePositionedMenu } from "@/hooks/usePositionedMenu";
 import PositionedPopover from "@/components/shared/PositionedPopover";
 import ProjectNotes from "@/components/projects/ProjectNotes";
-import TaskTableModal from "@/components/projects/TaskTableModal";
-import ProjectDetailModal from "@/components/projects/ProjectDetailModal";
 import TaskStatistics from "@/components/shared/TaskStatistics";
 import EditableText from "@/components/shared/EditableText";
 import CardCustomFields from "@/components/shared/CardCustomFields";
@@ -22,6 +20,10 @@ import { confirmThen, sanitizeHttpUrl } from "@/lib/entityUtils";
 import EditableTitle from "@/components/shared/EditableTitle";
 import { filterActiveTasks, getQuadrantCounts, isTaskDone, STATUS_COLORS } from "@/lib/taskUtils";
 import { getDueDateColorClass, DUE_DATE_STATUS_OPTIONS } from "@/lib/projectUtils";
+
+// Lazy: neither modal is needed until a user opens it from this card.
+const TaskTableModal = lazy(() => import("@/components/projects/TaskTableModal"));
+const ProjectDetailModal = lazy(() => import("@/components/projects/ProjectDetailModal"));
 
 // The original always-visible, always-editable project card — kept alongside
 // the mini-card default (ProjectCard.jsx) as a toggle-able view (see
@@ -163,7 +165,7 @@ function LinksCorner({ links, onSave }) {
   );
 }
 
-export default function ProjectCardFull({ project, stakeholderIds = [] }) {
+function ProjectCardFull({ project, stakeholderIds = [] }) {
   const [isTableOpen, setIsTableOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
@@ -430,12 +432,16 @@ export default function ProjectCardFull({ project, stakeholderIds = [] }) {
         onSave={(newLinks) => updateProject.mutate({ id: project.id, data: { links: newLinks } })}
       />
 
-      {isTableOpen && (
-        <TaskTableModal project={project} onClose={() => setIsTableOpen(false)} />
-      )}
-      {isDetailOpen && (
-        <ProjectDetailModal project={project} onClose={() => setIsDetailOpen(false)} />
-      )}
+      <Suspense fallback={null}>
+        {isTableOpen && (
+          <TaskTableModal project={project} onClose={() => setIsTableOpen(false)} />
+        )}
+        {isDetailOpen && (
+          <ProjectDetailModal project={project} onClose={() => setIsDetailOpen(false)} />
+        )}
+      </Suspense>
     </div>
   );
 }
+
+export default memo(ProjectCardFull);

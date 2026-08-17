@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAreas } from "@/hooks/useAreas";
 import { useProducts } from "@/hooks/useProducts";
@@ -6,13 +6,17 @@ import { useProjects } from "@/hooks/useProjects";
 import { useFilter } from "@/lib/FilterContext";
 import { sortByPosition } from "@/lib/entityUtils";
 import AreaCard from "@/components/areas/AreaCard";
-import AreaModal from "@/components/areas/AreaModal";
-import CreateModal from "@/components/modals/CreateModal";
+import AreaCardSkeleton from "@/components/areas/AreaCardSkeleton";
 import ProductConnectionLines from "@/components/products/ProductConnectionLines";
 import QueryError from "@/components/shared/QueryError";
-import Spinner from "@/components/shared/Spinner";
-import ProductDetailModal from "@/components/products/ProductDetailModal";
-import ProjectDetailModal from "@/components/projects/ProjectDetailModal";
+
+// Lazy: none of these four render until a user action (Create, or expanding
+// an Area/Product/Project), so they don't need to be in Dashboard's initial
+// bundle — the route everyone hits first.
+const AreaModal = lazy(() => import("@/components/areas/AreaModal"));
+const CreateModal = lazy(() => import("@/components/modals/CreateModal"));
+const ProductDetailModal = lazy(() => import("@/components/products/ProductDetailModal"));
+const ProjectDetailModal = lazy(() => import("@/components/projects/ProjectDetailModal"));
 
 export default function Dashboard() {
   const { data: areas = [], isLoading: areasLoading, isError: areasError, error: areasErrorObj, refetch: refetchAreas } = useAreas();
@@ -48,10 +52,13 @@ export default function Dashboard() {
     }
   }, [searchParams, areas, products, projects, expandedArea, expandedProduct, expandedProject]);
 
-  const handleExpand = (area) => {
+  // Stable across renders (useCallback) so AreaCard's React.memo isn't
+  // defeated by a fresh function identity every Dashboard render — it takes
+  // the area itself as an argument rather than closing over it.
+  const handleExpand = useCallback((area) => {
     setExpandedArea(area);
     setSearchParams({ areaId: area.id });
-  };
+  }, [setSearchParams]);
 
   const handleClose = () => {
     setExpandedArea(null);
@@ -115,8 +122,10 @@ export default function Dashboard() {
 
   if (areasLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Spinner />
+      <div className="grid grid-cols-1 items-start gap-5">
+        <AreaCardSkeleton />
+        <AreaCardSkeleton />
+        <AreaCardSkeleton />
       </div>
     );
   }
@@ -152,22 +161,24 @@ export default function Dashboard() {
               area={area}
               products={productsWithProjects}
               orphanProjects={orphanProjects}
-              onExpand={() => handleExpand(area)}
+              onExpand={handleExpand}
               stakeholderIds={areaStakeholderIds}
             />
           ))}
         </div>
       )}
-      <CreateModal />
-      {expandedArea && (
-        <AreaModal area={expandedArea} onClose={handleClose} />
-      )}
-      {expandedProduct && (
-        <ProductDetailModal product={expandedProduct} onClose={handleCloseProduct} />
-      )}
-      {expandedProject && (
-        <ProjectDetailModal project={expandedProject} onClose={handleCloseProject} />
-      )}
+      <Suspense fallback={null}>
+        <CreateModal />
+        {expandedArea && (
+          <AreaModal area={expandedArea} onClose={handleClose} />
+        )}
+        {expandedProduct && (
+          <ProductDetailModal product={expandedProduct} onClose={handleCloseProduct} />
+        )}
+        {expandedProject && (
+          <ProjectDetailModal project={expandedProject} onClose={handleCloseProject} />
+        )}
+      </Suspense>
       <ProductConnectionLines projects={projects} />
     </div>
   );

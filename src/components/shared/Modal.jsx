@@ -38,14 +38,17 @@ export default function Modal({
 
   return (
     <Portal>
-      <div className={overlayClassName} onClick={closeOnBackdropClick ? onClose : undefined}>
+      <div
+        className={`animate-in fade-in duration-[var(--motion-base)] ${overlayClassName}`}
+        onClick={closeOnBackdropClick ? onClose : undefined}
+      >
         <div
           ref={panelRef}
           role="dialog"
           aria-modal="true"
           aria-label={label}
           tabIndex={-1}
-          className={panelClassName}
+          className={`animate-in fade-in zoom-in-95 duration-[var(--motion-base)] ${panelClassName}`}
           onClick={(e) => e.stopPropagation()}
         >
           {children}

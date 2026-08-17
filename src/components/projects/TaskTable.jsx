@@ -103,7 +103,7 @@ function TaskRow({ task, allStakeholders, isMatched, updateTask, onToggleTopThre
   return (
     <tr
       ref={setNodeRef}
-      className={`border-b border-border last:border-0 transition-colors ${isOver ? "ring-2 ring-inset ring-primary bg-primary/5" : ""}`}
+      className={`row-enter border-b border-border last:border-0 transition-colors ${isOver ? "ring-2 ring-inset ring-primary bg-primary/5" : ""}`}
       style={isMatched && !isOver ? { backgroundColor: STATUS_COLORS.DONE } : undefined}
     >
       <td className="p-2 min-w-0 max-w-[200px]">
@@ -213,6 +213,7 @@ export default function TaskTable({ project }) {
   const [sortColumn, setSortColumn] = useState("quadrant");
   const [sortDirection, setSortDirection] = useState("asc");
   const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [showAllRows, setShowAllRows] = useState(false);
   const [newDescription, setNewDescription] = useState("");
   const [newQuadrant, setNewQuadrant] = useState("");
   const [newStatus, setNewStatus] = useState("");
@@ -390,7 +391,7 @@ export default function TaskTable({ project }) {
               <td className="p-2 text-muted-foreground text-center" colSpan={9}>No active tasks</td>
             </tr>
           )}
-          {sortedTasks.slice(0, MAX_ROWS).map((task) => (
+          {(showAllRows ? sortedTasks : sortedTasks.slice(0, MAX_ROWS)).map((task) => (
             <TaskRow
               key={task.id}
               task={task}
@@ -401,6 +402,18 @@ export default function TaskTable({ project }) {
               onDelete={handleDelete}
             />
           ))}
+          {!showAllRows && sortedTasks.length > MAX_ROWS && (
+            <tr>
+              <td className="p-2 text-center" colSpan={9}>
+                <button
+                  onClick={() => setShowAllRows(true)}
+                  className="text-xs text-primary hover:underline"
+                >
+                  Show {sortedTasks.length - MAX_ROWS} more task{sortedTasks.length - MAX_ROWS === 1 ? "" : "s"}
+                </button>
+              </td>
+            </tr>
+          )}
           <tr className="bg-primary/10">
             <td className="p-2 min-w-0">
               <div className="flex items-center gap-1.5">

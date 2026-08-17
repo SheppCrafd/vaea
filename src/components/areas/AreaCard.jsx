@@ -1,3 +1,4 @@
+import { memo, useMemo } from "react";
 import { Trash2, Expand, GripVertical } from "lucide-react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { useUpdateArea, useDeleteArea } from "@/hooks/useAreas";
@@ -18,7 +19,7 @@ import TaskStatistics from "@/components/shared/TaskStatistics";
 // no "areas" checkbox category, and per direct feedback a match shouldn't
 // cascade upward through every ancestor of the card that actually matches;
 // only that one card (e.g. the specific Project) should visually react.
-export default function AreaCard({ area, products = [], orphanProjects = [], onExpand, stakeholderIds = [] }) {
+function AreaCard({ area, products = [], orphanProjects = [], onExpand, stakeholderIds = [] }) {
   const updateArea = useUpdateArea();
   const deleteArea = useDeleteArea();
   const { cardView } = useCardView();
@@ -59,17 +60,20 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
   };
 
   // Calculate tasks belonging to this entire Area
-  const areaProjectIds = [
-    ...products.flatMap((p) => p.projects?.map((proj) => proj.id) || []),
-    ...orphanProjects.map((p) => p.id),
-  ];
+  const areaProjectIds = useMemo(
+    () => [
+      ...products.flatMap((p) => p.projects?.map((proj) => proj.id) || []),
+      ...orphanProjects.map((p) => p.id),
+    ],
+    [products, orphanProjects]
+  );
   const { data: areaTasks = [] } = useTasksForProjects(areaProjectIds);
 
   return (
     <article
       ref={setCardRefs}
       style={{ opacity: isDragging ? 0.4 : 1 }}
-      className={`relative z-10 bg-card border rounded-2xl shadow-md p-5 break-inside-avoid flex flex-col gap-4 transition-colors ${isCardOver ? "ring-2 ring-primary ring-offset-1 border-primary" : "border-foreground/[0.04]"}`}
+      className={`card-enter relative z-10 bg-card border rounded-2xl shadow-md p-5 break-inside-avoid flex flex-col gap-4 transition-colors duration-[var(--motion-fast)] ${isCardOver ? "ring-2 ring-primary ring-offset-1 border-primary" : "border-foreground/[0.04]"}`}
     >
 
       <div className="relative">
@@ -84,7 +88,7 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
         </div>
         <div className="absolute top-0 right-0 flex items-center gap-1 z-20">
           <button
-            onClick={onExpand}
+            onClick={() => onExpand(area)}
             className="text-muted-foreground hover:text-foreground hover:bg-accent p-2 rounded-md transition-colors"
             title="Expand Area"
             aria-label="Expand Area"
@@ -207,3 +211,5 @@ export default function AreaCard({ area, products = [], orphanProjects = [], onE
     </article>
   );
 }
+
+export default memo(AreaCard);

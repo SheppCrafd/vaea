@@ -91,6 +91,15 @@
     --band-2: 195 50% 93%;
     --band-3: 198 40% 95%;
     --band-4: 200 30% 97%;
+
+    /* Shared timing/easing for non-chat motion (dashboard cards, table rows,
+       modals, skeletons) — timing values, not colors, so they don't need a
+       .dark override. Kept as a small fixed scale rather than one-off
+       durations per component so the whole app moves at a consistent pace. */
+    --motion-fast: 150ms;
+    --motion-base: 220ms;
+    --motion-slow: 320ms;
+    --motion-ease: cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .dark {
@@ -317,5 +326,39 @@
 @keyframes chat-fade-in-line {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Generic entrance for dashboard/card/table surfaces — same fade+lift shape
+   as chat-fade-in-line above, its own name/keyframe since it's tuned to the
+   --motion-* tokens rather than chat's fixed 0.25s. */
+@keyframes surface-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.card-enter {
+  animation: surface-enter var(--motion-slow) var(--motion-ease) both;
+}
+
+/* Each TaskTable row fading in individually needs its own instance (not a
+   shared parent animation) since rows mount/unmount independently as tasks
+   are filtered, sorted, or added. */
+.row-enter {
+  animation: surface-enter var(--motion-base) var(--motion-ease) both;
+}
+
+.skeleton-pulse {
+  animation: pulse var(--motion-slow) cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-enter,
+  .row-enter,
+  .chat-launch-pulse,
+  .chat-icon-computing,
+  .chat-cursor-blink,
+  .chat-step-reveal {
+    animation: none;
+  }
 }
 

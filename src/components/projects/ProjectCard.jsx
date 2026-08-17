@@ -1,8 +1,6 @@
-import { useState } from "react";
+import { memo, useState, lazy, Suspense } from "react";
 import { Expand, GripVertical, AlertTriangle, HelpCircle, Trash2 } from "lucide-react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
-import TaskTableModal from "@/components/projects/TaskTableModal";
-import ProjectDetailModal from "@/components/projects/ProjectDetailModal";
 import { useTasks } from "@/hooks/useTasks";
 import { useProjectNotes } from "@/hooks/useProjectNotes";
 import { useEditableField } from "@/hooks/useEditableField";
@@ -13,13 +11,17 @@ import { confirmThen } from "@/lib/entityUtils";
 import { getQuadrantCounts, getMiniStatusCounts, STATUS_COLORS } from "@/lib/taskUtils";
 import EditableTitle from "@/components/shared/EditableTitle";
 
+// Lazy: neither modal is needed until a user opens it from this card.
+const TaskTableModal = lazy(() => import("@/components/projects/TaskTableModal"));
+const ProjectDetailModal = lazy(() => import("@/components/projects/ProjectDetailModal"));
+
 // Mini card: the dashboard's default project face is deliberately just
 // title + quadrant + a 3-bucket stats bar. Everything else that used to live
 // here (objective, risks/questions inline editors, owner/due date, stakeholder
 // assigner, links, custom fields, problem statement) is still fully editable
 // one click away in ProjectDetailModal — nothing was dropped, just moved
 // behind Expand so the dashboard reads as a grid of small squares.
-export default function ProjectCard({ project, stakeholderIds = [] }) {
+function ProjectCard({ project, stakeholderIds = [] }) {
   const [isTableOpen, setIsTableOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
@@ -221,12 +223,16 @@ export default function ProjectCard({ project, stakeholderIds = [] }) {
         />
       )}
 
-      {isTableOpen && (
-        <TaskTableModal project={project} onClose={() => setIsTableOpen(false)} />
-      )}
-      {isDetailOpen && (
-        <ProjectDetailModal project={project} onClose={() => setIsDetailOpen(false)} />
-      )}
+      <Suspense fallback={null}>
+        {isTableOpen && (
+          <TaskTableModal project={project} onClose={() => setIsTableOpen(false)} />
+        )}
+        {isDetailOpen && (
+          <ProjectDetailModal project={project} onClose={() => setIsDetailOpen(false)} />
+        )}
+      </Suspense>
     </div>
   );
 }
+
+export default memo(ProjectCard);
