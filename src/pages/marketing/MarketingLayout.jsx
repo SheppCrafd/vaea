@@ -7,9 +7,21 @@ import { hairlineH } from "./theme";
 const NAV_LINKS = [
   { to: "/features", label: "Features" },
   { to: "/how-it-works", label: "How it works" },
+  { to: "/about", label: "About" },
 ];
 
 const GITHUB_URL = "https://github.com/SheppCrafd/vaea";
+
+// Maintainer contact card, sourced from the Gravatar profile at
+// gravatar.com/sheppcrafd — reused as-is on the About page.
+export const MAINTAINER = {
+  name: "SheppCrafd",
+  bio: "Builds mods, builds robots, builds modded robots",
+  avatar: "https://0.gravatar.com/avatar/2daa5fe613a74df44eda666f4db3967a88369f873fd614400b4660d986d0d3d6?s=200",
+  github: "https://github.com/SheppCrafd",
+  email: "mwallis31@outlook.com",
+  gravatar: "https://gravatar.com/sheppcrafd",
+};
 
 function Logo() {
   return (
@@ -161,7 +173,7 @@ function Footer() {
     <footer className="bg-gradient-to-b from-transparent to-muted/50">
       <div aria-hidden="true" className={hairlineH} />
       <div className="max-w-6xl mx-auto px-6 py-14">
-        <div className="grid sm:grid-cols-[1.5fr_1fr_1fr] gap-10">
+        <div className="grid sm:grid-cols-[1.3fr_0.8fr_0.8fr_1.1fr] gap-10">
           <div>
             <Logo />
             <p className="mt-3 text-sm text-muted-foreground max-w-xs leading-relaxed">
@@ -188,6 +200,29 @@ function Footer() {
                 </a>
               </li>
               <li><Link to="/login" className="text-muted-foreground hover:text-foreground transition-colors">Sign in</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <p className="font-terminal text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground mb-3.5">Contact</p>
+            <Link to="/about" className="flex items-center gap-2.5 group">
+              <img src={MAINTAINER.avatar} alt="" className="w-9 h-9 rounded-full border border-border shrink-0" />
+              <span className="text-sm">
+                <span className="block text-foreground font-medium group-hover:underline">{MAINTAINER.name}</span>
+                <span className="block text-xs text-muted-foreground">Maintainer</span>
+              </span>
+            </Link>
+            <ul className="mt-3 space-y-2.5 text-sm">
+              <li>
+                <a href={`mailto:${MAINTAINER.email}`} className="text-muted-foreground hover:text-foreground transition-colors">
+                  {MAINTAINER.email}
+                </a>
+              </li>
+              <li>
+                <a href={MAINTAINER.gravatar} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Gravatar profile
+                </a>
+              </li>
             </ul>
           </div>
         </div>

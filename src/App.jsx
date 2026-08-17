@@ -26,6 +26,7 @@ import FeaturesPage from '@/pages/marketing/FeaturesPage';
 import HowItWorksPage from '@/pages/marketing/HowItWorksPage';
 import LoginPage from '@/pages/marketing/LoginPage';
 import SignUpPage from '@/pages/marketing/SignUpPage';
+import AboutPage from '@/pages/marketing/AboutPage';
 // /chat and /settings are code-split out of the main bundle — they're
 // reached only by an explicit click (never on first load), so there's no
 // reason to make every visitor download and parse their code (react-markdown,
@@ -150,6 +151,7 @@ function App() {
                       <Route path="/" element={<HomePage />} />
                       <Route path="/features" element={<FeaturesPage />} />
                       <Route path="/how-it-works" element={<HowItWorksPage />} />
+                      <Route path="/about" element={<AboutPage />} />
                       <Route path="/login" element={<LoginPage />} />
                       <Route path="/signup" element={<SignUpPage />} />
                       <Route path="/app/*" element={<AuthenticatedApp />} />
