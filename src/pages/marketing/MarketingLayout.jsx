@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useTheme } from "next-themes";
 import { Github, Menu, X, Sun, Moon } from "lucide-react";
-import GravatarCard from "./GravatarCard";
 import { hairlineH } from "./theme";
 
 const NAV_LINKS = [
@@ -13,12 +12,15 @@ const NAV_LINKS = [
 
 const GITHUB_URL = "https://github.com/SheppCrafd/vaea";
 
-// Maintainer identity for the embedded Gravatar profile card (GravatarCard)
-// on the footer and About page — the card itself pulls everything else
-// (avatar, bio, email, GitHub) live from the Gravatar profile.
+// Maintainer contact card, sourced from the Gravatar profile at
+// gravatar.com/sheppcrafd — reused as-is on the About page.
 export const MAINTAINER = {
   name: "SheppCrafd",
-  gravatarUsername: "sheppcrafd",
+  bio: "Builds mods, builds robots, builds modded robots",
+  avatar: "https://0.gravatar.com/avatar/2daa5fe613a74df44eda666f4db3967a88369f873fd614400b4660d986d0d3d6?s=200",
+  github: "https://github.com/SheppCrafd",
+  email: "mwallis31@outlook.com",
+  gravatar: "https://gravatar.com/sheppcrafd",
 };
 
 function Logo() {
@@ -167,7 +169,6 @@ function NavBar() {
 }
 
 function Footer() {
-  const { resolvedTheme } = useTheme();
   return (
     <footer className="bg-gradient-to-b from-transparent to-muted/50">
       <div aria-hidden="true" className={hairlineH} />
@@ -202,17 +203,27 @@ function Footer() {
             </ul>
           </div>
 
-          <div className="min-w-0">
+          <div>
             <p className="font-terminal text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground mb-3.5">Contact</p>
-            <GravatarCard
-              username={MAINTAINER.gravatarUsername}
-              name={MAINTAINER.name}
-              dark={resolvedTheme === "dark"}
-              className="border border-border"
-            />
-            <Link to="/about" className="mt-2 inline-block text-xs text-muted-foreground hover:text-foreground transition-colors">
-              Full profile →
+            <Link to="/about" className="flex items-center gap-2.5 group">
+              <img src={MAINTAINER.avatar} alt="" className="w-9 h-9 rounded-full border border-border shrink-0" />
+              <span className="text-sm">
+                <span className="block text-foreground font-medium group-hover:underline">{MAINTAINER.name}</span>
+                <span className="block text-xs text-muted-foreground">Maintainer</span>
+              </span>
             </Link>
+            <ul className="mt-3 space-y-2.5 text-sm">
+              <li>
+                <a href={`mailto:${MAINTAINER.email}`} className="text-muted-foreground hover:text-foreground transition-colors">
+                  {MAINTAINER.email}
+                </a>
+              </li>
+              <li>
+                <a href={MAINTAINER.gravatar} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Gravatar profile
+                </a>
+              </li>
+            </ul>
           </div>
         </div>
 
