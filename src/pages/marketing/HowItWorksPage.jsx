@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
 import { Reveal, StageLight, Grain } from "./effects";
-import { darkSectionBg, darkText, darkTopEdge, pillOnDark, eyebrowOnDark, displayXL, displayL, hairlineH, focusRing } from "./theme";
+import { darkSectionBg, darkText, darkTopEdge, pillOnDark, eyebrowOnDark, displayXL, displayL, hairlineH } from "./theme";
 
 const STEPS = [
   {
