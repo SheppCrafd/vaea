@@ -209,7 +209,7 @@ function Footer() {
               <img src={MAINTAINER.avatar} alt="" className="w-9 h-9 rounded-full border border-border shrink-0" />
               <span className="text-sm">
                 <span className="block text-foreground font-medium group-hover:underline">{MAINTAINER.name}</span>
-                <span className="block text-xs text-muted-foreground">Built by {MAINTAINER.name}</span>
+                <span className="block text-xs text-muted-foreground">Built & maintained solo</span>
               </span>
             </Link>
             <ul className="mt-3 space-y-2.5 text-sm">
