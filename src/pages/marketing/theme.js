@@ -92,12 +92,25 @@ export const glowTop =
 // separate exports for call-site clarity (which surface a button sits on),
 // not because they still differ.
 export const pillOnDark =
-  "inline-flex items-center gap-1.5 text-sm px-6 py-3 bg-foreground hover:bg-foreground/90 text-background font-medium rounded-full transition-all hover:-translate-y-0.5 shadow-[0_8px_24px_-8px_hsl(var(--foreground)/0.4)]";
+  "inline-flex items-center gap-1.5 text-sm px-6 py-3 bg-foreground hover:bg-foreground/90 text-background font-medium rounded-full transition-all hover:-translate-y-0.5 shadow-[0_8px_24px_-8px_hsl(var(--foreground)/0.4)] outline-none focus-visible:ring-2 focus-visible:ring-[#46BAD1] focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 export const pillOnLight =
-  "inline-flex items-center gap-1.5 text-sm px-6 py-3 bg-foreground hover:bg-foreground/90 text-background font-medium rounded-full transition-all hover:-translate-y-0.5";
+  "inline-flex items-center gap-1.5 text-sm px-6 py-3 bg-foreground hover:bg-foreground/90 text-background font-medium rounded-full transition-all hover:-translate-y-0.5 outline-none focus-visible:ring-2 focus-visible:ring-[#46BAD1] focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
-export const linkOnDark = "text-sm text-muted-foreground hover:text-foreground transition-colors";
-export const linkOnLight = "text-sm text-muted-foreground hover:text-foreground transition-colors";
+export const linkOnDark =
+  "text-sm text-muted-foreground hover:text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#46BAD1] focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm";
+export const linkOnLight =
+  "text-sm text-muted-foreground hover:text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#46BAD1] focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm";
+
+// Keyboard focus ring, shared by every interactive element on the marketing
+// site (pills, nav links, footer links, the theme toggle). Uses the same
+// signature glow color as an accent detail (see GLOW's own comment below),
+// with ring-offset-background so the offset always matches whatever surface
+// the control sits on — a dark band or a light section — without a
+// per-surface variant. box-shadow (which ring-* compiles to) inherits the
+// element's own border-radius, so this reads correctly on rounded-full pills
+// and plain text links alike with no extra radius utility needed.
+export const focusRing =
+  "outline-none focus-visible:ring-2 focus-visible:ring-[#46BAD1] focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 export const eyebrowOnDark = "font-terminal text-xs uppercase tracking-[0.22em] text-foreground/45";
 export const eyebrowOnLight = "font-terminal text-xs uppercase tracking-[0.22em] text-primary";

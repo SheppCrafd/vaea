@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useTheme } from "next-themes";
 import { Github, Menu, X, Sun, Moon } from "lucide-react";
-import { hairlineH } from "./theme";
+import { hairlineH, focusRing } from "./theme";
 
 const NAV_LINKS = [
   { to: "/features", label: "Features" },
@@ -25,7 +25,7 @@ export const MAINTAINER = {
 
 function Logo() {
   return (
-    <Link to="/" className="flex items-center gap-2 shrink-0">
+    <Link to="/" className={`flex items-center gap-2 shrink-0 rounded-full ${focusRing}`}>
       <div className="w-8 h-8 rounded-full border border-border shadow-[0_1px_2px_0_rgb(0_0_0/0.05)] dark:shadow-[0_0_0_1px_hsl(var(--foreground)/0.12)] overflow-hidden">
         <img src="/android-chrome-512x512.png" alt="" className="w-full h-full object-cover" />
       </div>
@@ -48,7 +48,7 @@ function ThemeToggle() {
       type="button"
       onClick={() => setTheme(isDark ? "light" : "dark")}
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      className="flex items-center justify-center w-9 h-9 rounded-full bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors shrink-0"
+      className={`flex items-center justify-center w-9 h-9 rounded-full bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors shrink-0 ${focusRing}`}
     >
       {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
     </button>
@@ -76,7 +76,7 @@ function NavBar() {
               <Link
                 key={to}
                 to={to}
-                className={`text-sm transition-colors ${
+                className={`text-sm transition-colors rounded-sm ${focusRing} ${
                   location.pathname === to
                     ? "text-foreground font-medium"
                     : "text-muted-foreground hover:text-foreground"
@@ -89,7 +89,7 @@ function NavBar() {
               href={GITHUB_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className={`flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}
             >
               <Github className="w-3.5 h-3.5" />
               GitHub
@@ -101,13 +101,13 @@ function NavBar() {
           <ThemeToggle />
           <Link
             to="/login"
-            className="hidden sm:inline text-sm text-muted-foreground hover:text-foreground transition-colors px-2"
+            className={`hidden sm:inline text-sm text-muted-foreground hover:text-foreground transition-colors px-2 rounded-sm ${focusRing}`}
           >
             Log in
           </Link>
           <Link
             to="/signup"
-            className="text-sm px-4 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-full transition-all hover:shadow-[0_6px_16px_-6px_hsl(var(--primary)/0.5)]"
+            className={`text-sm px-4 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-full transition-all hover:shadow-[0_6px_16px_-6px_hsl(var(--primary)/0.5)] ${focusRing}`}
           >
             Sign up
           </Link>
@@ -116,7 +116,7 @@ function NavBar() {
             onClick={() => setMobileOpen((v) => !v)}
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
             aria-expanded={mobileOpen}
-            className="sm:hidden flex items-center justify-center w-9 h-9 rounded-full bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors -mr-1"
+            className={`sm:hidden flex items-center justify-center w-9 h-9 rounded-full bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors -mr-1 ${focusRing}`}
           >
             {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
           </button>
@@ -130,7 +130,7 @@ function NavBar() {
               key={to}
               to={to}
               onClick={() => setMobileOpen(false)}
-              className={`text-sm py-2.5 transition-colors ${
+              className={`text-sm py-2.5 transition-colors rounded-sm ${focusRing} ${
                 location.pathname === to
                   ? "text-foreground font-medium"
                   : "text-muted-foreground hover:text-foreground"
@@ -143,7 +143,7 @@ function NavBar() {
             href={GITHUB_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-sm py-2.5 text-muted-foreground hover:text-foreground transition-colors"
+            className={`flex items-center gap-1.5 text-sm py-2.5 text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}
           >
             <Github className="w-3.5 h-3.5" />
             GitHub
@@ -151,14 +151,14 @@ function NavBar() {
           <Link
             to="/login"
             onClick={() => setMobileOpen(false)}
-            className="text-sm py-2.5 text-muted-foreground hover:text-foreground transition-colors"
+            className={`text-sm py-2.5 text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}
           >
             Log in
           </Link>
           <Link
             to="/signup"
             onClick={() => setMobileOpen(false)}
-            className="text-sm py-2.5 font-medium text-foreground transition-colors"
+            className={`text-sm py-2.5 font-medium text-foreground transition-colors rounded-sm ${focusRing}`}
           >
             Sign up
           </Link>
@@ -184,9 +184,9 @@ function Footer() {
           <div>
             <p className="font-terminal text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground mb-3.5">Product</p>
             <ul className="space-y-2.5 text-sm">
-              <li><Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">Home</Link></li>
-              <li><Link to="/features" className="text-muted-foreground hover:text-foreground transition-colors">Features</Link></li>
-              <li><Link to="/how-it-works" className="text-muted-foreground hover:text-foreground transition-colors">How it works</Link></li>
+              <li><Link to="/" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Home</Link></li>
+              <li><Link to="/features" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Features</Link></li>
+              <li><Link to="/how-it-works" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>How it works</Link></li>
             </ul>
           </div>
 
@@ -194,18 +194,18 @@ function Footer() {
             <p className="font-terminal text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground mb-3.5">Resources</p>
             <ul className="space-y-2.5 text-sm">
               <li>
-                <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors">
+                <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>
                   <Github className="w-3.5 h-3.5" />
                   Source on GitHub
                 </a>
               </li>
-              <li><Link to="/login" className="text-muted-foreground hover:text-foreground transition-colors">Sign in</Link></li>
+              <li><Link to="/login" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Sign in</Link></li>
             </ul>
           </div>
 
           <div>
             <p className="font-terminal text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground mb-3.5">Contact</p>
-            <Link to="/about" className="flex items-center gap-2.5 group">
+            <Link to="/about" className={`flex items-center gap-2.5 group rounded-sm ${focusRing}`}>
               <img src={MAINTAINER.avatar} alt="" className="w-9 h-9 rounded-full border border-border shrink-0" />
               <span className="text-sm">
                 <span className="block text-foreground font-medium group-hover:underline">{MAINTAINER.name}</span>
@@ -214,12 +214,12 @@ function Footer() {
             </Link>
             <ul className="mt-3 space-y-2.5 text-sm">
               <li>
-                <a href={`mailto:${MAINTAINER.email}`} className="text-muted-foreground hover:text-foreground transition-colors">
+                <a href={`mailto:${MAINTAINER.email}`} className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>
                   {MAINTAINER.email}
                 </a>
               </li>
               <li>
-                <a href={MAINTAINER.gravatar} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
+                <a href={MAINTAINER.gravatar} target="_blank" rel="noopener noreferrer" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>
                   Gravatar profile
                 </a>
               </li>

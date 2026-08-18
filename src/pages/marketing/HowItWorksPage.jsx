@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
 import { Reveal, StageLight, Grain } from "./effects";
-import { darkSectionBg, darkText, darkTopEdge, pillOnDark, eyebrowOnDark, displayXL, displayL, hairlineH } from "./theme";
+import { darkSectionBg, darkText, darkTopEdge, pillOnDark, eyebrowOnDark, displayXL, displayL, hairlineH, focusRing } from "./theme";
 
 const STEPS = [
   {
@@ -45,7 +45,7 @@ export default function HowItWorksPage() {
           <Reveal key={title} delay={i * 100} className="py-8">
             {i > 0 && <div aria-hidden="true" className={`${hairlineH} -mt-8 mb-8`} />}
             <div className="flex gap-6 sm:gap-8">
-            <span className="font-heading text-4xl sm:text-5xl font-semibold text-[#46BAD1]/25 select-none leading-none shrink-0 w-12 sm:w-16">
+            <span className="font-heading text-4xl sm:text-5xl font-semibold text-foreground/[0.09] select-none leading-none shrink-0 w-12 sm:w-16">
               {String(i + 1).padStart(2, "0")}
             </span>
             <div>

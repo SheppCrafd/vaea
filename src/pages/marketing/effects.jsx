@@ -46,10 +46,15 @@ export function useInView({ threshold = 0.15, once = true } = {}) {
 // different animation per section.
 export function Reveal({ as: Tag = "div", className = "", delay = 0, children }) {
   const { ref, inView } = useInView();
+  // Under reduced motion, skip the translate/opacity transition entirely —
+  // content should just be there, not merely faster. motion-reduce: (a
+  // Tailwind variant, not a runtime check) is used here rather than a JS
+  // prefersReducedMotion() branch so this stays a pure CSS decision with no
+  // hydration/first-paint flash of the animated state.
   return (
     <Tag
       ref={ref}
-      className={`transition-all duration-700 ease-out ${
+      className={`transition-all duration-700 ease-out motion-reduce:transition-none motion-reduce:opacity-100 motion-reduce:translate-y-0 ${
         inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       } ${className}`}
       style={{ transitionDelay: inView ? `${delay}ms` : "0ms" }}

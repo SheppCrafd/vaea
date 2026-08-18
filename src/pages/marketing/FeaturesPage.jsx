@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
 import { Reveal, StageLight, Grain } from "./effects";
-import { darkSectionBg, darkText, darkTopEdge, pillOnDark, eyebrowOnDark, displayXL, displayL, hairlineH } from "./theme";
+import { darkSectionBg, darkText, darkTopEdge, pillOnDark, linkOnDark, eyebrowOnDark, displayXL, displayL, hairlineH } from "./theme";
 
 const GROUPS = [
   {
@@ -118,7 +118,7 @@ export default function FeaturesPage() {
       <section className={`relative overflow-hidden ${darkSectionBg} ${darkText} ${darkTopEdge}`}>
         <StageLight />
         <Grain />
-        <div className="relative max-w-3xl mx-auto px-6 py-24 sm:py-28 text-center">
+        <div className="relative max-w-3xl mx-auto px-6 py-24 sm:py-32 text-center">
           <Reveal>
             <h2 className={displayL}>
               See it come together
@@ -129,7 +129,7 @@ export default function FeaturesPage() {
                 How it works
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
-              <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <Link to="/login" className={linkOnDark}>
                 Or sign in directly
               </Link>
             </div>
