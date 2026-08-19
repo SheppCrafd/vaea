@@ -254,6 +254,70 @@ function gmailExtractPlainTextBody(payload) {
   return '';
 }
 
+// Microsoft 365 / Outlook — PKCE against a shared public Azure AD app
+// registered under the "Mobile and desktop applications" platform (not
+// "Single-page application" — that platform caps refresh tokens at 24
+// hours; see src/lib/microsoftOAuthPkce.js for the fuller reasoning).
+// Client-side twin lives in src/lib/microsoftGraphApi.js. One connection
+// covers Outlook Calendar, Outlook/Exchange mail, and Teams meeting links.
+// TODO: same value as the frontend build's VITE_MICROSOFT_CLIENT_ID —
+// public, not a secret, just needs to be filled in once that credential exists.
+const MICROSOFT_CLIENT_ID = 'PASTE_YOUR_MICROSOFT_OAUTH_CLIENT_ID_HERE';
+const MICROSOFT_TOKEN_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
+const MICROSOFT_SCOPE = 'offline_access openid Calendars.ReadWrite Mail.Read Mail.Send';
+const GRAPH_BASE = 'https://graph.microsoft.com/v1.0/me';
+
+function microsoftNotConnected() {
+  return { connected: false, message: 'No Microsoft account connected. Tell the user to connect one in Settings -> Microsoft 365 / Outlook before this can work.' };
+}
+
+async function refreshMicrosoftAccessToken(refreshToken) {
+  const res = await fetch(MICROSOFT_TOKEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ client_id: MICROSOFT_CLIENT_ID, refresh_token: refreshToken, grant_type: 'refresh_token', scope: MICROSOFT_SCOPE }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error_description || `Microsoft rejected the refresh (${res.status}).`);
+  }
+  const data = await res.json();
+  return data.access_token;
+}
+
+async function graphFetch(url, accessToken, init) {
+  const res = await fetch(url, { ...init, headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json', ...init?.headers } });
+  if (!res.ok) {
+    if (res.status === 401) throw new Error('Microsoft rejected that token — try reconnecting.');
+    if (res.status === 429) throw new Error("Microsoft's rate limit was hit — try again in a moment.");
+    throw new Error(`Microsoft Graph error (${res.status}).`);
+  }
+  return res.status === 204 || res.status === 202 ? null : res.json();
+}
+
+function shapeOutlookEvent(e) {
+  return {
+    id: e.id,
+    subject: e.subject,
+    start: e.start?.dateTime ? `${e.start.dateTime}${e.start.timeZone ? ` (${e.start.timeZone})` : ''}` : e.start?.date,
+    end: e.end?.dateTime ? `${e.end.dateTime}${e.end.timeZone ? ` (${e.end.timeZone})` : ''}` : e.end?.date,
+    location: e.location?.displayName,
+    onlineMeetingUrl: e.onlineMeeting?.joinUrl,
+    isOnlineMeeting: !!e.isOnlineMeeting,
+  };
+}
+
+function shapeOutlookMessage(m) {
+  return {
+    id: m.id,
+    subject: m.subject,
+    from: m.from?.emailAddress?.address || m.sender?.emailAddress?.address || '',
+    receivedDateTime: m.receivedDateTime,
+    bodyPreview: m.bodyPreview,
+    unread: !!m.isRead === false,
+  };
+}
+
 // ClickUp — client-side twin lives in src/lib/clickupApi.js. No token
 // refresh needed here at all: ClickUp access tokens don't expire and no
 // refresh token is even issued (see clickupConnection.js's own comment),
@@ -339,7 +403,7 @@ function resolveNow(clientNow) {
 // from the request body, so these two tools can see fields the prompt
 // doesn't bother spelling out for every record), and externalVault (for the
 // vault_* tools below, connecting to a personal GitHub-hosted notes repo).
-function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCalendar, gmail, clickup, emit, now }) {
+function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCalendar, gmail, microsoft, clickup, emit, now }) {
   // Every live (already-executed) tool call gets pushed here as {label,
   // detail} — same shape a client-side executed mutation step gets from
   // describeToolCall (chatActions.js), so ChatMessageList can render both
@@ -775,6 +839,48 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCal
       }),
       execute: queue('SEND_GMAIL_MESSAGE'),
     }),
+    CREATE_OUTLOOK_EVENT: tool({
+      description: 'Add an event to the connected Microsoft 365 / Outlook calendar (see [MICROSOFT 365] below). Staged like every tool above, not run here — the user\'s own device creates it via Microsoft Graph using their locally-stored connection. start/end are plain date/time strings, resolved against [CURRENT DATE & TIME] first. Pass teams_meeting: true if the user wants a real Teams join link attached.',
+      inputSchema: z.object({
+        subject: z.string().describe('Event title.'),
+        start: z.string().describe('Start date/time, e.g. "2026-08-20T14:00:00". For an all-day event, use a plain date "2026-08-20".'),
+        start_timezone: z.string().optional().describe('IANA timezone for start, e.g. "America/New_York". Defaults to UTC if omitted.'),
+        end: z.string().optional().describe('End date/time or plain date. Defaults to 1 hour after start if omitted for a timed event.'),
+        end_timezone: z.string().optional().describe('IANA timezone for end. Defaults to start_timezone.'),
+        description: z.string().optional(),
+        location: z.string().optional(),
+        teams_meeting: z.boolean().optional().describe('Set true to attach a real Microsoft Teams join link to this event.'),
+      }),
+      execute: queue('CREATE_OUTLOOK_EVENT'),
+    }),
+    UPDATE_OUTLOOK_EVENT: tool({
+      description: 'Change an existing Outlook calendar event. Get the event_id from list_outlook_events first; never guess one. Only pass the fields actually changing.',
+      inputSchema: z.object({
+        event_id: z.string().describe('The event\'s id, from list_outlook_events.'),
+        subject: z.string().optional(),
+        start: z.string().optional(),
+        start_timezone: z.string().optional(),
+        end: z.string().optional(),
+        end_timezone: z.string().optional(),
+        description: z.string().optional(),
+        location: z.string().optional(),
+      }),
+      execute: queue('UPDATE_OUTLOOK_EVENT'),
+    }),
+    DELETE_OUTLOOK_EVENT: tool({
+      description: 'Cancel/remove an event from the connected Outlook calendar. Get the event_id from list_outlook_events first; never guess one. Destructive — goes through the normal confirm-before-destructive step like any other delete.',
+      inputSchema: z.object({ event_id: z.string().describe('The event\'s id, from list_outlook_events.') }),
+      execute: queue('DELETE_OUTLOOK_EVENT'),
+    }),
+    SEND_OUTLOOK_MESSAGE: tool({
+      description: 'Send an email from the connected Outlook/Exchange account (see [MICROSOFT 365] below). Staged like every tool above, not run here — the user\'s own device sends it via Microsoft Graph using their locally-stored connection.',
+      inputSchema: z.object({
+        to: z.string().describe('Recipient email address.'),
+        subject: z.string(),
+        body: z.string().describe('Plain-text message body.'),
+      }),
+      execute: queue('SEND_OUTLOOK_MESSAGE'),
+    }),
     CREATE_CLICKUP_TASK: tool({
       description: 'Add a task to the connected ClickUp workspace (see [CLICKUP] below). Staged like every tool above, not run here — the user\'s own device creates it via the ClickUp API using their locally-stored connection. Uses the default list configured in Settings unless list_id is given (from list_clickup_lists).',
       inputSchema: z.object({
@@ -1129,6 +1235,78 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCal
       },
     }),
 
+    list_outlook_events: tool({
+      description: 'List upcoming events on the connected Outlook calendar (see [MICROSOFT 365] below). Runs immediately and returns real data. Defaults to the next 30 days from right now if no range is given.',
+      inputSchema: z.object({
+        time_min: z.string().optional().describe('ISO lower bound. Defaults to right now.'),
+        time_max: z.string().optional().describe('ISO upper bound, if the user asked about a specific range.'),
+      }),
+      execute: async ({ time_min, time_max }) => {
+        if (!microsoft?.accessToken || !microsoft?.refreshToken) return microsoftNotConnected();
+        try {
+          const accessToken = await refreshMicrosoftAccessToken(microsoft.refreshToken);
+          const params = new URLSearchParams({
+            $orderby: 'start/dateTime',
+            $top: '20',
+            startDateTime: time_min || new Date().toISOString(),
+            endDateTime: time_max || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          });
+          const data = await graphFetch(`${GRAPH_BASE}/calendarView?${params}`, accessToken);
+          const events = (data.value || []).map(shapeOutlookEvent);
+          trace(`list_outlook_events() — ${events.length} event${events.length === 1 ? '' : 's'}`, { events });
+          return { connected: true, count: events.length, events };
+        } catch (error) {
+          return { connected: true, error: `Couldn't list Outlook events: ${error.message}` };
+        }
+      },
+    }),
+
+    list_outlook_messages: tool({
+      description: 'List recent messages in the connected Outlook inbox (see [MICROSOFT 365] below). Runs immediately and returns real data.',
+      inputSchema: z.object({
+        query: z.string().optional().describe('Optional search text (subject/body/sender).'),
+        max_results: z.number().optional().describe('Defaults to 10.'),
+      }),
+      execute: async ({ query, max_results }) => {
+        if (!microsoft?.accessToken || !microsoft?.refreshToken) return microsoftNotConnected();
+        try {
+          const accessToken = await refreshMicrosoftAccessToken(microsoft.refreshToken);
+          const params = new URLSearchParams({ $top: String(max_results || 10), $orderby: 'receivedDateTime desc' });
+          if (query) params.set('$search', `"${query}"`);
+          const data = await graphFetch(`${GRAPH_BASE}/messages?${params}`, accessToken);
+          const messages = (data.value || []).map(shapeOutlookMessage);
+          trace(`list_outlook_messages() — ${messages.length} message${messages.length === 1 ? '' : 's'}`, { messages });
+          return { connected: true, count: messages.length, messages };
+        } catch (error) {
+          return { connected: true, error: `Couldn't list Outlook messages: ${error.message}` };
+        }
+      },
+    }),
+
+    read_outlook_message: tool({
+      description: 'Read the full body of one Outlook message. Get message_id from list_outlook_messages first; never guess one. Runs immediately and returns real data.',
+      inputSchema: z.object({ message_id: z.string().describe('The message\'s id, from list_outlook_messages.') }),
+      execute: async ({ message_id }) => {
+        if (!microsoft?.accessToken || !microsoft?.refreshToken) return microsoftNotConnected();
+        try {
+          const accessToken = await refreshMicrosoftAccessToken(microsoft.refreshToken);
+          const data = await graphFetch(`${GRAPH_BASE}/messages/${message_id}`, accessToken);
+          const message = {
+            id: data.id,
+            subject: data.subject,
+            from: data.from?.emailAddress?.address || '',
+            to: (data.toRecipients || []).map((r) => r.emailAddress?.address).filter(Boolean).join(', '),
+            receivedDateTime: data.receivedDateTime,
+            body: data.body?.contentType === 'text' ? data.body.content : data.bodyPreview,
+          };
+          trace(`read_outlook_message(${message_id})`, { message });
+          return { connected: true, message };
+        } catch (error) {
+          return { connected: true, error: `Couldn't read that message: ${error.message}` };
+        }
+      },
+    }),
+
     list_clickup_spaces: tool({
       description: 'List every Space in the connected ClickUp workspace. Runs immediately. Use before list_clickup_lists if you need to find a list outside the default one.',
       inputSchema: z.object({}),
@@ -1257,6 +1435,8 @@ GOOGLE CALENDAR: [GOOGLE CALENDAR] below says whether the user has connected the
 
 GMAIL: [GMAIL] below says whether the user has connected Gmail. If not connected, and a request needs it (list_gmail_messages/read_gmail_message returns connected: false, or the user asks about their email/inbox), tell them to connect one in Settings -> Gmail rather than guessing. list_gmail_messages/read_gmail_message are read tools, run immediately. SEND_GMAIL_MESSAGE is staged like every other mutation. Get a real message_id from list_gmail_messages before read_gmail_message, never guess one. If a Gmail tool returns an "error" field, quote it to the user verbatim, same as vault_*/calendar tool errors.
 
+MICROSOFT 365: [MICROSOFT 365] below says whether the user has connected a Microsoft 365 or Outlook.com account — one connection covers Outlook Calendar, Outlook/Exchange mail, and Teams meeting links. If not connected, and a request needs it (a list_outlook_*/read_outlook_message tool returns connected: false, or the user asks about Outlook/their Microsoft calendar or inbox/a Teams meeting), tell them to connect one in Settings -> Microsoft 365 / Outlook rather than guessing. list_outlook_events/list_outlook_messages/read_outlook_message are read tools, run immediately. CREATE_OUTLOOK_EVENT/UPDATE_OUTLOOK_EVENT/DELETE_OUTLOOK_EVENT/SEND_OUTLOOK_MESSAGE are staged like every other mutation — get a real event_id/message_id from the matching list tool before UPDATE/DELETE/read, never guess or invent one. Pass teams_meeting: true on CREATE_OUTLOOK_EVENT only if the user actually wants a Teams link on that event. Resolve relative dates against [CURRENT DATE & TIME] yourself before calling any of these. If an Outlook tool returns an "error" field, quote it to the user verbatim, same as any other tool error.
+
 CLICKUP: [CLICKUP] below says whether the user has connected ClickUp, and their default list if one's configured. If not connected, and a request needs it (a list_clickup_* tool returns connected: false, or the user asks about ClickUp/their tasks there/ClickUp Chat), tell them to connect one in Settings -> ClickUp rather than guessing. list_clickup_tasks/list_clickup_spaces/list_clickup_lists/list_clickup_channels/list_clickup_messages are read tools, run immediately. CREATE_CLICKUP_TASK uses the default list automatically unless the user asks for a different one — use list_clickup_spaces then list_clickup_lists to find a list_id in that case, don't guess one. UPDATE_CLICKUP_TASK/DELETE_CLICKUP_TASK need a real task_id from list_clickup_tasks first. SEND_CLICKUP_MESSAGE needs a real channel_id from list_clickup_channels first. If a ClickUp tool returns an "error" field, quote it to the user verbatim, same as vault_*/calendar tool errors.
 
 REMEMBERING A CORRECTION: if the user gives you a direct, standing instruction about how you should work with them going forward — not a one-off task, something like "stop suggesting archiving," "always give me two options before answering a bug question," "call me by my first name" — and a Vaea Vault is connected, write it into your own "Vaea Self.md" right then, this same turn, no need to ask first (see NEVER ASK FOR VERBAL PERMISSION above). read_vault_note it first (even if [VAULT CONTEXT] already shows a copy — that copy can be stale) so you don't clobber anything: carry the "## Identity" section forward EXACTLY as shown, unchanged (that section belongs to Settings/"/setup", never you), and fold the correction into "## Notes" alongside whatever's already there — consolidate rather than just appending if it's getting long. This is about YOUR OWN standing instructions, never a read on the user — if what they said is actually a fact about themselves rather than about how you should act, tell them to add it to their "About you" field in Settings instead of writing it yourself. If no vault is connected, just follow the correction for the rest of this conversation — there's nowhere durable to write it down, so only mention that if they explicitly ask you to remember it long-term.
@@ -1356,11 +1536,12 @@ function renderVaultOverview(vaultOverview) {
   return `\n\n[VAULT CONTEXT — force-loaded, not a tool result]\n${parts.join('\n\n')}`;
 }
 
-function buildContextPrompt({ activeProjectId, areas, products, projects, archivedProjects, tasks, archivedTasks, stakeholders, departments, notes, conversationHistory, userText, aiIdentity, externalVault, vaultOverview, googleCalendar, gmail, clickup, protocolReminderRequested, now }) {
+function buildContextPrompt({ activeProjectId, areas, products, projects, archivedProjects, tasks, archivedTasks, stakeholders, departments, notes, conversationHistory, userText, aiIdentity, externalVault, vaultOverview, googleCalendar, gmail, microsoft, clickup, protocolReminderRequested, now }) {
   const identity = aiIdentity || {};
   const vaultConnected = !!(externalVault?.owner && externalVault?.repo && externalVault?.token);
   const calendarConnected = !!(googleCalendar?.accessToken && googleCalendar?.refreshToken);
   const gmailConnected = !!(gmail?.accessToken && gmail?.refreshToken);
+  const microsoftConnected = !!(microsoft?.accessToken && microsoft?.refreshToken);
   const clickupConnected = !!(clickup?.accessToken && clickup?.workspaceId);
   return `[YOUR IDENTITY]
 Name: ${identity.name || '(not set — you\'re currently displayed as "Vaea Chat")'}
@@ -1380,6 +1561,9 @@ ${calendarConnected ? 'Connected.' : 'Not connected — list_calendar_events wil
 
 [GMAIL]
 ${gmailConnected ? `Connected: ${gmail.emailAddress || '(address unknown)'}` : 'Not connected — list_gmail_messages/read_gmail_message will return connected: false.'}
+
+[MICROSOFT 365]
+${microsoftConnected ? `Connected: ${microsoft.emailAddress || '(address unknown)'}` : 'Not connected — list_outlook_events/list_outlook_messages/read_outlook_message will return connected: false.'}
 
 [CLICKUP]
 ${clickupConnected ? `Connected: ${clickup.workspaceName}${clickup.defaultListName ? ` (default list: ${clickup.defaultListName})` : ' (no default list configured)'}` : 'Not connected — list_clickup_* tools will return connected: false.'}
@@ -1423,7 +1607,7 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const {
       message, conversationHistory, activeProjectId, aiIdentity = {}, externalVault = {},
-      vaultOverview = null, googleCalendar = {}, gmail = {}, clickup = {}, protocolReminderRequested = false, clientNow = null,
+      vaultOverview = null, googleCalendar = {}, gmail = {}, microsoft = {}, clickup = {}, protocolReminderRequested = false, clientNow = null,
       areas = [], products = [], projects = [], archivedProjects = [],
       tasks = [], archivedTasks = [], stakeholders = [], departments = [], notes = [],
     } = body;
@@ -1449,7 +1633,7 @@ Deno.serve(async (req) => {
       activeProjectId, areas, products, projects, archivedProjects,
       tasks, archivedTasks, stakeholders, departments, notes,
       conversationHistory, userText: message, aiIdentity, externalVault,
-      vaultOverview, googleCalendar, gmail, clickup, protocolReminderRequested, now,
+      vaultOverview, googleCalendar, gmail, microsoft, clickup, protocolReminderRequested, now,
     });
 
     // Streamed as newline-delimited JSON, one object per line — our own
@@ -1471,7 +1655,7 @@ Deno.serve(async (req) => {
           const agent = new ToolLoopAgent({
             model: models('automatic'),
             instructions: buildInstructions(),
-            tools: buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCalendar, gmail, clickup, emit, now }),
+            tools: buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCalendar, gmail, microsoft, clickup, emit, now }),
             stopWhen: stepCountIs(40),
           });
 

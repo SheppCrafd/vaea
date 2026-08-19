@@ -651,6 +651,105 @@ export const TOOL_CATALOG = [
   },
 
   {
+    name: "CREATE_OUTLOOK_EVENT",
+    staged: true,
+    description: "Add an event to the connected Microsoft 365 / Outlook calendar (see [MICROSOFT 365] below). Staged like every tool above, not run here — the user's own device creates it via Microsoft Graph using their locally-stored connection. start/end are {dateTime, timeZone} — resolve relative dates against [CURRENT DATE & TIME] first. Pass teams_meeting: true if the user wants a real Teams join link attached.",
+    parameters: {
+      type: "object",
+      properties: {
+        subject: { type: "string", description: "Event title." },
+        start: { type: "string", description: "Start date/time, e.g. \"2026-08-20T14:00:00\". For an all-day event, use a plain date \"2026-08-20\"." },
+        start_timezone: { type: "string", description: "IANA timezone for start, e.g. \"America/New_York\". Defaults to UTC if omitted." },
+        end: { type: "string", description: "End date/time or plain date. Defaults to 1 hour after start if omitted for a timed event." },
+        end_timezone: { type: "string", description: "IANA timezone for end. Defaults to start_timezone." },
+        description: { type: "string" },
+        location: { type: "string" },
+        teams_meeting: { type: "boolean", description: "Set true to attach a real Microsoft Teams join link to this event." },
+      },
+      required: ["subject", "start"],
+    },
+  },
+  {
+    name: "UPDATE_OUTLOOK_EVENT",
+    staged: true,
+    description: "Change an existing Outlook calendar event. Get the event_id from list_outlook_events first; never guess one. Only pass the fields actually changing.",
+    parameters: {
+      type: "object",
+      properties: {
+        event_id: { type: "string", description: "The event's id, from list_outlook_events." },
+        subject: { type: "string" },
+        start: { type: "string" },
+        start_timezone: { type: "string" },
+        end: { type: "string" },
+        end_timezone: { type: "string" },
+        description: { type: "string" },
+        location: { type: "string" },
+      },
+      required: ["event_id"],
+    },
+  },
+  {
+    name: "DELETE_OUTLOOK_EVENT",
+    staged: true,
+    description: "Cancel/remove an event from the connected Outlook calendar. Get the event_id from list_outlook_events first; never guess one. Destructive — goes through the normal confirm-before-destructive step like any other delete.",
+    parameters: {
+      type: "object",
+      properties: { event_id: { type: "string", description: "The event's id, from list_outlook_events." } },
+      required: ["event_id"],
+    },
+  },
+  {
+    name: "list_outlook_events",
+    staged: false,
+    description: "List upcoming events on the connected Outlook calendar (see [MICROSOFT 365] below). Runs immediately and returns real data. Defaults to the next 30 days from right now if no range is given.",
+    parameters: {
+      type: "object",
+      properties: {
+        time_min: { type: "string", description: "ISO lower bound. Defaults to right now." },
+        time_max: { type: "string", description: "ISO upper bound, if the user asked about a specific range." },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "SEND_OUTLOOK_MESSAGE",
+    staged: true,
+    description: "Send an email from the connected Outlook/Exchange account (see [MICROSOFT 365] below). Staged like every tool above, not run here — the user's own device sends it via Microsoft Graph using their locally-stored connection.",
+    parameters: {
+      type: "object",
+      properties: {
+        to: { type: "string", description: "Recipient email address." },
+        subject: { type: "string" },
+        body: { type: "string", description: "Plain-text message body." },
+      },
+      required: ["to", "subject", "body"],
+    },
+  },
+  {
+    name: "list_outlook_messages",
+    staged: false,
+    description: "List recent messages in the connected Outlook inbox (see [MICROSOFT 365] below). Runs immediately and returns real data.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Optional search text (subject/body/sender)." },
+        max_results: { type: "number", description: "Defaults to 10." },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "read_outlook_message",
+    staged: false,
+    description: "Read the full body of one Outlook message. Get message_id from list_outlook_messages first; never guess one. Runs immediately and returns real data.",
+    parameters: {
+      type: "object",
+      properties: { message_id: { type: "string", description: "The message's id, from list_outlook_messages." } },
+      required: ["message_id"],
+    },
+  },
+
+  {
     name: "CREATE_CLICKUP_TASK",
     staged: true,
     description: "Add a task to the connected ClickUp workspace (see [CLICKUP] below). Staged like every tool above, not run here — the user's own device creates it via the ClickUp API using their locally-stored connection. Uses the default list configured in Settings unless list_id is given (from list_clickup_lists).",

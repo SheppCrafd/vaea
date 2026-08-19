@@ -26,6 +26,8 @@ import { loadCalendarConnection, saveCalendarConnection, isCalendarConnected } f
 import { createEvent, updateEvent, deleteEvent } from "@/lib/googleCalendarApi";
 import { loadGmailConnection, saveGmailConnection, isGmailConnected } from "@/lib/gmailConnection";
 import { sendMessage as sendGmailMessage } from "@/lib/gmailApi";
+import { loadMicrosoftConnection, saveMicrosoftConnection, isMicrosoftConnected } from "@/lib/microsoftConnection";
+import { createEvent as createOutlookEvent, updateEvent as updateOutlookEvent, deleteEvent as deleteOutlookEvent, sendMessage as sendOutlookMessage } from "@/lib/microsoftGraphApi";
 import { loadClickUpConnection, isClickUpConnected } from "@/lib/clickupConnection";
 import { createTask as createClickUpTask, updateTask as updateClickUpTask, deleteTask as deleteClickUpTask, sendMessage as sendClickUpMessage } from "@/lib/clickupApi";
 import { syncIdentityToSelfNote } from "@/lib/selfNote";
@@ -48,6 +50,7 @@ export const DESTRUCTIVE_ACTIONS = new Set([
   "ARCHIVE_DONE_TASKS",
   "BULK_DELETE",
   "DELETE_CALENDAR_EVENT",
+  "DELETE_OUTLOOK_EVENT",
   "DELETE_CLICKUP_TASK",
 ]);
 
@@ -592,6 +595,56 @@ export async function executeAction(action, args) {
       const { connection: refreshed } = await deleteEvent(connection, args.event_id);
       await saveCalendarConnection(refreshed);
       return { toolResult: { deleted: args.event_id } };
+    }
+
+    case "CREATE_OUTLOOK_EVENT": {
+      const connection = await loadMicrosoftConnection();
+      if (!isMicrosoftConnected(connection)) throw new Error("No Microsoft account connected — connect one in Settings.");
+      const start = args.start.includes("T") ? { dateTime: args.start, timeZone: args.start_timezone || "UTC" } : { date: args.start };
+      const endValue = args.end || args.start;
+      const end = endValue.includes("T")
+        ? { dateTime: args.end || new Date(new Date(args.start).getTime() + 60 * 60 * 1000).toISOString(), timeZone: args.end_timezone || args.start_timezone || "UTC" }
+        : { date: endValue };
+      const { event: created, connection: refreshed } = await createOutlookEvent(connection, {
+        subject: args.subject,
+        start,
+        end,
+        description: args.description,
+        location: args.location,
+        teamsMeeting: args.teams_meeting,
+      });
+      await saveMicrosoftConnection(refreshed);
+      return { toolResult: { outlookEvent: created } };
+    }
+
+    case "UPDATE_OUTLOOK_EVENT": {
+      const connection = await loadMicrosoftConnection();
+      if (!isMicrosoftConnected(connection)) throw new Error("No Microsoft account connected — connect one in Settings.");
+      const patch = {};
+      if (args.subject !== undefined) patch.subject = args.subject;
+      if (args.description !== undefined) patch.description = args.description;
+      if (args.location !== undefined) patch.location = args.location;
+      if (args.start !== undefined) patch.start = args.start.includes("T") ? { dateTime: args.start, timeZone: args.start_timezone || "UTC" } : { date: args.start };
+      if (args.end !== undefined) patch.end = args.end.includes("T") ? { dateTime: args.end, timeZone: args.end_timezone || args.start_timezone || "UTC" } : { date: args.end };
+      const { event: updated, connection: refreshed } = await updateOutlookEvent(connection, args.event_id, patch);
+      await saveMicrosoftConnection(refreshed);
+      return { toolResult: { outlookEvent: updated } };
+    }
+
+    case "DELETE_OUTLOOK_EVENT": {
+      const connection = await loadMicrosoftConnection();
+      if (!isMicrosoftConnected(connection)) throw new Error("No Microsoft account connected — connect one in Settings.");
+      const { connection: refreshed } = await deleteOutlookEvent(connection, args.event_id);
+      await saveMicrosoftConnection(refreshed);
+      return { toolResult: { deleted: args.event_id } };
+    }
+
+    case "SEND_OUTLOOK_MESSAGE": {
+      const connection = await loadMicrosoftConnection();
+      if (!isMicrosoftConnected(connection)) throw new Error("No Microsoft account connected — connect one in Settings.");
+      const { connection: refreshed } = await sendOutlookMessage(connection, { to: args.to, subject: args.subject, body: args.body });
+      await saveMicrosoftConnection(refreshed);
+      return { toolResult: { sent: true } };
     }
 
     case "SEND_GMAIL_MESSAGE": {

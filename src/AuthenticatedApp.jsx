@@ -22,6 +22,7 @@ const LocalModeSetupGuidePage = lazy(() => import('@/pages/LocalModeSetupGuidePa
 const CalendarOAuthCallbackPage = lazy(() => import('@/pages/CalendarOAuthCallbackPage'));
 const ClickUpOAuthCallbackPage = lazy(() => import('@/pages/ClickUpOAuthCallbackPage'));
 const GmailOAuthCallbackPage = lazy(() => import('@/pages/GmailOAuthCallbackPage'));
+const MicrosoftOAuthCallbackPage = lazy(() => import('@/pages/MicrosoftOAuthCallbackPage'));
 // Add page imports here
 
 // Everything reachable only via /app/* — Dashboard, AppShell, the chat
@@ -117,6 +118,7 @@ const AuthenticatedApp = () => {
                 <Route path="settings/calendar-callback" element={<CalendarOAuthCallbackPage />} />
                 <Route path="settings/clickup-callback" element={<ClickUpOAuthCallbackPage />} />
                 <Route path="settings/gmail-callback" element={<GmailOAuthCallbackPage />} />
+                <Route path="settings/microsoft-callback" element={<MicrosoftOAuthCallbackPage />} />
                 {/* Add your page Route elements here */}
                 <Route index element={<AppShell><Dashboard /></AppShell>} />
                 <Route path="*" element={<AppShell><PageNotFound /></AppShell>} />
