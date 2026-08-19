@@ -56,14 +56,23 @@ function RecentMessages({ connection, onTokenRefreshed }) {
       ) : messages.length === 0 ? (
         <p className="text-xs text-muted-foreground">Nothing in the inbox.</p>
       ) : (
-        <ul className="flex flex-col gap-2">
+        // Two lines per row, not one — sender/subject on top the way an
+        // inbox list always reads, and the real snippet underneath, because
+        // a mail preview that can't show you a fragment of what was
+        // actually said isn't really a preview. Calendar's list is a rail
+        // of single-line rows against time; this is a stack of messages,
+        // because that's the thing each one actually is.
+        <ul className="flex flex-col gap-3">
           {messages.map((message) => (
-            <li key={message.id} className="flex items-baseline gap-2.5 text-sm">
-              {message.unread && <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />}
-              <span className={`truncate text-xs text-muted-foreground font-terminal shrink-0 w-32 ${message.unread ? "text-foreground font-medium" : ""}`}>
-                {message.from.replace(/<.*>/, "").trim() || message.from}
-              </span>
-              <span className={`truncate ${message.unread ? "font-medium" : ""}`}>{message.subject || "(no subject)"}</span>
+            <li key={message.id} className="flex flex-col gap-0.5 text-sm">
+              <div className="flex items-baseline gap-2.5">
+                {message.unread && <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />}
+                <span className={`truncate text-xs text-muted-foreground font-terminal shrink-0 w-32 ${message.unread ? "text-foreground font-medium" : ""}`}>
+                  {message.from.replace(/<.*>/, "").trim() || message.from}
+                </span>
+                <span className={`truncate ${message.unread ? "font-medium" : ""}`}>{message.subject || "(no subject)"}</span>
+              </div>
+              {message.snippet && <p className="pl-4 text-xs text-muted-foreground/70 truncate">{message.snippet}</p>}
             </li>
           ))}
         </ul>
@@ -112,7 +121,9 @@ export default function GmailSection() {
   return (
     <div className="bg-card border border-border rounded-xl p-6">
       <div className="flex items-center justify-between mb-1">
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Gmail</p>
+        <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          <Mail className="w-3.5 h-3.5" /> Gmail
+        </p>
         {connected && (
           <span className="flex items-center gap-1 text-[11px] text-primary font-medium">
             <Check className="w-3.5 h-3.5" /> {connection.emailAddress || "Connected"}
@@ -120,10 +131,10 @@ export default function GmailSection() {
         )}
       </div>
       <p className="text-xs text-muted-foreground mb-4">
-        Connect Gmail and the assistant can check what's in your inbox or send a message when you ask — sending
-        always goes through the same confirm step any other outgoing action does. Nothing about this account sits
-        on Vaea's servers: the connection lives on this device, sent along transiently only for the moment a
-        request actually needs it.
+        Connect Gmail and the assistant can read what's landed in your inbox, or draft and send a reply on your
+        behalf when you ask — nothing goes out without the same confirm step every outgoing action gets. Like the
+        calendar connection, this one lives only on this device and is passed along just long enough for a single
+        request to use it, never stored on Vaea's servers.
       </p>
 
       {!connected ? (

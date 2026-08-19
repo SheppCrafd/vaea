@@ -58,15 +58,22 @@ function UpcomingEvents({ connection, onTokenRefreshed }) {
       ) : events.length === 0 ? (
         <p className="text-xs text-muted-foreground">Nothing coming up.</p>
       ) : (
-        <ul className="flex flex-col gap-2">
-          {events.map((event) => {
+        // A day-agenda rail, not a plain list — the left border reads as a
+        // timeline the events sit against, and only the soonest one (index
+        // 0, since the API call above already sorts by startTime) is picked
+        // out in full color: exactly one thing on this list is "next."
+        <ul className="flex flex-col gap-2.5 border-l-2 border-border pl-3">
+          {events.map((event, index) => {
             const start = event.start?.dateTime || event.start?.date;
             const label = event.start?.dateTime
               ? new Date(start).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
               : new Date(start).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+            const isNext = index === 0;
             return (
               <li key={event.id} className="flex items-baseline gap-2.5 text-sm">
-                <span className="text-xs text-muted-foreground font-terminal shrink-0 w-32">{label}</span>
+                <span className={`text-xs font-terminal shrink-0 w-32 ${isNext ? "text-primary font-medium" : "text-muted-foreground"}`}>
+                  {label}
+                </span>
                 <span className="truncate">{event.summary || "(no title)"}</span>
                 {event.hangoutLink && <span className="text-[10px] text-primary shrink-0">Meet</span>}
               </li>
@@ -127,7 +134,9 @@ export default function GoogleCalendarSection() {
   return (
     <div className="bg-card border border-border rounded-xl p-6">
       <div className="flex items-center justify-between mb-1">
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Google Calendar</p>
+        <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          <CalendarDays className="w-3.5 h-3.5" /> Google Calendar
+        </p>
         {connected && (
           <span className="flex items-center gap-1 text-[11px] text-primary font-medium">
             <Check className="w-3.5 h-3.5" /> Connected
@@ -135,11 +144,10 @@ export default function GoogleCalendarSection() {
         )}
       </div>
       <p className="text-xs text-muted-foreground mb-4">
-        Connect your Google Calendar and the assistant can look up what's coming up, or add, move, and cancel events
-        when you ask — moving anything off the calendar always goes through the same confirm step any other
-        destructive change does. Nothing about this account sits on Vaea's servers: the connection lives on this
-        device, and is only ever sent along transiently, for the moment a calendar request actually needs it — same
-        as Vaea Vault's own connection.
+        Once connected, the assistant can see what's actually on your schedule — this week, next week, whenever you
+        ask — and add, reschedule, or clear time when you tell it to. Anything it removes from the calendar goes
+        through the same confirm step as any other destructive change. The connection itself never touches Vaea's
+        servers: it stays on this device and is only handed over for the instant a calendar request needs it.
       </p>
 
       {!connected ? (

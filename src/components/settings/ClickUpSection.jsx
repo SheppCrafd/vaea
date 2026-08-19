@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { CheckSquare, Check, Loader2, TriangleAlert, Unlink } from "lucide-react";
+import { CheckSquare, Check, ChevronRight, FolderTree, Loader2, MessagesSquare, TriangleAlert, Unlink } from "lucide-react";
 import { loadClickUpConnection, saveClickUpConnection, clearClickUpConnection, isClickUpConnected, DEFAULTS as CLICKUP_DEFAULTS } from "@/lib/clickupConnection";
 import { buildAuthorizationUrl } from "@/lib/clickupOAuth";
 import { listSpaces, listLists } from "@/lib/clickupApi";
@@ -66,8 +66,8 @@ function DefaultListPicker({ connection, onSaved }) {
   }
 
   return (
-    <div className="grid sm:grid-cols-2 gap-3">
-      <div>
+    <div className="flex flex-col sm:flex-row sm:items-end gap-2">
+      <div className="flex-1 min-w-0">
         <p className="text-xs font-medium mb-1.5">Space</p>
         <select
           value={spaceId}
@@ -80,7 +80,8 @@ function DefaultListPicker({ connection, onSaved }) {
           ))}
         </select>
       </div>
-      <div>
+      <ChevronRight className="hidden sm:block w-3.5 h-3.5 text-muted-foreground shrink-0 mb-2.5" />
+      <div className="flex-1 min-w-0">
         <p className="text-xs font-medium mb-1.5">Default list</p>
         <select
           value={listId}
@@ -144,11 +145,14 @@ export default function ClickUpSection() {
         )}
       </div>
       <p className="text-xs text-muted-foreground mb-4">
-        Connect ClickUp and the assistant can look up or add tasks in a list you pick, and read or post to your
-        ClickUp Chat channels — moving or deleting anything always goes through the same confirm step any other
-        destructive change does. The connection lives on this device; ClickUp's own token exchange is the one step
-        that has to pass through Vaea's backend (ClickUp requires a real client secret to complete it, unlike Google
-        Calendar's fully local flow) — nothing about your workspace itself is stored there afterward.
+        ClickUp isn't a calendar or an inbox — it's where the actual work lives, so once connected the assistant can
+        look up or add tasks in a list you choose below, plus{" "}
+        <span className="inline-flex items-center gap-1"><MessagesSquare className="w-3 h-3" />read or post</span>{" "}
+        to your ClickUp Chat channels. Moving or deleting anything always goes through the same confirm step any
+        other destructive change does. The connection itself lives on this device; the one exception is ClickUp's
+        token exchange, which has to pass through Vaea's backend since ClickUp requires a real client secret to
+        complete it (unlike Google Calendar's fully local flow) — nothing about your workspace is stored there
+        afterward.
       </p>
 
       {!connected ? (
@@ -178,10 +182,17 @@ export default function ClickUpSection() {
             <Unlink className="w-3.5 h-3.5" /> Disconnect
           </button>
           <div className="mt-6 pt-6 border-t border-border">
-            <p className="text-sm font-medium mb-3">Where new tasks go</p>
+            <p className="text-sm font-medium mb-1">Where new tasks go</p>
+            <p className="text-xs text-muted-foreground mb-3">
+              ClickUp has no single obvious default the way a calendar has "primary" — pick a space, then a list
+              within it.
+            </p>
             <DefaultListPicker connection={connection} onSaved={setConnection} />
             {connection.defaultListName && (
-              <p className="text-xs text-muted-foreground mt-2">Currently: {connection.defaultListName}</p>
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground mt-2.5">
+                <FolderTree className="w-3.5 h-3.5 shrink-0" />
+                <span className="font-terminal">{connection.defaultListName}</span>
+              </p>
             )}
           </div>
         </>

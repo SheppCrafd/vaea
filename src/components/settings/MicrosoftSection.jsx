@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Building2, Check, Loader2, TriangleAlert, Unlink } from "lucide-react";
+import { CalendarDays, Check, LayoutGrid, Loader2, Mail, TriangleAlert, Unlink, Video } from "lucide-react";
 import { loadMicrosoftConnection, saveMicrosoftConnection, clearMicrosoftConnection, isMicrosoftConnected, DEFAULTS } from "@/lib/microsoftConnection";
 import { buildAuthorizationUrl } from "@/lib/microsoftOAuthPkce";
 import { listEvents } from "@/lib/microsoftGraphApi";
@@ -61,7 +61,11 @@ function UpcomingEvents({ connection, onTokenRefreshed }) {
             <li key={event.id} className="flex items-baseline gap-2.5 text-sm">
               <span className="text-xs text-muted-foreground font-terminal shrink-0 w-32 truncate">{event.start}</span>
               <span className="truncate">{event.subject || "(no title)"}</span>
-              {event.isOnlineMeeting && <span className="text-[10px] text-primary shrink-0">Teams</span>}
+              {event.isOnlineMeeting && (
+                <span className="flex items-center gap-1 text-[10px] text-primary border border-primary/30 rounded px-1 py-0.5 shrink-0">
+                  <Video className="w-2.5 h-2.5" /> Teams
+                </span>
+              )}
             </li>
           ))}
         </ul>
@@ -119,13 +123,21 @@ export default function MicrosoftSection() {
           </span>
         )}
       </div>
-      <p className="text-xs text-muted-foreground mb-4">
-        Connect your Microsoft/Outlook account and the assistant can look up your calendar or inbox, add or cancel
-        events (with a real Teams link if you want one), and send email when you ask — cancelling an event always
-        goes through the same confirm step any other destructive change does. Works with both a Microsoft 365 work
-        account and a personal Outlook.com account. Nothing about this account sits on Vaea's servers: the
-        connection lives on this device, sent along transiently only for the moment a request actually needs it.
+      <p className="text-xs text-muted-foreground mb-3">
+        One Microsoft sign-in covers three surfaces at once: Outlook Calendar, Outlook/Exchange mail, and Teams
+        meeting links (the assistant can attach a real join link to any event it creates). Works with a Microsoft
+        365 work account or a personal Outlook.com account either way. Cancelling an event or sending mail always
+        goes through the same confirm step any other destructive change does, and nothing about the account sits on
+        Vaea's servers — the connection lives on this device, sent along transiently only for the moment a request
+        actually needs it.
       </p>
+      <div className="flex items-center gap-3 text-[11px] text-muted-foreground mb-4">
+        <span className="flex items-center gap-1"><CalendarDays className="w-3 h-3" /> Calendar</span>
+        <span className="text-border">·</span>
+        <span className="flex items-center gap-1"><Mail className="w-3 h-3" /> Mail</span>
+        <span className="text-border">·</span>
+        <span className="flex items-center gap-1"><Video className="w-3 h-3" /> Teams</span>
+      </div>
 
       {!connected ? (
         <>
@@ -135,7 +147,7 @@ export default function MicrosoftSection() {
             disabled={connecting}
             className="flex items-center gap-1.5 text-sm px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md transition-colors shadow-sm disabled:opacity-50"
           >
-            {connecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Building2 className="w-3.5 h-3.5" />}
+            {connecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LayoutGrid className="w-3.5 h-3.5" />}
             {connecting ? "Redirecting to Microsoft…" : "Connect Microsoft"}
           </button>
           {error && (
