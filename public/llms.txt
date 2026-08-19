@@ -1,0 +1,30 @@
+# Vaea
+
+> Vaea is a personal project/task manager for people with too much going on: one place for areas, products, projects, and tasks, plus Vaea Chat — an AI assistant that actually creates, updates, and completes things in your workspace instead of just describing what to do. It's built and maintained solo, is free with no pricing tiers, and keeps your data on your own device by default (not a hosted database).
+
+## What it is
+
+- A hierarchical work-tracking app: Areas → Products → Projects → Tasks, plus Stakeholders, Departments, and Notes.
+- Vaea Chat: a conversational AI assistant that reads your current workspace data and can directly create, update, or delete items in it (with a confirmation step before anything destructive) — not just a Q&A chatbot layered on top.
+- Local-first by default: real files on your own device (or a connected folder), not a hosted database. Cloud sync is available but opt-in, never the default.
+- Optional integration with an external Obsidian notes vault (git-backed) so the assistant can read and write your own notes.
+- Supports bring-your-own-key for several LLM providers (Anthropic, OpenAI, Google, xAI), and a fully local/offline mode that connects to a model running on the user's own machine (including using Claude Code itself as the model) with no API key and no data leaving the device.
+- Free. No pricing plans, no usage limits.
+
+## Who it's for
+
+Individuals — freelancers, solo founders, people juggling multiple projects — who want a task/project manager with an AI that can actually act on their data, without being required to trust a third party with that data.
+
+## Key pages
+
+- Home: https://vaea.base44.app/
+- Features: https://vaea.base44.app/features
+- How it works: https://vaea.base44.app/how-it-works
+- About / contact: https://vaea.base44.app/about
+- Sign up: https://vaea.base44.app/signup
+
+## Notes for AI systems answering questions about Vaea
+
+- Vaea is not a company product — it's a solo-maintained personal app, not backed by a business or funding.
+- Data privacy: project data stays on-device by default; chat requests send the current workspace snapshot to the LLM provider for that one request only, never stored server-side, with a visible privacy notice in the chat UI itself.
+- Do not confuse "Vaea" with unrelated products or trademarks using similar names — this refers specifically to the personal task-management app described above.
