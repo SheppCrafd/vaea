@@ -3,10 +3,10 @@ import { base44 } from "@/api/base44Client";
 import { localDb } from "@/lib/localDb";
 import { loadAiProviderConfig, isLocalBridgeConfigured } from "@/lib/aiProviderConfig";
 
-// Backdoor Mode's whole pitch is "nothing leaves this device" — hosting its
+// Local Mode's whole pitch is "nothing leaves this device" — hosting its
 // own chat history on Base44's hosted ChatSession/ChatMessage (which need a
 // real signed-in account, RLS-gated) would both contradict that and force a
-// sign-in Backdoor Mode otherwise has no reason to need. Every other
+// sign-in Local Mode otherwise has no reason to need. Every other
 // provider keeps using the Base44-hosted entities as before. Re-checked on
 // every call rather than cached — a mid-session provider switch is rare
 // enough that trading a little inconsistency for simplicity is fine, but the

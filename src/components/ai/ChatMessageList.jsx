@@ -244,7 +244,7 @@ export default function ChatMessageList({ messages, isComputing, liveSteps, stre
           </div>
           {/* The model's own narration, growing live as it actually arrives
               (real network deltas for base44-hosted/BYOK, a paced simulation
-              for Backdoor Mode — see useChatController.js/byokChat.js).
+              for Local Mode — see useChatController.js/byokChat.js).
               Rendered through the same real markdown the final persisted
               message uses (not raw text) so headings/bold/bullets already
               look right while it's still growing, instead of showing raw

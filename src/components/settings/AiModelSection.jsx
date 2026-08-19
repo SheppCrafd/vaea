@@ -70,7 +70,7 @@ export default function AiModelSection() {
         Vaea Chat answers using its own built-in model by default. Bring your own API key instead to use Claude,
         ChatGPT, Gemini, or Grok directly — your key is sent from this browser straight to that provider, never
         through Vaea's own servers. Pick Local HTTP to call a model server already running on this device (Ollama,
-        LM Studio, etc.) directly — no folder, no script, nothing for IT policy to block. Or pick Backdoor Mode to
+        LM Studio, etc.) directly — no folder, no script, nothing for IT policy to block. Or pick Local Mode to
         route every prompt through a folder on this device instead — no network call at all, for fully air-gapped
         setups.
       </p>
@@ -176,11 +176,11 @@ export default function AiModelSection() {
         )}
 
         {isLocalBridge && (
-          <BackdoorModeConnect
-            backdoorConnector={config.backdoorConnector}
-            backdoorModel={config.backdoorModel}
-            backdoorUrl={config.backdoorUrl}
-            onBackdoorChange={(patch) => persist({ ...config, ...patch })}
+          <LocalModeConnect
+            localConnector={config.localConnector}
+            localModel={config.localModel}
+            localUrl={config.localUrl}
+            onLocalConfigChange={(patch) => persist({ ...config, ...patch })}
           />
         )}
 
@@ -198,14 +198,14 @@ export default function AiModelSection() {
 }
 
 // Every connector bridge_watcher.py knows how to talk to directly — found
-// (by actually running Backdoor Mode against a real local Ollama model, not
+// (by actually running Local Mode against a real local Ollama model, not
 // just guessing) to be the single biggest gap for anyone without Python/API
 // experience: Ollama's own API doesn't speak Vaea's request shape natively,
 // so getting a real reply used to require hand-writing a translation
 // script. These six presets mean picking one from a dropdown and typing a
 // model name is the whole job now — see bridgeWatcherKit.js's own header
 // for why one generic translator covers four of them.
-const BACKDOOR_CONNECTORS = [
+const LOCAL_CONNECTORS = [
   { id: "echo", label: "Test only — no real model", needsModel: false },
   { id: "ollama", label: "Ollama", needsModel: true, modelPlaceholder: "llama3.2" },
   { id: "lmstudio", label: "LM Studio", needsModel: true, modelPlaceholder: "the model name shown in LM Studio" },
@@ -216,19 +216,19 @@ const BACKDOOR_CONNECTORS = [
   { id: "custom", label: "Custom endpoint (advanced)", needsModel: false },
 ];
 
-// Folder-connect UI for "Backdoor Mode" — the user grants access to a
+// Folder-connect UI for "Local Mode" — the user grants access to a
 // folder Vaea writes prompts/ and responses/ into (localBridgeStorage.js),
 // picks which local model answers, and their own local watcher script (see
 // the setup guide) answers by polling it. Deliberately mirrors
 // ExternalVaultSection.jsx's connect/disconnect button pattern.
-function BackdoorModeConnect({ backdoorConnector, backdoorModel, backdoorUrl, onBackdoorChange }) {
+function LocalModeConnect({ localConnector, localModel, localUrl, onLocalConfigChange }) {
   const [status, setStatus] = useState("checking");
   const [folderName, setFolderName] = useState(null);
   const [error, setError] = useState("");
   const [stats, setStats] = useState(null); // { pending: [names], processed: n }
   const [kitJustWritten, setKitJustWritten] = useState(false);
   const [autoDetected, setAutoDetected] = useState(null); // { connector, model } — just-detected, for the confirmation line
-  const activeConnector = BACKDOOR_CONNECTORS.find((c) => c.id === backdoorConnector) || BACKDOOR_CONNECTORS[0];
+  const activeConnector = LOCAL_CONNECTORS.find((c) => c.id === localConnector) || LOCAL_CONNECTORS[0];
 
   const refresh = async () => {
     const s = await getBridgeStatus();
@@ -259,7 +259,7 @@ function BackdoorModeConnect({ backdoorConnector, backdoorModel, backdoorUrl, on
       await refresh();
       const detected = await detectLocalModel();
       if (detected) {
-        onBackdoorChange({ backdoorConnector: detected.connector, backdoorModel: detected.model });
+        onLocalConfigChange({ localConnector: detected.connector, localModel: detected.model });
         await writeWatcherKit({ connector: detected.connector, model: detected.model });
         setAutoDetected(detected);
       }
@@ -286,7 +286,7 @@ function BackdoorModeConnect({ backdoorConnector, backdoorModel, backdoorUrl, on
 
   const handleRewriteKit = async () => {
     setError("");
-    const ok = await writeWatcherKit({ connector: backdoorConnector, model: backdoorModel.trim(), url: backdoorUrl.trim() });
+    const ok = await writeWatcherKit({ connector: localConnector, model: localModel.trim(), url: localUrl.trim() });
     if (ok) {
       setKitJustWritten(true);
       setTimeout(() => setKitJustWritten(false), 2000);
@@ -299,7 +299,7 @@ function BackdoorModeConnect({ backdoorConnector, backdoorModel, backdoorUrl, on
     return (
       <p className="flex items-start gap-1.5 text-xs text-destructive">
         <TriangleAlert className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-        Backdoor Mode needs direct folder access, which this browser doesn't support — use Chrome or Edge on desktop instead.
+        Local Mode needs direct folder access, which this browser doesn't support — use Chrome or Edge on desktop instead.
       </p>
     );
   }
@@ -325,7 +325,7 @@ function BackdoorModeConnect({ backdoorConnector, backdoorModel, backdoorUrl, on
           {autoDetected && (
             <p className="flex items-start gap-1.5 text-xs text-primary mb-3">
               <Check className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-              Found {BACKDOOR_CONNECTORS.find((c) => c.id === autoDetected.connector)?.label} already running —
+              Found {LOCAL_CONNECTORS.find((c) => c.id === autoDetected.connector)?.label} already running —
               configured it with model "{autoDetected.model}" automatically. Double-click the launcher
               (<span className="font-terminal">run_watcher.bat</span>) in the folder to start answering.
             </p>
@@ -347,14 +347,14 @@ function BackdoorModeConnect({ backdoorConnector, backdoorModel, backdoorUrl, on
           )}
 
           <div className="mb-3">
-            <label htmlFor="backdoor-connector" className="text-xs font-medium mb-1 block">Local model</label>
+            <label htmlFor="local-mode-connector" className="text-xs font-medium mb-1 block">Local model</label>
             <select
-              id="backdoor-connector"
-              value={backdoorConnector}
-              onChange={(e) => onBackdoorChange({ backdoorConnector: e.target.value })}
+              id="local-mode-connector"
+              value={localConnector}
+              onChange={(e) => onLocalConfigChange({ localConnector: e.target.value })}
               className="w-full text-xs px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all mb-2"
             >
-              {BACKDOOR_CONNECTORS.map((c) => (
+              {LOCAL_CONNECTORS.map((c) => (
                 <option key={c.id} value={c.id}>{c.label}</option>
               ))}
             </select>
@@ -362,15 +362,15 @@ function BackdoorModeConnect({ backdoorConnector, backdoorModel, backdoorUrl, on
             {activeConnector.needsModel && (
               <input
                 type="text"
-                value={backdoorModel}
-                onChange={(e) => onBackdoorChange({ backdoorModel: e.target.value })}
+                value={localModel}
+                onChange={(e) => onLocalConfigChange({ localModel: e.target.value })}
                 placeholder={activeConnector.modelPlaceholder}
                 autoComplete="off"
                 className="w-full text-xs px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all font-terminal mb-1.5"
               />
             )}
 
-            {backdoorConnector === "anthropic" && (
+            {localConnector === "anthropic" && (
               <p className="text-xs text-muted-foreground mb-1.5">
                 Set <span className="font-terminal">ANTHROPIC_API_KEY</span> in your own terminal before running the
                 watcher — Vaea never asks for, stores, or sees this key. If you just want Claude answering Vaea Chat
@@ -378,7 +378,7 @@ function BackdoorModeConnect({ backdoorConnector, backdoorModel, backdoorUrl, on
               </p>
             )}
 
-            {backdoorConnector === "claude-code" && (
+            {localConnector === "claude-code" && (
               <p className="text-xs text-muted-foreground mb-1.5">
                 Runs <span className="font-terminal">claude -p</span> on this device for each message — needs the{" "}
                 <a href="https://claude.com/claude-code" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">
@@ -390,11 +390,11 @@ function BackdoorModeConnect({ backdoorConnector, backdoorModel, backdoorUrl, on
               </p>
             )}
 
-            {backdoorConnector === "custom" && (
+            {localConnector === "custom" && (
               <input
                 type="text"
-                value={backdoorUrl}
-                onChange={(e) => onBackdoorChange({ backdoorUrl: e.target.value })}
+                value={localUrl}
+                onChange={(e) => onLocalConfigChange({ localUrl: e.target.value })}
                 placeholder="http://localhost:PORT/endpoint — already speaking Vaea's own request shape"
                 autoComplete="off"
                 className="w-full text-xs px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all font-terminal mb-1.5"
@@ -461,7 +461,7 @@ function BackdoorModeConnect({ backdoorConnector, backdoorModel, backdoorUrl, on
       )}
 
       <Link
-        to="/app/settings/backdoor-setup"
+        to="/app/settings/local-mode-setup"
         className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 mt-3 w-fit"
       >
         Set up your local watcher script <ChevronRight className="w-3 h-3" />

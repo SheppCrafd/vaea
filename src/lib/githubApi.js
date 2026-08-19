@@ -6,7 +6,7 @@
 // SLASH_COMMAND_GUIDE. Originally this file only covered what the client
 // needed for itself (connection test, write, the once-per-session force-
 // loaded overview) since base44-hosted chat's own vault_* tools ran
-// server-side, inside the model's own tool loop. BYOK/Backdoor Mode have no
+// server-side, inside the model's own tool loop. BYOK/Local Mode have no
 // server at all, so their own tool loop (localTools.js) now calls the
 // listVaultNoteRepo/readVaultNoteContent/searchVaultNotes/auditVaultNotes
 // exports below directly — the client-side twins of entry.ts's own

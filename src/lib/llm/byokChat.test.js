@@ -6,10 +6,11 @@ vi.mock("./localBridgeStorage.js", () => ({
   writeRequestFile: vi.fn(async () => {}),
   pollForResponseFile: vi.fn(),
   archiveProcessedRound: vi.fn(async () => {}),
-  savePendingBackdoorRequest: vi.fn(async () => {}),
-  clearPendingBackdoorRequest: vi.fn(async () => {}),
+  savePendingLocalModeRequest: vi.fn(async () => {}),
+  clearPendingLocalModeRequest: vi.fn(async () => {}),
   findLatestLivePromptRound: vi.fn(),
   readPromptFile: vi.fn(),
+  writeWorkspaceDataFile: vi.fn(async () => {}),
 }));
 
 import { getBridgeStatus, writeRequestFile, pollForResponseFile } from "./localBridgeStorage.js";
@@ -189,12 +190,12 @@ describe("runByokChat: end-to-end against a mocked provider response", () => {
   });
 });
 
-describe("runByokChat: local-bridge (Backdoor Mode) dispatch", () => {
+describe("runByokChat: local-bridge (Local Mode) dispatch", () => {
   it("rejects when the bridge folder isn't connected, without ever writing a request file", async () => {
     getBridgeStatus.mockResolvedValueOnce("disconnected");
     await expect(
       runByokChat({ providerConfig: { provider: "local-bridge" }, contextArgs: baseContextArgs })
-    ).rejects.toThrow("Connect your Backdoor Mode folder");
+    ).rejects.toThrow("Connect your Local Mode folder");
     expect(writeRequestFile).not.toHaveBeenCalled();
   });
 
@@ -214,7 +215,7 @@ describe("runByokChat: local-bridge (Backdoor Mode) dispatch", () => {
 
   it("returns real liveTrace entries from a search_workspace call, same as every other provider", async () => {
     // liveTrace is built by makeToolRunner (toolRunner.js), shared by every
-    // adapter — this confirms Backdoor Mode actually gets it too, not just
+    // adapter — this confirms Local Mode actually gets it too, not just
     // Anthropic/OpenAI-compatible, since it's easy for a shared-plumbing
     // feature like this to silently only get exercised by the one adapter
     // whose own tests happen to cover it.
@@ -238,7 +239,7 @@ describe("runByokChat: local-bridge (Backdoor Mode) dispatch", () => {
     // The reminder is client-decided (matchesProtocolTrigger, useChatController.js)
     // and threaded through contextArgs.protocolReminderRequested — this
     // confirms systemPrompt.js's buildContextPrompt actually renders it for
-    // Backdoor Mode too, not just the two HTTP-based adapters.
+    // Local Mode too, not just the two HTTP-based adapters.
     getBridgeStatus.mockResolvedValueOnce("connected");
     pollForResponseFile.mockResolvedValueOnce({ content: [{ type: "text", text: "Here's what I found." }] });
 

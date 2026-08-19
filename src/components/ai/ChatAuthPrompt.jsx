@@ -2,7 +2,7 @@ import { LogIn } from "lucide-react";
 
 // Chat is the one feature in this app that genuinely needs Base44 auth —
 // ChatSession/ChatMessage are hosted entities, RLS-gated — for every
-// provider except Backdoor Mode, which keeps its own chat history entirely
+// provider except Local Mode, which keeps its own chat history entirely
 // local instead (see useChatSessions.js/useChatMessages.js) and so never
 // hits this prompt. Everything else already works fine for an anonymous
 // visitor by design (requiresAuth: false, see AuthContext.jsx). Shown in

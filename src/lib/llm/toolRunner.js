@@ -1,4 +1,4 @@
-import { STAGED_TOOL_NAMES, MAX_BULK_ITEMS_PER_CALL } from "@/lib/llm/toolCatalog";
+import { STAGED_TOOL_NAMES, MAX_BULK_ITEMS_PER_CALL, validateToolInput } from "@/lib/llm/toolCatalog";
 import { runLocalTool } from "@/lib/llm/localTools";
 import { DESTRUCTIVE_ACTIONS } from "@/lib/chatActions";
 
@@ -74,6 +74,16 @@ export function makeToolRunner({ plan, liveTrace = [], dataset, externalVault, o
       }
       if (name === "BULK_DELETE" && Array.isArray(args?.ids) && args.ids.length > MAX_BULK_ITEMS_PER_CALL) {
         return { queued: false, error: `BULK_DELETE can only remove up to ${MAX_BULK_ITEMS_PER_CALL} ${args.entity_type || "records"} per call — split this into multiple BULK_DELETE calls instead.` };
+      }
+      // Same reasoning as the bulk-item-count checks above: catch an
+      // obviously bad call (missing required field, wrong type) at staging
+      // time, not after the whole plan comes back — the model/relay gets a
+      // tool_result error and a real chance to self-correct in this same
+      // turn instead of a silently-wrong plan only failing later at
+      // confirm/execute time (chatActions.js).
+      const validationError = validateToolInput(name, args);
+      if (validationError) {
+        return { queued: false, error: `${validationError} Fix it and call ${name} again.` };
       }
       const { temp_id, ...rest } = args || {};
       plan.push({ action: name, args: rest, ...(temp_id ? { temp_id } : {}) });

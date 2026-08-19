@@ -44,7 +44,7 @@ const STEPS = [
     body: (
       <>
         In <strong className="text-foreground">Settings → AI Model</strong>, pick{" "}
-        <strong className="text-foreground">Backdoor Mode</strong>, then choose (or create) an empty folder
+        <strong className="text-foreground">Local Mode</strong>, then choose (or create) an empty folder
         (Chrome/Edge desktop only). That's it — Vaea creates{" "}
         <span className="font-terminal text-xs text-foreground">prompts/</span> and{" "}
         <span className="font-terminal text-xs text-foreground">responses/</span> subfolders and writes a
@@ -77,7 +77,7 @@ const STEPS = [
   },
 ];
 
-export default function BackdoorModeSetupGuidePage() {
+export default function LocalModeSetupGuidePage() {
   return (
     <div className="h-full overflow-y-auto bg-background">
       <div className="border-b border-border bg-card sticky top-0 z-10">
@@ -86,7 +86,7 @@ export default function BackdoorModeSetupGuidePage() {
             <ArrowLeft className="w-3.5 h-3.5" />
             Settings
           </Link>
-          <h1 className="font-heading text-lg font-semibold">Backdoor Mode Setup</h1>
+          <h1 className="font-heading text-lg font-semibold">Local Mode Setup</h1>
         </div>
       </div>
 
@@ -99,7 +99,7 @@ export default function BackdoorModeSetupGuidePage() {
           Answer Vaea Chat without a network call
         </h2>
         <p className="text-muted-foreground leading-relaxed mb-8">
-          Every other mode sends a request to some company's API. Backdoor Mode doesn't: Vaea writes each prompt
+          Every other mode sends a request to some company's API. Local Mode doesn't: Vaea writes each prompt
           as a plain JSON file on your device, a script you control picks it up and runs it against your own
           model, and writes the answer back the same way. Nothing leaves the folder you chose.
         </p>
@@ -224,17 +224,17 @@ export default function BackdoorModeSetupGuidePage() {
           <TerminalBlock title="terminal" code={`python bridge_watcher.py . --claude-code`} showPrompt={false} />
           <p className="text-sm text-muted-foreground mt-4 mb-4">
             Rather work in Claude Code's own chat (CLI or the VS Code extension) than run a background process at
-            all? A real <span className="font-terminal text-xs text-foreground">/backdoor-relay</span> Skill is
+            all? A real <span className="font-terminal text-xs text-foreground">/local-relay</span> Skill is
             already sitting in{" "}
-            <span className="font-terminal text-xs text-foreground">.claude/skills/backdoor-relay/</span> inside
-            your connected folder — type <span className="font-terminal text-xs text-foreground">/backdoor-relay</span> whenever
+            <span className="font-terminal text-xs text-foreground">.claude/skills/local-relay/</span> inside
+            your connected folder — type <span className="font-terminal text-xs text-foreground">/local-relay</span> whenever
             you want it to check for and answer a pending prompt, using its own file/search tools the same way it
             would for anything else you ask it. The identical skill is also written under a one-letter name,{" "}
             <span className="font-terminal text-xs text-foreground">/l</span> (
             <span className="font-terminal text-xs text-foreground">.claude/skills/l/</span>), for whenever typing
             the full name each time is the actual friction. The same two are also written as classic Claude Code{" "}
             <span className="font-terminal text-xs text-foreground">.claude/commands/</span> files (
-            <span className="font-terminal text-xs text-foreground">backdoor-relay.md</span>/
+            <span className="font-terminal text-xs text-foreground">local-relay.md</span>/
             <span className="font-terminal text-xs text-foreground">l.md</span>) — an older, more broadly-supported
             mechanism than Skills — so if one format doesn't show up in your{" "}
             <span className="font-terminal text-xs text-foreground">/</span> menu, the other usually will; see
@@ -259,7 +259,7 @@ export default function BackdoorModeSetupGuidePage() {
                 <TriangleAlert className="w-4 h-4 text-primary" />
               </div>
               <div>
-                <p className="font-heading font-semibold text-sm mb-1">"/l" or "/backdoor-relay" not showing up in Claude Code's own "/" menu?</p>
+                <p className="font-heading font-semibold text-sm mb-1">"/l" or "/local-relay" not showing up in Claude Code's own "/" menu?</p>
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   Two things to check, in order — both catch this every time: <strong className="text-foreground">first, restart your
                   Claude Code session</strong> if it was already open when you connected the folder — it only scans for

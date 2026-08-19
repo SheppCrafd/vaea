@@ -6,7 +6,7 @@
 // already read as tomorrow server-side). This is the one real source of
 // truth for "what time/date is it right now, for THIS user" — computed
 // client-side (the browser always knows its own real local time/timezone,
-// unlike a server), then threaded through: BYOK/Backdoor Mode use it
+// unlike a server), then threaded through: BYOK/Local Mode use it
 // directly (systemPrompt.js, already running client-side); base44-hosted
 // chat sends it up in the request body (useChatController.js) since
 // entry.ts's own server-side `new Date()` has no way to know the user's

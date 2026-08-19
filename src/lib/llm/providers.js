@@ -79,7 +79,7 @@ export const PROVIDERS = {
   // not a fixed vendor endpoint. That's also why keyRequired is false:
   // local servers usually don't check one. Exists specifically for
   // enterprise-managed machines where Group Policy/AppLocker/WDAC blocks
-  // launching Backdoor Mode's watcher script — a plain fetch() from this
+  // launching Local Mode's watcher script — a plain fetch() from this
   // tab to localhost never launches a new process, so that policy never
   // engages. See byokChat.js's use of `needsBaseUrl`/`keyRequired`.
   "local-http": {
@@ -101,7 +101,7 @@ export const PROVIDERS = {
   // instead of the key/model fields the other BYOK providers get.
   "local-bridge": {
     id: "local-bridge",
-    label: "Backdoor Mode",
+    label: "Local Mode",
     adapter: "local-bridge",
     description: "Your own local/on-prem model, via file polling",
   },

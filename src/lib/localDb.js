@@ -1,6 +1,6 @@
 // Local-first data layer for all non-AI app data (areas, products, projects,
 // tasks, stakeholders, departments, project notes), plus chat sessions/
-// messages specifically for Backdoor Mode (see useChatSessions.js/
+// messages specifically for Local Mode (see useChatSessions.js/
 // useChatMessages.js — Base44-hosted ChatSession/ChatMessage stay the
 // storage for every other provider, since those need a real account
 // regardless). Mirrors the subset of the base44 entities API (list/get/

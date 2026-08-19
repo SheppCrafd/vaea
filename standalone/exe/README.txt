@@ -47,10 +47,10 @@ YOUR DATA / SIGNING IN / THE AI CHAT WIDGET
   baked in so it never asks you to sign in (the live hosted version does),
   and the AI chat widget's default Base44-hosted path can't respond without
   that login. Settings (gear icon) is still fully reachable, though — add
-  your own API key or connect Backdoor Mode there and chat works fully in
+  your own API key or connect Local Mode there and chat works fully in
   this exact offline copy, acting on your real local data directly. Data
   only ever touches an outside service in transit for one exchange (or
-  never leaves your machine at all, with Backdoor Mode) — nothing is ever
+  never leaves your machine at all, with Local Mode) — nothing is ever
   stored on a server.
 
 REBUILDING (for developers)

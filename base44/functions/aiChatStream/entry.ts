@@ -44,7 +44,7 @@ import { z } from 'npm:zod';
 // Gateway (models('automatic') below) doesn't support streamed completions,
 // so that text can only ever be generated as one complete block; it's
 // emitted as a paced replay of that already-complete string instead (the
-// same honest treatment Backdoor Mode gets, for the same underlying "this
+// same honest treatment Local Mode gets, for the same underlying "this
 // transport can't really stream" reason — see byokChat.js's
 // simulateLiveReveal). The final event still carries the exact same
 // {reply, actions, liveTrace} shape this endpoint used to return outright,
@@ -1102,7 +1102,7 @@ Deno.serve(async (req) => {
           // (trace()'s emit() above fires the instant each one finishes,
           // genuinely live, same as it always did) — only the narration
           // text below is a paced replay of an already-complete string, the
-          // same honest "not real-time" treatment Backdoor Mode gets (see
+          // same honest "not real-time" treatment Local Mode gets (see
           // byokChat.js's simulateLiveReveal) for the identical underlying
           // reason: the transport under this path can't actually stream.
           const result = await agent.generate({ prompt: contextPrompt });

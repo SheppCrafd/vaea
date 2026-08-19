@@ -97,6 +97,49 @@ describe("toolRunner: staged tools queue instead of executing", () => {
   });
 });
 
+// A relay agent hand-typing JSON (Local Mode) or a smaller BYOK model is far
+// more likely to send a malformed tool call than Vaea's own hosted model —
+// caught here, at staging time, instead of silently sailing into the plan
+// and only failing later at confirm/execute time (chatActions.js).
+describe("toolRunner: staged tool_use input validation (validateToolInput)", () => {
+  it("rejects a staged call missing a required field, without touching the plan", async () => {
+    const plan = [];
+    const runTool = makeToolRunner({ plan, dataset: {} });
+    // CREATE_TASK requires project_id AND description.
+    const result = await runTool("CREATE_TASK", { description: "Do the thing" });
+    expect(result.queued).toBe(false);
+    expect(result.error).toMatch(/Missing required field "project_id"/);
+    expect(plan).toHaveLength(0);
+  });
+
+  it("rejects a staged call whose field is the wrong type", async () => {
+    const plan = [];
+    const runTool = makeToolRunner({ plan, dataset: {} });
+    // stakeholder_ids must be an array, not a bare string.
+    const result = await runTool("CREATE_TASK", { project_id: "p1", description: "x", stakeholder_ids: "s1" });
+    expect(result.queued).toBe(false);
+    expect(result.error).toMatch(/must be an array/);
+    expect(plan).toHaveLength(0);
+  });
+
+  it("rejects a staged call with a value outside its enum", async () => {
+    const plan = [];
+    const runTool = makeToolRunner({ plan, dataset: {} });
+    const result = await runTool("BULK_CREATE", { entity_type: "not-a-real-type", items: [{ description: "x" }] });
+    expect(result.queued).toBe(false);
+    expect(result.error).toMatch(/must be one of/);
+    expect(plan).toHaveLength(0);
+  });
+
+  it("still queues a correctly-shaped call normally", async () => {
+    const plan = [];
+    const runTool = makeToolRunner({ plan, dataset: {} });
+    const result = await runTool("CREATE_TASK", { project_id: "p1", description: "Do the thing" });
+    expect(result.queued).toBe(true);
+    expect(plan).toHaveLength(1);
+  });
+});
+
 describe("toolRunner: local (non-staged) tools run for real against the dataset", () => {
   it("search_workspace finds a real match instead of being queued", async () => {
     const plan = [];
@@ -153,7 +196,7 @@ describe("toolRunner: local (non-staged) tools run for real against the dataset"
   });
 });
 
-describe("toolRunner: vault_* live tools (BYOK/Backdoor Mode's own GitHub layer)", () => {
+describe("toolRunner: vault_* live tools (BYOK/Local Mode's own GitHub layer)", () => {
   const dataset = { areas: [], products: [], projects: [], archivedProjects: [], tasks: [], archivedTasks: [], stakeholders: [], notes: [] };
   const externalVault = { owner: "me", repo: "vault", branch: "main", token: "gh-token" };
 

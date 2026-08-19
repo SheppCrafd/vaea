@@ -6,10 +6,10 @@ import { loadAiProviderConfig, isLocalBridgeConfigured } from "@/lib/aiProviderC
 
 const PAGE_SIZE = 20;
 
-// See useChatSessions.js's matching comment — Backdoor Mode keeps its chat
+// See useChatSessions.js's matching comment — Local Mode keeps its chat
 // history entirely local instead of on Base44's hosted, RLS-gated
 // ChatMessage entity, since routing every prompt through a local folder but
-// still shipping the transcript to Base44 would contradict Backdoor Mode's
+// still shipping the transcript to Base44 would contradict Local Mode's
 // whole "nothing leaves this device" pitch.
 async function isLocalChat() {
   return isLocalBridgeConfigured(await loadAiProviderConfig());
@@ -31,7 +31,7 @@ async function localMessagesAscending(sessionId) {
 // a long-running session costs one bounded request regardless of how many
 // thousand messages it has. `loadMore()` issues one additional cursor-based
 // fetch per call for the next older batch, merged into local state — older
-// pages are never re-fetched once loaded. (Backdoor Mode's local backend
+// pages are never re-fetched once loaded. (Local Mode's local backend
 // already has the whole session in memory once loaded, so its own
 // "pagination" below is just slicing that array — still worth keeping the
 // same page-size/loadMore shape so ChatMessageList doesn't need to know

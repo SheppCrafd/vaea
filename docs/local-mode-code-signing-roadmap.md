@@ -1,11 +1,11 @@
-# Backdoor Mode: code-signing roadmap (scoping only, not started)
+# Local Mode: code-signing roadmap (scoping only, not started)
 
-Backdoor Mode already has two working paths around Group Policy/AppLocker/WDAC
+Local Mode already has two working paths around Group Policy/AppLocker/WDAC
 blocking unsigned `.bat`/`.py` execution on managed Windows devices:
 
 - **Terminal-first launch** (shipped): typing `python bridge_watcher.py . --...`
   into an already-open, already-trusted terminal instead of double-clicking
-  the launcher — see `BackdoorModeSetupGuidePage.jsx` and `buildReadme()` in
+  the launcher — see `LocalModeSetupGuidePage.jsx` and `buildReadme()` in
   `bridgeWatcherKit.js`.
 - **Local HTTP provider** (shipped): the browser calls a local model server
   (Ollama, LM Studio) directly via `fetch()` — no separate process launches at

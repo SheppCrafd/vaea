@@ -1,8 +1,8 @@
-// The actual files Backdoor Mode drops into a freshly-connected folder
+// The actual files Local Mode drops into a freshly-connected folder
 // (localBridgeStorage.js's writeWatcherKit) — the point being "just choose a
 // folder" gets you all the way to a runnable watcher with nothing to copy,
 // paste, or hand-type. bridge_watcher.py is the single source of truth for
-// what BackdoorModeSetupGuidePage.jsx shows and what actually lands on disk,
+// what LocalModeSetupGuidePage.jsx shows and what actually lands on disk,
 // so the two can never drift apart.
 //
 // Config shape passed around here and from Settings (AiModelSection.jsx):
@@ -23,17 +23,23 @@
 // generic translator (openai_compatible_model) covers all four, so this
 // only had to be written once.
 //
-// Only round 0's prompt file carries `system`/`tools` — see run_watcher's
-// own `_with_context` below for why (they're identical every round of a
-// turn, so writing them into every round's file was pure duplication —
-// found via a real multi-round conversation hitting ~44,000 tokens per
-// prompt file). Every connector function here (echo_model/ollama_model/
-// etc.) still receives the full {round, system, tools, messages} shape on
-// every round regardless — `_with_context` reconstructs it before `answer`
-// is ever called, so none of them needed to change for this.
+// Every prompt file Vaea writes is now uniformly {round, messages} — no
+// `system`/`tools` in ANY round any more (a real multi-round conversation
+// was hitting ~44,000 tokens per prompt file when round 0 carried them).
+// They're static per-folder files instead — VAEA_SYSTEM_PROMPT.md/
+// VAEA_TOOL_CATALOG.json, written once when the folder connects — and
+// round 0's own first message has two short placeholder lines (current
+// date/time, and the live workspace dataset) in place of what used to be
+// inlined there, since a Claude Code relay reading this folder directly can
+// fetch both itself. `_with_context` below still reconstructs the FULL
+// {round, system, tools, messages} shape every connector function here
+// (echo_model/ollama_model/etc.) expects — reading the two static files
+// (cached after the first read) and splicing the real date/workspace data
+// back into that first message — so none of them needed to change for this
+// either; only `_with_context` itself did.
 
 export const BRIDGE_WATCHER_SCRIPT = `#!/usr/bin/env python3
-# bridge_watcher.py — the prebuilt Backdoor Mode watcher, written into this
+# bridge_watcher.py — the prebuilt Local Mode watcher, written into this
 # folder automatically the moment you connected it in Vaea. The folder
 # inspection lives here once, so it never has to be re-written per script:
 # a prompt counts as NEW only while it has no response yet, which makes
@@ -77,42 +83,56 @@ def scan_new_prompts(root):
         except (FileNotFoundError, json.JSONDecodeError):
             continue  # mid-write or just archived; the next pass gets it
 
-_context_cache = {}  # requestId -> {"system": ..., "tools": ...}
+_STATIC_CONTEXT = {}  # cached after the first read — same for every request
 
-def _request_id(name):
-    return name.rsplit("-r", 1)[0]  # "<uuid>-r<round>.json" -> "<uuid>"
+def _load_static_context(root):
+    if not _STATIC_CONTEXT:
+        system_path = Path(root) / "VAEA_SYSTEM_PROMPT.md"
+        tools_path = Path(root) / "VAEA_TOOL_CATALOG.json"
+        _STATIC_CONTEXT["system"] = system_path.read_text(encoding="utf-8") if system_path.exists() else ""
+        _STATIC_CONTEXT["tools"] = json.loads(tools_path.read_text(encoding="utf-8")) if tools_path.exists() else []
+    return _STATIC_CONTEXT
 
-def _with_context(root, name, request):
-    """Only round 0's prompt file actually carries system/tools — they're
-    identical on every round of the same turn, so Vaea only writes them
-    once (a real multi-round conversation was hitting ~44,000 tokens PER
-    ROUND FILE before this, almost entirely duplicated content). Every
-    later round gets system/tools filled back in here, from an in-memory
-    cache keyed by request id, before the connector ever sees it — so
-    echo_model/ollama_model/etc. above never had to change at all."""
-    req_id = _request_id(name)
-    if "system" in request:
-        _context_cache[req_id] = {"system": request["system"], "tools": request["tools"]}
-        return request
-    cached = _context_cache.get(req_id)
-    if cached is None:
-        # This watcher process started after round 0 already happened (a
-        # restart mid-conversation) — round 0's own prompt file has already
-        # been filed into processed/prompts/ by Vaea by the time any later
-        # round exists, so recover the context from there instead of
-        # failing outright.
-        try:
-            r0 = json.loads((Path(root) / "processed" / "prompts" / f"{req_id}-r0.json").read_text(encoding="utf-8"))
-            cached = {"system": r0["system"], "tools": r0["tools"]}
-            _context_cache[req_id] = cached
-        except (FileNotFoundError, KeyError, json.JSONDecodeError):
-            raise RuntimeError(
-                f"No cached system/tools for {req_id} and round 0's prompt file is gone — "
-                f"can't answer round {request['round']}. This shouldn't happen in normal use; "
-                f"if it does, the conversation this round belongs to needs to be retried from scratch."
-            )
-    request["system"] = cached["system"]
-    request["tools"] = cached["tools"]
+# Must read exactly as buildContextPrompt's own placeholder text in
+# src/lib/llm/systemPrompt.js (liveDataExternalized branch) — kept in sync
+# by hand, same as this whole file's own header comment explains for the
+# rest of the connector logic.
+_DATE_PLACEHOLDER = "Not included here — run \`date\` (or your own equivalent) yourself for the real current date/time before relying on it; don't trust anything else for this."
+_DATA_PLACEHOLDER = "Not included here — read workspace-data.json in this same folder for the current Areas/Products/Projects/Tasks/Stakeholders/Departments/Notes state (rewritten fresh right before this request was sent)."
+
+def _read_workspace_data(root):
+    path = Path(root) / "workspace-data.json"
+    if not path.exists():
+        return None
+    try:
+        return path.read_text(encoding="utf-8")
+    except (FileNotFoundError, json.JSONDecodeError):
+        return None
+
+def _with_context(root, request):
+    """Reconstructs the full {round, system, tools, messages} shape every
+    connector function below expects, from what Vaea now actually writes —
+    just {round, messages}. system/tools come from the two static files
+    (cached after the first read); round 0's own first message gets its two
+    placeholder lines (current date/time, live workspace dataset) swapped
+    for the real thing — Python's own clock, and a fresh read of
+    workspace-data.json — since a scripted connector (Ollama, LM Studio,
+    etc.) has no other way to fetch either itself. A Claude Code relay
+    reading this folder directly (see the local-relay skill) doesn't go
+    through this function at all — it reads the same files on its own."""
+    ctx = _load_static_context(root)
+    request["system"] = ctx["system"]
+    request["tools"] = ctx["tools"]
+    messages = request.get("messages") or []
+    if messages and isinstance(messages[0].get("content"), str):
+        content = messages[0]["content"]
+        if _DATE_PLACEHOLDER in content:
+            content = content.replace(_DATE_PLACEHOLDER, time.strftime("%A, %B %d, %Y, %I:%M %p (%Z)"))
+        if _DATA_PLACEHOLDER in content:
+            data = _read_workspace_data(root)
+            if data is not None:
+                content = content.replace(_DATA_PLACEHOLDER, data)
+        messages[0]["content"] = content
     return request
 
 def run_watcher(root, answer, interval=5):
@@ -120,7 +140,7 @@ def run_watcher(root, answer, interval=5):
     print(f"Watching {Path(root) / 'prompts'} every {interval}s...")
     while True:
         for name, request in scan_new_prompts(root):
-            request = _with_context(root, name, request)
+            request = _with_context(root, request)
             print(f"Got round {request['round']} from {name}")
             reply = answer(request)
             (responses / name).write_text(json.dumps(reply, indent=2), encoding="utf-8")
@@ -485,11 +505,11 @@ API key, uses whatever session the "claude" CLI is already logged into.`;
   } else {
     statusBlock = `No model is configured yet, so the launcher runs in --echo test mode — it
 replies with a fixed message so you can confirm the wiring works. Pick a
-local model in Settings -> AI Model -> Backdoor Mode, then click "Update
+local model in Settings -> AI Model -> Local Mode, then click "Update
 watcher files" to bake it in here.`;
   }
 
-  return `Backdoor Mode — this folder is already wired up.
+  return `Local Mode — this folder is already wired up.
 
 Vaea wrote these files the moment you connected this folder:
 
@@ -498,6 +518,12 @@ Vaea wrote these files the moment you connected this folder:
   run_watcher.command   double-click to run it on Mac (first time only:
                          right-click -> Open, since it isn't signed; or run
                          "chmod +x run_watcher.command" once in a terminal)
+  VAEA_SYSTEM_PROMPT.md   the assistant's static instructions — written once,
+  VAEA_TOOL_CATALOG.json  reused for every turn (re-written any time you
+                           "Update watcher files" from Settings)
+  workspace-data.json      the live current Areas/Products/Projects/Tasks/etc
+                           snapshot — rewritten fresh before every message,
+                           since (unlike the two files above) this changes
 
 On a work/managed device, skip the double-click and run it from an
 already-open terminal instead: open Command Prompt/PowerShell (or VS Code's
@@ -538,10 +564,10 @@ Already have a coding agent open in your editor (Copilot Chat, Cursor,
 Claude Code, Windsurf, anything with real file read/write tools) and would
 rather hand it one prompt by hand than run a persistent watcher process at
 all? See AGENT_RELAY_INSTRUCTIONS.md, also in this folder — paste something
-like "check backdoor/prompts and answer what's there, per
+like "check prompts/ and answer what's there, per
 AGENT_RELAY_INSTRUCTIONS.md" into it. Using Claude Code specifically? A real
-Skill is already sitting in .claude/skills/backdoor-relay/ — just type
-"/backdoor-relay" in its chat instead of pasting anything.
+Skill is already sitting in .claude/skills/local-relay/ — just type
+"/local-relay" in its chat instead of pasting anything.
 `;
 }
 
@@ -563,14 +589,37 @@ Skill is already sitting in .claude/skills/backdoor-relay/ — just type
 // always lose that race. This makes the wait explicit and bounded (roughly
 // a minute, matching bridge_watcher.py's own default polling window)
 // instead of leaving "how long do I wait" to the model's own judgment.
-function buildRelayWaitStep() {
-  return `6. If your reply included a tool_use block, don't stop here — Vaea needs a
+// Steps 2-3 in every relay doc below — factored out here since all three
+// (AGENT_RELAY_INSTRUCTIONS.md, the Skill, the Command) need the identical
+// explanation of where the system prompt/tool catalog and the live
+// workspace data now live, since Vaea stopped embedding either in the
+// prompt file itself (see localBridgeAdapter.js's own comment on the
+// prompt-shrink this closes).
+function buildRelayContextSteps(startNumber) {
+  return `${startNumber}. This folder also has VAEA_SYSTEM_PROMPT.md (the app's own behavior
+   instructions) and VAEA_TOOL_CATALOG.json (the full list of tools you can
+   call) — read them yourself, directly, once at the start of answering.
+   Every prompts/<id>-r<round>.json file (including round 0) only ever
+   holds {"round": N, "messages": [...]} — the live conversation itself,
+   nothing static.
+
+${startNumber + 1}. For anything about the CURRENT state of the user's workspace (their
+   actual Areas/Products/Projects/Tasks/Stakeholders/Departments/Notes),
+   read workspace-data.json in this same folder — it's rewritten fresh
+   right before every message, so re-read it rather than trusting anything
+   left over from earlier in this session. For the real current date/time,
+   run \`date\` (or your own equivalent) yourself — don't trust anything
+   else for either of these two things.`;
+}
+
+function buildRelayWaitStep(stepNumber) {
+  return `${stepNumber}. If your reply included a tool_use block, don't stop here — Vaea needs a
    few seconds to actually run it and write the next round's prompt file.
    Wait about 5 seconds (e.g. run \`sleep 5\`, or your own equivalent), then
    check prompts/ again for a new round of the SAME request id (same id,
    next round number) with no matching file yet in responses/. If it's
-   there, go back to step 2 and answer it. If it's not there yet, wait and
-   check again — try this up to about 12 times (roughly a minute total)
+   there, go back and answer it the same way. If it's not there yet, wait
+   and check again — try this up to about 12 times (roughly a minute total)
    before telling the user Vaea hasn't produced the next round yet, rather
    than silently ending. Only stop right away, with no waiting, when your
    OWN reply was text-only (no tool_use block) — that's a genuinely final
@@ -587,41 +636,37 @@ real file read/write tools) to answer ONE pending Vaea Chat message by hand,
 instead of running bridge_watcher.py as a persistent background process.
 
 If you're the coding agent and the user just pointed you at this file (e.g.
-"check backdoor/prompts and answer what's there, per
+"check prompts/ and answer what's there, per
 AGENT_RELAY_INSTRUCTIONS.md"), here's exactly what to do:
 
 1. List the files in prompts/ in this same folder. For each one that has no
    same-named file yet in responses/ (that means it's still unanswered):
 
-2. Read it — it's JSON shaped like {"round": N, "messages": [...]}. Only
-   round 0's file also carries "system" and "tools" (they're identical on
-   every round of one turn, so Vaea only writes them once). If you're
-   looking at a round > 0 file and don't already have system/tools from
-   earlier in this same session, go read the matching round 0 file instead
-   — check prompts/<same-id>-r0.json first, then
-   processed/prompts/<same-id>-r0.json if Vaea has already filed it away.
+${buildRelayContextSteps(2)}
 
-3. The LAST item in "messages" is the real question/request to answer right
-   now — treat it exactly like the user asked you directly, using "system"
-   as the app's own instructions for how to behave.
+4. Read the unanswered prompt file — it's JSON shaped like
+   {"round": N, "messages": [...]}. The LAST item in "messages" is the real
+   question/request to answer right now — treat it exactly like the user
+   asked you directly, using VAEA_SYSTEM_PROMPT.md's instructions for how
+   to behave.
 
-4. You have your own real tools (reading files, searching, etc.) — use them
+5. You have your own real tools (reading files, searching, etc.) — use them
    freely if they'd genuinely help you answer well. Do NOT use them to
    directly create, edit, or delete anything as a way of accomplishing what
    the user asked. The ONLY way to make Vaea actually do something is a
    "tool_use" block in your response, using one of the tools listed in
-   "tools" and matching its input_schema exactly. Vaea's own app applies it
-   afterward, with its own confirmation step for anything destructive —
-   that gate has to stay real regardless of who or what answered this
-   prompt.
+   VAEA_TOOL_CATALOG.json and matching its input_schema exactly. Vaea's own
+   app applies it afterward, with its own confirmation step for anything
+   destructive — that gate has to stay real regardless of who or what
+   answered this prompt.
 
-5. Write your answer to responses/<the exact same filename> as raw JSON:
+6. Write your answer to responses/<the exact same filename> as raw JSON:
    {"content": [...]}, where each item is either
    {"type": "text", "text": "..."} for a plain reply, or
    {"type": "tool_use", "id": "toolu_1", "name": "TOOL_NAME", "input": {...}}
    for an action.
 
-${buildRelayWaitStep()}
+${buildRelayWaitStep(7)}
 
 Prefer this to be fully automatic instead of triggered by hand each time?
 If your agent is Claude Code specifically, bridge_watcher.py's own
@@ -631,9 +676,9 @@ your local watcher script") for details.
 `;
 }
 
-// A proper Claude Code Skill (.claude/skills/backdoor-relay/SKILL.md) —
+// A proper Claude Code Skill (.claude/skills/local-relay/SKILL.md) —
 // same steps as AGENT_RELAY_INSTRUCTIONS.md, but discoverable and
-// invocable as "/backdoor-relay" from Claude Code's own chat (CLI sidebar
+// invocable as "/local-relay" from Claude Code's own chat (CLI sidebar
 // or VS Code extension) instead of having to paste the whole instructions
 // by hand every time. This is specifically for someone using Claude Code
 // interactively (typing in ITS chat, not bridge_watcher.py's automated
@@ -645,13 +690,13 @@ your local watcher script") for details.
 // — this file is additive, not a replacement.
 //
 // `name` is parameterized so the exact same steps can also be written out
-// under a second, shorter skill name (see buildBackdoorSkillShort below) —
+// under a second, shorter skill name (see buildLocalRelaySkillShort below) —
 // requested by a customer who wanted a one-keystroke command instead of
-// typing "/backdoor-relay" every time a prompt file shows up.
-export function buildBackdoorSkill(name = "backdoor-relay") {
+// typing "/local-relay" every time a prompt file shows up.
+export function buildLocalRelaySkill(name = "local-relay") {
   return `---
 name: ${name}
-description: Answer one pending Vaea Chat message waiting in this folder's backdoor/prompts (or prompts/) directory, using this agent's own real tools, then write the reply where Vaea expects it. Use when the user says something like "check backdoor", "answer the pending prompt", or "run the backdoor relay".
+description: Answer one pending Vaea Chat message waiting in this folder's prompts/ directory, using this agent's own real tools, then write the reply where Vaea expects it. Use when the user says something like "check local mode", "answer the pending prompt", or "run the local relay".
 ---
 
 You're answering ONE pending Vaea Chat message on behalf of the user, using
@@ -659,47 +704,44 @@ your own real tools (file read/write, search, etc.) — not by running any
 separate script.
 
 1. List files in prompts/ in this folder (the folder this skill lives
-   under, i.e. the one Vaea's Backdoor Mode is connected to). For each one
+   under, i.e. the one Vaea's Local Mode is connected to). For each one
    with no same-named file yet in responses/, it's unanswered — pick the
    oldest.
 
-2. Read it — JSON shaped like {"round": N, "messages": [...]}. Only round
-   0's file carries "system" and "tools" (identical every round of one
-   turn, written once to keep prompt files small). If this file's round > 0
-   and you don't already have system/tools from earlier in this session,
-   read the matching round 0 file first — check prompts/<same-id>-r0.json,
-   then processed/prompts/<same-id>-r0.json if Vaea already filed it away.
+${buildRelayContextSteps(2)}
 
-3. The LAST item in "messages" is the actual question to answer right now —
-   treat it exactly as if the user asked you directly in this chat, with
-   "system" as the app's own behavior instructions. Use your own tools
-   freely (reading files, searching the web, planning across multiple
-   steps) to answer it well.
+4. Read the unanswered prompt file — JSON shaped like
+   {"round": N, "messages": [...]}. The LAST item in "messages" is the
+   actual question to answer right now — treat it exactly as if the user
+   asked you directly in this chat, following VAEA_SYSTEM_PROMPT.md's
+   instructions for how to behave. Use your own tools freely (reading
+   files, searching the web, planning across multiple steps) to answer it
+   well.
 
-4. Do NOT use your own tools to directly create, edit, or delete anything
+5. Do NOT use your own tools to directly create, edit, or delete anything
    in the user's Vaea workspace as a way of accomplishing what they asked —
    the only way to make Vaea actually do something is a "tool_use" block in
-   your JSON reply, using one of the tools listed in "tools" and matching
-   its input_schema exactly. Vaea applies it afterward, with its own
-   confirm-before-destructive step — that gate has to stay real regardless
-   of what answered this prompt.
+   your JSON reply, using one of the tools listed in VAEA_TOOL_CATALOG.json
+   and matching its input_schema exactly. Vaea applies it afterward, with
+   its own confirm-before-destructive step — that gate has to stay real
+   regardless of what answered this prompt.
 
-5. Write your answer to responses/<the exact same filename> as raw JSON:
+6. Write your answer to responses/<the exact same filename> as raw JSON:
    {"content": [...]}, each item either {"type": "text", "text": "..."} or
    {"type": "tool_use", "id": "toolu_1", "name": "TOOL_NAME", "input": {...}}.
 
-${buildRelayWaitStep()}
+${buildRelayWaitStep(7)}
 `;
 }
 
-// Same skill, shorter name — "/l" instead of "/backdoor-relay", for anyone
+// Same skill, shorter name — "/l" instead of "/local-relay", for anyone
 // answering prompts by hand often enough that the extra keystrokes matter.
-export function buildBackdoorSkillShort() {
-  return buildBackdoorSkill("l");
+export function buildLocalRelaySkillShort() {
+  return buildLocalRelaySkill("l");
 }
 
 // A real customer running Claude Code on a locked-down/managed device found
-// "/l" and "/backdoor-relay" never showed up at all — traced to Claude
+// "/l" and "/local-relay" never showed up at all — traced to Claude
 // Code's Skills feature (.claude/skills/<name>/SKILL.md, what the two
 // functions above write) not being available on every install/version,
 // while the older, simpler Commands feature (.claude/commands/<name>.md —
@@ -707,9 +749,9 @@ export function buildBackdoorSkillShort() {
 // command name) is much more broadly supported. Written as a second,
 // parallel format rather than a replacement: whichever one Claude Code
 // actually recognizes on a given machine, the command still shows up.
-export function buildBackdoorCommand() {
+export function buildLocalRelayCommand() {
   return `---
-description: Answer one pending Vaea Chat message waiting in this folder's backdoor/prompts (or prompts/) directory, using this agent's own real tools, then write the reply where Vaea expects it.
+description: Answer one pending Vaea Chat message waiting in this folder's prompts/ directory, using this agent's own real tools, then write the reply where Vaea expects it.
 ---
 
 You're answering ONE pending Vaea Chat message on behalf of the user, using
@@ -717,35 +759,32 @@ your own real tools (file read/write, search, etc.) — not by running any
 separate script.
 
 1. List files in prompts/ in this folder (the folder this command lives
-   under, i.e. the one Vaea's Backdoor Mode is connected to). For each one
+   under, i.e. the one Vaea's Local Mode is connected to). For each one
    with no same-named file yet in responses/, it's unanswered — pick the
    oldest.
 
-2. Read it — JSON shaped like {"round": N, "messages": [...]}. Only round
-   0's file carries "system" and "tools" (identical every round of one
-   turn, written once to keep prompt files small). If this file's round > 0
-   and you don't already have system/tools from earlier in this session,
-   read the matching round 0 file first — check prompts/<same-id>-r0.json,
-   then processed/prompts/<same-id>-r0.json if Vaea already filed it away.
+${buildRelayContextSteps(2)}
 
-3. The LAST item in "messages" is the actual question to answer right now —
-   treat it exactly as if the user asked you directly in this chat, with
-   "system" as the app's own behavior instructions. Use your own tools
-   freely (reading files, searching the web, planning across multiple
-   steps) to answer it well.
+4. Read the unanswered prompt file — JSON shaped like
+   {"round": N, "messages": [...]}. The LAST item in "messages" is the
+   actual question to answer right now — treat it exactly as if the user
+   asked you directly in this chat, following VAEA_SYSTEM_PROMPT.md's
+   instructions for how to behave. Use your own tools freely (reading
+   files, searching the web, planning across multiple steps) to answer it
+   well.
 
-4. Do NOT use your own tools to directly create, edit, or delete anything
+5. Do NOT use your own tools to directly create, edit, or delete anything
    in the user's Vaea workspace as a way of accomplishing what they asked —
    the only way to make Vaea actually do something is a "tool_use" block in
-   your JSON reply, using one of the tools listed in "tools" and matching
-   its input_schema exactly. Vaea applies it afterward, with its own
-   confirm-before-destructive step — that gate has to stay real regardless
-   of what answered this prompt.
+   your JSON reply, using one of the tools listed in VAEA_TOOL_CATALOG.json
+   and matching its input_schema exactly. Vaea applies it afterward, with
+   its own confirm-before-destructive step — that gate has to stay real
+   regardless of what answered this prompt.
 
-5. Write your answer to responses/<the exact same filename> as raw JSON:
+6. Write your answer to responses/<the exact same filename> as raw JSON:
    {"content": [...]}, each item either {"type": "text", "text": "..."} or
    {"type": "tool_use", "id": "toolu_1", "name": "TOOL_NAME", "input": {...}}.
 
-${buildRelayWaitStep()}
+${buildRelayWaitStep(7)}
 `;
 }

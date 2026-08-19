@@ -68,17 +68,17 @@ THE AI CHAT WIDGET
     - Bring your own API key (Settings -> AI Model): add an Anthropic,
       OpenAI, Google, or xAI key and chat runs directly from your browser to
       that provider. No Base44 account or hosting involved at all.
-    - Backdoor Mode (Settings -> AI Model): connect a local folder that a
+    - Local Mode (Settings -> AI Model): connect a local folder that a
       watcher script on your own machine polls, so chat can run against a
       model you host yourself — no API key, no internet call, fully
-      offline. See BackdoorModeSetupGuidePage in the full app (or the full
-      source project's src/pages/BackdoorModeSetupGuidePage.jsx) for setup.
+      offline. See LocalModeSetupGuidePage in the full app (or the full
+      source project's src/pages/LocalModeSetupGuidePage.jsx) for setup.
 
   Either way, it acts on your real local data directly — the same
   areas/products/projects/tasks/etc. you see on the dashboard, not a
   separate copy somewhere else. With your own API key, your data is sent to
   that provider only for the single exchange it takes to answer you; with
-  Backdoor Mode, it never leaves your machine at all. Nothing about your
+  Local Mode, it never leaves your machine at all. Nothing about your
   data is ever stored on a server either way.
 
   If you'd rather use the default Base44-hosted chat instead of your own

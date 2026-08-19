@@ -12,7 +12,7 @@ import { Check, Copy } from "lucide-react";
 // with no prompt; blank lines are spacing; everything else gets a `$ `
 // prompt (unless `showPrompt` is false, for a real source file being shown
 // rather than a sequence of commands to run — see
-// BackdoorModeSetupGuidePage.jsx's watcher script for that case). Copy
+// LocalModeSetupGuidePage.jsx's watcher script for that case). Copy
 // sends the exact text shown, comments included — what you see is what
 // lands on the clipboard.
 export default function TerminalBlock({ title = "terminal", code, showPrompt = true }) {

@@ -1,15 +1,15 @@
-// A real end-to-end pipeline test for Backdoor Mode: a simulated local
+// A real end-to-end pipeline test for Local Mode: a simulated local
 // model (via the same file-round-loop shape callLocalBridge/
 // localBridgeStorage.js use, mocked at the storage boundary the way
 // byokChat.test.js already does) makes real tool calls, and this test
 // carries the resulting plan all the way through chatActions.js's real
 // executeActionSequence into a real localDb — the same pipeline every
 // other provider (base44-hosted, Anthropic, OpenAI-compatible) shares.
-// Exists because Backdoor Mode's own request/response file mechanics
+// Exists because Local Mode's own request/response file mechanics
 // (localBridgeStorage.js) can't be exercised in this plain-node test
 // environment (no `window`/File System Access API here, and jsdom doesn't
 // implement that API either) — this proves everything *above* that layer
-// genuinely works for Backdoor Mode specifically, not just assumed from
+// genuinely works for Local Mode specifically, not just assumed from
 // shared code, the same way byokChat.test.js's own local-bridge describe
 // block does for liveTrace/protocol-reminder.
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -30,10 +30,11 @@ vi.mock("./localBridgeStorage.js", () => ({
   writeRequestFile: vi.fn(async () => {}),
   pollForResponseFile: vi.fn(),
   archiveProcessedRound: vi.fn(async () => {}),
-  savePendingBackdoorRequest: vi.fn(async () => {}),
-  clearPendingBackdoorRequest: vi.fn(async () => {}),
+  savePendingLocalModeRequest: vi.fn(async () => {}),
+  clearPendingLocalModeRequest: vi.fn(async () => {}),
   findLatestLivePromptRound: vi.fn(),
   readPromptFile: vi.fn(),
+  writeWorkspaceDataFile: vi.fn(async () => {}),
 }));
 
 const { pollForResponseFile } = await import("./localBridgeStorage.js");
@@ -52,7 +53,7 @@ beforeEach(() => {
   );
 });
 
-describe("Backdoor Mode end-to-end: a real local-model plan actually creates real data", () => {
+describe("Local Mode end-to-end: a real local-model plan actually creates real data", () => {
   it("carries a search_workspace call + a multi-step CREATE plan through to real localDb writes", async () => {
     // Round 0: the "local model" searches first (matching the GROUND YOUR
     // PLAN IN REAL CONTEXT instruction), then stages a full Area -> Project
@@ -118,7 +119,7 @@ describe("Backdoor Mode end-to-end: a real local-model plan actually creates rea
     // bug caught from a screenshot: a bulk step under-counting its own items —
     // not applicable here since these are single CREATE_* calls, but confirms
     // the shared describePlan/describeToolCall rendering works unmodified
-    // for a Backdoor-Mode-originated plan same as any other provider's.
+    // for a Local-Mode-originated plan same as any other provider's.
     expect(describePlan(result.actions)).toBe("plan · 3 steps across 1 area, 1 project, 1 task");
     expect(describeToolCall(steps[2])).toBe('create_task("Write launch checklist")');
   });

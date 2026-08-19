@@ -5,9 +5,10 @@ import { makeToolRunner, MAX_ACTIONS_PER_REQUEST } from "@/lib/llm/toolRunner";
 import { callAnthropic } from "@/lib/llm/anthropicAdapter";
 import { callOpenAiCompatible } from "@/lib/llm/openaiCompatibleAdapter";
 import { callLocalBridge, resumeLocalBridgeRequest } from "@/lib/llm/localBridgeAdapter";
-import { getBridgeStatus } from "@/lib/llm/localBridgeStorage";
+import { getBridgeStatus, writeWorkspaceDataFile } from "@/lib/llm/localBridgeStorage";
+import { buildWorkspaceDataSnapshot } from "@/lib/llm/systemPrompt";
 
-// A short pause between each simulated "live" chunk shown for Backdoor
+// A short pause between each simulated "live" chunk shown for Local
 // Mode — its file-polling transport can't stream mid-generation (see
 // callLocalBridge's own comment), so by the time we get here, `reasoning`
 // and `liveTrace` already fully exist. Replaying them through the exact
@@ -59,7 +60,7 @@ async function simulateLiveReveal({ liveTrace, thinking, onEvent }) {
 // vocabulary regardless of which provider answers — real streaming for
 // anthropic/openai-compatible, a paced simulation (see simulateLiveReveal
 // above) for local-bridge.
-// Despite the name, this also covers the "local-bridge" (Backdoor Mode)
+// Despite the name, this also covers the "local-bridge" (Local Mode)
 // provider even though it isn't really BYOK (no key, no HTTP call at all) —
 // it decides the plan client-side the same way every other non-base44
 // provider does, so it belongs in the same dispatch rather than a
@@ -69,7 +70,7 @@ async function simulateLiveReveal({ liveTrace, thinking, onEvent }) {
 // turns to READ_ONLY_TOOL_CATALOG, which excludes every `staged: true` tool
 // including WRITE_VAULT_NOTE, silently making it impossible for a
 // reflection turn to ever write to Vaea Self.md/the Daily log on BYOK or
-// Backdoor Mode. That restriction never protected anything real: the actual
+// Local Mode. That restriction never protected anything real: the actual
 // "cannot mutate the workspace" guarantee is chatActions.js's
 // filterReflectionActions, which inspects what the model RETURNS regardless
 // of what it was offered, and web_search (the other thing it was meant to
@@ -85,7 +86,7 @@ export async function runByokChat({ providerConfig, contextArgs, onEvent }) {
   if (provider.adapter === "local-bridge") {
     const status = await getBridgeStatus();
     if (status !== "connected") {
-      throw new Error("Connect your Backdoor Mode folder in Settings -> AI Model first (or re-grant access if you've already picked one).");
+      throw new Error("Connect your Local Mode folder in Settings -> AI Model first (or re-grant access if you've already picked one).");
     }
   } else {
     if (provider.keyRequired !== false && !providerConfig.apiKey) {
@@ -119,7 +120,16 @@ export async function runByokChat({ providerConfig, contextArgs, onEvent }) {
   const runTool = makeToolRunner({ plan, liveTrace, dataset, externalVault: contextArgs.externalVault, onEvent: isLocalBridge ? undefined : onEvent });
 
   const systemPrompt = buildInstructions({ maxActionsPerRequest: MAX_ACTIONS_PER_REQUEST });
-  const contextPrompt = buildContextPrompt(contextArgs);
+  // local-bridge: the system prompt/tool catalog are static files written
+  // once at folder-connect time (localBridgeStorage.js's
+  // writeStaticContextFiles), not re-sent here — and current date/time +
+  // the live dataset are written fresh to workspace-data.json below instead
+  // of inlined as prompt text, since a Claude Code relay has its own real
+  // tools to fetch both directly. See buildContextPrompt's own comment.
+  const contextPrompt = buildContextPrompt({ ...contextArgs, liveDataExternalized: isLocalBridge });
+  if (isLocalBridge) {
+    await writeWorkspaceDataFile(buildWorkspaceDataSnapshot(contextArgs));
+  }
 
   const { reply, reasoning, thinking } = provider.adapter === "anthropic"
     ? await callAnthropic({
@@ -127,7 +137,7 @@ export async function runByokChat({ providerConfig, contextArgs, onEvent }) {
         tools: toAnthropicTools(), runTool, onEvent,
       })
     : isLocalBridge
-    ? await callLocalBridge({ systemPrompt, contextPrompt, tools: toAnthropicTools(), runTool, sessionId: contextArgs.sessionId })
+    ? await callLocalBridge({ contextPrompt, runTool, sessionId: contextArgs.sessionId })
     : await callOpenAiCompatible({
         baseUrl: provider.baseUrl || providerConfig.baseUrl, apiKey: providerConfig.apiKey, model: providerConfig.model, systemPrompt, contextPrompt,
         tools: toOpenAiCompatibleTools(), runTool, onEvent, providerId: provider.id,
@@ -142,17 +152,17 @@ export async function runByokChat({ providerConfig, contextArgs, onEvent }) {
 
 // The other half of the orphaned-request fix (see localBridgeAdapter.js's
 // resumeLocalBridgeRequest and localBridgeStorage.js's
-// savePendingBackdoorRequest for the real incident this closes): called on
+// savePendingLocalModeRequest for the real incident this closes): called on
 // load/reconnect, not from a live user send, so there's no fresh chat
 // message driving it — just a leftover pointer saying "this session had a
-// Backdoor Mode reply still in flight." Builds the exact same dataset/tool
+// Local Mode reply still in flight." Builds the exact same dataset/tool
 // runner a real send would (in case the resumed conversation still needs
 // another tool-call round to finish), but skips buildInstructions/
 // buildContextPrompt entirely — round 0's own system/tools are already
 // sitting in whatever prompt file this is resuming from, never re-sent.
 // Returns null (nothing to show) when the request turns out to have already
 // fully resolved rather than actually being orphaned.
-export async function resumeOrphanedBackdoorRequest({ requestId, contextArgs, onEvent }) {
+export async function resumeOrphanedLocalModeRequest({ requestId, contextArgs, onEvent }) {
   const plan = [];
   const liveTrace = [];
   const dataset = {

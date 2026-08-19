@@ -5,8 +5,8 @@ vi.mock("./localBridgeStorage.js", () => ({
   writeRequestFile: vi.fn(async () => {}),
   pollForResponseFile: vi.fn(),
   archiveProcessedRound: vi.fn(async () => {}),
-  savePendingBackdoorRequest: vi.fn(async () => {}),
-  clearPendingBackdoorRequest: vi.fn(async () => {}),
+  savePendingLocalModeRequest: vi.fn(async () => {}),
+  clearPendingLocalModeRequest: vi.fn(async () => {}),
   findLatestLivePromptRound: vi.fn(),
   readPromptFile: vi.fn(),
 }));
@@ -14,28 +14,36 @@ vi.mock("./localBridgeStorage.js", () => ({
 import {
   writeRequestFile,
   pollForResponseFile,
-  savePendingBackdoorRequest,
-  clearPendingBackdoorRequest,
+  savePendingLocalModeRequest,
+  clearPendingLocalModeRequest,
   findLatestLivePromptRound,
   readPromptFile,
 } from "./localBridgeStorage.js";
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  // resetAllMocks (not clearAllMocks) — clearAllMocks only wipes call
+  // history, not a persistent mockResolvedValue/mockImplementation set by an
+  // earlier test, which was silently leaking pollForResponseFile's default
+  // across tests once a test needed more than one poll call (the malformed-
+  // retry tests below).
+  vi.resetAllMocks();
 });
 
 describe("localBridgeAdapter: file-based round loop", () => {
   it("writes round 0, and returns the model's text when there are no tool_use blocks", async () => {
     pollForResponseFile.mockResolvedValueOnce({ content: [{ type: "text", text: "Just a reply." }] });
 
-    const { reply, reasoning } = await callLocalBridge({ systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn() });
+    const { reply, reasoning } = await callLocalBridge({ contextPrompt: "c", runTool: vi.fn() });
 
     expect(reply).toBe("Just a reply.");
     expect(reasoning).toBe("Just a reply.");
     expect(writeRequestFile).toHaveBeenCalledTimes(1);
     const [requestId, round, body] = writeRequestFile.mock.calls[0];
     expect(round).toBe(0);
-    expect(body).toMatchObject({ round: 0, system: "s", tools: [], messages: [{ role: "user", content: "c" }] });
+    // Every round is now uniformly {round, messages} — no more system/tools
+    // duplicated into round 0's own file (see localBridgeAdapter.js's
+    // module comment on the prompt-shrink this closes).
+    expect(body).toEqual({ round: 0, messages: [{ role: "user", content: "c" }] });
     expect(pollForResponseFile).toHaveBeenCalledWith(requestId, 0, expect.any(Object));
   });
 
@@ -50,7 +58,7 @@ describe("localBridgeAdapter: file-based round loop", () => {
       .mockResolvedValueOnce({ content: [{ type: "text", text: "Found it." }] });
 
     const runTool = vi.fn(() => ({ count: 1 }));
-    const { reply, reasoning } = await callLocalBridge({ systemPrompt: "s", contextPrompt: "c", tools: [], runTool });
+    const { reply, reasoning } = await callLocalBridge({ contextPrompt: "c", runTool });
 
     // `reply` is only the last round's own text; `reasoning` carries both
     // rounds' — "Let me check that." was real thinking the model produced
@@ -81,7 +89,7 @@ describe("localBridgeAdapter: file-based round loop", () => {
       content: [{ type: "text", text: "Here's the first thing to know.\n\nAnd here's the second, equally real, paragraph." }],
     });
 
-    const { reply, reasoning, thinking } = await callLocalBridge({ systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn() });
+    const { reply, reasoning, thinking } = await callLocalBridge({ contextPrompt: "c", runTool: vi.fn() });
 
     // A single round with zero tool calls has nothing to separate out — the
     // whole thing, both paragraphs, is the real reply (see
@@ -100,7 +108,7 @@ describe("localBridgeAdapter: file-based round loop", () => {
       .mockResolvedValueOnce({ content: [{ type: "text", text: "That's a chart." }] });
 
     const runTool = vi.fn(() => ({ file_url: "https://x/y.png", is_image: true, media_type: "image/png", image_base64: "QUJD" }));
-    await callLocalBridge({ systemPrompt: "s", contextPrompt: "c", tools: [], runTool });
+    await callLocalBridge({ contextPrompt: "c", runTool });
 
     const [, , body1] = writeRequestFile.mock.calls[1];
     expect(body1.messages[2]).toEqual({
@@ -116,11 +124,43 @@ describe("localBridgeAdapter: file-based round loop", () => {
     });
   });
 
-  it("throws on a malformed response file instead of treating it as final", async () => {
+  it("gives one bounded retry on a malformed response before actually failing", async () => {
+    // First response is wrong-shaped; the retry (a fresh round, written with
+    // a correction message) gets no queued mock value either, so it comes
+    // back malformed too — the turn should fail only after both attempts.
     pollForResponseFile.mockResolvedValueOnce({ notContent: true });
     await expect(
-      callLocalBridge({ systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn() })
+      callLocalBridge({ contextPrompt: "c", runTool: vi.fn() })
     ).rejects.toThrow("Malformed response");
+    // Round 0's original prompt, plus one correction round written for the retry.
+    expect(writeRequestFile).toHaveBeenCalledTimes(2);
+    const [, retryRound, retryBody] = writeRequestFile.mock.calls[1];
+    expect(retryRound).toBe(1);
+    expect(retryBody.messages.at(-1).content).toContain("didn't match the expected");
+  });
+
+  it("recovers and continues normally when the retry comes back well-formed", async () => {
+    pollForResponseFile
+      .mockResolvedValueOnce({ notContent: true }) // round 0: malformed
+      .mockResolvedValueOnce({ content: [{ type: "text", text: "Sorry, here's a real reply." }] }); // round 1 (the retry): fine
+
+    const { reply } = await callLocalBridge({ contextPrompt: "c", runTool: vi.fn() });
+
+    expect(reply).toBe("Sorry, here's a real reply.");
+    expect(writeRequestFile).toHaveBeenCalledTimes(2);
+  });
+
+  it("throws immediately on unparseable (non-JSON) response text, same as a wrong-shaped one", async () => {
+    // readResponseFileIfPresent (localBridgeStorage.js) turns a JSON.parse
+    // failure into {malformed: true, raw} rather than a raw SyntaxError —
+    // this confirms the adapter treats that the same as any other malformed
+    // shape (one retry, then a real error), not an uncaught exception.
+    pollForResponseFile
+      .mockResolvedValueOnce({ malformed: true, raw: "not json at all" })
+      .mockResolvedValueOnce({ malformed: true, raw: "still not json" });
+    await expect(
+      callLocalBridge({ contextPrompt: "c", runTool: vi.fn() })
+    ).rejects.toThrow("wasn't valid JSON");
   });
 
   it("gives up after MAX_TOOL_ROUNDS rounds of nothing but tool_use blocks", async () => {
@@ -128,13 +168,13 @@ describe("localBridgeAdapter: file-based round loop", () => {
       content: [{ type: "tool_use", id: "toolu_x", name: "search_workspace", input: {} }],
     });
     await expect(
-      callLocalBridge({ systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn(() => ({})) })
+      callLocalBridge({ contextPrompt: "c", runTool: vi.fn(() => ({})) })
     ).rejects.toThrow("Gave up after 15 tool-call rounds");
     expect(writeRequestFile).toHaveBeenCalledTimes(15);
   });
 });
 
-// A real customer's Backdoor Mode reply went permanently missing: they
+// A real customer's Local Mode reply went permanently missing: they
 // navigated away while a human was still relaying the answer, and the
 // requestId that would have claimed the eventually-written response only
 // ever lived in one in-memory JS closure — gone the moment that navigation
@@ -147,17 +187,17 @@ describe("localBridgeAdapter: orphaned-request pointer + resume", () => {
   it("saves a pending-request pointer before the first round, and clears it on a clean success", async () => {
     pollForResponseFile.mockResolvedValueOnce({ content: [{ type: "text", text: "Just a reply." }] });
 
-    await callLocalBridge({ systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn(), sessionId: "sess_1" });
+    await callLocalBridge({ contextPrompt: "c", runTool: vi.fn(), sessionId: "sess_1" });
 
-    expect(savePendingBackdoorRequest).toHaveBeenCalledTimes(1);
-    const [{ sessionId, requestId }] = savePendingBackdoorRequest.mock.calls[0];
+    expect(savePendingLocalModeRequest).toHaveBeenCalledTimes(1);
+    const [{ sessionId, requestId }] = savePendingLocalModeRequest.mock.calls[0];
     expect(sessionId).toBe("sess_1");
     expect(requestId).toEqual(expect.any(String));
-    expect(clearPendingBackdoorRequest).toHaveBeenCalledTimes(1);
+    expect(clearPendingLocalModeRequest).toHaveBeenCalledTimes(1);
     // The pointer has to clear AFTER the real work finishes, not before —
     // otherwise a tab dying mid-poll would look "already cleared" even
     // though nothing actually completed.
-    expect(clearPendingBackdoorRequest.mock.invocationCallOrder[0]).toBeGreaterThan(
+    expect(clearPendingLocalModeRequest.mock.invocationCallOrder[0]).toBeGreaterThan(
       pollForResponseFile.mock.invocationCallOrder[0]
     );
   });
@@ -166,11 +206,11 @@ describe("localBridgeAdapter: orphaned-request pointer + resume", () => {
     pollForResponseFile.mockResolvedValueOnce({ notContent: true });
 
     await expect(
-      callLocalBridge({ systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn(), sessionId: "sess_1" })
+      callLocalBridge({ contextPrompt: "c", runTool: vi.fn(), sessionId: "sess_1" })
     ).rejects.toThrow("Malformed response");
 
-    expect(savePendingBackdoorRequest).toHaveBeenCalledTimes(1);
-    expect(clearPendingBackdoorRequest).toHaveBeenCalledTimes(1);
+    expect(savePendingLocalModeRequest).toHaveBeenCalledTimes(1);
+    expect(clearPendingLocalModeRequest).toHaveBeenCalledTimes(1);
   });
 
   it("resumeLocalBridgeRequest returns null when nothing is live for that id — already fully resolved, not actually orphaned", async () => {

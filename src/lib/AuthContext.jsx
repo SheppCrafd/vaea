@@ -8,8 +8,8 @@ const AuthContext = createContext();
 // Set by LoginScreen's "Continue without signing in" link — an explicit,
 // remembered opt-out of the whole-app login gate below (see AGENTS.md).
 // Chat is the one feature that still needs a real session for every
-// provider except Backdoor Mode (ChatSession/ChatMessage are Base44-hosted,
-// RLS-gated, elsewhere; Backdoor Mode keeps its own history entirely local —
+// provider except Local Mode (ChatSession/ChatMessage are Base44-hosted,
+// RLS-gated, elsewhere; Local Mode keeps its own history entirely local —
 // see useChatSessions.js/useChatMessages.js); everything else already works
 // fully signed-out, so this just lets checkAppState skip past the
 // auth_required branch instead of bouncing every visit back to /login.

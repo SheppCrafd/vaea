@@ -14,27 +14,45 @@ export const DEFAULTS = {
   provider: "base44",
   model: "",
   apiKey: "",
-  // Backdoor Mode only — baked into the watcher launcher scripts
+  // Local Mode only — baked into the watcher launcher scripts
   // (localBridgeStorage.js's writeWatcherKit, bridgeWatcherKit.js) so the
   // folder itself carries a ready-to-run pointer at whatever local model the
   // user picked, rather than them hand-editing a command every time.
-  // `backdoorConnector`: "echo" | "ollama" | "lmstudio" | "gpt4all" |
+  // `localConnector`: "echo" | "ollama" | "lmstudio" | "gpt4all" |
   // "textgen" | "anthropic" | "custom" — the first six are built-in presets
   // bridge_watcher.py already knows how to talk to; "custom" falls back to
-  // `backdoorUrl`, a raw endpoint already speaking Vaea's own request shape.
-  backdoorConnector: "echo",
-  backdoorModel: "",
-  backdoorUrl: "",
+  // `localUrl`, a raw endpoint already speaking Vaea's own request shape.
+  localConnector: "echo",
+  localModel: "",
+  localUrl: "",
   // "local-http" provider only — the local server's own base URL (e.g.
   // http://localhost:11434/v1), typed by the user since (unlike the fixed
   // vendor providers above) there's no single right answer here.
   baseUrl: "",
 };
 
+// Local Mode was called "Backdoor Mode" before this rename — a stored config
+// from before it carries the old key names (backdoorConnector/backdoorModel/
+// backdoorUrl) instead. Copied over once on read so an existing connection
+// doesn't silently reset to the "echo" test connector; never written back
+// under the old names again.
+function migrateLegacyKeys(stored) {
+  if (!stored) return stored;
+  const hasLegacy = "backdoorConnector" in stored || "backdoorModel" in stored || "backdoorUrl" in stored;
+  if (!hasLegacy) return stored;
+  const { backdoorConnector, backdoorModel, backdoorUrl, ...rest } = stored;
+  return {
+    ...rest,
+    localConnector: stored.localConnector ?? backdoorConnector,
+    localModel: stored.localModel ?? backdoorModel,
+    localUrl: stored.localUrl ?? backdoorUrl,
+  };
+}
+
 export async function loadAiProviderConfig() {
   try {
     const stored = await readKey(AI_PROVIDER_CONFIG_KEY);
-    return { ...DEFAULTS, ...(stored || {}) };
+    return { ...DEFAULTS, ...migrateLegacyKeys(stored || {}) };
   } catch {
     return { ...DEFAULTS };
   }
@@ -65,7 +83,7 @@ export function isByokConfigured(config) {
   return true;
 }
 
-// "Backdoor Mode" (src/lib/llm/localBridgeAdapter.js) has no key or model to
+// "Local Mode" (src/lib/llm/localBridgeAdapter.js) has no key or model to
 // pick — selecting the provider is enough here, since whether the folder
 // itself is actually connected is checked live (async, FSA permission
 // state) inside runByokChat, the same way an expired key would only surface

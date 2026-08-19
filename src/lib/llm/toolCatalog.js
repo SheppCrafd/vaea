@@ -13,9 +13,9 @@
 // codebase's own runTool dispatch. Anthropic and xAI each have their own
 // native hosted web search, wired directly into anthropicAdapter.js/
 // openaiCompatibleAdapter.js instead (see those files' own comments);
-// OpenAI/Google BYOK and Backdoor Mode have no web search at all — see
+// OpenAI/Google BYOK and Local Mode have no web search at all — see
 // systemPrompt.js's own NOT AVAILABLE note. Everything below DOES work
-// across every BYOK provider and Backdoor Mode: read_project_link via a
+// across every BYOK provider and Local Mode: read_project_link via a
 // plain client-side fetch (see localTools.js; CORS can block some sites, a
 // real limitation, not a bug), analyze_attachment the same way but limited
 // to images + plain-text files (no client-side PDF/Office parser), and
@@ -620,6 +620,52 @@ export const TOOL_CATALOG = [
 ];
 
 export const STAGED_TOOL_NAMES = new Set(TOOL_CATALOG.filter((t) => t.staged).map((t) => t.name));
+
+const TOOL_CATALOG_BY_NAME = new Map(TOOL_CATALOG.map((t) => [t.name, t]));
+
+// A light, hand-rolled check — required-field presence and a basic
+// type match against `parameters` (a plain JSON-Schema-ish object, no need
+// for a real validator library like Ajv/Zod given how simple these shapes
+// are) — NOT full JSON Schema validation (no nested object/array item
+// checking, no enum/format checks). Exists so toolRunner.js can catch an
+// obviously bad staged tool call (missing required field, wrong type) at
+// staging time and hand the model/relay a `tool_result` error to
+// self-correct from, instead of the bad args sailing straight into the plan
+// and only surfacing later, at confirm/execute time. Returns a short error
+// string, or null if the call looks fine (including when the tool name
+// itself isn't in the catalog at all — toolRunner.js's own STAGED_TOOL_NAMES
+// check already gates that before this ever runs).
+export function validateToolInput(name, input) {
+  const tool = TOOL_CATALOG_BY_NAME.get(name);
+  if (!tool) return null;
+  const { properties = {}, required = [] } = tool.parameters || {};
+  const args = input || {};
+  for (const field of required) {
+    if (args[field] === undefined || args[field] === null || args[field] === "") {
+      return `Missing required field "${field}" for ${name}.`;
+    }
+  }
+  for (const [field, value] of Object.entries(args)) {
+    const schema = properties[field];
+    if (!schema || value === undefined || value === null) continue;
+    if (schema.type === "array" && !Array.isArray(value)) {
+      return `Field "${field}" for ${name} must be an array, got ${typeof value}.`;
+    }
+    if (schema.type === "string" && typeof value !== "string") {
+      return `Field "${field}" for ${name} must be a string, got ${typeof value}.`;
+    }
+    if (schema.type === "number" && typeof value !== "number") {
+      return `Field "${field}" for ${name} must be a number, got ${typeof value}.`;
+    }
+    if (schema.type === "boolean" && typeof value !== "boolean") {
+      return `Field "${field}" for ${name} must be a boolean, got ${typeof value}.`;
+    }
+    if (Array.isArray(schema.enum) && !schema.enum.includes(value)) {
+      return `Field "${field}" for ${name} must be one of: ${schema.enum.join(", ")} — got "${value}".`;
+    }
+  }
+  return null;
+}
 
 // Anthropic's Messages API wants { name, description, input_schema }.
 export function toAnthropicTools() {

@@ -14,7 +14,7 @@
 // each have their own native hosted search wired directly into their
 // adapters (transparent to this prompt — Claude/Grok already know how to
 // use their own built-in search, nothing here needs to tell them), but
-// OpenAI/Google BYOK and Backdoor Mode have none at all (see NOT AVAILABLE
+// OpenAI/Google BYOK and Local Mode have none at all (see NOT AVAILABLE
 // IN THIS MODE below) — told to the model outright rather than letting it
 // guess or pretend.
 // Real local date/time/timezone, not a bare UTC date — this file runs
@@ -60,7 +60,7 @@ DOUBLE-CHECK EVERY ID RIGHT BEFORE YOU FINALIZE A PLAN: this matters most exactl
 
 GROUND YOUR PLAN IN REAL CONTEXT, DON'T JUST GUESS FROM A SUMMARY: [DATABASE STATE] is a trimmed projection, not everything real, and [CONVERSATION HISTORY] is a plain transcript, not a search index. Before committing to a plan for anything non-trivial or ambiguous — especially a request that references "what we discussed before" or something you'd need to actually go check — use search_workspace instead of guessing from what [DATABASE STATE] happens to summarize. It's a real call, runs right here, and the user sees it as a real step in what you did — treat reaching for it as a normal, expected part of planning a good answer, not an optional extra.
 
-NOT AVAILABLE IN THIS MODE: real-time web search isn't available to every provider here. If you are Anthropic's Claude or xAI's Grok, you have your own real, native web search built in — it runs automatically whenever it's genuinely useful, you never call it as one of the tools above. Every OTHER provider (OpenAI, Google, and Backdoor Mode) has no web search at all in this mode. If a request needs current/real-time information and you're not Claude or Grok, say so plainly instead of guessing or pretending to have looked it up.
+NOT AVAILABLE IN THIS MODE: real-time web search isn't available to every provider here. If you are Anthropic's Claude or xAI's Grok, you have your own real, native web search built in — it runs automatically whenever it's genuinely useful, you never call it as one of the tools above. Every OTHER provider (OpenAI, Google, and Local Mode) has no web search at all in this mode. If a request needs current/real-time information and you're not Claude or Grok, say so plainly instead of guessing or pretending to have looked it up.
 
 READING A LINK: read_project_link works here too, but as a plain browser fetch rather than an LLM-driven browse — some sites reject cross-origin requests (CORS) and it'll come back with an "error" field instead of content. It reads ANY URL, not just one from a project's own links array — call it just the same when the user pastes/shares a URL directly in the conversation and the request needs to know what's actually there. A URL that needs sign-in (a private Google Drive/Docs link, for example) will come back as an unreadable shell rather than real content, same as a CORS block does. Either way, tell the user plainly (quote the error if there is one) rather than guessing at what the page says, and ask them to paste the actual content/list directly if the link genuinely can't be read this way.
 
@@ -146,25 +146,47 @@ function renderVaultOverview(vaultOverview) {
   return `\n\n[VAULT CONTEXT — force-loaded, not a tool result]\n${parts.join("\n\n")}`;
 }
 
-export function buildContextPrompt({ activeProjectId, areas, products, projects, archivedProjects, tasks, archivedTasks, stakeholders, departments, notes, conversationHistory, userText, aiIdentity, protocolReminderRequested, externalVault, vaultOverview }) {
+// The exact trimmed shape [DATABASE STATE] renders — factored out so
+// byokChat.js can also write it straight to workspace-data.json for the
+// local-bridge/local-relay path instead of inlining it into prompt text
+// (see buildContextPrompt's `liveDataExternalized` option below and
+// localBridgeStorage.js's writeWorkspaceDataFile).
+export function buildWorkspaceDataSnapshot({ activeProjectId, areas, products, projects, archivedProjects, tasks, archivedTasks, stakeholders, departments, notes }) {
+  return {
+    active_project_id: activeProjectId || null,
+    areas: areas.map((a) => ({ id: a.id, title: a.title, description: a.description })),
+    products: products.map((p) => ({ id: p.id, title: p.title, parent_area_id: p.parent_area_id, description: p.description, stakeholder_ids: p.stakeholder_ids || [] })),
+    active_projects: projects.map((p) => ({ id: p.id, title: p.title, parent_area_id: p.parent_area_id, parent_product_id: p.parent_product_id, objective: p.objective, owner_name: p.owner_name, due_date: p.due_date, due_date_status: p.due_date_status, stakeholder_ids: p.stakeholder_ids || [], related_product_ids: p.related_product_ids || [], attachments: p.attachments || [], links: p.links || [] })),
+    archived_projects: archivedProjects.map((p) => ({ id: p.id, title: p.title })),
+    active_tasks: tasks.map((t) => ({ id: t.id, project_id: t.project_id, description: t.description, status: t.status, quadrant: t.quadrant, type: t.type, stakeholder_ids: t.stakeholder_ids })),
+    archived_tasks: archivedTasks.map((t) => ({ id: t.id, project_id: t.project_id, description: t.description, status: t.status })),
+    stakeholders: stakeholders.map((s) => ({ id: s.id, name: s.name, department: s.department })),
+    departments: departments.map((d) => ({ id: d.id, name: d.name })),
+    project_notes: notes.map((n) => ({ id: n.id, project_id: n.project_id, type: n.type, content: n.content })),
+  };
+}
+
+// `liveDataExternalized` (local-bridge/local-relay only — see byokChat.js):
+// [CURRENT DATE & TIME] and [DATABASE STATE] are the two genuinely dynamic,
+// per-turn-changing blocks below — a Claude Code relay has its own real
+// tools (Bash for the actual date, a file read for the actual current
+// workspace state written to workspace-data.json right before this prompt
+// is sent) and doesn't need either spoon-fed as prompt text the way an HTTP
+// adapter with no file access does. Everything else in this function
+// (identity, vault status, protocol reminder, conversation history, the
+// user's own message) stays inline either way — those are either small or
+// are literally the thing being asked, not bulk state a relay can fetch
+// itself.
+export function buildContextPrompt({ activeProjectId, areas, products, projects, archivedProjects, tasks, archivedTasks, stakeholders, departments, notes, conversationHistory, userText, aiIdentity, protocolReminderRequested, externalVault, vaultOverview, liveDataExternalized = false }) {
   const identity = aiIdentity || {};
   const vaultConnected = !!(externalVault?.owner && externalVault?.repo && externalVault?.token);
   const now = getNowContext();
-  return `[YOUR IDENTITY]
-Name: ${identity.name || '(not set — you\'re currently displayed as "Vaea Chat")'}
-Identity: ${identity.identity || "(not set)"}
-Soul (tone/protocol): ${identity.soul || "(not set)"}
-About the user: ${identity.userProfile || "(not set)"}
-
-[CURRENT DATE & TIME]
-${now.display}
-Today's date, for filenames like "Daily/YYYY-MM-DD.md": ${now.isoDate}
-
-[VAEA VAULT]
-${vaultConnected ? `Connected: ${externalVault.owner}/${externalVault.repo} (branch: ${externalVault.branch || "main"})` : "Not connected — vault_* tools will return connected: false."}${renderVaultOverview(vaultOverview)}
-${protocolReminderRequested ? `\n[PROTOCOL REMINDER]\nThe user's latest message matched a bug/error/architecture/"which approach" pattern. If "soul" above defines a specific response protocol or step structure, apply it explicitly now and label each step in your reply — don't decide case-by-case whether it's "relevant," the trigger word match already decided that.\n` : ""}
-[DATABASE STATE]
-Active Project ID (if chatting from within a specific project): ${activeProjectId || "None"}
+  const dateTimeBlock = liveDataExternalized
+    ? `Not included here — run \`date\` (or your own equivalent) yourself for the real current date/time before relying on it; don't trust anything else for this.`
+    : `${now.display}\nToday's date, for filenames like "Daily/YYYY-MM-DD.md": ${now.isoDate}`;
+  const databaseStateBlock = liveDataExternalized
+    ? `Not included here — read workspace-data.json in this same folder for the current Areas/Products/Projects/Tasks/Stakeholders/Departments/Notes state (rewritten fresh right before this request was sent).`
+    : `Active Project ID (if chatting from within a specific project): ${activeProjectId || "None"}
 Areas: ${JSON.stringify(areas.map((a) => ({ id: a.id, title: a.title, description: a.description })))}
 Products: ${JSON.stringify(products.map((p) => ({ id: p.id, title: p.title, parent_area_id: p.parent_area_id, description: p.description, stakeholder_ids: p.stakeholder_ids || [] })))}
 Active Projects: ${JSON.stringify(projects.map((p) => ({ id: p.id, title: p.title, parent_area_id: p.parent_area_id, parent_product_id: p.parent_product_id, objective: p.objective, owner_name: p.owner_name, due_date: p.due_date, due_date_status: p.due_date_status, stakeholder_ids: p.stakeholder_ids || [], related_product_ids: p.related_product_ids || [], attachments: p.attachments || [], links: p.links || [] })))}
@@ -173,7 +195,21 @@ Active Tasks: ${JSON.stringify(tasks.map((t) => ({ id: t.id, project_id: t.proje
 Archived Tasks: ${JSON.stringify(archivedTasks.map((t) => ({ id: t.id, project_id: t.project_id, description: t.description, status: t.status })))}
 Stakeholders: ${JSON.stringify(stakeholders.map((s) => ({ id: s.id, name: s.name, department: s.department })))}
 Departments: ${JSON.stringify(departments.map((d) => ({ id: d.id, name: d.name })))}
-Project Notes: ${JSON.stringify(notes.map((n) => ({ id: n.id, project_id: n.project_id, type: n.type, content: n.content })))}
+Project Notes: ${JSON.stringify(notes.map((n) => ({ id: n.id, project_id: n.project_id, type: n.type, content: n.content })))}`;
+  return `[YOUR IDENTITY]
+Name: ${identity.name || '(not set — you\'re currently displayed as "Vaea Chat")'}
+Identity: ${identity.identity || "(not set)"}
+Soul (tone/protocol): ${identity.soul || "(not set)"}
+About the user: ${identity.userProfile || "(not set)"}
+
+[CURRENT DATE & TIME]
+${dateTimeBlock}
+
+[VAEA VAULT]
+${vaultConnected ? `Connected: ${externalVault.owner}/${externalVault.repo} (branch: ${externalVault.branch || "main"})` : "Not connected — vault_* tools will return connected: false."}${renderVaultOverview(vaultOverview)}
+${protocolReminderRequested ? `\n[PROTOCOL REMINDER]\nThe user's latest message matched a bug/error/architecture/"which approach" pattern. If "soul" above defines a specific response protocol or step structure, apply it explicitly now and label each step in your reply — don't decide case-by-case whether it's "relevant," the trigger word match already decided that.\n` : ""}
+[DATABASE STATE]
+${databaseStateBlock}
 
 [CONVERSATION HISTORY]
 ${conversationHistory || "(none yet)"}

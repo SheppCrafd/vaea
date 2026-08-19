@@ -5,8 +5,8 @@ import { localDb } from "@/lib/localDb";
 import { executeAction, executeActionSequence, describeToolCall, describePlan, stripToolLog, DESTRUCTIVE_ACTIONS, NON_EXECUTABLE_ACTIONS, filterReflectionActions } from "@/lib/chatActions";
 import { loadAiIdentity, DEFAULTS as IDENTITY_DEFAULTS } from "@/lib/aiPreferences";
 import { loadAiProviderConfig, isByokConfigured, isLocalBridgeConfigured } from "@/lib/aiProviderConfig";
-import { runByokChat, resumeOrphanedBackdoorRequest } from "@/lib/llm/byokChat";
-import { getPendingBackdoorRequest, clearPendingBackdoorRequest, getBridgeStatus, subscribeStatus } from "@/lib/llm/localBridgeStorage";
+import { runByokChat, resumeOrphanedLocalModeRequest } from "@/lib/llm/byokChat";
+import { getPendingLocalModeRequest, clearPendingLocalModeRequest, getBridgeStatus, subscribeStatus } from "@/lib/llm/localBridgeStorage";
 import { readNdjson, ROUND_BOUNDARY_MARKER } from "@/lib/llm/streamUtils";
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
 import { fetchVaultOverview, SELF_NOTE_PATH } from "@/lib/githubApi";
@@ -107,7 +107,7 @@ export function useChatController({ activeProjectId } = {}) {
   const [liveSteps, setLiveSteps] = useState([]);
   // The model's own narration, growing live as thinking-delta events arrive
   // (invokeAssistant's onEvent) — real streaming for base44-hosted/BYOK, a
-  // paced simulation for Backdoor Mode (see byokChat.js's simulateLiveReveal).
+  // paced simulation for Local Mode (see byokChat.js's simulateLiveReveal).
   // Reset to "" at the start of each send; once it holds anything, the final
   // message (which carries the same text, permanently, as its `reply`)
   // skips the typewriter — it was already shown appearing, live.
@@ -173,31 +173,31 @@ export function useChatController({ activeProjectId } = {}) {
   const createMessage = useCreateChatMessage();
   const updateMessage = useUpdateChatMessage();
 
-  // A real customer's Backdoor Mode reply went permanently missing: they
+  // A real customer's Local Mode reply went permanently missing: they
   // navigated away while a human was still relaying the answer, and the
   // requestId that would have claimed the eventually-written response only
   // ever lived in one in-memory JS closure — gone the moment that
   // navigation happened, even though the answer sat right there on disk,
   // fully written, forever unread (localBridgeStorage.js's
-  // savePendingBackdoorRequest has the full incident writeup). This is the
-  // recovery half: whenever the Backdoor Mode folder becomes connected
+  // savePendingLocalModeRequest has the full incident writeup). This is the
+  // recovery half: whenever the Local Mode folder becomes connected
   // (on mount with an already-granted permission, or right after a manual
   // re-grant click), check for a leftover pointer and, if the answer is
   // sitting there, finish the exchange the same way a live send would —
   // via applyAssistantReply, defined below — instead of leaving it stranded
   // a second time.
-  const resumingBackdoorRef = useRef(false);
+  const resumingLocalModeRef = useRef(false);
   useEffect(() => {
     let cancelled = false;
 
     const attemptResume = async () => {
-      if (cancelled || resumingBackdoorRef.current) return;
+      if (cancelled || resumingLocalModeRef.current) return;
       const status = await getBridgeStatus();
       if (status !== "connected") return;
-      const pending = await getPendingBackdoorRequest();
+      const pending = await getPendingLocalModeRequest();
       if (!pending?.requestId || !pending?.sessionId) return;
 
-      resumingBackdoorRef.current = true;
+      resumingLocalModeRef.current = true;
       try {
         // Only what byokChat.js's own `dataset` shape actually uses for a
         // tool call (matching runByokChat, which never includes departments
@@ -213,7 +213,7 @@ export function useChatController({ activeProjectId } = {}) {
           localDb.projectNotes.list(),
         ]);
         const externalVault = await loadVaultConnection();
-        const result = await resumeOrphanedBackdoorRequest({
+        const result = await resumeOrphanedLocalModeRequest({
           requestId: pending.requestId,
           contextArgs: {
             areas: areas.filter((a) => !a.deleted_at),
@@ -231,18 +231,18 @@ export function useChatController({ activeProjectId } = {}) {
           await applyAssistantReply(pending.sessionId, result, { onSuccess: (created) => markMessageNew(created.id) });
         }
         // Cleared on a definite outcome either way: a real reply just got
-        // attached above, or resumeOrphanedBackdoorRequest returned null
+        // attached above, or resumeOrphanedLocalModeRequest returned null
         // because every round for this id was already archived (fully
         // resolved some other way already) — either way there's nothing
         // left to resume.
-        await clearPendingBackdoorRequest();
+        await clearPendingLocalModeRequest();
       } catch {
         // A genuine transient failure (permission not actually granted yet,
         // folder briefly unreadable) — leave the pointer in place so the
         // next status change or reload gets another attempt, rather than
         // silently discarding a still-real pending request.
       } finally {
-        resumingBackdoorRef.current = false;
+        resumingLocalModeRef.current = false;
       }
     };
 
@@ -316,7 +316,7 @@ export function useChatController({ activeProjectId } = {}) {
   // localDb, via chatActions.js. Nothing about your projects/tasks/etc. is
   // ever written back to Base44. `onEvent`, if provided, fires live as the
   // model's own narration and any live tool call actually happen (real
-  // streaming for base44-hosted/BYOK, a paced simulation for Backdoor Mode —
+  // streaming for base44-hosted/BYOK, a paced simulation for Local Mode —
   // see byokChat.js) — always resolves to the same {reply, actions,
   // liveTrace} shape regardless.
   const invokeAssistant = async (payload, onEvent) => {
@@ -342,7 +342,7 @@ export function useChatController({ activeProjectId } = {}) {
     // read/write already trusts (see githubApi.js) — never server-side, and
     // best-effort throughout, so a fetch failure just means less context,
     // never a visible error. Loaded for EVERY provider now, not just
-    // base44-hosted — BYOK/Backdoor Mode's own vault_* tools (localTools.js)
+    // base44-hosted — BYOK/Local Mode's own vault_* tools (localTools.js)
     // need externalVault just as much as entry.ts's server-side ones do.
     const externalVault = await loadVaultConnection();
     let vaultOverview = null;
@@ -637,7 +637,7 @@ export function useChatController({ activeProjectId } = {}) {
       // longer be the active one by the time this fires, so chatState's own
       // cached messages can't be trusted to still be for THIS session), not
       // a call through that hook. Branches to the same local backend
-      // useChatMessages.js/useChatSessions.js use for Backdoor Mode — see
+      // useChatMessages.js/useChatSessions.js use for Local Mode — see
       // their shared comment.
       const providerConfig = await loadAiProviderConfig();
       let messages;
@@ -727,8 +727,8 @@ export function useChatController({ activeProjectId } = {}) {
 
   // The part of a successful assistant turn that turns {reply, reasoning,
   // actions, liveTrace} into real chat messages/mutations — extracted out
-  // of handleSend so the exact same logic also drives a RESUMED Backdoor
-  // Mode reply (see resumePendingBackdoorRequest below), not a second,
+  // of handleSend so the exact same logic also drives a RESUMED Local
+  // Mode reply (see the resume useEffect above), not a second,
   // separately-maintained copy of it. `messageOptions` is only ever the
   // typewriter-skip/markMessageNew choice handleSend already made; a
   // resumed reply always gets the normal markMessageNew treatment since

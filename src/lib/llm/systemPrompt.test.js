@@ -39,7 +39,7 @@ describe("buildContextPrompt's vault self-note rendering — the hard read-time 
 // Real bug fixed the same session: this used to be a bare UTC date
 // (`new Date().toISOString().slice(0, 10)`) with no time at all — wrong for
 // any user not near UTC, and useless for a genuine "what time is it"
-// question. buildContextPrompt runs entirely client-side (BYOK/Backdoor
+// question. buildContextPrompt runs entirely client-side (BYOK/Local
 // Mode), so `new Date()` here is already the user's own real local clock.
 describe("buildContextPrompt's [CURRENT DATE & TIME] section", () => {
   it("includes a real local date, a real clock time, and a timezone name — not the old bare-UTC-date-only block", () => {

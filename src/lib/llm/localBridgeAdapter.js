@@ -1,7 +1,7 @@
-import { writeRequestFile, pollForResponseFile, archiveProcessedRound, savePendingBackdoorRequest, clearPendingBackdoorRequest, findLatestLivePromptRound, readPromptFile } from "@/lib/llm/localBridgeStorage";
+import { writeRequestFile, pollForResponseFile, archiveProcessedRound, savePendingLocalModeRequest, clearPendingLocalModeRequest, findLatestLivePromptRound, readPromptFile } from "@/lib/llm/localBridgeStorage";
 import { extractPlan } from "@/lib/llm/streamUtils";
 
-// "Backdoor Mode" — same plan-then-tools loop shape as anthropicAdapter.js's
+// "Local Mode" — same plan-then-tools loop shape as anthropicAdapter.js's
 // callAnthropic, but the transport is two folders on disk instead of a
 // fetch() call: each round writes prompts/<id>-r<round>.json and polls
 // responses/<id>-r<round>.json (localBridgeStorage.js) until the user's own
@@ -11,10 +11,26 @@ import { extractPlan } from "@/lib/llm/streamUtils";
 // already the richest shape this codebase produces (toAnthropicTools()) and
 // it lets a watcher script forward the request almost unmodified to any
 // Claude-compatible local runtime, or translate it for another one. See
-// BackdoorModeSetupGuidePage.jsx for the full file contract and a sample
+// LocalModeSetupGuidePage.jsx for the full file contract and a sample
 // script.
+//
+// Every prompts/<id>-r<round>.json is now uniformly {round, messages} — the
+// system prompt and full tool catalog used to be duplicated into round 0's
+// own file (a real workspace was hitting ~44,000 tokens per round file
+// before this); they're now static files written once when the folder is
+// connected instead (localBridgeStorage.js's writeStaticContextFiles:
+// VAEA_SYSTEM_PROMPT.md/VAEA_TOOL_CATALOG.json), so a relay reads them
+// straight off disk rather than out of every prompt payload. bridge_watcher.py
+// mirrors this (its own _load_static_context, replacing what used to be a
+// per-requestId cache keyed off round 0). This adapter never even receives
+// systemPrompt/tools as params any more — only byokChat.js's HTTP adapters
+// (anthropicAdapter.js/openaiCompatibleAdapter.js) still need them inline.
 const MAX_TOOL_ROUNDS = 15;
 const DEFAULT_POLL_INTERVAL_MS = 5000;
+// How many times a single round gets to resend after a malformed/wrong-shape
+// response before the turn actually fails — see the malformed-response
+// handling in runToolLoop below.
+const MAX_MALFORMED_RETRIES = 1;
 
 function newRequestId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
@@ -29,41 +45,68 @@ function newRequestId() {
 // out of sync with the real thing. `firstRoundAlreadyWritten` is what tells
 // the two apart: false for a fresh call (round 0 genuinely needs writing),
 // true for a resume (the starting round's file already exists — writing it
-// again would clobber the real system/tools with the undefined ones a
-// resume never has). Returns {reply, reasoning, thinking} — see
-// callLocalBridge's own comment for what each means.
-async function runToolLoop({ requestId, startRound, messages, runTool, pollIntervalMs, systemPrompt, tools, firstRoundAlreadyWritten = false }) {
+// again would clobber the real messages with whatever a resume happens to
+// reconstruct). Returns {reply, reasoning, thinking} — see callLocalBridge's
+// own comment for what each means.
+// Polls one round, and — if the response is malformed (unparseable JSON, or
+// valid JSON that doesn't match {content: [...]}) — gives the relay up to
+// MAX_MALFORMED_RETRIES chances to resend correctly before actually failing.
+// Each retry writes a NEW round file (never rewrites the malformed one —
+// an automated watcher only ever looks at rounds with no response yet, so
+// reusing the same round number would mean it never gets picked back up)
+// carrying a plain-language correction message describing exactly what was
+// wrong. Returns {response, round} — `round` may be higher than the one
+// passed in if any retries happened, and the caller should treat THAT as
+// the round whose response it just consumed.
+async function pollRoundWithRetries({ requestId, round, messages, pollIntervalMs }) {
+  let attempt = 0;
+  let currentRound = round;
+  for (;;) {
+    const response = await pollForResponseFile(requestId, currentRound, { intervalMs: pollIntervalMs });
+    const content = response?.content;
+    const malformed = response?.malformed === true || !Array.isArray(content);
+    if (!malformed) return { response, round: currentRound };
+
+    // response can legitimately be undefined here (readResponseFileIfPresent
+    // only returns {malformed, raw} for a truthy-but-unparseable file — an
+    // empty/never-written file resolves to null/undefined instead), so
+    // JSON.stringify(response) has to be guarded rather than assumed to
+    // return a string.
+    const responseDump = JSON.stringify(response ?? null) ?? "null";
+    if (attempt >= MAX_MALFORMED_RETRIES) {
+      const reason = response?.malformed
+        ? `wasn't valid JSON: ${String(response.raw).slice(0, 500)}`
+        : `was valid JSON but didn't match the expected {"content": [...]} shape: ${responseDump.slice(0, 500)}`;
+      throw new Error(`Malformed response in responses/${requestId}-r${currentRound}.json — ${reason}`);
+    }
+    attempt += 1;
+    currentRound += 1;
+    const correction = response?.malformed
+      ? `Your last response wasn't valid JSON — no markdown fence, no text outside the object. You sent:\n${String(response.raw).slice(0, 2000)}\n\nResend ONLY a raw JSON object shaped {"content": [...]} to responses/${requestId}-r${currentRound}.json.`
+      : `Your last response was valid JSON but didn't match the expected {"content": [...]} shape. You sent:\n${responseDump.slice(0, 2000)}\n\nResend a correctly shaped {"content": [...]} object to responses/${requestId}-r${currentRound}.json.`;
+    messages.push({ role: "user", content: correction });
+    await writeRequestFile(requestId, currentRound, { round: currentRound, messages });
+  }
+}
+
+async function runToolLoop({ requestId, startRound, messages, runTool, pollIntervalMs, firstRoundAlreadyWritten = false }) {
   const thinking = [];
   const planParts = [];
 
   for (let round = startRound; round < MAX_TOOL_ROUNDS; round++) {
     const isFirstIteration = round === startRound;
     if (!isFirstIteration || !firstRoundAlreadyWritten) {
-      // system/tools are large (the full instruction text plus the whole
-      // Zod-derived tool catalog — tens of thousands of tokens for a real
-      // workspace) and byte-for-byte identical on every round of the SAME
-      // turn, so only round 0 actually writes them — a real user's own
-      // multi-round conversation was hitting the on-disk prompt file at
-      // ~44,000 tokens per round before this, almost entirely duplicated
-      // content. bridge_watcher.py caches round 0's copy per requestId (or
-      // recovers it from processed/prompts/ if the watcher restarted
-      // mid-conversation) and reconstructs the full request before handing
-      // it to whichever connector answers it — every existing connector
-      // function (echo/ollama/lmstudio/etc.) needed zero changes for this.
-      const payload = round === 0 ? { round, system: systemPrompt, tools, messages } : { round, messages };
-      await writeRequestFile(requestId, round, payload);
+      // Every round is just the conversation delta now — see this file's
+      // own module comment for where system/tools moved instead.
+      await writeRequestFile(requestId, round, { round, messages });
     }
-    const response = await pollForResponseFile(requestId, round, { intervalMs: pollIntervalMs });
+    const { response, round: answeredRound } = await pollRoundWithRetries({ requestId, round, messages, pollIntervalMs });
+    round = answeredRound;
 
-    const content = response?.content;
-    if (!Array.isArray(content)) {
-      throw new Error(`Malformed response in responses/${requestId}-r${round}.json — expected a {"content": [...]} object.`);
-    }
+    const content = response.content;
     // This round's response has been read and is about to drive the turn —
     // the prompt has successfully done its job, so the pair moves from the
     // live folders (the "new" list) into processed/ (the "known" list).
-    // A malformed response deliberately never reaches this line: the pair
-    // stays in place for debugging. Best-effort — see localBridgeStorage.js.
     await archiveProcessedRound(requestId, round);
     const toolUseBlocks = content.filter((block) => block.type === "tool_use");
     const rawRoundText = content.filter((block) => block.type === "text").map((block) => block.text).join("\n").trim();
@@ -89,7 +132,7 @@ async function runToolLoop({ requestId, startRound, messages, runTool, pollInter
       // content format, so a real image rides along as its own content
       // block for whatever local runtime the user's watcher script forwards
       // this to (already documented as "Claude-compatible" — see
-      // BackdoorModeSetupGuidePage.jsx).
+      // LocalModeSetupGuidePage.jsx).
       const { image_base64, media_type, ...rest } = result || {};
       toolResults.push({
         type: "tool_result",
@@ -125,13 +168,13 @@ async function runToolLoop({ requestId, startRound, messages, runTool, pollInter
 // eventual answer sitting unread on disk forever — see
 // resumeLocalBridgeRequest below and its own header comment for the real
 // incident this closes.
-export async function callLocalBridge({ systemPrompt, contextPrompt, tools, runTool, sessionId, pollIntervalMs = DEFAULT_POLL_INTERVAL_MS }) {
+export async function callLocalBridge({ contextPrompt, runTool, sessionId, pollIntervalMs = DEFAULT_POLL_INTERVAL_MS }) {
   const requestId = newRequestId();
   const messages = [{ role: "user", content: contextPrompt }];
-  await savePendingBackdoorRequest({ sessionId, requestId });
+  await savePendingLocalModeRequest({ sessionId, requestId });
   try {
-    const result = await runToolLoop({ requestId, startRound: 0, messages, runTool, pollIntervalMs, systemPrompt, tools });
-    await clearPendingBackdoorRequest();
+    const result = await runToolLoop({ requestId, startRound: 0, messages, runTool, pollIntervalMs });
+    await clearPendingLocalModeRequest();
     return result;
   } catch (err) {
     // A clean failure (malformed response, gave up after MAX_TOOL_ROUNDS,
@@ -140,13 +183,13 @@ export async function callLocalBridge({ systemPrompt, contextPrompt, tools, runT
     // so the pointer should clear here too. It's specifically an UNCLEAN
     // exit (the tab dying mid-poll, never reaching either branch of this
     // catch at all) that's supposed to leave the pointer behind.
-    await clearPendingBackdoorRequest();
+    await clearPendingLocalModeRequest();
     throw err;
   }
 }
 
 // The resume path: called on load/reconnect when a leftover pointer is
-// found (localBridgeStorage.js's getPendingBackdoorRequest). Reconstructs
+// found (localBridgeStorage.js's getPendingLocalModeRequest). Reconstructs
 // exactly where the previous browser session left off from what's already
 // sitting on disk — no separate persisted copy of the conversation needed —
 // and picks the SAME poll-and-continue loop back up. Returns null if the
