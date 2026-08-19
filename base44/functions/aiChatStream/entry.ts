@@ -172,6 +172,49 @@ function vaultNotConnected() {
   return { connected: false, message: 'No Vaea Vault connected. Tell the user to connect one in Settings -> Vaea Vault before this can work.' };
 }
 
+// Google Calendar — PKCE against a public "Desktop app" OAuth client (no
+// client secret exists to protect, see the plan's "skip the server
+// entirely" rationale and src/lib/googleOAuthPkce.js for the client-side
+// half of this same flow). Client-side twin lives in src/lib/googleCalendarApi.js
+// — different runtime, kept in sync by hand, same reasoning as the GitHub
+// helpers above.
+// TODO: same value as the frontend build's VITE_GOOGLE_CALENDAR_CLIENT_ID —
+// public, not a secret, just needs to be filled in once that credential exists.
+const GOOGLE_CALENDAR_CLIENT_ID = 'PASTE_YOUR_GOOGLE_OAUTH_CLIENT_ID_HERE';
+const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
+const GOOGLE_CALENDAR_API = 'https://www.googleapis.com/calendar/v3';
+
+function calendarNotConnected() {
+  return { connected: false, message: 'No Google Calendar connected. Tell the user to connect one in Settings -> Google Calendar before this can work.' };
+}
+
+// Always refreshes, rather than checking expiresAt first — this function's
+// own copy of the connection is request-scoped and never written back to
+// the client (see useChatController.js's comment on why that's fine: the
+// client just does one harmless extra refresh on its own next action).
+async function refreshGoogleAccessToken(refreshToken) {
+  const res = await fetch(GOOGLE_TOKEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ client_id: GOOGLE_CALENDAR_CLIENT_ID, refresh_token: refreshToken, grant_type: 'refresh_token' }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error_description || `Google rejected the refresh (${res.status}).`);
+  }
+  const data = await res.json();
+  return data.access_token;
+}
+
+async function googleCalendarFetch(url, accessToken, init) {
+  const res = await fetch(url, { ...init, headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json', ...init?.headers } });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error?.message || `Google Calendar error (${res.status}).`);
+  }
+  return res.status === 204 ? null : res.json();
+}
+
 async function githubFetch(url, token, init) {
   const res = await fetch(url, { ...init, headers: githubHeaders(token, init?.headers) });
   if (!res.ok) {
@@ -236,7 +279,7 @@ function resolveNow(clientNow) {
 // from the request body, so these two tools can see fields the prompt
 // doesn't bother spelling out for every record), and externalVault (for the
 // vault_* tools below, connecting to a personal GitHub-hosted notes repo).
-function buildTools({ base44, plan, liveTrace, dataset, externalVault, emit, now }) {
+function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCalendar, emit, now }) {
   // Every live (already-executed) tool call gets pushed here as {label,
   // detail} — same shape a client-side executed mutation step gets from
   // describeToolCall (chatActions.js), so ChatMessageList can render both
@@ -635,6 +678,34 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, emit, now
       }),
       execute: queue('WRITE_VAULT_NOTE'),
     }),
+    CREATE_CALENDAR_EVENT: tool({
+      description: 'Add an event to the connected Google Calendar (see [GOOGLE CALENDAR] below). Staged like every tool above, not run here — the user\'s own device creates it via the Google Calendar API using their locally-stored connection. Times are RFC3339 (e.g. "2026-08-20T14:00:00-04:00") — use [CURRENT DATE & TIME] to resolve relative dates like "tomorrow" or "next Tuesday" before calling this.',
+      inputSchema: z.object({
+        summary: z.string().describe('Event title.'),
+        start: z.string().describe('RFC3339 start time, e.g. "2026-08-20T14:00:00-04:00". For an all-day event, use a plain date "2026-08-20" instead.'),
+        end: z.string().optional().describe('RFC3339 end time (or plain date for an all-day event). Defaults to 1 hour after start if omitted for a timed event.'),
+        description: z.string().optional().describe('Optional event notes/description.'),
+        location: z.string().optional().describe('Optional location.'),
+      }),
+      execute: queue('CREATE_CALENDAR_EVENT'),
+    }),
+    UPDATE_CALENDAR_EVENT: tool({
+      description: 'Change an existing Google Calendar event — move it, rename it, edit its notes. Get the event_id from list_calendar_events first; never guess one. Only pass the fields actually changing.',
+      inputSchema: z.object({
+        event_id: z.string().describe('The event\'s id, from list_calendar_events.'),
+        summary: z.string().optional(),
+        start: z.string().optional().describe('RFC3339 start time or plain date, if moving the event.'),
+        end: z.string().optional().describe('RFC3339 end time or plain date, if moving the event.'),
+        description: z.string().optional(),
+        location: z.string().optional(),
+      }),
+      execute: queue('UPDATE_CALENDAR_EVENT'),
+    }),
+    DELETE_CALENDAR_EVENT: tool({
+      description: 'Cancel/remove an event from the connected Google Calendar. Get the event_id from list_calendar_events first; never guess one. Destructive — goes through the normal confirm-before-destructive step like any other delete.',
+      inputSchema: z.object({ event_id: z.string().describe('The event\'s id, from list_calendar_events.') }),
+      execute: queue('DELETE_CALENDAR_EVENT'),
+    }),
 
     web_search: tool({
       description: 'Search the web / current news for real-time information not in [DATABASE STATE] (e.g. current events, a company\'s stock news, general facts). Runs immediately — its result is real, unlike the staged tools above.',
@@ -854,6 +925,40 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, emit, now
         }
       },
     }),
+
+    list_calendar_events: tool({
+      description: 'List upcoming events on the connected Google Calendar (see [GOOGLE CALENDAR] below). Runs immediately and returns real data. Defaults to the next 20 events from right now if no range is given.',
+      inputSchema: z.object({
+        time_min: z.string().optional().describe('RFC3339 lower bound, e.g. start of today. Defaults to right now.'),
+        time_max: z.string().optional().describe('RFC3339 upper bound, e.g. end of this week, if the user asked about a specific range.'),
+      }),
+      execute: async ({ time_min, time_max }) => {
+        if (!googleCalendar?.accessToken || !googleCalendar?.refreshToken) return calendarNotConnected();
+        try {
+          const accessToken = await refreshGoogleAccessToken(googleCalendar.refreshToken);
+          const calendarId = googleCalendar.calendarId || 'primary';
+          const params = new URLSearchParams({
+            singleEvents: 'true',
+            orderBy: 'startTime',
+            maxResults: '20',
+            timeMin: time_min || new Date().toISOString(),
+            ...(time_max ? { timeMax: time_max } : {}),
+          });
+          const data = await googleCalendarFetch(`${GOOGLE_CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events?${params}`, accessToken);
+          const events = (data.items || []).map((e) => ({
+            id: e.id,
+            summary: e.summary,
+            start: e.start?.dateTime || e.start?.date,
+            end: e.end?.dateTime || e.end?.date,
+            location: e.location,
+          }));
+          trace(`list_calendar_events() — ${events.length} event${events.length === 1 ? '' : 's'}`, { events });
+          return { connected: true, count: events.length, events };
+        } catch (error) {
+          return { connected: true, error: `Couldn't list calendar events: ${error.message}` };
+        }
+      },
+    }),
   };
 }
 
@@ -884,6 +989,8 @@ DOUBLE-CHECK EVERY ID RIGHT BEFORE YOU FINALIZE A PLAN: this matters most exactl
 GROUND YOUR PLAN IN REAL CONTEXT, DON'T JUST GUESS FROM A SUMMARY: [DATABASE STATE] is a trimmed projection, not everything real — a project's own "links" only show a label/URL, not what's actually at that link; [CONVERSATION HISTORY] is a plain transcript, not a search index; a project's own custom fields/notes aren't fully spelled out there either. Before committing to a plan for anything non-trivial or ambiguous — especially a request that references "that project's link", a URL the user just pasted directly into the conversation, "what we discussed before", an attached file, or a past decision you'd need to actually go check — use the tool that would really answer it (read_project_link — for ANY URL, not just one from a project's links array — search_workspace, analyze_attachment, or, if a Vaea Vault is connected, the vault_* readers) instead of guessing from what [DATABASE STATE] happens to summarize. These calls are real, run right here, and the user sees each one as a real step in what you did — treat reaching for one as a normal, expected part of planning a good answer, not an optional extra.
 
 VAEA VAULT: [VAEA VAULT] below says whether the user has connected their Vaea Vault — a personal, git-backed Obsidian vault (a GitHub repo). If not connected, and a request needs it (a vault_* tool returns connected: false, or the user asks about "/vault-log"/"/vault-tidy"/their notes vault), tell them to connect one in Settings -> Vaea Vault rather than guessing. If connected, a [VAULT CONTEXT] block may already be included right there, force-loaded once for this session (not a tool call) — a vault.md-style rolling summary if the vault has one, notes carrying a "**Priority: high**" marker, and the handful of most recently touched notes. Read that FIRST, for free, before calling any vault_* tool — it exists specifically so you don't have to decide whether searching the vault is worth it; treat it the same way you already treat [DATABASE STATE]. list_vault_notes/read_vault_note/search_vault are read tools for anything [VAULT CONTEXT] doesn't already cover — use them the same way you'd use search_workspace, but for the user's personal notes rather than their Vaea data. If [VAULT CONTEXT]'s own summary links to a specific note by name that looks relevant, read_vault_note that exact path directly rather than a blind search_vault first. WRITE_VAULT_NOTE always needs the FULL file content, not a diff: if you're editing a note that already exists, read_vault_note it first (even if it was already in [VAULT CONTEXT] — that copy can be stale by the time you write) and carry forward everything you're not deliberately changing. If a vault_* tool call returns an "error" field (e.g. Vaea Vault is connected but GitHub rejected the request), quote that error string to the user VERBATIM in a code block — do not paraphrase, summarize, or shorten it to just "403"/"an error occurred". The exact message (rate limit, permission scope, SSO authorization, etc.) is the one piece of information that actually lets them fix it; losing it to a summary makes the failure undebuggable.
+
+GOOGLE CALENDAR: [GOOGLE CALENDAR] below says whether the user has connected their Google Calendar. If not connected, and a request needs it (list_calendar_events returns connected: false, or the user asks about their calendar/schedule/an event), tell them to connect one in Settings -> Google Calendar rather than guessing. list_calendar_events is a read tool, runs immediately. CREATE_CALENDAR_EVENT/UPDATE_CALENDAR_EVENT/DELETE_CALENDAR_EVENT are staged like every other mutation — get a real event_id from list_calendar_events before UPDATE/DELETE, never guess or invent one. Resolve relative dates ("tomorrow," "next Tuesday," "in two weeks") against [CURRENT DATE & TIME] yourself before calling any of these — times are RFC3339 with an explicit offset (or a plain date for all-day events), and the tool doesn't do that resolution for you. If a calendar tool returns an "error" field, quote it to the user verbatim, same as a vault_* tool error — don't paraphrase it away.
 
 REMEMBERING A CORRECTION: if the user gives you a direct, standing instruction about how you should work with them going forward — not a one-off task, something like "stop suggesting archiving," "always give me two options before answering a bug question," "call me by my first name" — and a Vaea Vault is connected, write it into your own "Vaea Self.md" right then, this same turn, no need to ask first (see NEVER ASK FOR VERBAL PERMISSION above). read_vault_note it first (even if [VAULT CONTEXT] already shows a copy — that copy can be stale) so you don't clobber anything: carry the "## Identity" section forward EXACTLY as shown, unchanged (that section belongs to Settings/"/setup", never you), and fold the correction into "## Notes" alongside whatever's already there — consolidate rather than just appending if it's getting long. This is about YOUR OWN standing instructions, never a read on the user — if what they said is actually a fact about themselves rather than about how you should act, tell them to add it to their "About you" field in Settings instead of writing it yourself. If no vault is connected, just follow the correction for the rest of this conversation — there's nowhere durable to write it down, so only mention that if they explicitly ask you to remember it long-term.
 
@@ -982,9 +1089,10 @@ function renderVaultOverview(vaultOverview) {
   return `\n\n[VAULT CONTEXT — force-loaded, not a tool result]\n${parts.join('\n\n')}`;
 }
 
-function buildContextPrompt({ activeProjectId, areas, products, projects, archivedProjects, tasks, archivedTasks, stakeholders, departments, notes, conversationHistory, userText, aiIdentity, externalVault, vaultOverview, protocolReminderRequested, now }) {
+function buildContextPrompt({ activeProjectId, areas, products, projects, archivedProjects, tasks, archivedTasks, stakeholders, departments, notes, conversationHistory, userText, aiIdentity, externalVault, vaultOverview, googleCalendar, protocolReminderRequested, now }) {
   const identity = aiIdentity || {};
   const vaultConnected = !!(externalVault?.owner && externalVault?.repo && externalVault?.token);
+  const calendarConnected = !!(googleCalendar?.accessToken && googleCalendar?.refreshToken);
   return `[YOUR IDENTITY]
 Name: ${identity.name || '(not set — you\'re currently displayed as "Vaea Chat")'}
 Identity: ${identity.identity || '(not set)'}
@@ -997,6 +1105,9 @@ Today's date, for filenames like "Daily/YYYY-MM-DD.md": ${now.isoDate}
 
 [VAEA VAULT]
 ${vaultConnected ? `Connected: ${externalVault.owner}/${externalVault.repo} (branch: ${externalVault.branch || 'main'})` : 'Not connected — vault_* tools will return connected: false.'}${renderVaultOverview(vaultOverview)}
+
+[GOOGLE CALENDAR]
+${calendarConnected ? 'Connected.' : 'Not connected — list_calendar_events will return connected: false.'}
 ${protocolReminderRequested ? `\n[PROTOCOL REMINDER]\nThe user's latest message matched a bug/error/architecture/"which approach" pattern. If "soul" above defines a specific response protocol or step structure, apply it explicitly now and label each step in your reply — don't decide case-by-case whether it's "relevant," the trigger word match already decided that.\n` : ''}
 [DATABASE STATE]
 Active Project ID (if chatting from within a specific project): ${activeProjectId || 'None'}
@@ -1037,7 +1148,7 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const {
       message, conversationHistory, activeProjectId, aiIdentity = {}, externalVault = {},
-      vaultOverview = null, protocolReminderRequested = false, clientNow = null,
+      vaultOverview = null, googleCalendar = {}, protocolReminderRequested = false, clientNow = null,
       areas = [], products = [], projects = [], archivedProjects = [],
       tasks = [], archivedTasks = [], stakeholders = [], departments = [], notes = [],
     } = body;
@@ -1063,7 +1174,7 @@ Deno.serve(async (req) => {
       activeProjectId, areas, products, projects, archivedProjects,
       tasks, archivedTasks, stakeholders, departments, notes,
       conversationHistory, userText: message, aiIdentity, externalVault,
-      vaultOverview, protocolReminderRequested, now,
+      vaultOverview, googleCalendar, protocolReminderRequested, now,
     });
 
     // Streamed as newline-delimited JSON, one object per line — our own
@@ -1085,7 +1196,7 @@ Deno.serve(async (req) => {
           const agent = new ToolLoopAgent({
             model: models('automatic'),
             instructions: buildInstructions(),
-            tools: buildTools({ base44, plan, liveTrace, dataset, externalVault, emit, now }),
+            tools: buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCalendar, emit, now }),
             stopWhen: stepCountIs(40),
           });
 

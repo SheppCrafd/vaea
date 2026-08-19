@@ -556,6 +556,63 @@ export const TOOL_CATALOG = [
   },
 
   {
+    name: "CREATE_CALENDAR_EVENT",
+    staged: true,
+    description: "Add an event to the connected Google Calendar (see [GOOGLE CALENDAR] below). Staged like every tool above, not run here — the user's own device creates it via the Google Calendar API using their locally-stored connection. Times are RFC3339 (e.g. \"2026-08-20T14:00:00-04:00\") — use the current date/time context to resolve relative dates like \"tomorrow\" or \"next Tuesday\" before calling this.",
+    parameters: {
+      type: "object",
+      properties: {
+        summary: { type: "string", description: "Event title." },
+        start: { type: "string", description: "RFC3339 start time, e.g. \"2026-08-20T14:00:00-04:00\". For an all-day event, use a plain date \"2026-08-20\" instead." },
+        end: { type: "string", description: "RFC3339 end time (or plain date for an all-day event). Defaults to 1 hour after start if omitted for a timed event." },
+        description: { type: "string", description: "Optional event notes/description." },
+        location: { type: "string", description: "Optional location." },
+      },
+      required: ["summary", "start"],
+    },
+  },
+  {
+    name: "UPDATE_CALENDAR_EVENT",
+    staged: true,
+    description: "Change an existing Google Calendar event — move it, rename it, edit its notes. Get the event_id from list_calendar_events first; never guess one. Only pass the fields actually changing.",
+    parameters: {
+      type: "object",
+      properties: {
+        event_id: { type: "string", description: "The event's id, from list_calendar_events." },
+        summary: { type: "string" },
+        start: { type: "string", description: "RFC3339 start time or plain date, if moving the event." },
+        end: { type: "string", description: "RFC3339 end time or plain date, if moving the event." },
+        description: { type: "string" },
+        location: { type: "string" },
+      },
+      required: ["event_id"],
+    },
+  },
+  {
+    name: "DELETE_CALENDAR_EVENT",
+    staged: true,
+    description: "Cancel/remove an event from the connected Google Calendar. Get the event_id from list_calendar_events first; never guess one. Destructive — goes through the normal confirm-before-destructive step like any other delete.",
+    parameters: {
+      type: "object",
+      properties: { event_id: { type: "string", description: "The event's id, from list_calendar_events." } },
+      required: ["event_id"],
+    },
+  },
+  {
+    name: "list_calendar_events",
+    staged: false,
+    description: "List upcoming events on the connected Google Calendar (see [GOOGLE CALENDAR] below). Runs immediately and returns real data. Defaults to the next 20 events from right now if no range is given.",
+    parameters: {
+      type: "object",
+      properties: {
+        time_min: { type: "string", description: "RFC3339 lower bound, e.g. start of today. Defaults to right now." },
+        time_max: { type: "string", description: "RFC3339 upper bound, e.g. end of this week, if the user asked about a specific range." },
+      },
+      required: [],
+    },
+  },
+
+  {
     name: "search_workspace",
     staged: false,
     description: 'Search across all areas, products, projects (including archived), tasks (including archived), stakeholders, and notes for a keyword — use this for "what did we decide about X" / "find every task mentioning Y" style requests instead of scanning [DATABASE STATE] yourself.',

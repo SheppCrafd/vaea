@@ -7,6 +7,7 @@ import AiModelSection from "@/components/settings/AiModelSection";
 import BackupRestoreSection from "@/components/settings/BackupRestoreSection";
 import StorageSection from "@/components/settings/StorageSection";
 import ExternalVaultSection from "@/components/settings/ExternalVaultSection";
+import GoogleCalendarSection from "@/components/settings/GoogleCalendarSection";
 import ResourcesSection from "@/components/settings/ResourcesSection";
 import { useAppStore } from "@/lib/store";
 import { useIsMobile } from "@/hooks/useIsMobile";
@@ -20,6 +21,7 @@ const SECTIONS = [
   { key: "storage", label: "Data Storage", Component: StorageSection },
   { key: "backup", label: "Backup & Restore", Component: BackupRestoreSection },
   { key: "vault", label: "Vaea Vault", Component: ExternalVaultSection },
+  { key: "calendar", label: "Google Calendar", Component: GoogleCalendarSection },
   { key: "resources", label: "Resources", Component: ResourcesSection },
 ];
 

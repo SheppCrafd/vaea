@@ -13,6 +13,8 @@
 // Kept in sync by hand with entry.ts's own tool bodies — different
 // runtime, can't share a module, same reasoning as toolCatalog.js.
 import { listVaultNoteRepo, readVaultNoteContent, searchVaultNotes, auditVaultNotes } from "@/lib/githubApi";
+import { loadCalendarConnection, saveCalendarConnection, isCalendarConnected } from "@/lib/calendarConnection";
+import { listEvents } from "@/lib/googleCalendarApi";
 
 const MAX_LINK_CONTENT_CHARS = 6000;
 
@@ -231,6 +233,30 @@ async function auditVaultTool(externalVault) {
   }
 }
 
+async function listCalendarEventsTool(args) {
+  const connection = await loadCalendarConnection();
+  if (!isCalendarConnected(connection)) {
+    return { connected: false, message: "No Google Calendar connected. Tell the user to connect one in Settings -> Google Calendar before this can work." };
+  }
+  try {
+    const { events, connection: refreshed } = await listEvents(connection, { timeMin: args.time_min, timeMax: args.time_max });
+    if (refreshed.accessToken !== connection.accessToken) await saveCalendarConnection(refreshed);
+    return {
+      connected: true,
+      count: events.length,
+      events: events.map((e) => ({
+        id: e.id,
+        summary: e.summary,
+        start: e.start?.dateTime || e.start?.date,
+        end: e.end?.dateTime || e.end?.date,
+        location: e.location,
+      })),
+    };
+  } catch (error) {
+    return { connected: true, error: `Couldn't list calendar events: ${error.message}` };
+  }
+}
+
 // Dispatches one of the catalog's non-staged ("live") tools by name. Staged
 // (mutation) tools never reach here — byokChat.js's tool runner queues those
 // directly without needing a dataset at all. Async — the vault_* tools make
@@ -249,6 +275,8 @@ export async function runLocalTool(name, args, { dataset, externalVault } = {}) 
       return searchVaultTool(externalVault, args.query);
     case "audit_vault":
       return auditVaultTool(externalVault);
+    case "list_calendar_events":
+      return listCalendarEventsTool(args);
     case "read_project_link":
       return readProjectLinkTool(args.url, args.focus);
     case "analyze_attachment":

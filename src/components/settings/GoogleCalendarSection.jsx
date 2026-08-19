@@ -1,0 +1,170 @@
+import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { CalendarDays, Check, Loader2, TriangleAlert, Unlink } from "lucide-react";
+import { loadCalendarConnection, saveCalendarConnection, clearCalendarConnection, isCalendarConnected } from "@/lib/calendarConnection";
+import { buildAuthorizationUrl } from "@/lib/googleOAuthPkce";
+import { listEvents } from "@/lib/googleCalendarApi";
+
+// A compact, real preview of what's actually connected — a handful of
+// upcoming events, not a static "Connected" badge. Fetched once on mount
+// and again after a manual refresh click, never polled — Google Calendar's
+// free-tier quota is per-project, shared across every Vaea user, so this
+// stays on-demand rather than firing on every render/navigation.
+function UpcomingEvents({ connection, onTokenRefreshed }) {
+  const [events, setEvents] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const load = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const { events: fetched, connection: refreshed } = await listEvents(connection, { maxResults: 4, timeMin: new Date().toISOString() });
+      setEvents(fetched);
+      if (refreshed.accessToken !== connection.accessToken) onTokenRefreshed(refreshed);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="mt-6 pt-6 border-t border-border">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-sm font-medium">What's next</p>
+        <button
+          type="button"
+          onClick={load}
+          disabled={loading}
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+        >
+          {loading ? "Refreshing…" : "Refresh"}
+        </button>
+      </div>
+      {loading && !events ? (
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground py-2">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading your calendar…
+        </div>
+      ) : error ? (
+        <p className="flex items-start gap-1.5 text-xs text-destructive">
+          <TriangleAlert className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {error}
+        </p>
+      ) : events.length === 0 ? (
+        <p className="text-xs text-muted-foreground">Nothing coming up.</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {events.map((event) => {
+            const start = event.start?.dateTime || event.start?.date;
+            const label = event.start?.dateTime
+              ? new Date(start).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
+              : new Date(start).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+            return (
+              <li key={event.id} className="flex items-baseline gap-2.5 text-sm">
+                <span className="text-xs text-muted-foreground font-terminal shrink-0 w-32">{label}</span>
+                <span className="truncate">{event.summary || "(no title)"}</span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// Google Calendar — a one-click OAuth connection (PKCE against a public
+// "Desktop app" client Vaea itself owns, so no per-user setup is needed —
+// see googleOAuthPkce.js). Unlike Vaea Vault's PAT form, there's nothing
+// for the user to type here at all: the whole flow is a redirect to
+// Google's own consent screen and back.
+export default function GoogleCalendarSection() {
+  const [connection, setConnection] = useState(null);
+  const [connecting, setConnecting] = useState(false);
+  const [error, setError] = useState("");
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    loadCalendarConnection().then(setConnection);
+  }, []);
+
+  const connected = isCalendarConnected(connection);
+
+  const handleConnect = async () => {
+    setConnecting(true);
+    setError("");
+    try {
+      window.location.assign(await buildAuthorizationUrl());
+    } catch (err) {
+      setError(err.message);
+      setConnecting(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    await clearCalendarConnection();
+    setConnection({ accessToken: "", refreshToken: "", expiresAt: 0, calendarId: "primary" });
+    queryClient.invalidateQueries({ queryKey: ["calendarConnected"] });
+  };
+
+  const handleTokenRefreshed = async (refreshed) => {
+    setConnection(refreshed);
+    await saveCalendarConnection(refreshed);
+  };
+
+  if (!connection) return null;
+
+  return (
+    <div className="bg-card border border-border rounded-xl p-6">
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Google Calendar</p>
+        {connected && (
+          <span className="flex items-center gap-1 text-[11px] text-primary font-medium">
+            <Check className="w-3.5 h-3.5" /> Connected
+          </span>
+        )}
+      </div>
+      <p className="text-xs text-muted-foreground mb-4">
+        Connect your Google Calendar and the assistant can look up what's coming up, or add, move, and cancel events
+        when you ask — moving anything off the calendar always goes through the same confirm step any other
+        destructive change does. Nothing about this account sits on Vaea's servers: the connection lives on this
+        device, and is only ever sent along transiently, for the moment a calendar request actually needs it — same
+        as Vaea Vault's own connection.
+      </p>
+
+      {!connected ? (
+        <>
+          <button
+            type="button"
+            onClick={handleConnect}
+            disabled={connecting}
+            className="flex items-center gap-1.5 text-sm px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md transition-colors shadow-sm disabled:opacity-50"
+          >
+            {connecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CalendarDays className="w-3.5 h-3.5" />}
+            {connecting ? "Redirecting to Google…" : "Connect Google Calendar"}
+          </button>
+          {error && (
+            <p className="flex items-start gap-1.5 text-xs text-destructive mt-3">
+              <TriangleAlert className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {error}
+            </p>
+          )}
+        </>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={handleDisconnect}
+            className="flex items-center gap-1.5 text-xs px-3 py-2 border border-input rounded-md hover:bg-accent transition-colors text-muted-foreground"
+          >
+            <Unlink className="w-3.5 h-3.5" /> Disconnect
+          </button>
+          <UpcomingEvents connection={connection} onTokenRefreshed={handleTokenRefreshed} />
+        </>
+      )}
+    </div>
+  );
+}

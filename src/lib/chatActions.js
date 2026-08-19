@@ -22,6 +22,8 @@ import { loadAiIdentity, saveAiIdentity } from "@/lib/aiPreferences";
 import { createSnapshot } from "@/lib/backupSnapshots";
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
 import { writeVaultFile, SELF_NOTE_PATH, SELF_NOTE_HARD_CAP_CHARS } from "@/lib/githubApi";
+import { loadCalendarConnection, saveCalendarConnection, isCalendarConnected } from "@/lib/calendarConnection";
+import { createEvent, updateEvent, deleteEvent } from "@/lib/googleCalendarApi";
 import { syncIdentityToSelfNote } from "@/lib/selfNote";
 import { createArea, updateArea, deleteArea } from "@/hooks/useAreas";
 import { createProduct, updateProduct, deleteProduct } from "@/hooks/useProducts";
@@ -41,6 +43,7 @@ export const DESTRUCTIVE_ACTIONS = new Set([
   "DELETE_DEPARTMENT",
   "ARCHIVE_DONE_TASKS",
   "BULK_DELETE",
+  "DELETE_CALENDAR_EVENT",
 ]);
 
 // UNDO_LAST_ACTION is a real tool the assistant can call, but it's handled
@@ -545,6 +548,45 @@ export async function executeAction(action, args) {
         commitMessage: args.commit_message,
       });
       return { toolResult: { vaultNote: result } };
+    }
+
+    case "CREATE_CALENDAR_EVENT": {
+      const connection = await loadCalendarConnection();
+      if (!isCalendarConnected(connection)) throw new Error("No Google Calendar connected — connect one in Settings.");
+      const event = {
+        summary: args.summary,
+        description: args.description,
+        location: args.location,
+        start: args.start.includes("T") ? { dateTime: args.start } : { date: args.start },
+        end: (args.end || args.start).includes("T")
+          ? { dateTime: args.end || new Date(new Date(args.start).getTime() + 60 * 60 * 1000).toISOString() }
+          : { date: args.end || args.start },
+      };
+      const { event: created, connection: refreshed } = await createEvent(connection, event);
+      await saveCalendarConnection(refreshed);
+      return { toolResult: { calendarEvent: created } };
+    }
+
+    case "UPDATE_CALENDAR_EVENT": {
+      const connection = await loadCalendarConnection();
+      if (!isCalendarConnected(connection)) throw new Error("No Google Calendar connected — connect one in Settings.");
+      const patch = {};
+      if (args.summary !== undefined) patch.summary = args.summary;
+      if (args.description !== undefined) patch.description = args.description;
+      if (args.location !== undefined) patch.location = args.location;
+      if (args.start !== undefined) patch.start = args.start.includes("T") ? { dateTime: args.start } : { date: args.start };
+      if (args.end !== undefined) patch.end = args.end.includes("T") ? { dateTime: args.end } : { date: args.end };
+      const { event: updated, connection: refreshed } = await updateEvent(connection, args.event_id, patch);
+      await saveCalendarConnection(refreshed);
+      return { toolResult: { calendarEvent: updated } };
+    }
+
+    case "DELETE_CALENDAR_EVENT": {
+      const connection = await loadCalendarConnection();
+      if (!isCalendarConnected(connection)) throw new Error("No Google Calendar connected — connect one in Settings.");
+      const { connection: refreshed } = await deleteEvent(connection, args.event_id);
+      await saveCalendarConnection(refreshed);
+      return { toolResult: { deleted: args.event_id } };
     }
 
     case "SET_CARD_VIEW": {

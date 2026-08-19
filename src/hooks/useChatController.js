@@ -9,6 +9,7 @@ import { runByokChat, resumeOrphanedLocalModeRequest } from "@/lib/llm/byokChat"
 import { getPendingLocalModeRequest, clearPendingLocalModeRequest, getBridgeStatus, subscribeStatus } from "@/lib/llm/localBridgeStorage";
 import { readNdjson, ROUND_BOUNDARY_MARKER } from "@/lib/llm/streamUtils";
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
+import { loadCalendarConnection } from "@/lib/calendarConnection";
 import { fetchVaultOverview, SELF_NOTE_PATH } from "@/lib/githubApi";
 import { gatherDreamTranscript } from "@/lib/dreamSummary";
 import { stripUserNotesSection } from "@/lib/selfNote";
@@ -355,6 +356,14 @@ export function useChatController({ activeProjectId } = {}) {
       }
     }
 
+    // Same "sent transiently, per-request" trust model as externalVault
+    // above — see calendarConnection.js. entry.ts refreshes the access
+    // token server-side, per-request, from the refresh token if needed,
+    // but never reports that refresh back here — harmless (the client's
+    // own next refresh, if any, just runs one extra token exchange), and
+    // avoids adding a side-channel to the {reply, actions} contract for it.
+    const googleCalendar = await loadCalendarConnection();
+
     // Settings -> AI Model: if the user brought their own provider key, the
     // plan is decided entirely client-side (src/lib/llm/byokChat.js) —
     // straight from this browser to that provider's own API, never through
@@ -375,6 +384,7 @@ export function useChatController({ activeProjectId } = {}) {
           protocolReminderRequested: payload.protocolReminderRequested,
           externalVault,
           vaultOverview,
+          googleCalendar,
           areas: areas.filter((a) => !a.deleted_at),
           products: products.filter((p) => !p.deleted_at),
           projects: projectsActive,
@@ -412,6 +422,7 @@ export function useChatController({ activeProjectId } = {}) {
         // rest of this payload (see ExternalVaultSection.jsx's disclosure).
         externalVault,
         vaultOverview,
+        googleCalendar,
         // Mirrors the CLI's own UserPromptSubmit hook (see protocolReminder.js) —
         // decided client-side from the user's own just-typed message, not
         // re-derived here.
