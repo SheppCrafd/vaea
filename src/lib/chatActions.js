@@ -569,10 +569,13 @@ export async function executeAction(action, args) {
         end: (args.end || args.start).includes("T")
           ? { dateTime: args.end || new Date(new Date(args.start).getTime() + 60 * 60 * 1000).toISOString() }
           : { date: args.end || args.start },
+        // requestId just needs to be unique per creation attempt — Google
+        // uses it for idempotency on retries, not shown to anyone.
+        ...(args.meet_link ? { conferenceData: { createRequest: { requestId: crypto.randomUUID(), conferenceSolutionKey: { type: "hangoutsMeet" } } } } : {}),
       };
       const { event: created, connection: refreshed } = await createEvent(connection, event);
       await saveCalendarConnection(refreshed);
-      return { toolResult: { calendarEvent: created } };
+      return { toolResult: { calendarEvent: { ...created, meetLink: created.hangoutLink } } };
     }
 
     case "UPDATE_CALENDAR_EVENT": {

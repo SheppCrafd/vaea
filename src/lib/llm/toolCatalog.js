@@ -567,6 +567,7 @@ export const TOOL_CATALOG = [
         end: { type: "string", description: "RFC3339 end time (or plain date for an all-day event). Defaults to 1 hour after start if omitted for a timed event." },
         description: { type: "string", description: "Optional event notes/description." },
         location: { type: "string", description: "Optional location." },
+        meet_link: { type: "boolean", description: "Set true to attach a real Google Meet video link to this event." },
       },
       required: ["summary", "start"],
     },

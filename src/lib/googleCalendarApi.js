@@ -92,10 +92,14 @@ export async function listEvents(connection, { timeMin, timeMax, maxResults = 20
   return { events: data.items || [], connection: fresh };
 }
 
+// conferenceDataVersion=1 is required on the write itself whenever the
+// event body carries a conferenceData.createRequest (see chatActions.js's
+// meet_link handling) — harmless to always send, Google just ignores it
+// for an event with no conferenceData.
 export async function createEvent(connection, event) {
   const fresh = await ensureFreshToken(connection);
   const res = await fetch(
-    `${API_BASE}/calendars/${encodeURIComponent(fresh.calendarId)}/events`,
+    `${API_BASE}/calendars/${encodeURIComponent(fresh.calendarId)}/events?conferenceDataVersion=1`,
     { method: "POST", headers: headers(fresh.accessToken), body: JSON.stringify(event) }
   );
   if (!res.ok) throw Object.assign(new Error(calendarErrorMessage(res.status)), { connection: fresh });
@@ -106,7 +110,7 @@ export async function createEvent(connection, event) {
 export async function updateEvent(connection, eventId, patch) {
   const fresh = await ensureFreshToken(connection);
   const res = await fetch(
-    `${API_BASE}/calendars/${encodeURIComponent(fresh.calendarId)}/events/${encodeURIComponent(eventId)}`,
+    `${API_BASE}/calendars/${encodeURIComponent(fresh.calendarId)}/events/${encodeURIComponent(eventId)}?conferenceDataVersion=1`,
     { method: "PATCH", headers: headers(fresh.accessToken), body: JSON.stringify(patch) }
   );
   if (!res.ok) throw Object.assign(new Error(calendarErrorMessage(res.status)), { connection: fresh });
