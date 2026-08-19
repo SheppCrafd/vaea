@@ -68,6 +68,7 @@ function UpcomingEvents({ connection, onTokenRefreshed }) {
               <li key={event.id} className="flex items-baseline gap-2.5 text-sm">
                 <span className="text-xs text-muted-foreground font-terminal shrink-0 w-32">{label}</span>
                 <span className="truncate">{event.summary || "(no title)"}</span>
+                {event.hangoutLink && <span className="text-[10px] text-primary shrink-0">Meet</span>}
               </li>
             );
           })}

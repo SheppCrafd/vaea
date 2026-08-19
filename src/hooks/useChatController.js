@@ -10,6 +10,9 @@ import { getPendingLocalModeRequest, clearPendingLocalModeRequest, getBridgeStat
 import { readNdjson, ROUND_BOUNDARY_MARKER } from "@/lib/llm/streamUtils";
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
 import { loadCalendarConnection } from "@/lib/calendarConnection";
+import { loadGmailConnection } from "@/lib/gmailConnection";
+import { loadMicrosoftConnection } from "@/lib/microsoftConnection";
+import { loadClickUpConnection } from "@/lib/clickupConnection";
 import { fetchVaultOverview, SELF_NOTE_PATH } from "@/lib/githubApi";
 import { gatherDreamTranscript } from "@/lib/dreamSummary";
 import { stripUserNotesSection } from "@/lib/selfNote";
@@ -363,6 +366,13 @@ export function useChatController({ activeProjectId } = {}) {
     // own next refresh, if any, just runs one extra token exchange), and
     // avoids adding a side-channel to the {reply, actions} contract for it.
     const googleCalendar = await loadCalendarConnection();
+    // Same trust model, same reasoning, as googleCalendar just above.
+    const gmail = await loadGmailConnection();
+    const microsoft = await loadMicrosoftConnection();
+    // ClickUp's connection has no token-freshness concept at all (see
+    // clickupConnection.js) — nothing to refresh-and-persist here, just a
+    // plain read.
+    const clickup = await loadClickUpConnection();
 
     // Settings -> AI Model: if the user brought their own provider key, the
     // plan is decided entirely client-side (src/lib/llm/byokChat.js) —
@@ -385,6 +395,9 @@ export function useChatController({ activeProjectId } = {}) {
           externalVault,
           vaultOverview,
           googleCalendar,
+          gmail,
+          microsoft,
+          clickup,
           areas: areas.filter((a) => !a.deleted_at),
           products: products.filter((p) => !p.deleted_at),
           projects: projectsActive,
@@ -423,6 +436,7 @@ export function useChatController({ activeProjectId } = {}) {
         externalVault,
         vaultOverview,
         googleCalendar,
+        clickup,
         // Mirrors the CLI's own UserPromptSubmit hook (see protocolReminder.js) —
         // decided client-side from the user's own just-typed message, not
         // re-derived here.

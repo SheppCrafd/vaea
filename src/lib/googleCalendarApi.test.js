@@ -83,8 +83,21 @@ describe("googleCalendarApi: createEvent / updateEvent / deleteEvent", () => {
     expect(event.id).toBe("new-1");
     const [url, init] = globalThis.fetch.mock.calls[0];
     expect(url).toContain("/calendars/primary/events");
+    expect(url).toContain("conferenceDataVersion=1");
     expect(init.method).toBe("POST");
     expect(JSON.parse(init.body).summary).toBe("Lunch");
+  });
+
+  it("createEvent with conferenceData returns the real Meet link Google attaches", async () => {
+    globalThis.fetch.mockResolvedValue({ ok: true, json: async () => ({ id: "new-2", summary: "Sync", hangoutLink: "https://meet.google.com/abc-defg-hij" }) });
+    const { event } = await createEvent(FRESH_CONNECTION, {
+      summary: "Sync",
+      start: { dateTime: "2026-08-20T12:00:00-04:00" },
+      conferenceData: { createRequest: { requestId: "req-1", conferenceSolutionKey: { type: "hangoutsMeet" } } },
+    });
+    expect(event.hangoutLink).toBe("https://meet.google.com/abc-defg-hij");
+    const [, init] = globalThis.fetch.mock.calls[0];
+    expect(JSON.parse(init.body).conferenceData.createRequest.conferenceSolutionKey.type).toBe("hangoutsMeet");
   });
 
   it("updateEvent PATCHes only the given fields", async () => {

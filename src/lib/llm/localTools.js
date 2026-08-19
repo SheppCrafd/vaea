@@ -15,6 +15,12 @@
 import { listVaultNoteRepo, readVaultNoteContent, searchVaultNotes, auditVaultNotes } from "@/lib/githubApi";
 import { loadCalendarConnection, saveCalendarConnection, isCalendarConnected } from "@/lib/calendarConnection";
 import { listEvents } from "@/lib/googleCalendarApi";
+import { loadGmailConnection, saveGmailConnection, isGmailConnected } from "@/lib/gmailConnection";
+import { listMessages as listGmailMessages, readMessage as readGmailMessage } from "@/lib/gmailApi";
+import { loadMicrosoftConnection, saveMicrosoftConnection, isMicrosoftConnected } from "@/lib/microsoftConnection";
+import { listEvents as listOutlookEvents, listMessages as listOutlookMessages, readMessage as readOutlookMessage } from "@/lib/microsoftGraphApi";
+import { loadClickUpConnection, isClickUpConnected } from "@/lib/clickupConnection";
+import { listSpaces, listLists, listTasks, listChannels, listMessages } from "@/lib/clickupApi";
 
 const MAX_LINK_CONTENT_CHARS = 6000;
 
@@ -250,10 +256,136 @@ async function listCalendarEventsTool(args) {
         start: e.start?.dateTime || e.start?.date,
         end: e.end?.dateTime || e.end?.date,
         location: e.location,
+        meetLink: e.hangoutLink,
       })),
     };
   } catch (error) {
     return { connected: true, error: `Couldn't list calendar events: ${error.message}` };
+  }
+}
+
+function gmailNotConnected() {
+  return { connected: false, message: "No Gmail account connected. Tell the user to connect one in Settings -> Gmail before this can work." };
+}
+
+async function listGmailMessagesTool(args) {
+  const connection = await loadGmailConnection();
+  if (!isGmailConnected(connection)) return gmailNotConnected();
+  try {
+    const { messages, connection: refreshed } = await listGmailMessages(connection, { query: args.query, maxResults: args.max_results });
+    if (refreshed.accessToken !== connection.accessToken) await saveGmailConnection(refreshed);
+    return { connected: true, count: messages.length, messages };
+  } catch (error) {
+    return { connected: true, error: `Couldn't list Gmail messages: ${error.message}` };
+  }
+}
+
+async function readGmailMessageTool(args) {
+  const connection = await loadGmailConnection();
+  if (!isGmailConnected(connection)) return gmailNotConnected();
+  try {
+    const { message, connection: refreshed } = await readGmailMessage(connection, args.message_id);
+    if (refreshed.accessToken !== connection.accessToken) await saveGmailConnection(refreshed);
+    return { connected: true, message };
+  } catch (error) {
+    return { connected: true, error: `Couldn't read that message: ${error.message}` };
+  }
+}
+
+function microsoftNotConnected() {
+  return { connected: false, message: "No Microsoft account connected. Tell the user to connect one in Settings -> Microsoft 365 / Outlook before this can work." };
+}
+
+async function listOutlookEventsTool(args) {
+  const connection = await loadMicrosoftConnection();
+  if (!isMicrosoftConnected(connection)) return microsoftNotConnected();
+  try {
+    const { events, connection: refreshed } = await listOutlookEvents(connection, { timeMin: args.time_min, timeMax: args.time_max });
+    if (refreshed.accessToken !== connection.accessToken) await saveMicrosoftConnection(refreshed);
+    return { connected: true, count: events.length, events };
+  } catch (error) {
+    return { connected: true, error: `Couldn't list Outlook events: ${error.message}` };
+  }
+}
+
+async function listOutlookMessagesTool(args) {
+  const connection = await loadMicrosoftConnection();
+  if (!isMicrosoftConnected(connection)) return microsoftNotConnected();
+  try {
+    const { messages, connection: refreshed } = await listOutlookMessages(connection, { query: args.query, maxResults: args.max_results });
+    if (refreshed.accessToken !== connection.accessToken) await saveMicrosoftConnection(refreshed);
+    return { connected: true, count: messages.length, messages };
+  } catch (error) {
+    return { connected: true, error: `Couldn't list Outlook messages: ${error.message}` };
+  }
+}
+
+async function readOutlookMessageTool(args) {
+  const connection = await loadMicrosoftConnection();
+  if (!isMicrosoftConnected(connection)) return microsoftNotConnected();
+  try {
+    const { message, connection: refreshed } = await readOutlookMessage(connection, args.message_id);
+    if (refreshed.accessToken !== connection.accessToken) await saveMicrosoftConnection(refreshed);
+    return { connected: true, message };
+  } catch (error) {
+    return { connected: true, error: `Couldn't read that message: ${error.message}` };
+  }
+}
+
+function clickupNotConnected() {
+  return { connected: false, message: "No ClickUp workspace connected. Tell the user to connect one in Settings -> ClickUp before this can work." };
+}
+
+async function listClickUpSpacesTool() {
+  const connection = await loadClickUpConnection();
+  if (!isClickUpConnected(connection)) return clickupNotConnected();
+  try {
+    return { connected: true, spaces: await listSpaces(connection) };
+  } catch (error) {
+    return { connected: true, error: `Couldn't list spaces: ${error.message}` };
+  }
+}
+
+async function listClickUpListsTool(args) {
+  const connection = await loadClickUpConnection();
+  if (!isClickUpConnected(connection)) return clickupNotConnected();
+  try {
+    return { connected: true, lists: await listLists(connection, args.space_id) };
+  } catch (error) {
+    return { connected: true, error: `Couldn't list lists: ${error.message}` };
+  }
+}
+
+async function listClickUpTasksTool(args) {
+  const connection = await loadClickUpConnection();
+  if (!isClickUpConnected(connection)) return clickupNotConnected();
+  const listId = args.list_id || connection.defaultListId;
+  if (!listId) return { connected: true, error: "No default list configured — pick one in Settings, or specify list_id." };
+  try {
+    const tasks = await listTasks(connection, listId, { includeClosed: args.include_closed });
+    return { connected: true, count: tasks.length, tasks };
+  } catch (error) {
+    return { connected: true, error: `Couldn't list tasks: ${error.message}` };
+  }
+}
+
+async function listClickUpChannelsTool() {
+  const connection = await loadClickUpConnection();
+  if (!isClickUpConnected(connection)) return clickupNotConnected();
+  try {
+    return { connected: true, channels: await listChannels(connection) };
+  } catch (error) {
+    return { connected: true, error: `Couldn't list channels: ${error.message}` };
+  }
+}
+
+async function listClickUpMessagesTool(args) {
+  const connection = await loadClickUpConnection();
+  if (!isClickUpConnected(connection)) return clickupNotConnected();
+  try {
+    return { connected: true, messages: await listMessages(connection, args.channel_id) };
+  } catch (error) {
+    return { connected: true, error: `Couldn't list messages: ${error.message}` };
   }
 }
 
@@ -277,6 +409,16 @@ export async function runLocalTool(name, args, { dataset, externalVault } = {}) 
       return auditVaultTool(externalVault);
     case "list_calendar_events":
       return listCalendarEventsTool(args);
+    case "list_gmail_messages":
+      return listGmailMessagesTool(args);
+    case "read_gmail_message":
+      return readGmailMessageTool(args);
+    case "list_outlook_events":
+      return listOutlookEventsTool(args);
+    case "list_outlook_messages":
+      return listOutlookMessagesTool(args);
+    case "read_outlook_message":
+      return readOutlookMessageTool(args);
     case "read_project_link":
       return readProjectLinkTool(args.url, args.focus);
     case "analyze_attachment":
