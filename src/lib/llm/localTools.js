@@ -15,6 +15,8 @@
 import { listVaultNoteRepo, readVaultNoteContent, searchVaultNotes, auditVaultNotes } from "@/lib/githubApi";
 import { loadCalendarConnection, saveCalendarConnection, isCalendarConnected } from "@/lib/calendarConnection";
 import { listEvents } from "@/lib/googleCalendarApi";
+import { loadClickUpConnection, isClickUpConnected } from "@/lib/clickupConnection";
+import { listSpaces, listLists, listTasks, listChannels, listMessages } from "@/lib/clickupApi";
 
 const MAX_LINK_CONTENT_CHARS = 6000;
 
@@ -254,6 +256,63 @@ async function listCalendarEventsTool(args) {
     };
   } catch (error) {
     return { connected: true, error: `Couldn't list calendar events: ${error.message}` };
+  }
+}
+
+function clickupNotConnected() {
+  return { connected: false, message: "No ClickUp workspace connected. Tell the user to connect one in Settings -> ClickUp before this can work." };
+}
+
+async function listClickUpSpacesTool() {
+  const connection = await loadClickUpConnection();
+  if (!isClickUpConnected(connection)) return clickupNotConnected();
+  try {
+    return { connected: true, spaces: await listSpaces(connection) };
+  } catch (error) {
+    return { connected: true, error: `Couldn't list spaces: ${error.message}` };
+  }
+}
+
+async function listClickUpListsTool(args) {
+  const connection = await loadClickUpConnection();
+  if (!isClickUpConnected(connection)) return clickupNotConnected();
+  try {
+    return { connected: true, lists: await listLists(connection, args.space_id) };
+  } catch (error) {
+    return { connected: true, error: `Couldn't list lists: ${error.message}` };
+  }
+}
+
+async function listClickUpTasksTool(args) {
+  const connection = await loadClickUpConnection();
+  if (!isClickUpConnected(connection)) return clickupNotConnected();
+  const listId = args.list_id || connection.defaultListId;
+  if (!listId) return { connected: true, error: "No default list configured — pick one in Settings, or specify list_id." };
+  try {
+    const tasks = await listTasks(connection, listId, { includeClosed: args.include_closed });
+    return { connected: true, count: tasks.length, tasks };
+  } catch (error) {
+    return { connected: true, error: `Couldn't list tasks: ${error.message}` };
+  }
+}
+
+async function listClickUpChannelsTool() {
+  const connection = await loadClickUpConnection();
+  if (!isClickUpConnected(connection)) return clickupNotConnected();
+  try {
+    return { connected: true, channels: await listChannels(connection) };
+  } catch (error) {
+    return { connected: true, error: `Couldn't list channels: ${error.message}` };
+  }
+}
+
+async function listClickUpMessagesTool(args) {
+  const connection = await loadClickUpConnection();
+  if (!isClickUpConnected(connection)) return clickupNotConnected();
+  try {
+    return { connected: true, messages: await listMessages(connection, args.channel_id) };
+  } catch (error) {
+    return { connected: true, error: `Couldn't list messages: ${error.message}` };
   }
 }
 

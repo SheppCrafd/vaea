@@ -70,6 +70,8 @@ VAEA VAULT: [VAEA VAULT] below says whether the user has connected their Vaea Va
 
 GOOGLE CALENDAR: [GOOGLE CALENDAR] below says whether the user has connected their Google Calendar. If not connected, and a request needs it (list_calendar_events returns connected: false, or the user asks about their calendar/schedule/an event), tell them to connect one in Settings -> Google Calendar rather than guessing. list_calendar_events is a read tool, runs immediately. CREATE_CALENDAR_EVENT/UPDATE_CALENDAR_EVENT/DELETE_CALENDAR_EVENT are staged like every other mutation — get a real event_id from list_calendar_events before UPDATE/DELETE, never guess or invent one. Resolve relative dates ("tomorrow," "next Tuesday," "in two weeks") against [CURRENT DATE & TIME] yourself before calling any of these — times are RFC3339 with an explicit offset (or a plain date for all-day events), and the tool doesn't do that resolution for you. If a calendar tool returns an "error" field, quote it to the user verbatim, same as a vault_* tool error — don't paraphrase it away.
 
+CLICKUP: [CLICKUP] below says whether the user has connected ClickUp, and their default list if one's configured. If not connected, and a request needs it (a list_clickup_* tool returns connected: false, or the user asks about ClickUp/their tasks there/ClickUp Chat), tell them to connect one in Settings -> ClickUp rather than guessing. list_clickup_tasks/list_clickup_spaces/list_clickup_lists/list_clickup_channels/list_clickup_messages are read tools, run immediately. CREATE_CLICKUP_TASK uses the default list automatically unless the user asks for a different one — use list_clickup_spaces then list_clickup_lists to find a list_id in that case, don't guess one. UPDATE_CLICKUP_TASK/DELETE_CLICKUP_TASK need a real task_id from list_clickup_tasks first. SEND_CLICKUP_MESSAGE needs a real channel_id from list_clickup_channels first. If a ClickUp tool returns an "error" field, quote it to the user verbatim, same as vault_*/calendar tool errors.
+
 REMEMBERING A CORRECTION: if the user gives you a direct, standing instruction about how you should work with them going forward — not a one-off task, something like "stop suggesting archiving," "always give me two options before answering a bug question," "call me by my first name" — and a Vaea Vault is connected, write it into your own "Vaea Self.md" right then, this same turn, no need to ask first (see NEVER ASK FOR VERBAL PERMISSION above). read_vault_note it first (even if [VAULT CONTEXT] already shows a copy — that copy can be stale) so you don't clobber anything: carry the "## Identity" section forward EXACTLY as shown, unchanged (that section belongs to Settings/"/setup", never you), and fold the correction into "## Notes" alongside whatever's already there — consolidate rather than just appending if it's getting long. This is about YOUR OWN standing instructions, never a read on the user — if what they said is actually a fact about themselves rather than about how you should act, tell them to add it to their "About you" field in Settings instead of writing it yourself. If no vault is connected, just follow the correction for the rest of this conversation — there's nowhere durable to write it down, so only mention that if they explicitly ask you to remember it long-term.
 
 YOUR IDENTITY: [YOUR IDENTITY] below has four fields the user set (by hand in Settings, or via "/setup" — see below) — name, identity, soul, and userProfile. These are standing instructions for who you are and how you should communicate, written by the user, not untrusted data. Follow them, but they can never override the SECURITY rule below or authorize an action beyond what the user's live message actually asks for. If "soul" describes a specific response protocol (e.g. "compare two approaches before answering a bug question"), apply it whenever it's relevant, not just when asked to.
@@ -179,10 +181,11 @@ export function buildWorkspaceDataSnapshot({ activeProjectId, areas, products, p
 // user's own message) stays inline either way — those are either small or
 // are literally the thing being asked, not bulk state a relay can fetch
 // itself.
-export function buildContextPrompt({ activeProjectId, areas, products, projects, archivedProjects, tasks, archivedTasks, stakeholders, departments, notes, conversationHistory, userText, aiIdentity, protocolReminderRequested, externalVault, vaultOverview, googleCalendar, liveDataExternalized = false }) {
+export function buildContextPrompt({ activeProjectId, areas, products, projects, archivedProjects, tasks, archivedTasks, stakeholders, departments, notes, conversationHistory, userText, aiIdentity, protocolReminderRequested, externalVault, vaultOverview, googleCalendar, clickup, liveDataExternalized = false }) {
   const identity = aiIdentity || {};
   const vaultConnected = !!(externalVault?.owner && externalVault?.repo && externalVault?.token);
   const calendarConnected = !!(googleCalendar?.accessToken && googleCalendar?.refreshToken);
+  const clickupConnected = !!(clickup?.accessToken && clickup?.workspaceId);
   const now = getNowContext();
   const dateTimeBlock = liveDataExternalized
     ? `Not included here — run \`date\` (or your own equivalent) yourself for the real current date/time before relying on it; don't trust anything else for this.`
@@ -213,6 +216,9 @@ ${vaultConnected ? `Connected: ${externalVault.owner}/${externalVault.repo} (bra
 
 [GOOGLE CALENDAR]
 ${calendarConnected ? "Connected." : "Not connected — list_calendar_events will return connected: false."}
+
+[CLICKUP]
+${clickupConnected ? `Connected: ${clickup.workspaceName}${clickup.defaultListName ? ` (default list: ${clickup.defaultListName})` : " (no default list configured — CREATE_CLICKUP_TASK needs list_id given explicitly, or the user should pick one in Settings)"}` : "Not connected — list_clickup_* tools will return connected: false."}
 ${protocolReminderRequested ? `\n[PROTOCOL REMINDER]\nThe user's latest message matched a bug/error/architecture/"which approach" pattern. If "soul" above defines a specific response protocol or step structure, apply it explicitly now and label each step in your reply — don't decide case-by-case whether it's "relevant," the trigger word match already decided that.\n` : ""}
 [DATABASE STATE]
 ${databaseStateBlock}

@@ -215,6 +215,27 @@ async function googleCalendarFetch(url, accessToken, init) {
   return res.status === 204 ? null : res.json();
 }
 
+// ClickUp — client-side twin lives in src/lib/clickupApi.js. No token
+// refresh needed here at all: ClickUp access tokens don't expire and no
+// refresh token is even issued (see clickupConnection.js's own comment),
+// so this is simpler than the Calendar helpers above, not harder.
+const CLICKUP_API_V2 = 'https://api.clickup.com/api/v2';
+const CLICKUP_API_V3 = 'https://api.clickup.com/api/v3';
+
+function clickupNotConnected() {
+  return { connected: false, message: 'No ClickUp workspace connected. Tell the user to connect one in Settings -> ClickUp before this can work.' };
+}
+
+async function clickupFetch(url, accessToken, init) {
+  const res = await fetch(url, { ...init, headers: { Authorization: accessToken, 'Content-Type': 'application/json', ...init?.headers } });
+  if (!res.ok) {
+    if (res.status === 401) throw new Error('ClickUp rejected that token — try reconnecting.');
+    if (res.status === 429) throw new Error("ClickUp's rate limit was hit — try again in a moment.");
+    throw new Error(`ClickUp error (${res.status}).`);
+  }
+  return res.status === 204 ? null : res.json();
+}
+
 async function githubFetch(url, token, init) {
   const res = await fetch(url, { ...init, headers: githubHeaders(token, init?.headers) });
   if (!res.ok) {
@@ -279,7 +300,7 @@ function resolveNow(clientNow) {
 // from the request body, so these two tools can see fields the prompt
 // doesn't bother spelling out for every record), and externalVault (for the
 // vault_* tools below, connecting to a personal GitHub-hosted notes repo).
-function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCalendar, emit, now }) {
+function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCalendar, clickup, emit, now }) {
   // Every live (already-executed) tool call gets pushed here as {label,
   // detail} — same shape a client-side executed mutation step gets from
   // describeToolCall (chatActions.js), so ChatMessageList can render both
@@ -706,6 +727,41 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCal
       inputSchema: z.object({ event_id: z.string().describe('The event\'s id, from list_calendar_events.') }),
       execute: queue('DELETE_CALENDAR_EVENT'),
     }),
+    CREATE_CLICKUP_TASK: tool({
+      description: 'Add a task to the connected ClickUp workspace (see [CLICKUP] below). Staged like every tool above, not run here — the user\'s own device creates it via the ClickUp API using their locally-stored connection. Uses the default list configured in Settings unless list_id is given (from list_clickup_lists).',
+      inputSchema: z.object({
+        name: z.string().describe('Task name.'),
+        description: z.string().optional().describe('Optional task description.'),
+        due_date: z.string().optional().describe('Optional ISO date/datetime.'),
+        status: z.string().optional().describe('Optional status (must be a real status in that list — check list_clickup_tasks for valid values if unsure).'),
+        list_id: z.string().optional().describe('Which ClickUp list to create it in. Omit to use the default list configured in Settings.'),
+      }),
+      execute: queue('CREATE_CLICKUP_TASK'),
+    }),
+    UPDATE_CLICKUP_TASK: tool({
+      description: 'Change an existing ClickUp task. Get the task_id from list_clickup_tasks first; never guess one. Only pass the fields actually changing.',
+      inputSchema: z.object({
+        task_id: z.string().describe('The task\'s id, from list_clickup_tasks.'),
+        name: z.string().optional(),
+        description: z.string().optional(),
+        status: z.string().optional(),
+        due_date: z.string().optional(),
+      }),
+      execute: queue('UPDATE_CLICKUP_TASK'),
+    }),
+    DELETE_CLICKUP_TASK: tool({
+      description: 'Delete a task from the connected ClickUp workspace. Get the task_id from list_clickup_tasks first; never guess one. Destructive — goes through the normal confirm-before-destructive step like any other delete.',
+      inputSchema: z.object({ task_id: z.string().describe('The task\'s id, from list_clickup_tasks.') }),
+      execute: queue('DELETE_CLICKUP_TASK'),
+    }),
+    SEND_CLICKUP_MESSAGE: tool({
+      description: 'Post a message to a ClickUp Chat channel. Get the channel_id from list_clickup_channels first; never guess one.',
+      inputSchema: z.object({
+        channel_id: z.string().describe('The channel\'s id, from list_clickup_channels.'),
+        content: z.string().describe('The message text (Markdown).'),
+      }),
+      execute: queue('SEND_CLICKUP_MESSAGE'),
+    }),
 
     web_search: tool({
       description: 'Search the web / current news for real-time information not in [DATABASE STATE] (e.g. current events, a company\'s stock news, general facts). Runs immediately — its result is real, unlike the staged tools above.',
@@ -959,6 +1015,100 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCal
         }
       },
     }),
+
+    list_clickup_spaces: tool({
+      description: 'List every Space in the connected ClickUp workspace. Runs immediately. Use before list_clickup_lists if you need to find a list outside the default one.',
+      inputSchema: z.object({}),
+      execute: async () => {
+        if (!clickup?.accessToken || !clickup?.workspaceId) return clickupNotConnected();
+        try {
+          const data = await clickupFetch(`${CLICKUP_API_V2}/team/${encodeURIComponent(clickup.workspaceId)}/space`, clickup.accessToken);
+          const spaces = (data.spaces || []).map((s) => ({ id: s.id, name: s.name }));
+          trace(`list_clickup_spaces() — ${spaces.length} space${spaces.length === 1 ? '' : 's'}`, { spaces });
+          return { connected: true, spaces };
+        } catch (error) {
+          return { connected: true, error: `Couldn't list spaces: ${error.message}` };
+        }
+      },
+    }),
+    list_clickup_lists: tool({
+      description: 'List every List within a ClickUp Space (from list_clickup_spaces). Runs immediately. Use to find a list_id for CREATE_CLICKUP_TASK when the default list configured in Settings isn\'t the right one.',
+      inputSchema: z.object({ space_id: z.string() }),
+      execute: async ({ space_id }) => {
+        if (!clickup?.accessToken || !clickup?.workspaceId) return clickupNotConnected();
+        try {
+          const [folderless, folders] = await Promise.all([
+            clickupFetch(`${CLICKUP_API_V2}/space/${encodeURIComponent(space_id)}/list`, clickup.accessToken),
+            clickupFetch(`${CLICKUP_API_V2}/space/${encodeURIComponent(space_id)}/folder`, clickup.accessToken),
+          ]);
+          const lists = (folderless.lists || []).map((l) => ({ id: l.id, name: l.name, folder: null }));
+          for (const folder of folders.folders || []) {
+            for (const l of folder.lists || []) lists.push({ id: l.id, name: l.name, folder: folder.name });
+          }
+          trace(`list_clickup_lists("${space_id}") — ${lists.length} list${lists.length === 1 ? '' : 's'}`, { lists });
+          return { connected: true, lists };
+        } catch (error) {
+          return { connected: true, error: `Couldn't list lists: ${error.message}` };
+        }
+      },
+    }),
+    list_clickup_tasks: tool({
+      description: 'List tasks in a ClickUp list (see [CLICKUP] below for the default list_id if the user didn\'t specify one). Runs immediately and returns real data.',
+      inputSchema: z.object({
+        list_id: z.string().optional().describe('Which list to read. Omit to use the default list configured in Settings.'),
+        include_closed: z.boolean().optional().describe('Include completed tasks. Defaults to false.'),
+      }),
+      execute: async ({ list_id, include_closed }) => {
+        if (!clickup?.accessToken || !clickup?.workspaceId) return clickupNotConnected();
+        const listId = list_id || clickup.defaultListId;
+        if (!listId) return { connected: true, error: 'No default list configured — pick one in Settings, or specify list_id.' };
+        try {
+          const params = new URLSearchParams({ include_closed: String(!!include_closed) });
+          const data = await clickupFetch(`${CLICKUP_API_V2}/list/${encodeURIComponent(listId)}/task?${params}`, clickup.accessToken);
+          const tasks = (data.tasks || []).map((t) => ({
+            id: t.id,
+            name: t.name,
+            status: t.status?.status,
+            due_date: t.due_date ? new Date(Number(t.due_date)).toISOString() : null,
+            url: t.url,
+          }));
+          trace(`list_clickup_tasks() — ${tasks.length} task${tasks.length === 1 ? '' : 's'}`, { tasks });
+          return { connected: true, count: tasks.length, tasks };
+        } catch (error) {
+          return { connected: true, error: `Couldn't list tasks: ${error.message}` };
+        }
+      },
+    }),
+    list_clickup_channels: tool({
+      description: 'List ClickUp Chat channels in the connected workspace. Runs immediately.',
+      inputSchema: z.object({}),
+      execute: async () => {
+        if (!clickup?.accessToken || !clickup?.workspaceId) return clickupNotConnected();
+        try {
+          const data = await clickupFetch(`${CLICKUP_API_V3}/workspaces/${encodeURIComponent(clickup.workspaceId)}/chat/channels`, clickup.accessToken);
+          const channels = (data.data || []).map((c) => ({ id: c.id, name: c.name, type: c.type, visibility: c.visibility }));
+          trace(`list_clickup_channels() — ${channels.length} channel${channels.length === 1 ? '' : 's'}`, { channels });
+          return { connected: true, channels };
+        } catch (error) {
+          return { connected: true, error: `Couldn't list channels: ${error.message}` };
+        }
+      },
+    }),
+    list_clickup_messages: tool({
+      description: 'Read recent messages in a ClickUp Chat channel (from list_clickup_channels). Runs immediately.',
+      inputSchema: z.object({ channel_id: z.string() }),
+      execute: async ({ channel_id }) => {
+        if (!clickup?.accessToken || !clickup?.workspaceId) return clickupNotConnected();
+        try {
+          const data = await clickupFetch(`${CLICKUP_API_V3}/workspaces/${encodeURIComponent(clickup.workspaceId)}/chat/channels/${encodeURIComponent(channel_id)}/messages?limit=50`, clickup.accessToken);
+          const messages = (data.data || []).map((m) => ({ id: m.id, content: m.content, user_id: m.user_id, date: m.date }));
+          trace(`list_clickup_messages("${channel_id}") — ${messages.length} message${messages.length === 1 ? '' : 's'}`, { messages });
+          return { connected: true, messages };
+        } catch (error) {
+          return { connected: true, error: `Couldn't list messages: ${error.message}` };
+        }
+      },
+    }),
   };
 }
 
@@ -991,6 +1141,8 @@ GROUND YOUR PLAN IN REAL CONTEXT, DON'T JUST GUESS FROM A SUMMARY: [DATABASE STA
 VAEA VAULT: [VAEA VAULT] below says whether the user has connected their Vaea Vault — a personal, git-backed Obsidian vault (a GitHub repo). If not connected, and a request needs it (a vault_* tool returns connected: false, or the user asks about "/vault-log"/"/vault-tidy"/their notes vault), tell them to connect one in Settings -> Vaea Vault rather than guessing. If connected, a [VAULT CONTEXT] block may already be included right there, force-loaded once for this session (not a tool call) — a vault.md-style rolling summary if the vault has one, notes carrying a "**Priority: high**" marker, and the handful of most recently touched notes. Read that FIRST, for free, before calling any vault_* tool — it exists specifically so you don't have to decide whether searching the vault is worth it; treat it the same way you already treat [DATABASE STATE]. list_vault_notes/read_vault_note/search_vault are read tools for anything [VAULT CONTEXT] doesn't already cover — use them the same way you'd use search_workspace, but for the user's personal notes rather than their Vaea data. If [VAULT CONTEXT]'s own summary links to a specific note by name that looks relevant, read_vault_note that exact path directly rather than a blind search_vault first. WRITE_VAULT_NOTE always needs the FULL file content, not a diff: if you're editing a note that already exists, read_vault_note it first (even if it was already in [VAULT CONTEXT] — that copy can be stale by the time you write) and carry forward everything you're not deliberately changing. If a vault_* tool call returns an "error" field (e.g. Vaea Vault is connected but GitHub rejected the request), quote that error string to the user VERBATIM in a code block — do not paraphrase, summarize, or shorten it to just "403"/"an error occurred". The exact message (rate limit, permission scope, SSO authorization, etc.) is the one piece of information that actually lets them fix it; losing it to a summary makes the failure undebuggable.
 
 GOOGLE CALENDAR: [GOOGLE CALENDAR] below says whether the user has connected their Google Calendar. If not connected, and a request needs it (list_calendar_events returns connected: false, or the user asks about their calendar/schedule/an event), tell them to connect one in Settings -> Google Calendar rather than guessing. list_calendar_events is a read tool, runs immediately. CREATE_CALENDAR_EVENT/UPDATE_CALENDAR_EVENT/DELETE_CALENDAR_EVENT are staged like every other mutation — get a real event_id from list_calendar_events before UPDATE/DELETE, never guess or invent one. Resolve relative dates ("tomorrow," "next Tuesday," "in two weeks") against [CURRENT DATE & TIME] yourself before calling any of these — times are RFC3339 with an explicit offset (or a plain date for all-day events), and the tool doesn't do that resolution for you. If a calendar tool returns an "error" field, quote it to the user verbatim, same as a vault_* tool error — don't paraphrase it away.
+
+CLICKUP: [CLICKUP] below says whether the user has connected ClickUp, and their default list if one's configured. If not connected, and a request needs it (a list_clickup_* tool returns connected: false, or the user asks about ClickUp/their tasks there/ClickUp Chat), tell them to connect one in Settings -> ClickUp rather than guessing. list_clickup_tasks/list_clickup_spaces/list_clickup_lists/list_clickup_channels/list_clickup_messages are read tools, run immediately. CREATE_CLICKUP_TASK uses the default list automatically unless the user asks for a different one — use list_clickup_spaces then list_clickup_lists to find a list_id in that case, don't guess one. UPDATE_CLICKUP_TASK/DELETE_CLICKUP_TASK need a real task_id from list_clickup_tasks first. SEND_CLICKUP_MESSAGE needs a real channel_id from list_clickup_channels first. If a ClickUp tool returns an "error" field, quote it to the user verbatim, same as vault_*/calendar tool errors.
 
 REMEMBERING A CORRECTION: if the user gives you a direct, standing instruction about how you should work with them going forward — not a one-off task, something like "stop suggesting archiving," "always give me two options before answering a bug question," "call me by my first name" — and a Vaea Vault is connected, write it into your own "Vaea Self.md" right then, this same turn, no need to ask first (see NEVER ASK FOR VERBAL PERMISSION above). read_vault_note it first (even if [VAULT CONTEXT] already shows a copy — that copy can be stale) so you don't clobber anything: carry the "## Identity" section forward EXACTLY as shown, unchanged (that section belongs to Settings/"/setup", never you), and fold the correction into "## Notes" alongside whatever's already there — consolidate rather than just appending if it's getting long. This is about YOUR OWN standing instructions, never a read on the user — if what they said is actually a fact about themselves rather than about how you should act, tell them to add it to their "About you" field in Settings instead of writing it yourself. If no vault is connected, just follow the correction for the rest of this conversation — there's nowhere durable to write it down, so only mention that if they explicitly ask you to remember it long-term.
 
@@ -1089,10 +1241,11 @@ function renderVaultOverview(vaultOverview) {
   return `\n\n[VAULT CONTEXT — force-loaded, not a tool result]\n${parts.join('\n\n')}`;
 }
 
-function buildContextPrompt({ activeProjectId, areas, products, projects, archivedProjects, tasks, archivedTasks, stakeholders, departments, notes, conversationHistory, userText, aiIdentity, externalVault, vaultOverview, googleCalendar, protocolReminderRequested, now }) {
+function buildContextPrompt({ activeProjectId, areas, products, projects, archivedProjects, tasks, archivedTasks, stakeholders, departments, notes, conversationHistory, userText, aiIdentity, externalVault, vaultOverview, googleCalendar, clickup, protocolReminderRequested, now }) {
   const identity = aiIdentity || {};
   const vaultConnected = !!(externalVault?.owner && externalVault?.repo && externalVault?.token);
   const calendarConnected = !!(googleCalendar?.accessToken && googleCalendar?.refreshToken);
+  const clickupConnected = !!(clickup?.accessToken && clickup?.workspaceId);
   return `[YOUR IDENTITY]
 Name: ${identity.name || '(not set — you\'re currently displayed as "Vaea Chat")'}
 Identity: ${identity.identity || '(not set)'}
@@ -1108,6 +1261,9 @@ ${vaultConnected ? `Connected: ${externalVault.owner}/${externalVault.repo} (bra
 
 [GOOGLE CALENDAR]
 ${calendarConnected ? 'Connected.' : 'Not connected — list_calendar_events will return connected: false.'}
+
+[CLICKUP]
+${clickupConnected ? `Connected: ${clickup.workspaceName}${clickup.defaultListName ? ` (default list: ${clickup.defaultListName})` : ' (no default list configured)'}` : 'Not connected — list_clickup_* tools will return connected: false.'}
 ${protocolReminderRequested ? `\n[PROTOCOL REMINDER]\nThe user's latest message matched a bug/error/architecture/"which approach" pattern. If "soul" above defines a specific response protocol or step structure, apply it explicitly now and label each step in your reply — don't decide case-by-case whether it's "relevant," the trigger word match already decided that.\n` : ''}
 [DATABASE STATE]
 Active Project ID (if chatting from within a specific project): ${activeProjectId || 'None'}
@@ -1148,7 +1304,7 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const {
       message, conversationHistory, activeProjectId, aiIdentity = {}, externalVault = {},
-      vaultOverview = null, googleCalendar = {}, protocolReminderRequested = false, clientNow = null,
+      vaultOverview = null, googleCalendar = {}, clickup = {}, protocolReminderRequested = false, clientNow = null,
       areas = [], products = [], projects = [], archivedProjects = [],
       tasks = [], archivedTasks = [], stakeholders = [], departments = [], notes = [],
     } = body;
@@ -1174,7 +1330,7 @@ Deno.serve(async (req) => {
       activeProjectId, areas, products, projects, archivedProjects,
       tasks, archivedTasks, stakeholders, departments, notes,
       conversationHistory, userText: message, aiIdentity, externalVault,
-      vaultOverview, googleCalendar, protocolReminderRequested, now,
+      vaultOverview, googleCalendar, clickup, protocolReminderRequested, now,
     });
 
     // Streamed as newline-delimited JSON, one object per line — our own
@@ -1196,7 +1352,7 @@ Deno.serve(async (req) => {
           const agent = new ToolLoopAgent({
             model: models('automatic'),
             instructions: buildInstructions(),
-            tools: buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCalendar, emit, now }),
+            tools: buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCalendar, clickup, emit, now }),
             stopWhen: stepCountIs(40),
           });
 

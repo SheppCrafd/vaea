@@ -613,6 +613,99 @@ export const TOOL_CATALOG = [
   },
 
   {
+    name: "CREATE_CLICKUP_TASK",
+    staged: true,
+    description: "Add a task to the connected ClickUp workspace (see [CLICKUP] below). Staged like every tool above, not run here — the user's own device creates it via the ClickUp API using their locally-stored connection. Uses the default list configured in Settings unless list_id is given (from list_clickup_lists).",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Task name." },
+        description: { type: "string", description: "Optional task description." },
+        due_date: { type: "string", description: "Optional ISO date/datetime." },
+        status: { type: "string", description: "Optional status (must be a real status in that list — check list_clickup_tasks for valid values if unsure)." },
+        list_id: { type: "string", description: "Which ClickUp list to create it in. Omit to use the default list configured in Settings." },
+      },
+      required: ["name"],
+    },
+  },
+  {
+    name: "UPDATE_CLICKUP_TASK",
+    staged: true,
+    description: "Change an existing ClickUp task. Get the task_id from list_clickup_tasks first; never guess one. Only pass the fields actually changing.",
+    parameters: {
+      type: "object",
+      properties: {
+        task_id: { type: "string", description: "The task's id, from list_clickup_tasks." },
+        name: { type: "string" },
+        description: { type: "string" },
+        status: { type: "string" },
+        due_date: { type: "string" },
+      },
+      required: ["task_id"],
+    },
+  },
+  {
+    name: "DELETE_CLICKUP_TASK",
+    staged: true,
+    description: "Delete a task from the connected ClickUp workspace. Get the task_id from list_clickup_tasks first; never guess one. Destructive — goes through the normal confirm-before-destructive step like any other delete.",
+    parameters: {
+      type: "object",
+      properties: { task_id: { type: "string", description: "The task's id, from list_clickup_tasks." } },
+      required: ["task_id"],
+    },
+  },
+  {
+    name: "SEND_CLICKUP_MESSAGE",
+    staged: true,
+    description: "Post a message to a ClickUp Chat channel. Get the channel_id from list_clickup_channels first; never guess one.",
+    parameters: {
+      type: "object",
+      properties: {
+        channel_id: { type: "string", description: "The channel's id, from list_clickup_channels." },
+        content: { type: "string", description: "The message text (Markdown)." },
+      },
+      required: ["channel_id", "content"],
+    },
+  },
+  {
+    name: "list_clickup_spaces",
+    staged: false,
+    description: "List every Space in the connected ClickUp workspace. Runs immediately. Use before list_clickup_lists if you need to find a list outside the default one.",
+    parameters: { type: "object", properties: {}, required: [] },
+  },
+  {
+    name: "list_clickup_lists",
+    staged: false,
+    description: "List every List within a ClickUp Space (from list_clickup_spaces). Runs immediately. Use to find a list_id for CREATE_CLICKUP_TASK when the default list configured in Settings isn't the right one.",
+    parameters: { type: "object", properties: { space_id: { type: "string" } }, required: ["space_id"] },
+  },
+  {
+    name: "list_clickup_tasks",
+    staged: false,
+    description: "List tasks in a ClickUp list (see [CLICKUP] below for the default list_id if the user didn't specify one). Runs immediately and returns real data.",
+    parameters: {
+      type: "object",
+      properties: {
+        list_id: { type: "string", description: "Which list to read. Omit to use the default list configured in Settings." },
+        include_closed: { type: "boolean", description: "Include completed tasks. Defaults to false." },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "list_clickup_channels",
+    staged: false,
+    description: "List ClickUp Chat channels in the connected workspace. Runs immediately.",
+    parameters: { type: "object", properties: {}, required: [] },
+  },
+  {
+    name: "list_clickup_messages",
+    staged: false,
+    description: "Read recent messages in a ClickUp Chat channel (from list_clickup_channels). Runs immediately.",
+    parameters: { type: "object", properties: { channel_id: { type: "string" } }, required: ["channel_id"] },
+  },
+
+  {
     name: "search_workspace",
     staged: false,
     description: 'Search across all areas, products, projects (including archived), tasks (including archived), stakeholders, and notes for a keyword — use this for "what did we decide about X" / "find every task mentioning Y" style requests instead of scanning [DATABASE STATE] yourself.',

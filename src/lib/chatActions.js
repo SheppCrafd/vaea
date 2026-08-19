@@ -24,6 +24,8 @@ import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
 import { writeVaultFile, SELF_NOTE_PATH, SELF_NOTE_HARD_CAP_CHARS } from "@/lib/githubApi";
 import { loadCalendarConnection, saveCalendarConnection, isCalendarConnected } from "@/lib/calendarConnection";
 import { createEvent, updateEvent, deleteEvent } from "@/lib/googleCalendarApi";
+import { loadClickUpConnection, isClickUpConnected } from "@/lib/clickupConnection";
+import { createTask as createClickUpTask, updateTask as updateClickUpTask, deleteTask as deleteClickUpTask, sendMessage as sendClickUpMessage } from "@/lib/clickupApi";
 import { syncIdentityToSelfNote } from "@/lib/selfNote";
 import { createArea, updateArea, deleteArea } from "@/hooks/useAreas";
 import { createProduct, updateProduct, deleteProduct } from "@/hooks/useProducts";
@@ -44,6 +46,7 @@ export const DESTRUCTIVE_ACTIONS = new Set([
   "ARCHIVE_DONE_TASKS",
   "BULK_DELETE",
   "DELETE_CALENDAR_EVENT",
+  "DELETE_CLICKUP_TASK",
 ]);
 
 // UNDO_LAST_ACTION is a real tool the assistant can call, but it's handled
@@ -587,6 +590,36 @@ export async function executeAction(action, args) {
       const { connection: refreshed } = await deleteEvent(connection, args.event_id);
       await saveCalendarConnection(refreshed);
       return { toolResult: { deleted: args.event_id } };
+    }
+
+    case "CREATE_CLICKUP_TASK": {
+      const connection = await loadClickUpConnection();
+      if (!isClickUpConnected(connection)) throw new Error("No ClickUp workspace connected — connect one in Settings.");
+      const listId = args.list_id || connection.defaultListId;
+      if (!listId) throw new Error("No ClickUp list to create this in — pick a default list in Settings, or specify one.");
+      const task = await createClickUpTask(connection, listId, args);
+      return { toolResult: { clickupTask: task } };
+    }
+
+    case "UPDATE_CLICKUP_TASK": {
+      const connection = await loadClickUpConnection();
+      if (!isClickUpConnected(connection)) throw new Error("No ClickUp workspace connected — connect one in Settings.");
+      const task = await updateClickUpTask(connection, args.task_id, args);
+      return { toolResult: { clickupTask: task } };
+    }
+
+    case "DELETE_CLICKUP_TASK": {
+      const connection = await loadClickUpConnection();
+      if (!isClickUpConnected(connection)) throw new Error("No ClickUp workspace connected — connect one in Settings.");
+      await deleteClickUpTask(connection, args.task_id);
+      return { toolResult: { deleted: args.task_id } };
+    }
+
+    case "SEND_CLICKUP_MESSAGE": {
+      const connection = await loadClickUpConnection();
+      if (!isClickUpConnected(connection)) throw new Error("No ClickUp workspace connected — connect one in Settings.");
+      const message = await sendClickUpMessage(connection, args.channel_id, args.content);
+      return { toolResult: { clickupMessage: message } };
     }
 
     case "SET_CARD_VIEW": {
