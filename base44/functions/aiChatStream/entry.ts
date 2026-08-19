@@ -215,6 +215,45 @@ async function googleCalendarFetch(url, accessToken, init) {
   return res.status === 204 ? null : res.json();
 }
 
+// Gmail — reuses the same public "Desktop app" client and refresh helper as
+// Google Calendar above (GOOGLE_CALENDAR_CLIENT_ID/refreshGoogleAccessToken
+// — one Google Cloud OAuth client, different scope). Client-side twin lives
+// in src/lib/gmailApi.js.
+const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
+
+function gmailNotConnected() {
+  return { connected: false, message: 'No Gmail account connected. Tell the user to connect one in Settings -> Gmail before this can work.' };
+}
+
+async function gmailFetch(url, accessToken, init) {
+  const res = await fetch(url, { ...init, headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json', ...init?.headers } });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error?.message || `Gmail error (${res.status}).`);
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+function gmailHeaderValue(headersArr, name) {
+  return headersArr?.find((h) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
+}
+
+function gmailDecodeBase64Url(data) {
+  return decodeURIComponent(escape(atob(data.replace(/-/g, '+').replace(/_/g, '/'))));
+}
+
+// Mirrors gmailApi.js's extractPlainTextBody exactly — real decoded body,
+// not just the truncated snippet, so a read here is as useful as one made
+// client-side.
+function gmailExtractPlainTextBody(payload) {
+  if (payload.mimeType === 'text/plain' && payload.body?.data) return gmailDecodeBase64Url(payload.body.data);
+  for (const part of payload.parts || []) {
+    const text = gmailExtractPlainTextBody(part);
+    if (text) return text;
+  }
+  return '';
+}
+
 // ClickUp — client-side twin lives in src/lib/clickupApi.js. No token
 // refresh needed here at all: ClickUp access tokens don't expire and no
 // refresh token is even issued (see clickupConnection.js's own comment),
@@ -300,7 +339,7 @@ function resolveNow(clientNow) {
 // from the request body, so these two tools can see fields the prompt
 // doesn't bother spelling out for every record), and externalVault (for the
 // vault_* tools below, connecting to a personal GitHub-hosted notes repo).
-function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCalendar, clickup, emit, now }) {
+function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCalendar, gmail, clickup, emit, now }) {
   // Every live (already-executed) tool call gets pushed here as {label,
   // detail} — same shape a client-side executed mutation step gets from
   // describeToolCall (chatActions.js), so ChatMessageList can render both
@@ -727,6 +766,15 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCal
       inputSchema: z.object({ event_id: z.string().describe('The event\'s id, from list_calendar_events.') }),
       execute: queue('DELETE_CALENDAR_EVENT'),
     }),
+    SEND_GMAIL_MESSAGE: tool({
+      description: 'Send an email from the connected Gmail account (see [GMAIL] below). Staged like every tool above, not run here — the user\'s own device sends it via the Gmail API using their locally-stored connection.',
+      inputSchema: z.object({
+        to: z.string().describe('Recipient email address.'),
+        subject: z.string(),
+        body: z.string().describe('Plain-text message body.'),
+      }),
+      execute: queue('SEND_GMAIL_MESSAGE'),
+    }),
     CREATE_CLICKUP_TASK: tool({
       description: 'Add a task to the connected ClickUp workspace (see [CLICKUP] below). Staged like every tool above, not run here — the user\'s own device creates it via the ClickUp API using their locally-stored connection. Uses the default list configured in Settings unless list_id is given (from list_clickup_lists).',
       inputSchema: z.object({
@@ -1016,6 +1064,71 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCal
       },
     }),
 
+    list_gmail_messages: tool({
+      description: 'List recent messages in the connected Gmail inbox (see [GMAIL] below). Runs immediately and returns real data. Optional query uses Gmail\'s own search syntax (e.g. "is:unread", "from:someone@example.com").',
+      inputSchema: z.object({
+        query: z.string().optional().describe('Optional Gmail search query.'),
+        max_results: z.number().optional().describe('Defaults to 10.'),
+      }),
+      execute: async ({ query, max_results }) => {
+        if (!gmail?.accessToken || !gmail?.refreshToken) return gmailNotConnected();
+        try {
+          const accessToken = await refreshGoogleAccessToken(gmail.refreshToken);
+          const params = new URLSearchParams({ maxResults: String(max_results || 10), ...(query ? { q: query } : {}) });
+          const listData = await gmailFetch(`${GMAIL_API}/messages?${params}`, accessToken);
+          const ids = (listData.messages || []).map((m) => m.id);
+          const messages = (
+            await Promise.all(
+              ids.map(async (id) => {
+                try {
+                  const data = await gmailFetch(`${GMAIL_API}/messages/${id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`, accessToken);
+                  return {
+                    id: data.id,
+                    threadId: data.threadId,
+                    subject: gmailHeaderValue(data.payload?.headers, 'Subject'),
+                    from: gmailHeaderValue(data.payload?.headers, 'From'),
+                    date: gmailHeaderValue(data.payload?.headers, 'Date'),
+                    snippet: data.snippet,
+                    unread: (data.labelIds || []).includes('UNREAD'),
+                  };
+                } catch {
+                  return null;
+                }
+              })
+            )
+          ).filter(Boolean);
+          trace(`list_gmail_messages() — ${messages.length} message${messages.length === 1 ? '' : 's'}`, { messages });
+          return { connected: true, count: messages.length, messages };
+        } catch (error) {
+          return { connected: true, error: `Couldn't list Gmail messages: ${error.message}` };
+        }
+      },
+    }),
+
+    read_gmail_message: tool({
+      description: 'Read the full body of one Gmail message. Get message_id from list_gmail_messages first; never guess one. Runs immediately and returns real data.',
+      inputSchema: z.object({ message_id: z.string().describe('The message\'s id, from list_gmail_messages.') }),
+      execute: async ({ message_id }) => {
+        if (!gmail?.accessToken || !gmail?.refreshToken) return gmailNotConnected();
+        try {
+          const accessToken = await refreshGoogleAccessToken(gmail.refreshToken);
+          const data = await gmailFetch(`${GMAIL_API}/messages/${message_id}?format=full`, accessToken);
+          const message = {
+            id: data.id,
+            subject: gmailHeaderValue(data.payload?.headers, 'Subject'),
+            from: gmailHeaderValue(data.payload?.headers, 'From'),
+            to: gmailHeaderValue(data.payload?.headers, 'To'),
+            date: gmailHeaderValue(data.payload?.headers, 'Date'),
+            body: gmailExtractPlainTextBody(data.payload) || data.snippet,
+          };
+          trace(`read_gmail_message(${message_id})`, { message });
+          return { connected: true, message };
+        } catch (error) {
+          return { connected: true, error: `Couldn't read that message: ${error.message}` };
+        }
+      },
+    }),
+
     list_clickup_spaces: tool({
       description: 'List every Space in the connected ClickUp workspace. Runs immediately. Use before list_clickup_lists if you need to find a list outside the default one.',
       inputSchema: z.object({}),
@@ -1142,6 +1255,8 @@ VAEA VAULT: [VAEA VAULT] below says whether the user has connected their Vaea Va
 
 GOOGLE CALENDAR: [GOOGLE CALENDAR] below says whether the user has connected their Google Calendar. If not connected, and a request needs it (list_calendar_events returns connected: false, or the user asks about their calendar/schedule/an event), tell them to connect one in Settings -> Google Calendar rather than guessing. list_calendar_events is a read tool, runs immediately. CREATE_CALENDAR_EVENT/UPDATE_CALENDAR_EVENT/DELETE_CALENDAR_EVENT are staged like every other mutation — get a real event_id from list_calendar_events before UPDATE/DELETE, never guess or invent one. Resolve relative dates ("tomorrow," "next Tuesday," "in two weeks") against [CURRENT DATE & TIME] yourself before calling any of these — times are RFC3339 with an explicit offset (or a plain date for all-day events), and the tool doesn't do that resolution for you. If a calendar tool returns an "error" field, quote it to the user verbatim, same as a vault_* tool error — don't paraphrase it away.
 
+GMAIL: [GMAIL] below says whether the user has connected Gmail. If not connected, and a request needs it (list_gmail_messages/read_gmail_message returns connected: false, or the user asks about their email/inbox), tell them to connect one in Settings -> Gmail rather than guessing. list_gmail_messages/read_gmail_message are read tools, run immediately. SEND_GMAIL_MESSAGE is staged like every other mutation. Get a real message_id from list_gmail_messages before read_gmail_message, never guess one. If a Gmail tool returns an "error" field, quote it to the user verbatim, same as vault_*/calendar tool errors.
+
 CLICKUP: [CLICKUP] below says whether the user has connected ClickUp, and their default list if one's configured. If not connected, and a request needs it (a list_clickup_* tool returns connected: false, or the user asks about ClickUp/their tasks there/ClickUp Chat), tell them to connect one in Settings -> ClickUp rather than guessing. list_clickup_tasks/list_clickup_spaces/list_clickup_lists/list_clickup_channels/list_clickup_messages are read tools, run immediately. CREATE_CLICKUP_TASK uses the default list automatically unless the user asks for a different one — use list_clickup_spaces then list_clickup_lists to find a list_id in that case, don't guess one. UPDATE_CLICKUP_TASK/DELETE_CLICKUP_TASK need a real task_id from list_clickup_tasks first. SEND_CLICKUP_MESSAGE needs a real channel_id from list_clickup_channels first. If a ClickUp tool returns an "error" field, quote it to the user verbatim, same as vault_*/calendar tool errors.
 
 REMEMBERING A CORRECTION: if the user gives you a direct, standing instruction about how you should work with them going forward — not a one-off task, something like "stop suggesting archiving," "always give me two options before answering a bug question," "call me by my first name" — and a Vaea Vault is connected, write it into your own "Vaea Self.md" right then, this same turn, no need to ask first (see NEVER ASK FOR VERBAL PERMISSION above). read_vault_note it first (even if [VAULT CONTEXT] already shows a copy — that copy can be stale) so you don't clobber anything: carry the "## Identity" section forward EXACTLY as shown, unchanged (that section belongs to Settings/"/setup", never you), and fold the correction into "## Notes" alongside whatever's already there — consolidate rather than just appending if it's getting long. This is about YOUR OWN standing instructions, never a read on the user — if what they said is actually a fact about themselves rather than about how you should act, tell them to add it to their "About you" field in Settings instead of writing it yourself. If no vault is connected, just follow the correction for the rest of this conversation — there's nowhere durable to write it down, so only mention that if they explicitly ask you to remember it long-term.
@@ -1241,10 +1356,11 @@ function renderVaultOverview(vaultOverview) {
   return `\n\n[VAULT CONTEXT — force-loaded, not a tool result]\n${parts.join('\n\n')}`;
 }
 
-function buildContextPrompt({ activeProjectId, areas, products, projects, archivedProjects, tasks, archivedTasks, stakeholders, departments, notes, conversationHistory, userText, aiIdentity, externalVault, vaultOverview, googleCalendar, clickup, protocolReminderRequested, now }) {
+function buildContextPrompt({ activeProjectId, areas, products, projects, archivedProjects, tasks, archivedTasks, stakeholders, departments, notes, conversationHistory, userText, aiIdentity, externalVault, vaultOverview, googleCalendar, gmail, clickup, protocolReminderRequested, now }) {
   const identity = aiIdentity || {};
   const vaultConnected = !!(externalVault?.owner && externalVault?.repo && externalVault?.token);
   const calendarConnected = !!(googleCalendar?.accessToken && googleCalendar?.refreshToken);
+  const gmailConnected = !!(gmail?.accessToken && gmail?.refreshToken);
   const clickupConnected = !!(clickup?.accessToken && clickup?.workspaceId);
   return `[YOUR IDENTITY]
 Name: ${identity.name || '(not set — you\'re currently displayed as "Vaea Chat")'}
@@ -1261,6 +1377,9 @@ ${vaultConnected ? `Connected: ${externalVault.owner}/${externalVault.repo} (bra
 
 [GOOGLE CALENDAR]
 ${calendarConnected ? 'Connected.' : 'Not connected — list_calendar_events will return connected: false.'}
+
+[GMAIL]
+${gmailConnected ? `Connected: ${gmail.emailAddress || '(address unknown)'}` : 'Not connected — list_gmail_messages/read_gmail_message will return connected: false.'}
 
 [CLICKUP]
 ${clickupConnected ? `Connected: ${clickup.workspaceName}${clickup.defaultListName ? ` (default list: ${clickup.defaultListName})` : ' (no default list configured)'}` : 'Not connected — list_clickup_* tools will return connected: false.'}
@@ -1304,7 +1423,7 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const {
       message, conversationHistory, activeProjectId, aiIdentity = {}, externalVault = {},
-      vaultOverview = null, googleCalendar = {}, clickup = {}, protocolReminderRequested = false, clientNow = null,
+      vaultOverview = null, googleCalendar = {}, gmail = {}, clickup = {}, protocolReminderRequested = false, clientNow = null,
       areas = [], products = [], projects = [], archivedProjects = [],
       tasks = [], archivedTasks = [], stakeholders = [], departments = [], notes = [],
     } = body;
@@ -1330,7 +1449,7 @@ Deno.serve(async (req) => {
       activeProjectId, areas, products, projects, archivedProjects,
       tasks, archivedTasks, stakeholders, departments, notes,
       conversationHistory, userText: message, aiIdentity, externalVault,
-      vaultOverview, googleCalendar, clickup, protocolReminderRequested, now,
+      vaultOverview, googleCalendar, gmail, clickup, protocolReminderRequested, now,
     });
 
     // Streamed as newline-delimited JSON, one object per line — our own
@@ -1352,7 +1471,7 @@ Deno.serve(async (req) => {
           const agent = new ToolLoopAgent({
             model: models('automatic'),
             instructions: buildInstructions(),
-            tools: buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCalendar, clickup, emit, now }),
+            tools: buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCalendar, gmail, clickup, emit, now }),
             stopWhen: stepCountIs(40),
           });
 

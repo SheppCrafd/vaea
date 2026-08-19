@@ -15,6 +15,8 @@
 import { listVaultNoteRepo, readVaultNoteContent, searchVaultNotes, auditVaultNotes } from "@/lib/githubApi";
 import { loadCalendarConnection, saveCalendarConnection, isCalendarConnected } from "@/lib/calendarConnection";
 import { listEvents } from "@/lib/googleCalendarApi";
+import { loadGmailConnection, saveGmailConnection, isGmailConnected } from "@/lib/gmailConnection";
+import { listMessages as listGmailMessages, readMessage as readGmailMessage } from "@/lib/gmailApi";
 import { loadClickUpConnection, isClickUpConnected } from "@/lib/clickupConnection";
 import { listSpaces, listLists, listTasks, listChannels, listMessages } from "@/lib/clickupApi";
 
@@ -259,6 +261,34 @@ async function listCalendarEventsTool(args) {
   }
 }
 
+function gmailNotConnected() {
+  return { connected: false, message: "No Gmail account connected. Tell the user to connect one in Settings -> Gmail before this can work." };
+}
+
+async function listGmailMessagesTool(args) {
+  const connection = await loadGmailConnection();
+  if (!isGmailConnected(connection)) return gmailNotConnected();
+  try {
+    const { messages, connection: refreshed } = await listGmailMessages(connection, { query: args.query, maxResults: args.max_results });
+    if (refreshed.accessToken !== connection.accessToken) await saveGmailConnection(refreshed);
+    return { connected: true, count: messages.length, messages };
+  } catch (error) {
+    return { connected: true, error: `Couldn't list Gmail messages: ${error.message}` };
+  }
+}
+
+async function readGmailMessageTool(args) {
+  const connection = await loadGmailConnection();
+  if (!isGmailConnected(connection)) return gmailNotConnected();
+  try {
+    const { message, connection: refreshed } = await readGmailMessage(connection, args.message_id);
+    if (refreshed.accessToken !== connection.accessToken) await saveGmailConnection(refreshed);
+    return { connected: true, message };
+  } catch (error) {
+    return { connected: true, error: `Couldn't read that message: ${error.message}` };
+  }
+}
+
 function clickupNotConnected() {
   return { connected: false, message: "No ClickUp workspace connected. Tell the user to connect one in Settings -> ClickUp before this can work." };
 }
@@ -336,6 +366,10 @@ export async function runLocalTool(name, args, { dataset, externalVault } = {}) 
       return auditVaultTool(externalVault);
     case "list_calendar_events":
       return listCalendarEventsTool(args);
+    case "list_gmail_messages":
+      return listGmailMessagesTool(args);
+    case "read_gmail_message":
+      return readGmailMessageTool(args);
     case "read_project_link":
       return readProjectLinkTool(args.url, args.focus);
     case "analyze_attachment":

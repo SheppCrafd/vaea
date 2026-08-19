@@ -24,6 +24,8 @@ import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
 import { writeVaultFile, SELF_NOTE_PATH, SELF_NOTE_HARD_CAP_CHARS } from "@/lib/githubApi";
 import { loadCalendarConnection, saveCalendarConnection, isCalendarConnected } from "@/lib/calendarConnection";
 import { createEvent, updateEvent, deleteEvent } from "@/lib/googleCalendarApi";
+import { loadGmailConnection, saveGmailConnection, isGmailConnected } from "@/lib/gmailConnection";
+import { sendMessage as sendGmailMessage } from "@/lib/gmailApi";
 import { loadClickUpConnection, isClickUpConnected } from "@/lib/clickupConnection";
 import { createTask as createClickUpTask, updateTask as updateClickUpTask, deleteTask as deleteClickUpTask, sendMessage as sendClickUpMessage } from "@/lib/clickupApi";
 import { syncIdentityToSelfNote } from "@/lib/selfNote";
@@ -590,6 +592,14 @@ export async function executeAction(action, args) {
       const { connection: refreshed } = await deleteEvent(connection, args.event_id);
       await saveCalendarConnection(refreshed);
       return { toolResult: { deleted: args.event_id } };
+    }
+
+    case "SEND_GMAIL_MESSAGE": {
+      const connection = await loadGmailConnection();
+      if (!isGmailConnected(connection)) throw new Error("No Gmail account connected — connect one in Settings.");
+      const { id, connection: refreshed } = await sendGmailMessage(connection, { to: args.to, subject: args.subject, body: args.body });
+      await saveGmailConnection(refreshed);
+      return { toolResult: { sent: id } };
     }
 
     case "CREATE_CLICKUP_TASK": {

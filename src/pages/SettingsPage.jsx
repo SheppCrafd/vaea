@@ -8,6 +8,7 @@ import BackupRestoreSection from "@/components/settings/BackupRestoreSection";
 import StorageSection from "@/components/settings/StorageSection";
 import ExternalVaultSection from "@/components/settings/ExternalVaultSection";
 import GoogleCalendarSection from "@/components/settings/GoogleCalendarSection";
+import GmailSection from "@/components/settings/GmailSection";
 import ClickUpSection from "@/components/settings/ClickUpSection";
 import ResourcesSection from "@/components/settings/ResourcesSection";
 import { useAppStore } from "@/lib/store";
@@ -23,6 +24,7 @@ const SECTIONS = [
   { key: "backup", label: "Backup & Restore", Component: BackupRestoreSection },
   { key: "vault", label: "Vaea Vault", Component: ExternalVaultSection },
   { key: "calendar", label: "Google Calendar", Component: GoogleCalendarSection },
+  { key: "gmail", label: "Gmail", Component: GmailSection },
   { key: "clickup", label: "ClickUp", Component: ClickUpSection },
   { key: "resources", label: "Resources", Component: ResourcesSection },
 ];

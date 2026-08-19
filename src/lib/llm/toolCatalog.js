@@ -613,6 +613,44 @@ export const TOOL_CATALOG = [
   },
 
   {
+    name: "SEND_GMAIL_MESSAGE",
+    staged: true,
+    description: "Send an email from the connected Gmail account (see [GMAIL] below). Staged like every tool above, not run here — the user's own device sends it via the Gmail API using their locally-stored connection.",
+    parameters: {
+      type: "object",
+      properties: {
+        to: { type: "string", description: "Recipient email address." },
+        subject: { type: "string" },
+        body: { type: "string", description: "Plain-text message body." },
+      },
+      required: ["to", "subject", "body"],
+    },
+  },
+  {
+    name: "list_gmail_messages",
+    staged: false,
+    description: "List recent messages in the connected Gmail inbox (see [GMAIL] below). Runs immediately and returns real data. Optional query uses Gmail's own search syntax (e.g. \"is:unread\", \"from:someone@example.com\").",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Optional Gmail search query." },
+        max_results: { type: "number", description: "Defaults to 10." },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "read_gmail_message",
+    staged: false,
+    description: "Read the full body of one Gmail message. Get message_id from list_gmail_messages first; never guess one. Runs immediately and returns real data.",
+    parameters: {
+      type: "object",
+      properties: { message_id: { type: "string", description: "The message's id, from list_gmail_messages." } },
+      required: ["message_id"],
+    },
+  },
+
+  {
     name: "CREATE_CLICKUP_TASK",
     staged: true,
     description: "Add a task to the connected ClickUp workspace (see [CLICKUP] below). Staged like every tool above, not run here — the user's own device creates it via the ClickUp API using their locally-stored connection. Uses the default list configured in Settings unless list_id is given (from list_clickup_lists).",

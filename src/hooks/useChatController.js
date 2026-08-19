@@ -10,6 +10,7 @@ import { getPendingLocalModeRequest, clearPendingLocalModeRequest, getBridgeStat
 import { readNdjson, ROUND_BOUNDARY_MARKER } from "@/lib/llm/streamUtils";
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
 import { loadCalendarConnection } from "@/lib/calendarConnection";
+import { loadGmailConnection } from "@/lib/gmailConnection";
 import { loadClickUpConnection } from "@/lib/clickupConnection";
 import { fetchVaultOverview, SELF_NOTE_PATH } from "@/lib/githubApi";
 import { gatherDreamTranscript } from "@/lib/dreamSummary";
@@ -364,6 +365,8 @@ export function useChatController({ activeProjectId } = {}) {
     // own next refresh, if any, just runs one extra token exchange), and
     // avoids adding a side-channel to the {reply, actions} contract for it.
     const googleCalendar = await loadCalendarConnection();
+    // Same trust model, same reasoning, as googleCalendar just above.
+    const gmail = await loadGmailConnection();
     // ClickUp's connection has no token-freshness concept at all (see
     // clickupConnection.js) — nothing to refresh-and-persist here, just a
     // plain read.
@@ -390,6 +393,7 @@ export function useChatController({ activeProjectId } = {}) {
           externalVault,
           vaultOverview,
           googleCalendar,
+          gmail,
           clickup,
           areas: areas.filter((a) => !a.deleted_at),
           products: products.filter((p) => !p.deleted_at),
