@@ -1,6 +1,6 @@
 import { Github, Mail, ExternalLink } from "lucide-react";
 import MarketingLayout, { MAINTAINER } from "./MarketingLayout";
-import { Reveal } from "./effects";
+import { Reveal, useDocumentMeta } from "./effects";
 import { hairlineH, lightWash, glassTileLight, glowTop, eyebrowOnLight, displayL, focusRing } from "./theme";
 
 const CONTACT_LINKS = [
@@ -10,6 +10,8 @@ const CONTACT_LINKS = [
 ];
 
 export default function AboutPage() {
+  useDocumentMeta("About | Vaea", "/about");
+
   return (
     <MarketingLayout>
       <section className={`relative ${lightWash}`}>

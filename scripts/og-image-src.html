@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  @font-face {
+    font-family: 'SysSans';
+    src: local('Arial');
+  }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 1200px;
+    height: 630px;
+    overflow: hidden;
+  }
+  body {
+    position: relative;
+    background: linear-gradient(180deg, hsl(200 45% 8%) 0%, hsl(200 40% 6%) 38%, hsl(202 42% 5%) 72%, hsl(204 48% 4%) 100%);
+    font-family: 'Space Grotesk', 'SysSans', -apple-system, 'Segoe UI', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(60% 70% at 50% 10%, rgba(70,186,209,0.30), transparent 65%);
+  }
+  .grain {
+    position: absolute;
+    inset: 0;
+    opacity: 0.05;
+    background-image: radial-gradient(rgba(255,255,255,0.6) 1px, transparent 1px);
+    background-size: 3px 3px;
+  }
+  .content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .mark {
+    width: 88px;
+    height: 88px;
+    border-radius: 9999px;
+    background: radial-gradient(70% 70% at 30% 25%, #6fd3e6 0%, #46BAD1 45%, #1c6f80 100%);
+    box-shadow: 0 0 60px 4px rgba(70,186,209,0.55), inset 0 2px 4px rgba(255,255,255,0.35);
+    margin-bottom: 34px;
+  }
+  .wordmark {
+    font-size: 96px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: #f4fbfc;
+    margin: 0;
+    line-height: 1;
+  }
+  .tagline {
+    margin-top: 22px;
+    font-size: 28px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    color: rgba(244,251,252,0.62);
+    max-width: 760px;
+  }
+</style>
+</head>
+<body>
+  <div class="glow"></div>
+  <div class="grain"></div>
+  <div class="content">
+    <div class="mark"></div>
+    <p class="wordmark">Vaea</p>
+    <p class="tagline">One place for everything you need to do — plus an AI that actually gets it done.</p>
+  </div>
+</body>
+</html>

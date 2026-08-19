@@ -1,8 +1,7 @@
-import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
-import { Reveal, StageLight, Grain } from "./effects";
+import { Reveal, StageLight, Grain, useDocumentMeta } from "./effects";
 import { darkSectionBg, darkText, darkTopEdge, pillOnDark, eyebrowOnDark, displayXL, displayL, hairlineH } from "./theme";
 
 const STEPS = [
@@ -21,26 +20,30 @@ const STEPS = [
 ];
 
 export default function HowItWorksPage() {
-  useEffect(() => {
-    document.title = "How it works | Vaea";
-  }, []);
+  useDocumentMeta("How it works | Vaea", "/how-it-works");
 
   return (
     <MarketingLayout>
       <section className={`relative overflow-hidden ${darkSectionBg} ${darkText} ${darkTopEdge}`}>
         <StageLight />
         <Grain />
-        <div className="relative max-w-3xl mx-auto px-6 pt-24 sm:pt-32 pb-20 sm:pb-28 text-center">
+        <div className="relative max-w-3xl mx-auto px-6 pt-24 sm:pt-32 pb-16 sm:pb-20 text-center">
           <Reveal>
             <p className={`${eyebrowOnDark} mb-4`}>How it works</p>
             <h1 className={displayXL}>
               From overwhelmed to organized in three steps.
             </h1>
+            <div className="mt-8">
+              <Link to="/signup" className={pillOnDark}>
+                Sign up free
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
           </Reveal>
         </div>
       </section>
 
-      <div className="max-w-3xl mx-auto px-6 py-16 sm:py-20">
+      <div className="max-w-3xl mx-auto px-6 py-12 sm:py-16">
         {STEPS.map(({ title, body }, i) => (
           <Reveal key={title} delay={i * 100} className="py-8">
             {i > 0 && <div aria-hidden="true" className={`${hairlineH} -mt-8 mb-8`} />}
@@ -62,6 +65,11 @@ export default function HowItWorksPage() {
             From there, it's just working — one search box jumps to or acts on anything, and
             whenever it piles up again, just tell Vaea Chat and let it handle the whole cleanup
             instead of you clicking through each change by hand.
+          </p>
+          <p className="mt-4 text-muted-foreground max-w-lg">
+            Running a freelance practice with a handful of clients? Set each client up as its
+            own Product, with Projects underneath for each engagement — Vaea Chat can lay that
+            whole structure out for you from a single message.
           </p>
         </div>
       </div>

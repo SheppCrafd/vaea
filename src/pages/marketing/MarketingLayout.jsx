@@ -7,6 +7,7 @@ import { hairlineH, focusRing } from "./theme";
 const NAV_LINKS = [
   { to: "/features", label: "Features" },
   { to: "/how-it-works", label: "How it works" },
+  { to: "/compare", label: "Compare" },
   { to: "/about", label: "About" },
 ];
 
@@ -187,6 +188,7 @@ function Footer() {
               <li><Link to="/" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Home</Link></li>
               <li><Link to="/features" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Features</Link></li>
               <li><Link to="/how-it-works" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>How it works</Link></li>
+              <li><Link to="/compare" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Compare</Link></li>
             </ul>
           </div>
 
@@ -200,6 +202,8 @@ function Footer() {
                 </a>
               </li>
               <li><Link to="/login" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Sign in</Link></li>
+              <li><Link to="/privacy" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Privacy Policy</Link></li>
+              <li><Link to="/terms" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Terms of Service</Link></li>
             </ul>
           </div>
 
@@ -230,6 +234,7 @@ function Footer() {
         <div className="mt-10">
           <div aria-hidden="true" className={hairlineH} />
           <p className="pt-6 text-xs text-muted-foreground">Vaea. Your stuff stays on your device by default, always your choice.</p>
+          <p className="mt-1.5 text-xs text-muted-foreground/70">&copy; {new Date().getFullYear()} Vaea. All rights reserved.</p>
         </div>
       </div>
     </footer>

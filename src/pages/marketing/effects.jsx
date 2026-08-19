@@ -18,8 +18,20 @@ export function useInView({ threshold = 0.15, once = true } = {}) {
   const [inView, setInView] = useState(false);
 
   useEffect(() => {
-    const fallback = setTimeout(() => setInView(true), 1200);
     const el = ref.current;
+    // Only sections already inside (or within one viewport height of) the
+    // initial scroll position get the fast 1.2s fallback — that's the
+    // safety net for the hero and anything else visible without scrolling.
+    // Everything further down the page only needs the fallback as
+    // protection against a stuck IntersectionObserver (see the comment
+    // above), not as a way to force-start dozens of below-the-fold demo
+    // films competing with the hero for the main thread during initial
+    // load/hydration — those get a much longer delay and normally start
+    // for real, off the observer, once the visitor actually scrolls near
+    // them.
+    const nearInitialViewport =
+      el && typeof window !== "undefined" ? el.getBoundingClientRect().top < window.innerHeight * 2 : true;
+    const fallback = setTimeout(() => setInView(true), nearInitialViewport ? 1200 : 6000);
     if (!el) return () => clearTimeout(fallback);
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -120,8 +132,39 @@ export function useTimeline(phaseDurations, { loop = true, restartPauseMs = 2400
 // motion). Driven off elapsed time rather than a per-character interval, so
 // a backgrounded tab that drops frames resumes at the right position
 // instead of falling behind.
+//
+// The hero's own instance of this is also the page's LCP element, and a
+// rAF loop calling setState every frame — starting the instant this mounts,
+// which for the hero is before first paint — is exactly what was thrashing
+// the main thread during initial load/hydration and delaying LCP: the
+// browser never got to treat the hero text as "final" because it kept
+// changing. `armed` gates the actual character-by-character animation
+// behind a post-mount requestIdleCallback (a plain setTimeout fallback
+// where that API doesn't exist): before it fires, `play` still shows the
+// complete text immediately rather than animating, so first paint renders
+// the finished string. Once armed, subsequent `play` transitions (the
+// timeline's own loop restarting) animate normally — the typing effect
+// still plays, just never as part of the initial render.
 export function Typed({ text, play, complete, cps = 45, className = "" }) {
-  const [count, setCount] = useState(0);
+  const [count, setCount] = useState(text.length);
+  const armedRef = useRef(false);
+
+  useEffect(() => {
+    let idleId;
+    let timeoutId;
+    const arm = () => {
+      armedRef.current = true;
+    };
+    if (typeof requestIdleCallback === "function") {
+      idleId = requestIdleCallback(arm, { timeout: 500 });
+    } else {
+      timeoutId = setTimeout(arm, 300);
+    }
+    return () => {
+      if (idleId !== undefined && typeof cancelIdleCallback === "function") cancelIdleCallback(idleId);
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+    };
+  }, []);
 
   useEffect(() => {
     if (complete || prefersReducedMotion()) {
@@ -130,6 +173,12 @@ export function Typed({ text, play, complete, cps = 45, className = "" }) {
     }
     if (!play) {
       setCount(0);
+      return;
+    }
+    if (!armedRef.current) {
+      // Not armed yet (first paint / still hydrating): show the finished
+      // string instead of animating it in.
+      setCount(text.length);
       return;
     }
     let raf;
@@ -172,6 +221,29 @@ export function StageLight({ className = "" }) {
       />
     </div>
   );
+}
+
+// Sets document.title and a per-route <link rel="canonical"> together —
+// every marketing page needs both, and the SEO audit that flagged missing
+// canonical tags found title-setting already wired up per page via this
+// same useEffect-on-mount pattern, so canonical rides along with it rather
+// than becoming its own thing to forget on the next new route. The <link>
+// element is created once and reused (not appended again) across client-side
+// route changes, since react-router navigation between marketing pages never
+// reloads index.html.
+const SITE_ORIGIN = "https://vaea.base44.app";
+
+export function useDocumentMeta(title, path) {
+  useEffect(() => {
+    document.title = title;
+    let link = document.head.querySelector('link[rel="canonical"]');
+    if (!link) {
+      link = document.createElement("link");
+      link.setAttribute("rel", "canonical");
+      document.head.appendChild(link);
+    }
+    link.setAttribute("href", `${SITE_ORIGIN}${path}`);
+  }, [title, path]);
 }
 
 // Fine film grain over the dark sections. Two jobs, both real: it breaks up

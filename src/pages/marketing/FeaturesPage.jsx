@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Boxes, LayoutGrid, Command, FileSpreadsheet, Bot, Search, Fingerprint,
@@ -6,7 +5,7 @@ import {
   BookOpen, GitBranch, Wrench, Sparkles,
 } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
-import { Reveal, StageLight, Grain } from "./effects";
+import { Reveal, StageLight, Grain, useDocumentMeta } from "./effects";
 import { darkSectionBg, darkText, darkTopEdge, pillOnDark, linkOnDark, eyebrowOnDark, displayXL, displayL, hairlineH } from "./theme";
 
 const GROUPS = [
@@ -37,7 +36,7 @@ const GROUPS = [
     title: "Organize",
     lede: "Somewhere for every project and stray task to actually live, instead of scattered across five apps and your own memory.",
     items: [
-      { icon: Boxes, title: "Everything nests inside something bigger", body: "A big area of your life or work, broken down into smaller pieces, broken down into the actual tasks — nothing just floating on its own with no home." },
+      { icon: Boxes, title: "Everything nests inside something bigger", body: "A big area of your life or work, broken down into smaller pieces, broken down into the actual tasks — nothing just floating on its own with no home. Freelancers can use the same ladder as a practice → client → engagement → task hierarchy without inventing anything new." },
       { icon: LayoutGrid, title: "See as much or as little as you need", body: "Zoom out for a quick scan of everything at once, or zoom in when one thing needs your full attention." },
       { icon: FolderCog, title: "Click in without losing your place", body: "Open something bigger and what's inside it opens right there with it — no separate page to load, no hunting for your way back." },
     ],
@@ -62,16 +61,14 @@ const GROUPS = [
 ];
 
 export default function FeaturesPage() {
-  useEffect(() => {
-    document.title = "Features | Vaea";
-  }, []);
+  useDocumentMeta("Features | Vaea", "/features");
 
   return (
     <MarketingLayout>
       <section className={`relative overflow-hidden ${darkSectionBg} ${darkText} ${darkTopEdge}`}>
         <StageLight />
         <Grain />
-        <div className="relative max-w-3xl mx-auto px-6 pt-24 sm:pt-32 pb-20 sm:pb-28 text-center">
+        <div className="relative max-w-3xl mx-auto px-6 pt-24 sm:pt-32 pb-16 sm:pb-20 text-center">
           <Reveal>
             <p className={`${eyebrowOnDark} mb-4`}>Features</p>
             <h1 className={displayXL}>
@@ -81,11 +78,17 @@ export default function FeaturesPage() {
               No pricing plans to compare, no limit on how much you throw at it — this is a
               personal system built to catch everything, so none of it has to live in your head.
             </p>
+            <div className="mt-8">
+              <Link to="/signup" className={pillOnDark}>
+                Sign up free
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
           </Reveal>
         </div>
       </section>
 
-      <div className="max-w-4xl mx-auto px-6 py-16 sm:py-20">
+      <div className="max-w-4xl mx-auto px-6 py-12 sm:py-16">
         {GROUPS.map((group, i) => (
           <Reveal key={group.title} as="div" className="py-10 sm:py-12">
             {i > 0 && <div aria-hidden="true" className={`${hairlineH} -mt-10 sm:-mt-12 mb-10 sm:mb-12`} />}

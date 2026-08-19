@@ -1,9 +1,8 @@
-import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, BookOpen, GitBranch, MessageCircle, HardDrive, LockKeyhole, Sparkles, ToggleLeft } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
-import { Reveal, StageLight, Grain, useTimeline } from "./effects";
+import { Reveal, StageLight, Grain, useTimeline, useDocumentMeta } from "./effects";
 import {
   ChatFilm, CHAT_PHASES, CHAT_CAPTIONS,
   PaletteFilm, PALETTE_PHASES,
@@ -214,6 +213,11 @@ function NestSection() {
               something and what&apos;s inside it opens right there with it, so you never lose
               your place.
             </p>
+            <p className="mt-4 text-muted-foreground leading-relaxed max-w-md">
+              Freelancing or juggling a few clients at once? It&apos;s the same ladder: Area is
+              your practice, Product is each client, Project is each engagement or deliverable
+              underneath them — no separate system to invent for it.
+            </p>
           </Reveal>
         </div>
       </div>
@@ -337,9 +341,7 @@ function CheckInSection() {
 }
 
 export default function HomePage() {
-  useEffect(() => {
-    document.title = "Vaea — from overwhelmed to organized";
-  }, []);
+  useDocumentMeta("Vaea — from overwhelmed to organized", "/");
 
   return (
     <MarketingLayout>

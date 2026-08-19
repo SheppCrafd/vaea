@@ -1,10 +1,8 @@
-import { useEffect } from "react";
 import LoginScreen from "@/components/auth/LoginScreen";
+import { useDocumentMeta } from "./effects";
 
 export default function LoginPage() {
-  useEffect(() => {
-    document.title = "Sign in | Vaea";
-  }, []);
+  useDocumentMeta("Sign in | Vaea", "/login");
 
   return <LoginScreen />;
 }
