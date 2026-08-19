@@ -1,7 +1,8 @@
 import { useRef, useEffect, useState, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
+import { TriangleAlert } from "lucide-react";
 import ChatIcon from "@/components/ai/ChatIcon";
-import ChatToolLogDetail from "@/components/ai/ChatToolLogDetail";
+import ChatToolLogDetail, { humanizeAction } from "@/components/ai/ChatToolLogDetail";
 import { sanitizeUrl } from "@/lib/sanitizeUrl";
 import { ROUND_BOUNDARY_MARKER, stripLivePlanPreview } from "@/lib/llm/streamUtils";
 
@@ -155,6 +156,48 @@ function ChatAssistantMessage({ m, onOpenDetail, isNew }) {
   );
 }
 
+// A staged, not-yet-executed action awaiting explicit confirmation —
+// pending_action is only ever set on something in DESTRUCTIVE_ACTIONS (see
+// useChatController.js's handleConfirm/handleCancel), so this is deliberately
+// the one card in the whole transcript that doesn't read as "assistant
+// talking": a bordered, warning-toned block that interrupts the flat
+// terminal register on purpose, because it's a real gate, not narration —
+// nothing runs until the human clicks through it. Distinct from the dim
+// tool-log trace above it (already-happened, informational) and from the
+// reply text (prose) by design: this is the one place the transcript asks
+// the user to actually decide something.
+function PendingActionCard({ actions, onConfirm, onCancel, resolving }) {
+  return (
+    <div className="mt-1.5 rounded-lg border border-destructive/25 bg-destructive/[0.05] overflow-hidden max-w-md">
+      <div className="px-3 py-1.5 flex items-center gap-1.5 border-b border-destructive/15">
+        <TriangleAlert className="w-3.5 h-3.5 text-destructive/80 shrink-0" />
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-destructive/80">Confirm to proceed</span>
+      </div>
+      <ul className="px-3 py-2 space-y-0.5">
+        {actions.map((a, i) => (
+          <li key={i} className="text-foreground/90">{humanizeAction(a.action)}</li>
+        ))}
+      </ul>
+      <div className="px-3 pb-2.5 pt-0.5 flex gap-2">
+        <button
+          onClick={onConfirm}
+          disabled={resolving}
+          className="text-xs px-2.5 py-1 bg-destructive text-destructive-foreground border border-border rounded-md hover:opacity-90 disabled:opacity-50"
+        >
+          Yes, do it
+        </button>
+        <button
+          onClick={onCancel}
+          disabled={resolving}
+          className="text-xs px-2.5 py-1 bg-secondary text-secondary-foreground border border-border rounded-md hover:opacity-80 disabled:opacity-50"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // Renders the message list. Scrolling is plain native browser scrolling —
 // lazy-loads older messages as the user scrolls near the top. Styled as a
 // flat terminal transcript (user turns prefixed "> ", tool-log lines dim,
@@ -162,7 +205,7 @@ function ChatAssistantMessage({ m, onOpenDetail, isNew }) {
 // register as the marketing site's hero mockup, not a decorative match: it's
 // the one place real assistant output belongs (see --font-terminal in
 // index.css).
-export default function ChatMessageList({ messages, isComputing, liveSteps, streamingText, iconChoice, hasMore, onLoadMore, resolvingId, onConfirm, onCancel, newMessageIds }) {
+export default function ChatMessageList({ messages, isComputing, isLoading, liveSteps, streamingText, iconChoice, hasMore, onLoadMore, resolvingId, onConfirm, onCancel, newMessageIds }) {
   const containerRef = useRef(null);
   const [openDetail, setOpenDetail] = useState(null);
   // Tracks whether the user was already at (or very near) the bottom right
@@ -199,10 +242,34 @@ export default function ChatMessageList({ messages, isComputing, liveSteps, stre
       onScroll={handleScroll}
       className="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col gap-4 font-terminal text-[13px] leading-relaxed bg-background/50"
     >
-      {hasMore && (
+      {/* hasMore starts optimistically true (useChatMessages.js) and only
+          flips false once loadMore actually runs — for a session with zero
+          messages loaded so far (a genuinely new chat, or the initial fetch
+          still in flight) that button would otherwise render forever with
+          nothing above it to ever load, masking the empty state below. */}
+      {hasMore && messages.length > 0 && (
         <button onClick={onLoadMore} className="text-[10px] text-muted-foreground hover:text-foreground self-center">
           Load earlier messages
         </button>
+      )}
+
+      {/* A fresh session with nothing sent yet — kept in the same terminal
+          register as everything else here (the "> " prompt glyph, no bubble,
+          no illustration) rather than a generic "start chatting!" placeholder,
+          so the very first thing a new user sees already reads as this app's
+          voice, not a template's. Gated on !isLoading too, so the initial
+          history fetch for a session that DOES have messages doesn't flash
+          this before they arrive. */}
+      {messages.length === 0 && !isComputing && !isLoading && (
+        <div className="flex-1 flex flex-col items-center justify-center gap-2 text-center px-6">
+          <ChatIcon iconChoice={iconChoice} className="w-7 h-7 text-primary/45" />
+          <p className="text-foreground/80 text-sm">
+            <span className="text-primary">{'>'}</span> ready when you are
+          </p>
+          <p className="text-muted-foreground text-xs max-w-[30ch]">
+            Ask it to search, plan, or take real action across your workspace — or type "/" for commands.
+          </p>
+        </div>
       )}
 
       {messages.map((m) => (
@@ -215,22 +282,12 @@ export default function ChatMessageList({ messages, isComputing, liveSteps, stre
             <ChatAssistantMessage m={m} onOpenDetail={setOpenDetail} isNew={newMessageIds?.has(m.id) ?? false} />
           )}
           {m.pending_action && (
-            <div className="mt-1.5 flex gap-2 justify-start">
-              <button
-                onClick={() => onConfirm(m)}
-                disabled={resolvingId === m.id}
-                className="text-xs px-2.5 py-1 bg-destructive text-destructive-foreground border border-border rounded-md hover:opacity-90 disabled:opacity-50"
-              >
-                Yes, do it
-              </button>
-              <button
-                onClick={() => onCancel(m)}
-                disabled={resolvingId === m.id}
-                className="text-xs px-2.5 py-1 bg-secondary text-secondary-foreground border border-border rounded-md hover:opacity-80 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-            </div>
+            <PendingActionCard
+              actions={m.pending_action.actions}
+              onConfirm={() => onConfirm(m)}
+              onCancel={() => onCancel(m)}
+              resolving={resolvingId === m.id}
+            />
           )}
         </div>
       ))}

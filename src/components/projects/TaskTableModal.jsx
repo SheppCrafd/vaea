@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { X } from "lucide-react";
 import Modal from "@/components/shared/Modal";
+import { Button } from "@/components/ui/button";
 import TaskTable from "@/components/projects/TaskTable";
 
 export default function TaskTableModal({ project, onClose }) {
@@ -22,7 +23,7 @@ export default function TaskTableModal({ project, onClose }) {
     >
       <div className="flex items-center justify-between p-4 border-b border-border">
         <h2 className="font-heading font-semibold">{project.title}</h2>
-        <button onClick={onClose} aria-label="Close"><X className="w-4 h-4" /></button>
+        <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close" className="shrink-0 -mr-1.5"><X className="w-4 h-4" /></Button>
       </div>
       <div className="overflow-y-auto p-2">
         <TaskTable project={project} />

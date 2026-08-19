@@ -1,10 +1,13 @@
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from "react";
 import { useSearchParams } from "react-router-dom";
+import { Boxes, Filter, Plus } from "lucide-react";
 import { useAreas } from "@/hooks/useAreas";
 import { useProducts } from "@/hooks/useProducts";
 import { useProjects } from "@/hooks/useProjects";
 import { useFilter } from "@/lib/FilterContext";
 import { sortByPosition } from "@/lib/entityUtils";
+import { useAppStore } from "@/lib/store";
+import { Button } from "@/components/ui/button";
 import AreaCard from "@/components/areas/AreaCard";
 import AreaCardSkeleton from "@/components/areas/AreaCardSkeleton";
 import ProductConnectionLines from "@/components/products/ProductConnectionLines";
@@ -22,7 +25,8 @@ export default function Dashboard() {
   const { data: areas = [], isLoading: areasLoading, isError: areasError, error: areasErrorObj, refetch: refetchAreas } = useAreas();
   const { data: products = [], isError: productsError, error: productsErrorObj, refetch: refetchProducts } = useProducts();
   const { data: projects = [], isError: projectsError, error: projectsErrorObj, refetch: refetchProjects } = useProjects();
-  const { excludedIds } = useFilter();
+  const { excludedIds, includeMany } = useFilter();
+  const openCreateModal = useAppStore((s) => s.openCreateModal);
   const [searchParams, setSearchParams] = useSearchParams();
   const [expandedArea, setExpandedArea] = useState(null);
   const [expandedProduct, setExpandedProduct] = useState(null);
@@ -143,9 +147,43 @@ export default function Dashboard() {
   return (
     <div>
       {areaViewModels.length === 0 ? (
-        <div className="text-center py-20 text-muted-foreground">
-          <p className="text-sm">No areas found. Click "Create New" to add your first Area of Responsibility.</p>
-        </div>
+        areas.length > 0 ? (
+          // Areas exist, but the active filter hides every one of them —
+          // a different situation from a genuinely empty dashboard (below),
+          // and "create one" would be actively wrong advice here. The fix
+          // is clearing the filter, not making more areas.
+          <div className="flex flex-col items-center justify-center gap-3 py-20 px-6 text-center">
+            <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-muted text-muted-foreground">
+              <Filter className="w-5 h-5" />
+            </div>
+            <div className="flex flex-col gap-1 max-w-sm">
+              <h2 className="font-heading font-semibold text-foreground">Every area is hidden</h2>
+              <p className="text-sm text-muted-foreground">Your current filter is hiding all of them from view.</p>
+            </div>
+            <Button variant="outline" onClick={() => includeMany(excludedIds)} className="gap-2 rounded-full px-5 mt-1">
+              Clear filter
+            </Button>
+          </div>
+        ) : (
+          // The true empty state: nothing has been created yet. An icon,
+          // a heading, and a direct CTA — an invitation to act, not a
+          // one-line pointer to a button elsewhere on screen.
+          <div className="flex flex-col items-center justify-center gap-4 py-24 px-6 text-center">
+            <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 text-primary">
+              <Boxes className="w-6 h-6" />
+            </div>
+            <div className="flex flex-col gap-1.5 max-w-sm">
+              <h2 className="font-heading font-semibold text-lg text-foreground">Start with your first area</h2>
+              <p className="text-sm text-muted-foreground">
+                Areas of responsibility hold the products and projects you're tracking. Create one to get going.
+              </p>
+            </div>
+            <Button onClick={() => openCreateModal("area")} className="gap-2 rounded-full px-5 mt-1">
+              <Plus className="w-4 h-4" />
+              Create an Area
+            </Button>
+          </div>
+        )
       ) : (
         <div
           // Areas always stack as a single full-width column, in both card

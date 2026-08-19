@@ -9,6 +9,7 @@ import { useArchiveProject, useRestoreProject, useUpdateProject, useDeleteProjec
 import { confirmThen } from "@/lib/entityUtils";
 import TaskTable from "@/components/projects/TaskTable";
 import ArchivedTaskList from "@/components/projects/ArchivedTaskList";
+import { Button } from "@/components/ui/button";
 import EditableText from "@/components/shared/EditableText";
 import ProjectNotes from "@/components/projects/ProjectNotes";
 import AddNoteForm from "@/components/projects/AddNoteForm";
@@ -95,9 +96,9 @@ export default function ProjectDetailModal({ project, onClose }) {
                 </div>
               </div>
             </div>
-            <button onClick={onClose} aria-label="Close" className="p-2 hover:bg-secondary rounded-full transition-colors shrink-0">
+            <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close" className="rounded-full shrink-0">
               <X className="w-5 h-5 text-muted-foreground" />
-            </button>
+            </Button>
           </div>
 
           {/* Scrollable Content */}

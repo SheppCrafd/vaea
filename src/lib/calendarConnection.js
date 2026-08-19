@@ -10,7 +10,7 @@ import { readKey, writeKey, removeKey } from "@/lib/deviceStorage";
 
 export const CALENDAR_CONNECTION_KEY = "vaea_google_calendar";
 
-const DEFAULTS = {
+export const DEFAULTS = {
   accessToken: "",
   refreshToken: "",
   expiresAt: 0,

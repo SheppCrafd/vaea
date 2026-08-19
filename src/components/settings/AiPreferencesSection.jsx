@@ -114,7 +114,7 @@ export default function AiPreferencesSection() {
 
   return (
     <div className="bg-card border border-border rounded-xl p-6">
-      <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">AI Assistant</p>
+      <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">AI Preferences</p>
       <p className="text-xs text-muted-foreground mb-4">
         Write these by hand, or type <span className="font-mono">/setup</span> in chat and let it interview you instead. Sent as context with every message. There's no server storage for this (or any) app data, so it stays on this device — use Export/Import below to carry it to another one.
       </p>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, Check, Loader2, TriangleAlert, Unlink } from "lucide-react";
-import { loadCalendarConnection, saveCalendarConnection, clearCalendarConnection, isCalendarConnected } from "@/lib/calendarConnection";
+import { loadCalendarConnection, saveCalendarConnection, clearCalendarConnection, isCalendarConnected, DEFAULTS as CONNECTION_DEFAULTS } from "@/lib/calendarConnection";
 import { buildAuthorizationUrl } from "@/lib/googleOAuthPkce";
 import { listEvents } from "@/lib/googleCalendarApi";
 
@@ -83,7 +83,14 @@ function UpcomingEvents({ connection, onTokenRefreshed }) {
 // for the user to type here at all: the whole flow is a redirect to
 // Google's own consent screen and back.
 export default function GoogleCalendarSection() {
-  const [connection, setConnection] = useState(null);
+  // Initialized to real defaults, not null — ExternalVaultSection.jsx and
+  // every other connection-style section render their card immediately and
+  // fill in once the async storage read resolves. This one used to return
+  // null until then, which meant its card was simply absent from the page
+  // for a moment: on /settings, where all nine sections mount at once, that
+  // showed up as a layout jump once it popped in, and this section reading
+  // like an afterthought next to Vaea Vault's identical pattern.
+  const [connection, setConnection] = useState(CONNECTION_DEFAULTS);
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
@@ -115,8 +122,6 @@ export default function GoogleCalendarSection() {
     setConnection(refreshed);
     await saveCalendarConnection(refreshed);
   };
-
-  if (!connection) return null;
 
   return (
     <div className="bg-card border border-border rounded-xl p-6">

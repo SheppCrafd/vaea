@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import Modal from "@/components/shared/Modal";
+import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/lib/store";
 import TaskForm from "@/components/modals/TaskForm";
 import ProjectForm from "@/components/modals/ProjectForm";
@@ -40,16 +41,16 @@ export default function CreateModal() {
           {TYPES.map((t) => (
             <button
               key={t.key}
-              className={`text-xs px-2.5 py-1 rounded-full border border-border ${type === t.key ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}
+              className={`text-xs px-2.5 py-1.5 rounded-full border border-border ${type === t.key ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}
               onClick={() => setType({ createModalType: t.key })}
             >
               {t.label}
             </button>
           ))}
         </div>
-        <button onClick={closeCreateModal} aria-label="Close">
+        <Button variant="ghost" size="icon" onClick={closeCreateModal} aria-label="Close" className="shrink-0 -mr-1.5 -mt-1.5">
           <X className="w-4 h-4" />
-        </button>
+        </Button>
       </div>
       {renderForm()}
     </Modal>

@@ -60,7 +60,7 @@ export default function BackupRestoreSection() {
 
   return (
     <div className="bg-card border border-border rounded-xl p-6">
-      <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">Backups</p>
+      <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">Backup & Restore</p>
       <p className="text-xs text-muted-foreground mb-4">
         A snapshot of everything is taken automatically before any multi-step AI plan, bulk create/delete, or CSV import. Restore one below if something went wrong.
       </p>

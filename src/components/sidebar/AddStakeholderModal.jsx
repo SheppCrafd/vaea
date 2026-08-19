@@ -54,7 +54,7 @@ export default function AddStakeholderModal({ onClose }) {
     <Modal isOpen onClose={onClose} label="Add Stakeholder" panelClassName="bg-card rounded-xl shadow-xl w-full max-w-sm p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-heading font-semibold">Add Stakeholder</h3>
-        <button onClick={onClose} aria-label="Close"><X className="w-4 h-4" /></button>
+        <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close" className="shrink-0 -mr-1.5 -mt-1.5"><X className="w-4 h-4" /></Button>
       </div>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { X, Trash2 } from "lucide-react";
 import Modal from "@/components/shared/Modal";
+import { Button } from "@/components/ui/button";
 import { useStakeholders } from "@/hooks/useStakeholders";
 import { useUpdateProduct, useDeleteProduct } from "@/hooks/useProducts";
 import { useProjects } from "@/hooks/useProjects";
@@ -50,11 +51,11 @@ export default function ProductDetailModal({ product, onClose }) {
             onSave={(v) => updateProduct.mutate({ id: product.id, data: { title: v } })}
             className="font-heading text-xl font-semibold"
           />
-          <button onClick={onClose} aria-label="Close" className="shrink-0"><X className="w-5 h-5" /></button>
+          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close" className="shrink-0 -mr-1.5 -mt-1.5"><X className="w-5 h-5" /></Button>
         </div>
         <div className="p-6 max-w-3xl mx-auto flex flex-col gap-6">
           <div>
-            <label htmlFor="product-description" className="text-xs font-medium text-muted-foreground block mb-1">Description</label>
+            <label htmlFor="product-description" className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-2">Description</label>
             <EditableText
               id="product-description"
               value={product.description}
@@ -135,7 +136,7 @@ export default function ProductDetailModal({ product, onClose }) {
                   }
                 )
               }
-              className="text-xs flex items-center gap-1.5 text-muted-foreground hover:text-destructive px-1 py-1.5 rounded transition-colors"
+              className="text-xs flex items-center gap-1.5 text-muted-foreground hover:text-destructive px-3 py-1.5 -mx-3 rounded transition-colors"
             >
               <Trash2 className="w-4 h-4" /> Delete Product
             </button>

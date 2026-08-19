@@ -5,6 +5,7 @@ import {
   Search, FolderKanban, Package, Boxes, ListTodo, User,
   Plus, MessageCircle, Settings, SunMoon,
 } from "lucide-react";
+import { highlightMatch } from "@/lib/highlightMatch";
 import Portal from "@/lib/Portal";
 import { useAppStore } from "@/lib/store";
 import { useHighlight } from "@/lib/HighlightContext";
@@ -225,7 +226,7 @@ export default function CommandPalette() {
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border">
-            <Search className="w-4 h-4 text-muted-foreground shrink-0" aria-hidden="true" />
+            <span className="font-terminal text-primary text-sm shrink-0 select-none" aria-hidden="true">{'>'}</span>
             <input
               ref={inputRef}
               value={query}
@@ -255,8 +256,8 @@ export default function CommandPalette() {
                   >
                     <Icon className="w-4 h-4 shrink-0 text-muted-foreground" />
                     <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-medium truncate">{result.title || result.label}</span>
-                      {result.subtitle && <span className="block text-xs text-muted-foreground truncate">{result.subtitle}</span>}
+                      <span className="block text-sm font-medium truncate">{highlightMatch(result.title || result.label, query.trim())}</span>
+                      {result.subtitle && <span className="block text-xs text-muted-foreground truncate">{highlightMatch(result.subtitle, query.trim())}</span>}
                     </span>
                   </button>
                 );

@@ -20,9 +20,16 @@ const SECTIONS = [
   { key: "ai-model", label: "AI Model", Component: AiModelSection },
   { key: "storage", label: "Data Storage", Component: StorageSection },
   { key: "backup", label: "Backup & Restore", Component: BackupRestoreSection },
-  { key: "vault", label: "Vaea Vault", Component: ExternalVaultSection },
+  // Vaea Vault and Google Calendar are both "let the assistant reach an
+  // outside account" connections — the same shape (connect/disconnect,
+  // Connected badge, a live preview once linked) rather than a toggle or
+  // form like everything above them. Marking the first of the two as the
+  // start of a "Connections" group in the nav (see groupLabel below) makes
+  // that kinship visible instead of leaving Google Calendar reading as a
+  // stray extra item tacked on after Backup & Restore.
+  { key: "vault", label: "Vaea Vault", Component: ExternalVaultSection, groupLabel: "Connections" },
   { key: "calendar", label: "Google Calendar", Component: GoogleCalendarSection },
-  { key: "resources", label: "Resources", Component: ResourcesSection },
+  { key: "resources", label: "Resources", Component: ResourcesSection, groupLabel: "More" },
 ];
 
 // The section-nav list's own content — factored out so the desktop docked
@@ -31,15 +38,21 @@ const SECTIONS = [
 function SectionNavContent({ activeSection, onSelect }) {
   return (
     <nav className="flex-1 min-h-0 overflow-y-auto p-2 flex flex-col gap-0.5">
-      {SECTIONS.map(({ key, label }) => (
-        <button
-          key={key}
-          onClick={() => onSelect(key)}
-          aria-current={activeSection === key ? "true" : undefined}
-          className={`text-left text-sm px-3 py-2 rounded-md transition-colors ${activeSection === key ? "bg-secondary text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"}`}
-        >
-          {label}
-        </button>
+      {SECTIONS.map(({ key, label, groupLabel }) => (
+        <div key={key}>
+          {groupLabel && (
+            <p className={`px-3 text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wider ${key === SECTIONS[0].key ? "" : "mt-3"} mb-1`}>
+              {groupLabel}
+            </p>
+          )}
+          <button
+            onClick={() => onSelect(key)}
+            aria-current={activeSection === key ? "true" : undefined}
+            className={`w-full text-left text-sm px-3 py-2 rounded-md transition-colors ${activeSection === key ? "bg-secondary text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"}`}
+          >
+            {label}
+          </button>
+        </div>
       ))}
     </nav>
   );

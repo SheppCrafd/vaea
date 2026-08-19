@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { X } from "lucide-react";
 import Modal from "@/components/shared/Modal";
+import { Button } from "@/components/ui/button";
 import { useAreas, useUpdateArea } from "@/hooks/useAreas";
 import { useProducts } from "@/hooks/useProducts";
 import { useProjects } from "@/hooks/useProjects";
@@ -58,7 +59,7 @@ export default function AreaModal({ area, onClose }) {
               className="text-sm text-muted-foreground mt-1"
             />
           </div>
-          <button onClick={onClose} aria-label="Close" className="shrink-0"><X className="w-5 h-5" /></button>
+          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close" className="shrink-0 -mr-1.5 -mt-1.5"><X className="w-5 h-5" /></Button>
         </div>
 
         <div className="p-6 max-w-5xl mx-auto">
