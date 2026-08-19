@@ -49,19 +49,22 @@ const SECTIONS = [
     body: (
       <>
         <p>
-          Vaea Chat needs you signed in to use, because generating a reply costs real money and
-          that's what the sign-in gates. When you send a message, it's forwarded to the AI model
-          answering it — either Vaea's own provider, or your own API key if you've connected one
-          (see BYOK below) — for that single request. Your message content is not stored on Vaea's
-          servers once the reply comes back.
+          For the built-in AI and BYOK, Vaea Chat needs you signed in to use — that account is
+          what a resumable conversation history gets scoped to. Local Mode is the one exception:
+          it runs without signing in at all (see Local Mode below). Whichever way you're chatting,
+          when you send a message it's forwarded to whichever AI model is answering it — Vaea's
+          own provider, your own API key, or your own Local Mode connection — for that single
+          request. Your message content is not stored on Vaea's servers once the reply comes back.
         </p>
         <p className="mt-3">
-          Your chat session history (the list of past conversations and their messages, so you can
-          come back to them) is the one piece of data that does live on our servers rather than
-          your device — there's no way to keep a resumable chat history entirely local while also
-          letting an AI provider answer it. Everything else Vaea Chat touches — the projects,
-          tasks, and notes it reads or edits on your behalf — follows the same local-first or
-          cloud-opt-in rules as the rest of your data above.
+          For the built-in AI and BYOK, your chat session history (the list of past conversations
+          and their messages, so you can come back to them) lives on our servers rather than your
+          device, scoped to your account — the one piece of data outside the local-first/cloud-opt-in
+          rules above. Local Mode keeps this local too: your conversation history is written as
+          files on your device instead. Everything else Vaea Chat touches — the projects, tasks,
+          and notes it reads or edits on your behalf — follows the same local-first or cloud-opt-in
+          rules as the rest of your data above, regardless of which of the three ways you're
+          chatting.
         </p>
       </>
     ),
@@ -82,6 +85,24 @@ const SECTIONS = [
     ),
   },
   {
+    id: "local-mode",
+    title: "Local Mode",
+    body: (
+      <>
+        <p>
+          Local Mode skips hosted AI entirely. You connect a folder on your own device; Vaea writes
+          each message as a plain file there, and whatever's answering — a model you run yourself,
+          or Claude Code — reads it and writes a reply back the same way. Vaea makes no network
+          call of its own in this mode, doesn't require you to be signed in, and keeps your
+          conversation history in that same folder rather than on our servers. The one thing this
+          page can't promise on your behalf is what your chosen model itself does with what you
+          send it — if that's Claude Code, its own request to Anthropic is outside Vaea's control,
+          the same as it would be if you used Claude Code directly for anything else.
+        </p>
+      </>
+    ),
+  },
+  {
     id: "sign-in",
     title: "Signing in",
     body: (
@@ -89,8 +110,9 @@ const SECTIONS = [
         <p>
           Sign-in (Google, Microsoft, Apple, or email) is handled by Base44, the platform Vaea is
           built and hosted on — Vaea itself never sees or stores your password. Signing in
-          unlocks Vaea Chat and cloud storage; browsing, organizing, editing, and importing a
-          spreadsheet all work the same whether you're signed in or not.
+          unlocks the built-in AI, BYOK chat, and cloud storage; browsing, organizing, editing,
+          and importing a spreadsheet all work the same whether you're signed in or not — and
+          Local Mode runs chat without signing in too.
         </p>
       </>
     ),

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, BookOpen, GitBranch, MessageCircle, HardDrive, LockKeyhole, Sparkles, ToggleLeft } from "lucide-react";
+import { ArrowRight, BookOpen, GitBranch, MessageCircle, HardDrive, LockKeyhole, Sparkles, ToggleLeft, FolderOpen, FileJson, RefreshCw, Cpu, ShieldOff } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Reveal, StageLight, Grain, useTimeline, useDocumentMeta } from "./effects";
@@ -28,7 +28,7 @@ const FAQS = [
   },
   {
     q: "Is my data actually private?",
-    a: "By default, yes — everything except your chat history with Vaea lives on your own device, not our servers. You can opt into cloud storage instead (tied to your account, so it follows you across devices) — that's the one case where your project data itself sits on our servers, and it's always your choice, never the default. Either way, when chat needs your data to answer, it's sent for that one request only and never stored on our end.",
+    a: "By default, yes — everything except your chat history with Vaea lives on your own device, not our servers. You can opt into cloud storage instead (tied to your account, so it follows you across devices) — that's the one case where your project data itself sits on our servers, and it's always your choice, never the default. Either way, when chat needs your data to answer, it's sent for that one request only and never stored on our end. If even that's more than you want, Local Mode skips hosted AI entirely — Vaea makes no network call of its own, just a folder on your disk that your own model (or Claude Code) answers from.",
   },
   {
     q: "What if I don't use Obsidian or take notes anywhere?",
@@ -62,6 +62,31 @@ const VAULT_REASONS = [
   },
 ];
 
+const LOCAL_MODE_PIPELINE = [
+  { icon: FolderOpen, label: "Connect a folder" },
+  { icon: FileJson, label: "Vaea writes a prompt" },
+  { icon: RefreshCw, label: "Your script polls" },
+  { icon: Cpu, label: "Your model answers" },
+];
+
+const LOCAL_MODE_REASONS = [
+  {
+    icon: ShieldOff,
+    title: "No API key, no account, no server",
+    body: "Vaea writes a plain JSON file to a folder you picked and reads the reply back the same way. It never makes a network call of its own in this mode — nothing to configure, nothing to trust us with.",
+  },
+  {
+    icon: Cpu,
+    title: "Point it at Claude Code and go",
+    body: "Run bridge_watcher.py --claude-code and it answers every message through your own logged-in \"claude\" CLI session — or type /local-relay right in Claude Code's own chat, no background process at all.",
+  },
+  {
+    icon: LockKeyhole,
+    title: "Keep the one remaining call inside your own walls",
+    body: "The only thing that ever leaves your machine is whatever your chosen model itself calls out to — Claude Code's own request to Anthropic, for example, which a company can route through its own proxy, VPN, or allowlist same as any other outbound traffic, entirely separate from Vaea.",
+  },
+];
+
 const SELFNOTE_REASONS = [
   {
     icon: BookOpen,
@@ -77,7 +102,7 @@ const SELFNOTE_REASONS = [
 
 const QUIET_TRUTHS = [
   { icon: HardDrive, title: "Your device by default", body: "Real files in a folder you picked — cloud storage is there if you'd rather sign in and use that instead." },
-  { icon: LockKeyhole, title: "Signing in unlocks chat and cloud", body: "Organizing, editing, and importing all work whether you're signed in or not." },
+  { icon: LockKeyhole, title: "Signing in unlocks the built-in AI and cloud", body: "Organizing, editing, and importing all work whether you're signed in or not — and Local Mode runs chat without an account too." },
   { icon: Sparkles, title: "Free, with no plans to compare", body: "No tiers, no usage limits to keep an eye on." },
 ];
 
@@ -255,6 +280,68 @@ function IdentitySection() {
   );
 }
 
+// No animated film here, deliberately — the four-step flow below is the
+// exact PIPELINE array LocalModeSetupGuidePage.jsx already renders for real
+// users setting this up, not a marketing approximation of it.
+function LocalModeSection() {
+  return (
+    <DarkBand light={false}>
+      <div className="max-w-4xl mx-auto px-6 py-24 sm:py-32 text-center">
+        <Reveal>
+          <p className={`${eyebrowOnDark} mb-4`}>Local Mode · optional, and the most private mode there is</p>
+          <h2 className={`${displayL} max-w-2xl mx-auto`}>
+            Run it through Claude Code. Nothing leaves your PC.
+          </h2>
+          <p className="mt-5 text-muted-foreground max-w-lg mx-auto leading-relaxed">
+            Local Mode skips hosted AI entirely — no API key, no company&apos;s server in the
+            middle. Vaea talks to whatever&apos;s answering (your own local model, or Claude
+            Code itself) through a folder on your own disk, nothing else.
+          </p>
+        </Reveal>
+
+        <Reveal delay={120} className="mt-14 max-w-2xl mx-auto">
+          <div className="flex items-start justify-center gap-1 sm:gap-3">
+            {LOCAL_MODE_PIPELINE.map(({ icon: Icon, label }, i) => (
+              <div key={label} className="flex items-start">
+                <div className="flex flex-col items-center gap-2 w-16 sm:w-20">
+                  <div className="w-11 h-11 rounded-xl bg-foreground/[0.06] border border-foreground/10 flex items-center justify-center">
+                    <Icon className="w-4 h-4 text-foreground/80" />
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-tight">{label}</p>
+                </div>
+                {i < LOCAL_MODE_PIPELINE.length - 1 && (
+                  <span aria-hidden="true" className="mt-4 text-foreground/20 text-sm">→</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </Reveal>
+
+        <Reveal delay={200} className="mt-14 grid sm:grid-cols-3 gap-8 text-left max-w-3xl mx-auto">
+          {LOCAL_MODE_REASONS.map(({ icon: Icon, title, body }) => (
+            <div key={title} className="flex gap-3">
+              <div className="shrink-0 w-8 h-8 rounded-lg bg-foreground/[0.06] border border-foreground/10 flex items-center justify-center">
+                <Icon className="w-3.5 h-3.5 text-foreground/80" />
+              </div>
+              <div>
+                <h3 className="text-sm font-medium">{title}</h3>
+                <p className="mt-0.5 text-sm text-muted-foreground">{body}</p>
+              </div>
+            </div>
+          ))}
+        </Reveal>
+
+        <Reveal delay={260}>
+          <Link to="/app/settings/local-mode-setup" className={`mt-10 inline-flex items-center gap-1.5 ${linkOnDark}`}>
+            See the full setup guide
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </Reveal>
+      </div>
+    </DarkBand>
+  );
+}
+
 function VaultSection() {
   const { ref, step } = useTimeline(VAULT_PHASES);
 
@@ -349,6 +436,7 @@ export default function HomePage() {
       <PaletteSection />
       <NestSection />
       <IdentitySection />
+      <LocalModeSection />
       <VaultSection />
       <CheckInSection />
 

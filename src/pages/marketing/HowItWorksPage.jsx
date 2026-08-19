@@ -7,11 +7,11 @@ import { darkSectionBg, darkText, darkTopEdge, pillOnDark, eyebrowOnDark, displa
 const STEPS = [
   {
     title: "Sign in (or skip it for now)",
-    body: "Google, Microsoft, Apple, or email — whichever you'd rather use. It unlocks Vaea Chat and cloud storage; organizing, editing, and bringing in a spreadsheet all work without it.",
+    body: "Google, Microsoft, Apple, or email — whichever you'd rather use. It unlocks the built-in AI and cloud storage; organizing, editing, and bringing in a spreadsheet all work without it, and Local Mode runs chat without an account too.",
   },
   {
     title: "Pick where your stuff lives",
-    body: "On Chrome or Edge, pick a folder on your own computer once and everything's saved there as real files you can open yourself. On another browser, you save and load a file by hand instead. Or sign in and save to the cloud instead, so it follows you to any device. Only that last option puts anything on someone else's server — chat history aside, which always does.",
+    body: "On Chrome or Edge, pick a folder on your own computer once and everything's saved there as real files you can open yourself. On another browser, you save and load a file by hand instead. Or sign in and save to the cloud instead, so it follows you to any device. Only that last option puts anything on someone else's server — chat history usually does too, except in Local Mode, which keeps that on your device as well.",
   },
   {
     title: "Dump everything on Vaea Chat",

@@ -32,7 +32,7 @@ const ROWS = [
   },
   {
     label: "Which AI model runs it",
-    vaea: "Bring your own key for Anthropic, OpenAI, Google, or xAI — or run it fully local/offline against a model on your own machine, no key and nothing leaving your device.",
+    vaea: "Bring your own key for Anthropic, OpenAI, Google, or xAI — or use Local Mode to run it against your own model, or Claude Code, through a folder on your disk. No key, and Vaea itself makes no network call of its own.",
     typical: "Locked to whatever model the vendor picked. No choice, no local option.",
   },
   {
@@ -68,7 +68,7 @@ export default function ComparePage() {
           <Reveal>
             <p className={`${eyebrowOnDark} mb-4`}>Vaea vs. the category</p>
             <h1 className={displayXL}>
-              Not another cloud-only list with a chatbot bolted on.
+              The AI does the work. Your data stays put.
             </h1>
             <p className="mt-6 text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
               Most task managers people compare when hunting for &quot;AI for freelancers&quot; — Todoist,

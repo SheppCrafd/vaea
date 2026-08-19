@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import {
   Boxes, LayoutGrid, Command, FileSpreadsheet, Bot, Search, Fingerprint,
   Paperclip, ClipboardCheck, FolderCog, LockKeyhole, HardDrive, Cloud, ArrowRight,
-  BookOpen, GitBranch, Wrench, Sparkles,
+  BookOpen, GitBranch, Wrench, Sparkles, ShieldOff,
 } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
 import { Reveal, StageLight, Grain, useDocumentMeta } from "./effects";
@@ -55,7 +55,8 @@ const GROUPS = [
     items: [
       { icon: HardDrive, title: "Real files, not something that just vanishes", body: "On Chrome or Edge, pick a folder on your own computer once, and everything's saved there as real files you can open yourself. On another browser, you save/load a file by hand instead." },
       { icon: Cloud, title: "Or let it follow you, if you'd rather", body: "Sign in and switch to cloud storage anytime — same data, synced to your account instead of one device. Switch back whenever; nothing's stuck where you first put it." },
-      { icon: LockKeyhole, title: "Signing in unlocks Vaea Chat — and cloud storage", body: "Everything else — organizing, editing, bringing in a spreadsheet, searching — works whether you're signed in or not." },
+      { icon: LockKeyhole, title: "Signing in unlocks the built-in AI — and cloud storage", body: "Everything else — organizing, editing, bringing in a spreadsheet, searching — works whether you're signed in or not." },
+      { icon: ShieldOff, title: "Or run chat without an account at all — Local Mode", body: "Connect a folder and Vaea talks to your own model, or Claude Code itself, through plain files on your disk. No API key, no sign-in, and Vaea makes no network call of its own in this mode." },
     ],
   },
 ];

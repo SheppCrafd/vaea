@@ -50,9 +50,10 @@ const SECTIONS = [
           data, whether initiated by you or the assistant acting on your instructions.
         </p>
         <p className="mt-3">
-          If you bring your own API key for an AI provider, your use of that provider is also
-          governed by that provider's own terms — Vaea has no control over how they handle
-          requests sent using your key.
+          If you bring your own API key for an AI provider, or use Local Mode with Claude Code or
+          a model of your own, your use of that provider or model is also governed by its own
+          terms — Vaea has no control over how they handle requests sent through your key or your
+          own connection.
         </p>
       </>
     ),
