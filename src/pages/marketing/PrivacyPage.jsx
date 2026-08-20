@@ -1,7 +1,6 @@
-import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import MarketingLayout, { MAINTAINER } from "./MarketingLayout";
-import { Reveal } from "./effects";
+import { Reveal, useDocumentMeta } from "./effects";
 import { hairlineH, lightWash, glassTileLight, glowTop, eyebrowOnLight, displayL, focusRing } from "./theme";
 
 const SECTIONS = [
@@ -176,9 +175,7 @@ const SECTIONS = [
 ];
 
 export default function PrivacyPage() {
-  useEffect(() => {
-    document.title = "Privacy Policy | Vaea";
-  }, []);
+  useDocumentMeta("Privacy Policy | Vaea", "/privacy");
 
   return (
     <MarketingLayout>

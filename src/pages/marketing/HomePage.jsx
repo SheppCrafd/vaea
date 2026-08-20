@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, BookOpen, GitBranch, MessageCircle, HardDrive, LockKeyhole, Sparkles, ToggleLeft, FolderOpen, FileJson, RefreshCw, Cpu, ShieldOff } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
-import { Reveal, StageLight, Grain, useTimeline, useDocumentMeta } from "./effects";
+import { Reveal, StageLight, Grain, useTimeline, useDocumentMeta, usePageSchema } from "./effects";
 import {
   ChatFilm, CHAT_PHASES, CHAT_CAPTIONS,
   PaletteFilm, PALETTE_PHASES,
@@ -427,8 +427,19 @@ function CheckInSection() {
   );
 }
 
+const FAQ_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": FAQS.map(({ q, a }) => ({
+    "@type": "Question",
+    "name": q,
+    "acceptedAnswer": { "@type": "Answer", "text": a },
+  })),
+};
+
 export default function HomePage() {
   useDocumentMeta("Vaea — from overwhelmed to organized", "/");
+  usePageSchema(FAQ_SCHEMA);
 
   return (
     <MarketingLayout>

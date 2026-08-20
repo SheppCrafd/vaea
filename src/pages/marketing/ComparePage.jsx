@@ -1,8 +1,7 @@
-import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Check, X } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
-import { Reveal, StageLight, Grain } from "./effects";
+import { Reveal, StageLight, Grain, useDocumentMeta, usePageSchema } from "./effects";
 import {
   darkSectionBg, darkText, darkTopEdge, lightWash, glowTop, glassTileLight,
   pillOnDark, linkOnDark, eyebrowOnDark, eyebrowOnLight, displayXL, displayL,
@@ -54,10 +53,18 @@ function RowIcon({ good }) {
   );
 }
 
+const COMPARE_PAGE_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Vaea vs. the typical task manager",
+  "url": "https://vaea.base44.app/compare",
+  "description": "How Vaea differs from mainstream task managers like Todoist, ClickUp, and Motion: local-first data storage, an AI that actually acts on your workspace, free with no tiers, bring-your-own-key AI, and a hierarchical structure that maps cleanly onto freelance work.",
+  "isPartOf": { "@type": "WebSite", "url": "https://vaea.base44.app/" },
+};
+
 export default function ComparePage() {
-  useEffect(() => {
-    document.title = "Vaea vs. the typical task manager | Vaea";
-  }, []);
+  useDocumentMeta("Vaea vs. the typical task manager | Vaea", "/compare");
+  usePageSchema(COMPARE_PAGE_SCHEMA);
 
   return (
     <MarketingLayout>

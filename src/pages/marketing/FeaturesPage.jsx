@@ -5,7 +5,7 @@ import {
   BookOpen, GitBranch, Wrench, Sparkles, ShieldOff,
 } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
-import { Reveal, StageLight, Grain, useDocumentMeta } from "./effects";
+import { Reveal, StageLight, Grain, useDocumentMeta, usePageSchema } from "./effects";
 import { darkSectionBg, darkText, darkTopEdge, pillOnDark, linkOnDark, eyebrowOnDark, displayXL, displayL, hairlineH } from "./theme";
 
 const GROUPS = [
@@ -61,8 +61,18 @@ const GROUPS = [
   },
 ];
 
+const FEATURES_PAGE_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Features | Vaea",
+  "url": "https://vaea.base44.app/features",
+  "description": "Full feature list for Vaea: AI chat that acts on your workspace, hierarchical project organization (Areas, Products, Projects, Tasks), local-first storage, bring-your-own-key AI, Local Mode, Obsidian vault integration, and more. Free, no tiers.",
+  "isPartOf": { "@type": "WebSite", "url": "https://vaea.base44.app/" },
+};
+
 export default function FeaturesPage() {
   useDocumentMeta("Features | Vaea", "/features");
+  usePageSchema(FEATURES_PAGE_SCHEMA);
 
   return (
     <MarketingLayout>

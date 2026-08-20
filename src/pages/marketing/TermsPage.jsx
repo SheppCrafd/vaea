@@ -1,7 +1,6 @@
-import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import MarketingLayout, { MAINTAINER } from "./MarketingLayout";
-import { Reveal } from "./effects";
+import { Reveal, useDocumentMeta } from "./effects";
 import { hairlineH, lightWash, glassTileLight, glowTop, eyebrowOnLight, displayL, focusRing } from "./theme";
 
 const SECTIONS = [
@@ -146,9 +145,7 @@ const SECTIONS = [
 ];
 
 export default function TermsPage() {
-  useEffect(() => {
-    document.title = "Terms of Service | Vaea";
-  }, []);
+  useDocumentMeta("Terms of Service | Vaea", "/terms");
 
   return (
     <MarketingLayout>
