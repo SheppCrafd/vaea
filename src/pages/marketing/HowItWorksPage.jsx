@@ -49,7 +49,7 @@ const HOW_IT_WORKS_SCHEMA = {
 };
 
 export default function HowItWorksPage() {
-  useDocumentMeta("How it works | Vaea", "/how-it-works");
+  useDocumentMeta("How it works — set up in under a minute | Vaea", "/how-it-works");
   usePageSchema(HOW_IT_WORKS_SCHEMA);
 
   return (

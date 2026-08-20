@@ -71,7 +71,7 @@ const FEATURES_PAGE_SCHEMA = {
 };
 
 export default function FeaturesPage() {
-  useDocumentMeta("Features | Vaea", "/features");
+  useDocumentMeta("Features — AI task manager, local-first | Vaea", "/features");
   usePageSchema(FEATURES_PAGE_SCHEMA);
 
   return (

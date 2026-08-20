@@ -131,3 +131,9 @@ export const displayM = "font-heading text-2xl sm:text-3xl font-semibold trackin
 // accent details. Never a fill or a body-text color; the restraint is the
 // point.
 export const GLOW = "#46BAD1";
+
+// Mode-panel accent colors for the three AI run-modes on ChatPage. Kept here
+// (not inline) so any future page that references these accents stays in sync
+// without hunting through component files for stray hex strings.
+export const GLOW_VIOLET = "#a78bfa"; // "Bring your own key" mode
+export const GLOW_EMERALD = "#34d399"; // "Local Mode" — zero network calls

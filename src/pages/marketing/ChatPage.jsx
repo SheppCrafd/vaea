@@ -13,7 +13,7 @@ import {
   darkSectionBg, darkText, darkTopEdge, glassPanel, glassSheen,
   glassTileLight,
   pillOnDark, linkOnDark, eyebrowOnDark, eyebrowOnLight,
-  displayXL, displayL, displayM, GLOW,
+  displayXL, displayL, displayM, GLOW, GLOW_VIOLET, GLOW_EMERALD,
 } from "./theme";
 
 // ─── hero chat demo ────────────────────────────────────────────────────────
@@ -231,23 +231,23 @@ const MODES = [
   {
     icon: Zap,
     label: "Built-in",
-    tagline: "Ready the moment you sign in.",
-    body: "Vaea's hosted assistant, powered by the strongest available model, already knows your full workspace. No keys to paste, nothing to configure.",
+    tagline: "Sign in and start. Nothing to configure.",
+    body: "Vaea's hosted assistant runs the strongest available model and already knows your full workspace. No keys, no setup.",
     accent: GLOW,
   },
   {
     icon: Key,
     label: "Bring your own key",
-    tagline: "Your API key, your model, Vaea's context.",
-    body: "Connect any provider — Anthropic, OpenAI, Google — and your key goes directly to their API. Vaea acts as the interface, not a proxy holding your key.",
-    accent: "#a78bfa",
+    tagline: "Your API key, their API — Vaea just drives.",
+    body: "Connect Anthropic, OpenAI, Google, or xAI. Your key goes straight to their endpoint — Vaea never touches it after the handoff.",
+    accent: GLOW_VIOLET,
   },
   {
     icon: ShieldOff,
     label: "Local Mode",
     tagline: "No server. Not even ours.",
     body: "Connect a folder. Vaea writes a prompt file; your own script — or Claude Code — reads it and replies. Vaea makes no network call of its own. Nothing leaves your machine.",
-    accent: "#34d399",
+    accent: GLOW_EMERALD,
   },
 ];
 
@@ -278,6 +278,14 @@ const FAQS = [
     q: "Can Vaea Chat learn from my conversations over time?",
     a: "It keeps your chat history so you can refer back to earlier exchanges. Beyond that, a separate opt-in (off by default) lets it review its own replies and write notes to itself — so it can get better at helping you without making assumptions about you that it hasn't been told to make.",
   },
+  {
+    q: "What AI models does Vaea Chat use?",
+    a: "Built-in mode uses the strongest available hosted model — you don't pick it, Vaea handles that. With Bring Your Own Key you choose any provider: Anthropic (Claude), OpenAI (GPT-4o and others), Google (Gemini), or xAI (Grok) — your key goes directly to their API. Local Mode uses whatever model you point at the folder, including Claude Code running on your own machine, with no hosted model involved at all.",
+  },
+  {
+    q: "Can I use Vaea Chat without an internet connection?",
+    a: "With Local Mode, yes — fully offline. Vaea writes a prompt file to a folder on your device; your own script or local model answers it. Vaea itself makes no network call. Bring Your Own Key still needs a connection to reach your chosen provider's API. Built-in mode requires internet to reach the hosted model.",
+  },
 ];
 
 // ─── schema ─────────────────────────────────────────────────────────────────
@@ -287,7 +295,7 @@ const CHAT_PAGE_SCHEMA = {
   "@type": "WebPage",
   "name": "Vaea Chat — AI assistant that acts on your work",
   "url": "https://vaea.base44.app/chat",
-  "description": "Vaea Chat reads your Google Calendar, Gmail, Outlook, ClickUp tasks, and personal notes — then handles things when you ask, with a confirm step before anything changes. Free, local-first.",
+  "description": "Vaea Chat reads your Google Calendar, Gmail, Outlook, ClickUp tasks, Slack channels, and personal notes — then handles things when you ask, with a confirm step before anything changes. Free, local-first.",
   "isPartOf": { "@type": "WebSite", "url": "https://vaea.base44.app/" },
 };
 
@@ -361,7 +369,10 @@ export default function ChatPage() {
             </p>
           </Reveal>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* 7 tiles: 3×2 on desktop leaves an orphan. [&>*:last-child]:lg:col-start-2
+              slots it into the centre column so the final row reads as intentional
+              rather than a layout accident. */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 [&>*:last-child]:lg:col-start-2">
             {CONNECTORS.map(({ icon: Icon, name, body }, i) => (
               <Reveal key={name} delay={i * 60} as="div"
                 className={`flex gap-4 p-5 rounded-2xl transition-all duration-300 ${glassTileLight}`}
@@ -404,8 +415,8 @@ export default function ChatPage() {
 
             <Reveal delay={100}>
               {/* Static staged action illustration */}
-              <div className={`rounded-2xl overflow-hidden ${glassPanel}`}>
-                <div className="glassSheen pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/[0.07] to-transparent" />
+              <div className={`relative rounded-2xl overflow-hidden ${glassPanel}`}>
+                <div className={glassSheen} />
                 <div className="flex items-center gap-2 px-4 py-3 border-b border-foreground/[0.07]">
                   <div className="flex gap-1.5">
                     {["bg-foreground/15","bg-foreground/10","bg-foreground/10"].map((c,i) => (
@@ -423,15 +434,15 @@ export default function ChatPage() {
                     { type: "Delete calendar event", detail: "Old planning session · 2pm", safe: false },
                   ].map(({ type, detail, safe }) => (
                     <div key={type} className="rounded-xl border border-foreground/[0.08] overflow-hidden">
-                      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-foreground/[0.06]" style={{ background: safe ? `${GLOW}09` : "rgba(239,68,68,0.06)" }}>
-                        <span className="font-terminal text-[10px] tracking-widest uppercase" style={{ color: safe ? GLOW : "#f87171" }}>
+                      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-foreground/[0.06]" style={{ background: safe ? `${GLOW}09` : "hsl(var(--destructive)/0.10)" }}>
+                        <span className="font-terminal text-[10px] tracking-widest uppercase" style={{ color: safe ? GLOW : "hsl(var(--destructive))" }}>
                           {type}
                         </span>
                       </div>
                       <div className="flex items-center justify-between px-4 py-3">
                         <p className="text-xs text-foreground/70">{detail}</p>
                         <div className="flex gap-1.5">
-                          <button className="text-[11px] px-2.5 py-1 rounded-lg font-medium" style={{ background: safe ? GLOW : "#ef4444", color: safe ? "#0b1a1e" : "#fff" }}>
+                          <button className="text-[11px] px-2.5 py-1 rounded-lg font-medium" style={{ background: safe ? GLOW : "hsl(var(--destructive))", color: safe ? "#0b1a1e" : "hsl(var(--destructive-foreground))" }}>
                             Confirm
                           </button>
                           <button className="text-[11px] px-2.5 py-1 rounded-lg border border-foreground/15 text-foreground/50">
@@ -453,10 +464,10 @@ export default function ChatPage() {
         <div className="max-w-5xl mx-auto px-6 py-16 sm:py-24">
           <Reveal className="text-center mb-12">
             <p className={`${eyebrowOnLight} mb-3`}>Pick your setup</p>
-            <h2 className={displayL}>Three ways to run it.</h2>
+            <h2 className={displayL}>Your model, your rules</h2>
             <p className="mt-4 text-muted-foreground max-w-md mx-auto">
-              The same Vaea Chat interface, three completely different levels of trust
-              and control. Change anytime in Settings.
+              Same interface, three different levels of trust. Switch anytime in Settings —
+              nothing carries over except your chat history.
             </p>
           </Reveal>
 
@@ -469,7 +480,7 @@ export default function ChatPage() {
                   className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
                   style={{ background: `${accent}16`, border: `1px solid ${accent}30` }}
                 >
-                  <Icon className="w-4.5 h-4.5" style={{ color: accent }} />
+                  <Icon className="w-[18px] h-[18px]" style={{ color: accent }} />
                 </div>
                 <p className="font-semibold mb-1">{label}</p>
                 <p className="text-xs font-terminal tracking-wide mb-3" style={{ color: accent }}>

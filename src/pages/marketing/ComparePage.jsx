@@ -4,8 +4,8 @@ import MarketingLayout from "./MarketingLayout";
 import { Reveal, StageLight, Grain, useDocumentMeta, usePageSchema } from "./effects";
 import {
   darkSectionBg, darkText, darkTopEdge, lightWash, glowTop, glassTileLight,
-  pillOnDark, linkOnDark, eyebrowOnDark, eyebrowOnLight, displayXL, displayL,
-  hairlineH, focusRing, GLOW,
+  pillOnDark, linkOnDark, linkOnLight, eyebrowOnDark, eyebrowOnLight, displayXL, displayL,
+  hairlineH, GLOW,
 } from "./theme";
 
 // Every row here is a genuinely verifiable property of Vaea itself (see
@@ -178,7 +178,7 @@ export default function ComparePage() {
             </p>
             <Link
               to="/how-it-works"
-              className={`mt-6 inline-flex items-center gap-1.5 text-sm text-foreground hover:text-foreground/80 transition-colors rounded-sm ${focusRing}`}
+              className={`mt-6 inline-flex items-center gap-1.5 ${linkOnLight}`}
             >
               See how it works
               <ArrowRight className="w-3.5 h-3.5" />

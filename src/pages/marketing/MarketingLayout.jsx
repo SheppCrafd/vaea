@@ -73,7 +73,10 @@ function NavBar() {
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between gap-6">
         <div className="flex items-center gap-8">
           <Logo />
-          <nav className="hidden sm:flex items-center gap-6">
+          {/* 5 nav links + GitHub + auth controls gets tight at sm (640px).
+              Compress gap to gap-5 at sm, full gap-6 at lg where there's room.
+              GitHub shows icon-only at sm–md, adds the label at lg. */}
+          <nav className="hidden sm:flex items-center gap-5 lg:gap-6">
             {NAV_LINKS.map(({ to, label }) => (
               <Link
                 key={to}
@@ -91,10 +94,11 @@ function NavBar() {
               href={GITHUB_URL}
               target="_blank"
               rel="noopener noreferrer"
+              aria-label="GitHub repository"
               className={`flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}
             >
               <Github className="w-3.5 h-3.5" />
-              GitHub
+              <span className="hidden lg:inline">GitHub</span>
             </a>
           </nav>
         </div>
