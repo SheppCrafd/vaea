@@ -446,10 +446,10 @@ export default function ChatPage() {
                       <div className="flex items-center justify-between px-4 py-3">
                         <p className="text-xs text-foreground/70">{detail}</p>
                         <div className="flex gap-1.5">
-                          <button className="text-[11px] px-2.5 py-1 rounded-lg font-medium" style={{ background: safe ? GLOW : "hsl(var(--destructive))", color: safe ? "#0b1a1e" : "hsl(var(--destructive-foreground))" }}>
+                          <button type="button" className="text-[11px] px-2.5 py-1 rounded-lg font-medium" style={{ background: safe ? GLOW : "hsl(var(--destructive))", color: safe ? "#0b1a1e" : "hsl(var(--destructive-foreground))" }}>
                             Confirm
                           </button>
-                          <button className="text-[11px] px-2.5 py-1 rounded-lg border border-foreground/15 text-foreground/50">
+                          <button type="button" className="text-[11px] px-2.5 py-1 rounded-lg border border-foreground/15 text-foreground/50">
                             Skip
                           </button>
                         </div>

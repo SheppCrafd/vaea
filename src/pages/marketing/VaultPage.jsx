@@ -287,9 +287,12 @@ export default function VaultPage() {
               Your notes remember what you do.
             </h1>
             <p className="mt-6 text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
-              Connect your Obsidian notes (Obsidian is a free note-taking app where your notes are plain files on your computer) and Vaea Chat reads every note for context — and
+              Connect your Obsidian notes and Vaea Chat reads every note for context — and
               writes new ones when you ask. Your own backup on GitHub, your own history,
-              your own Obsidian. Nothing changes about how you work.
+              your own files. Nothing changes about how you work.
+            </p>
+            <p className="mt-3 text-sm text-muted-foreground/70 max-w-xl mx-auto">
+              Obsidian is a free note-taking app where your notes are plain text files on your own computer — no cloud required.
             </p>
             <div className="mt-8 flex items-center justify-center gap-5 flex-wrap">
               <Link to="/signup" className={pillOnDark}>
