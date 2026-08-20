@@ -27,6 +27,8 @@ import { createEvent, updateEvent, deleteEvent } from "@/lib/googleCalendarApi";
 import { loadGmailConnection, saveGmailConnection, isGmailConnected } from "@/lib/gmailConnection";
 import { sendMessage as sendGmailMessage } from "@/lib/gmailApi";
 import { loadMicrosoftConnection, saveMicrosoftConnection, isMicrosoftConnected } from "@/lib/microsoftConnection";
+import { loadSlackConnection, isSlackConnected } from "@/lib/slackConnection";
+import { sendMessage as sendSlackMessage } from "@/lib/slackApi";
 import { createEvent as createOutlookEvent, updateEvent as updateOutlookEvent, deleteEvent as deleteOutlookEvent, sendMessage as sendOutlookMessage } from "@/lib/microsoftGraphApi";
 import { loadClickUpConnection, isClickUpConnected } from "@/lib/clickupConnection";
 import { createTask as createClickUpTask, updateTask as updateClickUpTask, deleteTask as deleteClickUpTask, sendMessage as sendClickUpMessage } from "@/lib/clickupApi";
@@ -656,6 +658,13 @@ export async function executeAction(action, args) {
       const { id, connection: refreshed } = await sendGmailMessage(connection, { to: args.to, subject: args.subject, body: args.body });
       await saveGmailConnection(refreshed);
       return { toolResult: { sent: id } };
+    }
+
+    case "SEND_SLACK_MESSAGE": {
+      const connection = await loadSlackConnection();
+      if (!isSlackConnected(connection)) throw new Error("No Slack workspace connected — connect one in Settings.");
+      const { ts } = await sendSlackMessage(connection, args.channel_id, args.text);
+      return { toolResult: { sent: ts } };
     }
 
     case "CREATE_CLICKUP_TASK": {

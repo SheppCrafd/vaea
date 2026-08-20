@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import {
   ArrowRight, CalendarDays, Mail, Building2, CheckSquare, BookOpen,
-  ShieldOff, Key, Check, Plus, Zap,
+  ShieldOff, Key, Check, Plus, Zap, Hash,
 } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
@@ -207,6 +207,11 @@ const CONNECTORS = [
     icon: CheckSquare,
     name: "ClickUp",
     body: "Create or update tasks, read ClickUp Chat channels, post a message. Work stays in sync.",
+  },
+  {
+    icon: Hash,
+    name: "Slack",
+    body: "Read channel messages or post to a channel when you ask — sent as you, not a bot. Works with any public channel in your workspace.",
   },
   {
     icon: BookOpen,

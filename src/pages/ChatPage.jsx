@@ -1,5 +1,6 @@
 import { Plus, Paperclip, Info, Settings, PanelLeft, PanelLeftClose } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { useSharedChatController } from "@/lib/ChatControllerContext";
 import { useChatSessions } from "@/hooks/useChatSessions";
 import { useSlashCommand } from "@/hooks/useSlashCommand";
@@ -80,6 +81,17 @@ export default function ChatPage() {
   const messageInputRef = useRef(null);
   const slashCommand = useSlashCommand(chat.input, chat.setInput);
   const inputHistory = useChatInputHistory({ messages: chat.chatState.messages, input: chat.input, setInput: chat.setInput });
+  const location = useLocation();
+
+  // Pre-fill the input when navigated here with location.state.initialMessage
+  // (e.g. from ProjectDetailModal's "Brief me on this project" button). Only
+  // runs once on mount — intentionally doesn't reset if the location changes
+  // after mount, since the user may have started typing.
+  useEffect(() => {
+    const msg = location.state?.initialMessage;
+    if (msg && !chat.input) chat.setInput(msg);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Same reasoning as AppShell.jsx's mobile drawers: below md the aside
   // never docks (a 256px sidebar squeezes the thread into an unusable
