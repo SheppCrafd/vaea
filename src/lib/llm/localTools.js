@@ -423,6 +423,15 @@ async function listClickUpMessagesTool(args) {
 // real GitHub API calls, and read_project_link makes a real fetch().
 export async function runLocalTool(name, args, { dataset, externalVault } = {}) {
   switch (name) {
+    case "suggest_task_fields": {
+      // Pure AI reasoning — no API call, just return a structured suggestion
+      // the model itself generates based on the task description.
+      return {
+        suggestion: "Call this tool to get the model's own quadrant/importance reasoning in structured form — the tool result itself is the model's analysis, not a separate computation.",
+        description: args.description,
+        context: args.context || "",
+      };
+    }
     case "search_workspace":
       return searchWorkspace(dataset, args.query);
     case "audit_workspace":

@@ -877,6 +877,19 @@ export const TOOL_CATALOG = [
   },
 
   {
+    name: "suggest_task_fields",
+    staged: false,
+    description: "Analyze a task description and suggest the most appropriate quadrant (1=urgent+important, 2=important not urgent, 3=urgent not important, 4=neither), whether it's highly important (H), and a brief rationale. Runs immediately. Call this when a user asks for help prioritizing a task they just described, or when they ask what quadrant something should go in.",
+    parameters: {
+      type: "object",
+      properties: {
+        description: { type: "string", description: "The task description to analyze." },
+        context: { type: "string", description: "Optional: any relevant context about the user's current priorities." },
+      },
+      required: ["description"],
+    },
+  },
+  {
     name: "search_workspace",
     staged: false,
     description: 'Search across all areas, products, projects (including archived), tasks (including archived), stakeholders, and notes for a keyword — use this for "what did we decide about X" / "find every task mentioning Y" style requests instead of scanning [DATABASE STATE] yourself.',
