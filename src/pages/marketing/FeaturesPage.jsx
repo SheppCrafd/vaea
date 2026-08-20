@@ -24,9 +24,9 @@ const GROUPS = [
     title: "Vaea Vault",
     lede: "Optional: connect your own Obsidian notes and let the assistant read and write them too — decisions, things you've learned, a running daily log.",
     items: [
-      { icon: BookOpen, title: "A personal notes vault, still yours", body: "A git-backed Obsidian vault on your own GitHub account — write the way you already do, nothing new to learn." },
+      { icon: BookOpen, title: "A personal notes vault, still yours", body: "An automatically backed up Obsidian vault on your own GitHub account — write the way you already do, nothing new to learn." },
       { icon: Search, title: "Reads it for context, writes when you ask", body: "Ask what you decided last month and it goes and looks. Say \"/vault-log\" and it writes a real session summary as a commit." },
-      { icon: GitBranch, title: "Backed up on every change", body: "Every write is a real git commit to your own repo — recoverable from GitHub's own history, never something Vaea holds onto." },
+      { icon: GitBranch, title: "Backed up on every change", body: "Every write is automatically saved to your own backup on GitHub — with full version history, never something Vaea holds onto." },
       { icon: Wrench, title: "Keeps it tidy", body: "\"/vault-tidy\" audits your notes' [[wikilinks]] for broken links and orphaned notes, then proposes fixes as a normal confirmable plan." },
       { icon: Sparkles, title: "Keeps notes on itself, too", body: "Opt in, and roughly once a day it reviews its own replies and writes down what it'd do differently — a real line in Vaea Self.md, not a vague promise to improve." },
       { icon: LockKeyhole, title: "Never about you, unless you say so", body: "A second, separate opt-in — off by default — lets it also notice patterns in how you work. Without it, that's not just against the rules, it's not possible." },
@@ -56,7 +56,7 @@ const GROUPS = [
       { icon: HardDrive, title: "Real files, not something that just vanishes", body: "On Chrome or Edge, pick a folder on your own computer once, and everything's saved there as real files you can open yourself. On another browser, you save/load a file by hand instead." },
       { icon: Cloud, title: "Or let it follow you, if you'd rather", body: "Sign in and switch to cloud storage anytime — same data, synced to your account instead of one device. Switch back whenever; nothing's stuck where you first put it." },
       { icon: LockKeyhole, title: "Signing in unlocks the built-in AI — and cloud storage", body: "Everything else — organizing, editing, bringing in a spreadsheet, searching — works whether you're signed in or not." },
-      { icon: ShieldOff, title: "Or run chat without an account at all — Local Mode", body: "Connect a folder and Vaea talks to your own model, or Claude Code itself, through plain files on your disk. No API key, no sign-in, and Vaea makes no network call of its own in this mode." },
+      { icon: ShieldOff, title: "Or run chat without an account at all — Local Mode", body: "Local Mode (a way to use Vaea Chat where nothing leaves your device) connects a folder and Vaea talks to your own AI model, or Claude Code itself, through plain files on your disk. No sign-in, and Vaea makes no network call of its own in this mode." },
     ],
   },
 ];

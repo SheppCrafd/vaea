@@ -28,7 +28,7 @@ const FAQS = [
   },
   {
     q: "Is my data actually private?",
-    a: "By default, yes — everything except your chat history with Vaea lives on your own device, not our servers. You can opt into cloud storage instead (tied to your account, so it follows you across devices) — that's the one case where your project data itself sits on our servers, and it's always your choice, never the default. Either way, when chat needs your data to answer, it's sent for that one request only and never stored on our end. If even that's more than you want, Local Mode skips hosted AI entirely — Vaea makes no network call of its own, just a folder on your disk that your own model (or Claude Code) answers from.",
+    a: "By default, yes — everything except your chat history with Vaea lives on your own device, not our servers. You can opt into cloud storage instead (tied to your account, so it follows you across devices) — that's the one case where your project data itself sits on our servers, and it's always your choice, never the default. Either way, when chat needs your data to answer, it's sent for that one request only and never stored on our end. If even that's more than you want, Local Mode skips hosted AI entirely — Vaea makes no network call of its own, just a folder on your disk that your own AI model (or Claude Code, Anthropic's free coding tool) answers from.",
   },
   {
     q: "What if I don't use Obsidian or take notes anywhere?",
@@ -78,7 +78,7 @@ const LOCAL_MODE_REASONS = [
   {
     icon: Cpu,
     title: "Point it at Claude Code and go",
-    body: "Run bridge_watcher.py --claude-code and it answers every message through your own logged-in \"claude\" CLI session — or type /local-relay right in Claude Code's own chat, no background process at all.",
+    body: "Run the included watcher script with the Claude Code option and every Vaea message gets answered through your own logged-in Claude Code session — or type /local-relay right in Claude Code's own chat window, no background process at all.",
   },
   {
     icon: LockKeyhole,
@@ -293,8 +293,8 @@ function LocalModeSection() {
             Run it through Claude Code. Nothing leaves your PC.
           </h2>
           <p className="mt-5 text-muted-foreground max-w-lg mx-auto leading-relaxed">
-            Local Mode skips hosted AI entirely — no API key, no company&apos;s server in the
-            middle. Vaea talks to whatever&apos;s answering (your own local model, or Claude
+            Local Mode skips hosted AI entirely — no account key, no company&apos;s server in the
+            middle. Vaea talks to whatever&apos;s answering (your own AI model running on your computer, or Claude
             Code itself) through a folder on your own disk, nothing else.
           </p>
         </Reveal>

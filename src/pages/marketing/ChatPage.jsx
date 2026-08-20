@@ -221,7 +221,7 @@ const CONNECTORS = [
   {
     icon: ShieldOff,
     name: "Local Mode",
-    body: "No service connected at all — your own model answers from a folder. Zero network calls from Vaea.",
+    body: "No service connected at all — your own AI model running on your computer answers from a folder. Zero network calls from Vaea.",
   },
 ];
 
@@ -237,16 +237,16 @@ const MODES = [
   },
   {
     icon: Key,
-    label: "Bring your own key",
-    tagline: "Your API key, their API — Vaea just drives.",
-    body: "Connect Anthropic, OpenAI, Google, or xAI. Your key goes straight to their endpoint — Vaea never touches it after the handoff.",
+    label: "Use your own AI account",
+    tagline: "Your account key from OpenAI, Anthropic, or Google. Vaea formats your question and they answer it — nothing routes through our servers.",
+    body: "Connect Anthropic, OpenAI, Google, or xAI. Your key goes directly to the provider you chose — OpenAI, Anthropic, or Google — and never touches our servers.",
     accent: GLOW_VIOLET,
   },
   {
     icon: ShieldOff,
     label: "Local Mode",
     tagline: "No server. Not even ours.",
-    body: "Connect a folder. Vaea writes a prompt file; your own script — or Claude Code — reads it and replies. Vaea makes no network call of its own. Nothing leaves your machine.",
+    body: "Connect a folder. Vaea writes a prompt file; your own script — or Claude Code (Anthropic's free coding tool) — reads it and replies. Vaea makes no network call of its own. Nothing leaves your machine.",
     accent: GLOW_EMERALD,
   },
 ];
@@ -256,23 +256,23 @@ const MODES = [
 const FAQS = [
   {
     q: "How does Vaea Chat know what's on my calendar or in my inbox?",
-    a: "You connect your accounts in Settings (one-click OAuth, no setup on your end). When you ask about your schedule or email, Vaea reads it on the spot for that request only — nothing is stored on our servers between requests. The tokens that grant access live on your own device.",
+    a: "You connect your accounts in Settings (one click, no setup on your end). When you ask about your schedule or email, Vaea reads it on the spot for that request only — nothing is stored on our servers between requests. The access credentials that grant Vaea permission live on your own device.",
   },
   {
     q: "Can Vaea Chat actually delete things, or just read them?",
     a: "It can read, create, edit, and delete — but anything that changes or removes something goes through a confirm step first. You see exactly what's about to happen (the full event details, the task, the message) before it does. Vaea never removes something silently.",
   },
   {
-    q: "What's the difference between Built-in, BYOK, and Local Mode?",
-    a: "Built-in uses Vaea's hosted model — sign in, start chatting. Bring your own key sends your message directly to your chosen provider (Anthropic, OpenAI, Google) using your own API key, so Vaea is just the interface. Local Mode removes any hosted AI entirely — Vaea writes a prompt to a folder and your own model (or Claude Code) answers it. Vaea makes no network call in that mode.",
+    q: "What's the difference between Built-in, Use your own AI account, and Local Mode?",
+    a: "Built-in uses Vaea's hosted model — sign in, start chatting. Use your own AI account sends your message directly to your chosen provider (Anthropic, OpenAI, Google) using your own account key, so Vaea is just the interface. Local Mode removes any hosted AI entirely — Vaea writes a prompt to a folder and your own AI model running on your computer (or Claude Code) answers it. Vaea makes no network call in that mode.",
   },
   {
     q: "Is Vaea Chat available when I'm not signed in?",
-    a: "Local Mode and Bring Your Own Key both work without a Vaea account — they only need a device and either a local model or an API key. The built-in assistant requires a free account for the hosted AI call.",
+    a: "Local Mode and Use your own AI account both work without a Vaea account — they only need a device and either an AI model running on your own computer or your own account key from a provider like OpenAI. The built-in assistant requires a free account for the hosted AI call.",
   },
   {
     q: "Does connecting Gmail or Outlook mean Vaea stores my emails?",
-    a: "No. When Vaea Chat needs to check your inbox it fetches what's relevant at that moment, uses it for the reply, and doesn't persist it. The access token that lets Vaea read your email lives in your browser's device storage — not on any Vaea server.",
+    a: "No. When Vaea Chat needs to check your inbox it fetches what's relevant at that moment, uses it for the reply, and doesn't persist it. The access credential that lets Vaea read your email lives in your browser's device storage — not on any Vaea server.",
   },
   {
     q: "Can Vaea Chat learn from my conversations over time?",
@@ -280,11 +280,15 @@ const FAQS = [
   },
   {
     q: "What AI models does Vaea Chat use?",
-    a: "Built-in mode uses the strongest available hosted model — you don't pick it, Vaea handles that. With Bring Your Own Key you choose any provider: Anthropic (Claude), OpenAI (GPT-4o and others), Google (Gemini), or xAI (Grok) — your key goes directly to their API. Local Mode uses whatever model you point at the folder, including Claude Code running on your own machine, with no hosted model involved at all.",
+    a: "Built-in mode uses the strongest available hosted model — you don't pick it, Vaea handles that. With Use your own AI account you choose any provider: Anthropic (Claude), OpenAI (GPT-4o and others), Google (Gemini), or xAI (Grok) — your key goes directly to them. Local Mode uses whatever AI model you point at the folder, including Claude Code (Anthropic's free coding tool) running on your own machine, with no hosted model involved at all.",
   },
   {
     q: "Can I use Vaea Chat without an internet connection?",
-    a: "With Local Mode, yes — fully offline. Vaea writes a prompt file to a folder on your device; your own script or local model answers it. Vaea itself makes no network call. Bring Your Own Key still needs a connection to reach your chosen provider's API. Built-in mode requires internet to reach the hosted model.",
+    a: "With Local Mode, yes — fully offline. Vaea writes a prompt file to a folder on your device; your own script or AI model running on your own computer answers it. Vaea itself makes no network call. Use your own AI account still needs an internet connection to reach your chosen provider. Built-in mode requires internet to reach the hosted model.",
+  },
+  {
+    q: "What slash commands does Vaea Chat support?",
+    a: "Vaea Chat has slash commands for common actions — /vault-log to write a session summary to your notes, /vault-tidy to audit wikilinks, /research, /translate, /rewrite, /summarize, and more. Type / in the chat input to see the full list, or visit /help for a complete reference.",
   },
 ];
 

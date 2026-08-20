@@ -7,7 +7,7 @@ import { darkSectionBg, darkText, darkTopEdge, pillOnDark, eyebrowOnDark, displa
 const STEPS = [
   {
     title: "Sign in (or skip it for now)",
-    body: "Google, Microsoft, Apple, or email — whichever you'd rather use. It unlocks the built-in AI and cloud storage; organizing, editing, and bringing in a spreadsheet all work without it, and Local Mode runs chat without an account too.",
+    body: "Google, Microsoft, Apple, or email — whichever you'd rather use. It unlocks the built-in AI and cloud storage; organizing, editing, and bringing in a spreadsheet all work without it, and Local Mode (a way to use Vaea Chat where nothing leaves your device) runs chat without an account too.",
   },
   {
     title: "Pick where your stuff lives",

@@ -74,10 +74,11 @@ function NavBar() {
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between gap-6">
         <div className="flex items-center gap-8">
           <Logo />
-          {/* 5 nav links + GitHub + auth controls gets tight at sm (640px).
-              Compress gap to gap-5 at sm, full gap-6 at lg where there's room.
+          {/* 6 nav links + GitHub + auth controls gets tight at sm (640px).
+              Use gap-4 at sm (was gap-5 at 5 links — the extra item needs the
+              headroom back), full gap-6 at lg where there's room.
               GitHub shows icon-only at sm–md, adds the label at lg. */}
-          <nav className="hidden sm:flex items-center gap-5 lg:gap-6">
+          <nav className="hidden sm:flex items-center gap-4 lg:gap-6">
             {NAV_LINKS.map(({ to, label }) => (
               <Link
                 key={to}

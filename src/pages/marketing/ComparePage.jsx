@@ -31,7 +31,7 @@ const ROWS = [
   },
   {
     label: "Which AI model runs it",
-    vaea: "Bring your own key for Anthropic, OpenAI, Google, or xAI — or use Local Mode to run it against your own model, or Claude Code, through a folder on your disk. No key, and Vaea itself makes no network call of its own.",
+    vaea: "Use your own account key from Anthropic, OpenAI, Google, or xAI — or use Local Mode (a way to use Vaea where nothing leaves your device) to run it against your own AI model, or Claude Code (Anthropic's free coding tool), through a folder on your disk. No account key needed, and Vaea itself makes no network call of its own.",
     typical: "Locked to whatever model the vendor picked. No choice, no local option.",
   },
   {
