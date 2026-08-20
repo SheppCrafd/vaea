@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
-import { Reveal, StageLight, Grain, useDocumentMeta } from "./effects";
+import { Reveal, StageLight, Grain, useDocumentMeta, usePageSchema } from "./effects";
 import { darkSectionBg, darkText, darkTopEdge, pillOnDark, eyebrowOnDark, displayXL, displayL, hairlineH } from "./theme";
 
 const STEPS = [
@@ -19,8 +19,38 @@ const STEPS = [
   },
 ];
 
+const HOW_IT_WORKS_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  "name": "How to get started with Vaea",
+  "url": "https://vaea.base44.app/how-it-works",
+  "description": "Get from overwhelmed to organized in three steps using Vaea, a free personal project and task manager with an AI assistant.",
+  "step": [
+    {
+      "@type": "HowToStep",
+      "position": "1",
+      "name": "Sign in (or skip it for now)",
+      "text": "Sign in with Google, Microsoft, Apple, or email — or skip it and use Vaea without an account. Signing in unlocks the built-in AI and cloud storage.",
+    },
+    {
+      "@type": "HowToStep",
+      "position": "2",
+      "name": "Pick where your stuff lives",
+      "text": "Choose a folder on your own device for local-first storage, or sign in and use cloud storage so your data follows you across devices.",
+    },
+    {
+      "@type": "HowToStep",
+      "position": "3",
+      "name": "Dump everything on Vaea Chat",
+      "text": "Tell Vaea Chat everything that's piling up. It figures out how to lay it all out for you — or hand it a messy spreadsheet and it builds the whole thing in one pass.",
+    },
+  ],
+  "isPartOf": { "@type": "WebSite", "url": "https://vaea.base44.app/" },
+};
+
 export default function HowItWorksPage() {
   useDocumentMeta("How it works | Vaea", "/how-it-works");
+  usePageSchema(HOW_IT_WORKS_SCHEMA);
 
   return (
     <MarketingLayout>

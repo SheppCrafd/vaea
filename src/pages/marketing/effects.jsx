@@ -246,6 +246,21 @@ export function useDocumentMeta(title, path) {
   }, [title, path]);
 }
 
+// Injects a JSON-LD <script> block into <head> for the given schema object,
+// and removes it when the component unmounts. Used for per-page structured
+// data that lives outside index.html (e.g. FAQPage schema on the home page).
+export function usePageSchema(schema) {
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.setAttribute("type", "application/ld+json");
+    script.textContent = JSON.stringify(schema);
+    document.head.appendChild(script);
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, []); // schema is a module-level constant on every caller — safe to omit
+}
+
 // Fine film grain over the dark sections. Two jobs, both real: it breaks up
 // the visible banding a large low-contrast gradient produces on 8-bit
 // displays, and it gives the black a physical, lacquered texture instead of
