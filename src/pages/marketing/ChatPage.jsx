@@ -318,7 +318,8 @@ const CHAT_FAQ_SCHEMA = {
 export default function ChatPage() {
   useDocumentMeta(
     "Vaea Chat — AI that acts on your work, not just talks about it",
-    "/chat"
+    "/chat",
+    "Vaea Chat reads your calendar, inbox, ClickUp, and Slack — then creates tasks, sends messages, and handles things when you ask. Free. Runs on your own AI account."
   );
   usePageSchema(CHAT_PAGE_SCHEMA);
   usePageSchema(CHAT_FAQ_SCHEMA);

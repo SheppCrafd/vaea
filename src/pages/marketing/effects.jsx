@@ -233,7 +233,7 @@ export function StageLight({ className = "" }) {
 // reloads index.html.
 const SITE_ORIGIN = "https://vaea.base44.app";
 
-export function useDocumentMeta(title, path) {
+export function useDocumentMeta(title, path, description) {
   useEffect(() => {
     document.title = title;
     let link = document.head.querySelector('link[rel="canonical"]');
@@ -243,7 +243,11 @@ export function useDocumentMeta(title, path) {
       document.head.appendChild(link);
     }
     link.setAttribute("href", `${SITE_ORIGIN}${path}`);
-  }, [title, path]);
+    if (description) {
+      const meta = document.head.querySelector('meta[name="description"]');
+      if (meta) meta.setAttribute("content", description);
+    }
+  }, [title, path, description]);
 }
 
 // Injects a JSON-LD <script> block into <head> for the given schema object,
