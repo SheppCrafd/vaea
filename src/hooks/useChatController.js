@@ -12,6 +12,7 @@ import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
 import { loadCalendarConnection } from "@/lib/calendarConnection";
 import { loadGmailConnection } from "@/lib/gmailConnection";
 import { loadMicrosoftConnection } from "@/lib/microsoftConnection";
+import { loadSlackConnection } from "@/lib/slackConnection";
 import { loadClickUpConnection } from "@/lib/clickupConnection";
 import { fetchVaultOverview, SELF_NOTE_PATH } from "@/lib/githubApi";
 import { gatherDreamTranscript } from "@/lib/dreamSummary";
@@ -369,6 +370,7 @@ export function useChatController({ activeProjectId } = {}) {
     // Same trust model, same reasoning, as googleCalendar just above.
     const gmail = await loadGmailConnection();
     const microsoft = await loadMicrosoftConnection();
+    const slack = await loadSlackConnection();
     // ClickUp's connection has no token-freshness concept at all (see
     // clickupConnection.js) — nothing to refresh-and-persist here, just a
     // plain read.
@@ -397,6 +399,7 @@ export function useChatController({ activeProjectId } = {}) {
           googleCalendar,
           gmail,
           microsoft,
+          slack,
           clickup,
           areas: areas.filter((a) => !a.deleted_at),
           products: products.filter((p) => !p.deleted_at),

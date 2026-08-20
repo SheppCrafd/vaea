@@ -11,6 +11,7 @@ import GoogleCalendarSection from "@/components/settings/GoogleCalendarSection";
 import GmailSection from "@/components/settings/GmailSection";
 import MicrosoftSection from "@/components/settings/MicrosoftSection";
 import ClickUpSection from "@/components/settings/ClickUpSection";
+import SlackSection from "@/components/settings/SlackSection";
 import ResourcesSection from "@/components/settings/ResourcesSection";
 import { useAppStore } from "@/lib/store";
 import { useIsMobile } from "@/hooks/useIsMobile";
@@ -35,6 +36,7 @@ const SECTIONS = [
   { key: "gmail", label: "Gmail", Component: GmailSection },
   { key: "microsoft", label: "Microsoft 365 / Outlook", Component: MicrosoftSection },
   { key: "clickup", label: "ClickUp", Component: ClickUpSection },
+  { key: "slack", label: "Slack", Component: SlackSection },
   { key: "resources", label: "Resources", Component: ResourcesSection, groupLabel: "More" },
 ];
 

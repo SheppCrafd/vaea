@@ -18,5 +18,8 @@ export const CHAT_COMMANDS = [
   { name: "setup", description: "Let the assistant interview you and set its own name/identity/soul" },
   { name: "vault-log", description: "Log this session to your connected Vaea Vault" },
   { name: "vault-tidy", description: "Audit your connected Vaea Vault's wikilinks and propose fixes" },
+  { name: "daily-brief", description: "Get a morning briefing across your workspace, calendar, and connected services" },
+  { name: "parse-notes", description: "Paste meeting notes — extract tasks, decisions, and follow-ups" },
+  { name: "break-down", description: "Break a task or goal into subtasks" },
   { name: "help", description: "List all available slash commands" },
 ];

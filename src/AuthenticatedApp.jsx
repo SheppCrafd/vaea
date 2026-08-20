@@ -23,6 +23,7 @@ const CalendarOAuthCallbackPage = lazy(() => import('@/pages/CalendarOAuthCallba
 const ClickUpOAuthCallbackPage = lazy(() => import('@/pages/ClickUpOAuthCallbackPage'));
 const GmailOAuthCallbackPage = lazy(() => import('@/pages/GmailOAuthCallbackPage'));
 const MicrosoftOAuthCallbackPage = lazy(() => import('@/pages/MicrosoftOAuthCallbackPage'));
+const SlackOAuthCallbackPage = lazy(() => import('@/pages/SlackOAuthCallbackPage'));
 // Add page imports here
 
 // Everything reachable only via /app/* — Dashboard, AppShell, the chat
@@ -119,6 +120,7 @@ const AuthenticatedApp = () => {
                 <Route path="settings/clickup-callback" element={<ClickUpOAuthCallbackPage />} />
                 <Route path="settings/gmail-callback" element={<GmailOAuthCallbackPage />} />
                 <Route path="settings/microsoft-callback" element={<MicrosoftOAuthCallbackPage />} />
+                <Route path="settings/slack-callback" element={<SlackOAuthCallbackPage />} />
                 {/* Add your page Route elements here */}
                 <Route index element={<AppShell><Dashboard /></AppShell>} />
                 <Route path="*" element={<AppShell><PageNotFound /></AppShell>} />

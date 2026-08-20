@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { X, Archive, RotateCcw, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import { X, Archive, RotateCcw, Trash2, ChevronDown, ChevronRight, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Modal from "@/components/shared/Modal";
 import { useProjectNotes } from "@/hooks/useProjectNotes";
 import { useStakeholders } from "@/hooks/useStakeholders";
@@ -22,6 +23,7 @@ import DateField from "@/components/shared/DateField";
 import { DUE_DATE_STATUS_OPTIONS, METRIC_FIELDS } from "@/lib/projectUtils";
 
 export default function ProjectDetailModal({ project, onClose }) {
+  const navigate = useNavigate();
   const { data: notes = [] } = useProjectNotes(project.id);
   const { data: allStakeholders = [] } = useStakeholders();
   const { data: allProducts = [] } = useProducts();
@@ -96,6 +98,23 @@ export default function ProjectDetailModal({ project, onClose }) {
                 </div>
               </div>
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                navigate("/app/chat", {
+                  state: {
+                    initialMessage: `Brief me on "${project.title}". What's the current status, which tasks are open or overdue, and is there anything that needs my attention?`,
+                  },
+                });
+              }}
+              aria-label="Ask Vaea about this project"
+              title="Brief me on this project"
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-border hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground shrink-0"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Brief me
+            </button>
             <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close" className="rounded-full shrink-0">
               <X className="w-5 h-5 text-muted-foreground" />
             </Button>

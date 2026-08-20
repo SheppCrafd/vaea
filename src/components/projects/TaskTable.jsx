@@ -1,6 +1,7 @@
 import { useState, useRef, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useDroppable } from "@dnd-kit/core";
-import { Star, Trash2, Plus, Archive } from "lucide-react";
+import { Star, Trash2, Plus, Archive, Sparkles } from "lucide-react";
 import { useTasks, useCreateTask, useUpdateTask, useToggleTopThree, useDeleteTask } from "@/hooks/useTasks";
 import { useStakeholders } from "@/hooks/useStakeholders";
 import { useToast } from "@/components/ui/use-toast";
@@ -94,7 +95,45 @@ function ColumnHeader({ column, label, sortColumn, sortDirection, onSort, childr
 // Own component (not just a mapped <tr>) so it can be a stakeholder-drop
 // target — dragging a stakeholder from the sidebar onto a task row assigns
 // them to it.
+// Wraps task description with a focused-state AI sparkle that opens Vaea
+// Chat with the task context pre-filled — closest Vaea has to inline AI
+// editing without a full command palette refactor. The button only appears
+// when the input is actually focused (not on hover) so it doesn't clutter
+// the table in its resting state.
+function TaskDescriptionField({ task, navigate, updateTask }) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <div className="relative group/desc">
+      <EditableText
+        value={task.description}
+        onSave={(v) => updateTask.mutate({ id: task.id, data: { description: v } })}
+        className={`text-xs pr-5 ${isTaskDone(task) ? "line-through text-muted-foreground/70" : ""}`}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+      />
+      {focused && (
+        <button
+          type="button"
+          onMouseDown={(e) => {
+            // mousedown fires before the input's blur; prevent blur so the
+            // navigate doesn't race with the commit's setState call.
+            e.preventDefault();
+            navigate("/app/chat", {
+              state: { initialMessage: `/break-down "${task.description}"` },
+            });
+          }}
+          title="Ask Vaea to break this down"
+          className="absolute right-0.5 top-0.5 p-0.5 rounded text-primary/60 hover:text-primary hover:bg-primary/10 transition-colors"
+        >
+          <Sparkles className="w-3 h-3" />
+        </button>
+      )}
+    </div>
+  );
+}
+
 function TaskRow({ task, allStakeholders, isMatched, updateTask, onToggleTopThree, onDelete }) {
+  const navigate = useNavigate();
   const { setNodeRef, isOver } = useDroppable({
     id: `task-drop-${task.id}`,
     data: { type: "task", id: task.id },
@@ -107,11 +146,7 @@ function TaskRow({ task, allStakeholders, isMatched, updateTask, onToggleTopThre
       style={isMatched && !isOver ? { backgroundColor: STATUS_COLORS.DONE } : undefined}
     >
       <td className="p-2 min-w-0 max-w-[200px]">
-        <EditableText
-          value={task.description}
-          onSave={(v) => updateTask.mutate({ id: task.id, data: { description: v } })}
-          className={`text-xs ${isTaskDone(task) ? "line-through text-muted-foreground/70" : ""}`}
-        />
+        <TaskDescriptionField task={task} navigate={navigate} updateTask={updateTask} />
       </td>
       <td className="p-2">
         <StatusDropdown task={task} onStatusChange={(status) => updateTask.mutate({ id: task.id, data: { status } })} />
@@ -184,6 +219,15 @@ function TaskRow({ task, allStakeholders, isMatched, updateTask, onToggleTopThre
         </button>
       </td>
       <td className="p-2 text-center flex items-center justify-center gap-2">
+        <button
+          type="button"
+          title="Break this task down into subtasks"
+          aria-label="Break down task with AI"
+          onClick={() => navigate("/app/chat", { state: { initialMessage: `/break-down "${task.description}"` } })}
+          className="p-1 -m-1 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+        >
+          <Sparkles className="w-3.5 h-3.5" />
+        </button>
         <button onClick={() => updateTask.mutate({ id: task.id, data: { archived_at: new Date().toISOString() } })} aria-label="Archive task" className="p-1 -m-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
           <Archive className="w-4 h-4" />
         </button>

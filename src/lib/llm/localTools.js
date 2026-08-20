@@ -18,6 +18,8 @@ import { listEvents } from "@/lib/googleCalendarApi";
 import { loadGmailConnection, saveGmailConnection, isGmailConnected } from "@/lib/gmailConnection";
 import { listMessages as listGmailMessages, readMessage as readGmailMessage } from "@/lib/gmailApi";
 import { loadMicrosoftConnection, saveMicrosoftConnection, isMicrosoftConnected } from "@/lib/microsoftConnection";
+import { loadSlackConnection, isSlackConnected } from "@/lib/slackConnection";
+import { listChannels as listSlackChannels, listMessages as listSlackMessages } from "@/lib/slackApi";
 import { listEvents as listOutlookEvents, listMessages as listOutlookMessages, readMessage as readOutlookMessage } from "@/lib/microsoftGraphApi";
 import { loadClickUpConnection, isClickUpConnected } from "@/lib/clickupConnection";
 import { listSpaces, listLists, listTasks, listChannels, listMessages } from "@/lib/clickupApi";
@@ -332,6 +334,32 @@ async function readOutlookMessageTool(args) {
   }
 }
 
+function slackNotConnected() {
+  return { connected: false, message: "No Slack workspace connected. Tell the user to connect one in Settings -> Slack before this can work." };
+}
+
+async function listSlackChannelsTool() {
+  const connection = await loadSlackConnection();
+  if (!isSlackConnected(connection)) return slackNotConnected();
+  try {
+    const channels = await listSlackChannels(connection);
+    return { connected: true, count: channels.length, channels };
+  } catch (error) {
+    return { connected: true, error: `Couldn't list Slack channels: ${error.message}` };
+  }
+}
+
+async function listSlackMessagesTool(args) {
+  const connection = await loadSlackConnection();
+  if (!isSlackConnected(connection)) return slackNotConnected();
+  try {
+    const messages = await listSlackMessages(connection, args.channel_id, { limit: args.limit });
+    return { connected: true, count: messages.length, messages };
+  } catch (error) {
+    return { connected: true, error: `Couldn't list Slack messages: ${error.message}` };
+  }
+}
+
 function clickupNotConnected() {
   return { connected: false, message: "No ClickUp workspace connected. Tell the user to connect one in Settings -> ClickUp before this can work." };
 }
@@ -419,6 +447,10 @@ export async function runLocalTool(name, args, { dataset, externalVault } = {}) 
       return listOutlookMessagesTool(args);
     case "read_outlook_message":
       return readOutlookMessageTool(args);
+    case "list_slack_channels":
+      return listSlackChannelsTool();
+    case "list_slack_messages":
+      return listSlackMessagesTool(args);
     case "read_project_link":
       return readProjectLinkTool(args.url, args.focus);
     case "analyze_attachment":
