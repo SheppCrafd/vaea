@@ -13,7 +13,7 @@ import {
   darkSectionBg, darkText, darkTopEdge, glassPanel, glassSheen,
   glassTileLight,
   pillOnDark, linkOnDark, eyebrowOnDark, eyebrowOnLight,
-  displayXL, displayL, displayM, GLOW, GLOW_VIOLET, GLOW_EMERALD,
+  displayXL, displayL, displayM, GLOW,
 } from "./theme";
 
 // ─── hero chat demo ────────────────────────────────────────────────────────
@@ -221,7 +221,7 @@ const CONNECTORS = [
   {
     icon: ShieldOff,
     name: "Local Mode",
-    body: "No service connected at all — your own AI model running on your computer answers from a folder. Zero network calls from Vaea.",
+    body: "No service connected at all — your own AI model answers locally. Nothing leaves your device.",
   },
 ];
 
@@ -231,23 +231,23 @@ const MODES = [
   {
     icon: Zap,
     label: "Built-in",
-    tagline: "Sign in and start. Nothing to configure.",
-    body: "Vaea's hosted assistant runs the strongest available model and already knows your full workspace. No keys, no setup.",
+    tagline: "Ready the moment you sign in.",
+    body: "Vaea's hosted assistant, powered by the strongest available model, already knows your full workspace. No keys to paste, nothing to configure.",
     accent: GLOW,
   },
   {
     icon: Key,
-    label: "Use your own AI account",
-    tagline: "Your account key from OpenAI, Anthropic, or Google. Vaea formats your question and they answer it — nothing routes through our servers.",
-    body: "Connect Anthropic, OpenAI, Google, or xAI. Your key goes directly to the provider you chose — OpenAI, Anthropic, or Google — and never touches our servers.",
+    label: "Bring your own key",
+    tagline: "Your account key, your model, Vaea's context.",
+    body: "Connect any provider — Anthropic, OpenAI, Google — and your key goes straight to them. Vaea is just the interface; it never stores your key.",
     accent: GLOW_VIOLET,
   },
   {
     icon: ShieldOff,
     label: "Local Mode",
     tagline: "No server. Not even ours.",
-    body: "Connect a folder. Vaea writes a prompt file; your own script — or Claude Code (Anthropic's free coding tool) — reads it and replies. Vaea makes no network call of its own. Nothing leaves your machine.",
-    accent: GLOW_EMERALD,
+    body: "Connect a folder. Vaea writes a prompt file; your own script — or Claude Code — reads it and replies. Vaea makes no network call of its own. Nothing leaves your machine.",
+    accent: "#34d399",
   },
 ];
 
@@ -256,39 +256,27 @@ const MODES = [
 const FAQS = [
   {
     q: "How does Vaea Chat know what's on my calendar or in my inbox?",
-    a: "You connect your accounts in Settings (one click, no setup on your end). When you ask about your schedule or email, Vaea reads it on the spot for that request only — nothing is stored on our servers between requests. The access credentials that grant Vaea permission live on your own device.",
+    a: "You connect your accounts in Settings (one click, no setup on your end). When you ask about your schedule or email, Vaea reads it on the spot for that request only — nothing is stored on our servers between requests. The credentials that grant access live on your own device.",
   },
   {
     q: "Can Vaea Chat actually delete things, or just read them?",
     a: "It can read, create, edit, and delete — but anything that changes or removes something goes through a confirm step first. You see exactly what's about to happen (the full event details, the task, the message) before it does. Vaea never removes something silently.",
   },
   {
-    q: "What's the difference between Built-in, Use your own AI account, and Local Mode?",
-    a: "Built-in uses Vaea's hosted model — sign in, start chatting. Use your own AI account sends your message directly to your chosen provider (Anthropic, OpenAI, Google) using your own account key, so Vaea is just the interface. Local Mode removes any hosted AI entirely — Vaea writes a prompt to a folder and your own AI model running on your computer (or Claude Code) answers it. Vaea makes no network call in that mode.",
+    q: "What's the difference between Built-in, Bring Your Own Key, and Local Mode?",
+    a: "Built-in uses Vaea's hosted model — sign in, start chatting. Bring Your Own Key sends your message directly to your chosen provider (Anthropic, OpenAI, Google) using your own account key, so Vaea is just the interface. Local Mode removes any hosted AI entirely — Vaea writes a file to a folder and your own model (or Claude Code) answers it. Vaea sends nothing on its own in that mode.",
   },
   {
     q: "Is Vaea Chat available when I'm not signed in?",
-    a: "Local Mode and Use your own AI account both work without a Vaea account — they only need a device and either an AI model running on your own computer or your own account key from a provider like OpenAI. The built-in assistant requires a free account for the hosted AI call.",
+    a: "Local Mode and Bring Your Own Key both work without a Vaea account — they only need a device and either a local AI model or an account key. The built-in assistant requires a free account.",
   },
   {
     q: "Does connecting Gmail or Outlook mean Vaea stores my emails?",
-    a: "No. When Vaea Chat needs to check your inbox it fetches what's relevant at that moment, uses it for the reply, and doesn't persist it. The access credential that lets Vaea read your email lives in your browser's device storage — not on any Vaea server.",
+    a: "No. When Vaea Chat needs to check your inbox it reads what's relevant at that moment, uses it for the reply, and doesn't store it. The access credential that lets Vaea read your email lives in your browser's own storage — not on any Vaea server.",
   },
   {
     q: "Can Vaea Chat learn from my conversations over time?",
     a: "It keeps your chat history so you can refer back to earlier exchanges. Beyond that, a separate opt-in (off by default) lets it review its own replies and write notes to itself — so it can get better at helping you without making assumptions about you that it hasn't been told to make.",
-  },
-  {
-    q: "What AI models does Vaea Chat use?",
-    a: "Built-in mode uses the strongest available hosted model — you don't pick it, Vaea handles that. With Use your own AI account you choose any provider: Anthropic (Claude), OpenAI (GPT-4o and others), Google (Gemini), or xAI (Grok) — your key goes directly to them. Local Mode uses whatever AI model you point at the folder, including Claude Code (Anthropic's free coding tool) running on your own machine, with no hosted model involved at all.",
-  },
-  {
-    q: "Can I use Vaea Chat without an internet connection?",
-    a: "With Local Mode, yes — fully offline. Vaea writes a prompt file to a folder on your device; your own script or AI model running on your own computer answers it. Vaea itself makes no network call. Use your own AI account still needs an internet connection to reach your chosen provider. Built-in mode requires internet to reach the hosted model.",
-  },
-  {
-    q: "What slash commands does Vaea Chat support?",
-    a: "Vaea Chat has slash commands for common actions — /vault-log to write a session summary to your notes, /vault-tidy to audit wikilinks, /research, /translate, /rewrite, /summarize, and more. Type / in the chat input to see the full list, or visit /help for a complete reference.",
   },
 ];
 
@@ -299,7 +287,7 @@ const CHAT_PAGE_SCHEMA = {
   "@type": "WebPage",
   "name": "Vaea Chat — AI assistant that acts on your work",
   "url": "https://vaea.base44.app/chat",
-  "description": "Vaea Chat reads your Google Calendar, Gmail, Outlook, ClickUp tasks, Slack channels, and personal notes — then handles things when you ask, with a confirm step before anything changes. Free, local-first.",
+  "description": "Vaea Chat reads your Google Calendar, Gmail, Outlook, ClickUp tasks, and personal notes — then handles things when you ask, with a confirm step before anything changes. Free, local-first.",
   "isPartOf": { "@type": "WebSite", "url": "https://vaea.base44.app/" },
 };
 
@@ -318,8 +306,7 @@ const CHAT_FAQ_SCHEMA = {
 export default function ChatPage() {
   useDocumentMeta(
     "Vaea Chat — AI that acts on your work, not just talks about it",
-    "/chat",
-    "Vaea Chat reads your calendar, inbox, ClickUp, and Slack — then creates tasks, sends messages, and handles things when you ask. Free. Runs on your own AI account."
+    "/chat"
   );
   usePageSchema(CHAT_PAGE_SCHEMA);
   usePageSchema(CHAT_FAQ_SCHEMA);
@@ -374,10 +361,7 @@ export default function ChatPage() {
             </p>
           </Reveal>
 
-          {/* 7 tiles: 3×2 on desktop leaves an orphan. [&>*:last-child]:lg:col-start-2
-              slots it into the centre column so the final row reads as intentional
-              rather than a layout accident. */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 [&>*:last-child]:lg:col-start-2">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {CONNECTORS.map(({ icon: Icon, name, body }, i) => (
               <Reveal key={name} delay={i * 60} as="div"
                 className={`flex gap-4 p-5 rounded-2xl transition-all duration-300 ${glassTileLight}`}
@@ -420,8 +404,8 @@ export default function ChatPage() {
 
             <Reveal delay={100}>
               {/* Static staged action illustration */}
-              <div className={`relative rounded-2xl overflow-hidden ${glassPanel}`}>
-                <div className={glassSheen} />
+              <div className={`rounded-2xl overflow-hidden ${glassPanel}`}>
+                <div className="glassSheen pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/[0.07] to-transparent" />
                 <div className="flex items-center gap-2 px-4 py-3 border-b border-foreground/[0.07]">
                   <div className="flex gap-1.5">
                     {["bg-foreground/15","bg-foreground/10","bg-foreground/10"].map((c,i) => (
@@ -439,18 +423,18 @@ export default function ChatPage() {
                     { type: "Delete calendar event", detail: "Old planning session · 2pm", safe: false },
                   ].map(({ type, detail, safe }) => (
                     <div key={type} className="rounded-xl border border-foreground/[0.08] overflow-hidden">
-                      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-foreground/[0.06]" style={{ background: safe ? `${GLOW}09` : "hsl(var(--destructive)/0.10)" }}>
-                        <span className="font-terminal text-[10px] tracking-widest uppercase" style={{ color: safe ? GLOW : "hsl(var(--destructive))" }}>
+                      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-foreground/[0.06]" style={{ background: safe ? `${GLOW}09` : "rgba(239,68,68,0.06)" }}>
+                        <span className="font-terminal text-[10px] tracking-widest uppercase" style={{ color: safe ? GLOW : "#f87171" }}>
                           {type}
                         </span>
                       </div>
                       <div className="flex items-center justify-between px-4 py-3">
                         <p className="text-xs text-foreground/70">{detail}</p>
                         <div className="flex gap-1.5">
-                          <button type="button" className="text-[11px] px-2.5 py-1 rounded-lg font-medium" style={{ background: safe ? GLOW : "hsl(var(--destructive))", color: safe ? "#0b1a1e" : "hsl(var(--destructive-foreground))" }}>
+                          <button className="text-[11px] px-2.5 py-1 rounded-lg font-medium" style={{ background: safe ? GLOW : "#ef4444", color: safe ? "#0b1a1e" : "#fff" }}>
                             Confirm
                           </button>
-                          <button type="button" className="text-[11px] px-2.5 py-1 rounded-lg border border-foreground/15 text-foreground/50">
+                          <button className="text-[11px] px-2.5 py-1 rounded-lg border border-foreground/15 text-foreground/50">
                             Skip
                           </button>
                         </div>
@@ -469,10 +453,10 @@ export default function ChatPage() {
         <div className="max-w-5xl mx-auto px-6 py-16 sm:py-24">
           <Reveal className="text-center mb-12">
             <p className={`${eyebrowOnLight} mb-3`}>Pick your setup</p>
-            <h2 className={displayL}>Your model, your rules</h2>
+            <h2 className={displayL}>Three ways to run it.</h2>
             <p className="mt-4 text-muted-foreground max-w-md mx-auto">
-              Same interface, three different levels of trust. Switch anytime in Settings —
-              nothing carries over except your chat history.
+              The same Vaea Chat interface, three completely different levels of trust
+              and control. Change anytime in Settings.
             </p>
           </Reveal>
 
@@ -485,7 +469,7 @@ export default function ChatPage() {
                   className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
                   style={{ background: `${accent}16`, border: `1px solid ${accent}30` }}
                 >
-                  <Icon className="w-[18px] h-[18px]" style={{ color: accent }} />
+                  <Icon className="w-4.5 h-4.5" style={{ color: accent }} />
                 </div>
                 <p className="font-semibold mb-1">{label}</p>
                 <p className="text-xs font-terminal tracking-wide mb-3" style={{ color: accent }}>

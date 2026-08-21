@@ -28,7 +28,7 @@ const FAQS = [
   },
   {
     q: "Is my data actually private?",
-    a: "By default, yes — everything except your chat history with Vaea lives on your own device, not our servers. You can opt into cloud storage instead (tied to your account, so it follows you across devices) — that's the one case where your project data itself sits on our servers, and it's always your choice, never the default. Either way, when chat needs your data to answer, it's sent for that one request only and never stored on our end. If even that's more than you want, Local Mode skips hosted AI entirely — Vaea makes no network call of its own, just a folder on your disk that your own AI model (or Claude Code, Anthropic's free coding tool) answers from.",
+    a: "By default, yes — everything except your chat history with Vaea lives on your own device, not our servers. You can opt into cloud storage instead (tied to your account, so it follows you across devices) — that's the one case where your project data itself sits on our servers, and it's always your choice, never the default. Either way, when chat needs your data to answer, it's sent for that one request only and never stored on our end. If even that's more than you want, Local Mode skips hosted AI entirely — Vaea makes no network call of its own, just a folder on your disk that your own model (or Claude Code) answers from.",
   },
   {
     q: "What if I don't use Obsidian or take notes anywhere?",
@@ -53,7 +53,7 @@ const VAULT_REASONS = [
   {
     icon: GitBranch,
     title: "Backed up on every change",
-    body: "Every note is a real commit to your own GitHub account. Nothing to lose, and none of it stored on our servers.",
+    body: "Every change is automatically saved to your own GitHub account. Nothing to lose, and none of it stored on our servers.",
   },
   {
     icon: MessageCircle,
@@ -64,8 +64,8 @@ const VAULT_REASONS = [
 
 const LOCAL_MODE_PIPELINE = [
   { icon: FolderOpen, label: "Connect a folder" },
-  { icon: FileJson, label: "Vaea writes a prompt" },
-  { icon: RefreshCw, label: "Your script polls" },
+  { icon: FileJson, label: "Vaea writes a file" },
+  { icon: RefreshCw, label: "Your program checks" },
   { icon: Cpu, label: "Your model answers" },
 ];
 
@@ -73,17 +73,17 @@ const LOCAL_MODE_REASONS = [
   {
     icon: ShieldOff,
     title: "No API key, no account, no server",
-    body: "Vaea writes a plain JSON file to a folder you picked and reads the reply back the same way. It never makes a network call of its own in this mode — nothing to configure, nothing to trust us with.",
+    body: "Vaea writes a file to a folder you picked and reads the reply back the same way. It never sends anything anywhere in this mode — nothing to configure, nothing to trust us with.",
   },
   {
     icon: Cpu,
     title: "Point it at Claude Code and go",
-    body: "Run the included watcher script with the Claude Code option and every Vaea message gets answered through your own logged-in Claude Code session — or type /local-relay right in Claude Code's own chat window, no background process at all.",
+    body: "Run the included watcher program, or type /local-relay in Claude Code's own chat — it answers through your local session, no extra setup needed.",
   },
   {
     icon: LockKeyhole,
     title: "Keep the one remaining call inside your own walls",
-    body: "The only thing that ever leaves your machine is whatever your chosen model itself calls out to — Claude Code's own request to Anthropic, for example, which a company can route through its own proxy, VPN, or allowlist same as any other outbound traffic, entirely separate from Vaea.",
+    body: "The only outbound request is whatever your chosen model makes — that's its own business, separate from Vaea. Vaea never adds its own.",
   },
 ];
 
@@ -294,7 +294,7 @@ function LocalModeSection() {
           </h2>
           <p className="mt-5 text-muted-foreground max-w-lg mx-auto leading-relaxed">
             Local Mode skips hosted AI entirely — no account key, no company&apos;s server in the
-            middle. Vaea talks to whatever&apos;s answering (your own AI model running on your computer, or Claude
+            middle. Vaea talks to whatever&apos;s answering (your own local model, or Claude
             Code itself) through a folder on your own disk, nothing else.
           </p>
         </Reveal>
