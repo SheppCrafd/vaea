@@ -495,6 +495,21 @@ describe("chatActions: OPEN_APP_SECTION", () => {
     expect(useAppStore.getState().pendingHighlightId).toBe("tab:calendar");
   });
 
+  it("navigates to Mind Map with a mindmap_tab and highlights that inner tab, not the Mind Map tab itself", async () => {
+    const { useAppStore } = await import("./store.js");
+    const { toolResult } = await executeAction("OPEN_APP_SECTION", { tab: "mindmap", mindmap_tab: "workflows" });
+    expect(toolResult).toEqual({ opened: "mindmap", section: "workflows" });
+    const state = useAppStore.getState();
+    expect(state.pendingRoute).toBe("/app/mindmap");
+    expect(state.pendingHighlightId).toBe("mindmap:workflows");
+  });
+
+  it("ignores mindmap_tab on a non-mindmap tab — highlights the tab, not a phantom inner tab", async () => {
+    const { useAppStore } = await import("./store.js");
+    await executeAction("OPEN_APP_SECTION", { tab: "vmail", mindmap_tab: "workflows" });
+    expect(useAppStore.getState().pendingHighlightId).toBe("tab:vmail");
+  });
+
   it("throws on an unknown tab key rather than navigating nowhere silently", async () => {
     await expect(executeAction("OPEN_APP_SECTION", { tab: "nonexistent" })).rejects.toThrow(/unknown tab/i);
   });
