@@ -44,7 +44,7 @@ function VaultWritingDemo() {
       </div>
 
       {/* markdown content */}
-      <div className="px-5 py-5 font-terminal text-[13px] leading-relaxed text-foreground/85 min-h-[10rem] text-left">
+      <div className="px-5 py-5 font-terminal text-[13px] leading-relaxed text-foreground/85 min-h-[180px] text-left">
         <p className="text-foreground/40">
           <span className="text-foreground/70">#</span> 2026-08-20
         </p>
@@ -254,7 +254,6 @@ export default function VaultPage() {
           <Reveal delay={120}>
             <VaultWritingDemo />
             <p className="text-center text-xs text-muted-foreground/45 mt-4 font-terminal tracking-wide">
-              /vault-log · live demo · loops automatically
             </p>
           </Reveal>
         </div>
