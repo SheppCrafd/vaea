@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Search, X, Menu, LayoutDashboard, MessageCircle, Settings as SettingsIcon } from "lucide-react";
+import { Search, X, Menu, LayoutDashboard, MessageCircle, Settings as SettingsIcon, CalendarDays, Video, Bell, Workflow, Network } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import UserMenu from "@/components/layout/UserMenu";
 import Modal from "@/components/shared/Modal";
@@ -8,6 +8,11 @@ import Modal from "@/components/shared/Modal";
 const TABS = [
   { key: "dashboard", label: "Dashboard", to: "/app", Icon: LayoutDashboard, isActive: (path) => path === "/app" },
   { key: "chat", label: "Vaea Chat", to: "/app/chat", Icon: MessageCircle, isActive: (path) => path.startsWith("/app/chat") },
+  { key: "calendar", label: "Calendar", to: "/app/calendar", Icon: CalendarDays, isActive: (path) => path.startsWith("/app/calendar") },
+  { key: "meetings", label: "Meetings", to: "/app/meetings", Icon: Video, isActive: (path) => path.startsWith("/app/meetings") },
+  { key: "notifications", label: "Notifications", to: "/app/notifications", Icon: Bell, isActive: (path) => path.startsWith("/app/notifications") },
+  { key: "workflows", label: "Workflows", to: "/app/workflows", Icon: Workflow, isActive: (path) => path.startsWith("/app/workflows") },
+  { key: "mindmap", label: "Mind Map", to: "/app/mindmap", Icon: Network, isActive: (path) => path.startsWith("/app/mindmap") },
   { key: "settings", label: "Settings", to: "/app/settings", Icon: SettingsIcon, isActive: (path) => path.startsWith("/app/settings") },
 ];
 
@@ -71,7 +76,11 @@ export default function Header() {
         {/* Each tab is a Link (navigate) + a separate close button, not a
             button nested inside the Link's own <a> — nesting interactive
             elements is invalid HTML and breaks focus/click semantics. */}
-        <nav className="hidden md:flex items-center gap-1 ml-2">
+        {/* overflow-x-auto, not flex-wrap: 8 tabs at narrower desktop widths
+            scroll horizontally within the bar rather than wrapping to a
+            second row, which would fight the header's fixed h-16 and clip
+            the wrapped tabs entirely. */}
+        <nav className="hidden md:flex items-center gap-1 ml-2 overflow-x-auto max-w-[46vw]">
           {openTabs.map((tab) => {
             const { key, label, to, Icon } = tab;
             const active = tab.isActive(location.pathname);

@@ -51,3 +51,4 @@ base44/.app.jsonc
 # One-time Playwright QA pass (chat providers x localhost/hosted) — throwaway
 # scripts + findings log, not a maintained e2e suite. See qa-e2e/bugs.md.
 /qa-e2e
+test-results/

@@ -13,8 +13,18 @@
 // Kept in sync by hand with entry.ts's own tool bodies — different
 // runtime, can't share a module, same reasoning as toolCatalog.js.
 import { listVaultNoteRepo, readVaultNoteContent, searchVaultNotes, auditVaultNotes } from "@/lib/githubApi";
-import { loadCalendarConnection, saveCalendarConnection, isCalendarConnected } from "@/lib/calendarConnection";
+import {
+  loadGoogleWorkspaceConnection as loadCalendarConnection,
+  saveGoogleWorkspaceConnection as saveCalendarConnection,
+  isGoogleWorkspaceConnected as isCalendarConnected,
+} from "@/lib/googleWorkspaceConnection";
 import { listEvents } from "@/lib/googleCalendarApi";
+import { listFiles as listDriveFiles } from "@/lib/googleDriveApi";
+import { getDocument } from "@/lib/googleDocsApi";
+import { getValues as getSheetValues } from "@/lib/googleSheetsApi";
+import { getPresentation } from "@/lib/googleSlidesApi";
+import { listTaskLists as listGoogleTaskLists, listTasks as listGoogleTasks } from "@/lib/googleTasksApi";
+import { getForm, listResponses as listGoogleFormResponses } from "@/lib/googleFormsApi";
 import { loadGmailConnection, saveGmailConnection, isGmailConnected } from "@/lib/gmailConnection";
 import { listMessages as listGmailMessages, readMessage as readGmailMessage } from "@/lib/gmailApi";
 import { loadMicrosoftConnection, saveMicrosoftConnection, isMicrosoftConnected } from "@/lib/microsoftConnection";
@@ -86,9 +96,12 @@ function arrayBufferToBase64(buffer) {
 // type server-side), this is a plain client-side fetch(): images become a
 // real base64 image content block the adapters (anthropicAdapter.js/
 // openaiCompatibleAdapter.js/localBridgeAdapter.js) inject into the next
-// round so the model genuinely SEES it, not a caption of it; plain-text
-// files are read directly. PDFs/Office docs etc. are an honest gap — no
-// document parser lives in this app outside Vaea's own built-in model.
+// round so the model genuinely SEES it, not a caption of it, plus a
+// best-effort OCR pass (documentParsing.js, tesseract.js) so Local Mode's
+// non-vision models still get real text out of it; plain-text files are
+// read directly; PDFs get real page-by-page text extraction (pdf.js). Office
+// docs (.docx/.xlsx/etc.) are the one remaining honest gap — no parser for
+// those formats lives in this app outside Vaea's own built-in model.
 async function analyzeAttachmentTool(fileUrl, focus) {
   let response;
   try {
@@ -102,7 +115,20 @@ async function analyzeAttachmentTool(fileUrl, focus) {
   const contentType = (response.headers.get("content-type") || "").split(";")[0].trim();
   if (IMAGE_MEDIA_TYPES.has(contentType)) {
     const buffer = await response.arrayBuffer();
-    return { file_url: fileUrl, focus, is_image: true, media_type: contentType, image_base64: arrayBufferToBase64(buffer) };
+    const result = { file_url: fileUrl, focus, is_image: true, media_type: contentType, image_base64: arrayBufferToBase64(buffer) };
+    // OCR runs alongside the raw image, not instead of it — a vision-capable
+    // model still sees the actual image; ocr_text is what makes this usable
+    // for Local Mode too, where the local model may have no vision input at
+    // all (see byokChat.js). Best-effort: a failed/empty OCR pass just means
+    // the field comes back empty, never blocks the real image result.
+    try {
+      const { ocrImage } = await import("@/lib/documentParsing");
+      const text = await ocrImage(new Blob([buffer], { type: contentType }));
+      if (text) result.ocr_text = text.slice(0, MAX_ATTACHMENT_TEXT_CHARS);
+    } catch {
+      // best-effort — OCR is a bonus field, not a requirement
+    }
+    return result;
   }
   if (contentType.startsWith("text/") || contentType.includes("json")) {
     const raw = await response.text();
@@ -114,8 +140,24 @@ async function analyzeAttachmentTool(fileUrl, focus) {
       truncated: text.length > MAX_ATTACHMENT_TEXT_CHARS,
     };
   }
+  if (contentType === "application/pdf") {
+    try {
+      const { extractPdfText } = await import("@/lib/documentParsing");
+      const buffer = await response.arrayBuffer();
+      const { text, pageCount, truncated } = await extractPdfText(buffer);
+      return {
+        file_url: fileUrl,
+        focus,
+        extracted_text: text.slice(0, MAX_ATTACHMENT_TEXT_CHARS),
+        truncated: truncated || text.length > MAX_ATTACHMENT_TEXT_CHARS,
+        page_count: pageCount,
+      };
+    } catch (error) {
+      return { error: `Couldn't parse that PDF: ${error.message}. Tell the user plainly rather than guessing at its contents.` };
+    }
+  }
   return {
-    error: `This mode can only analyze images (png/jpeg/gif/webp) and plain-text files client-side — "${contentType || "an unknown file type"}" (e.g. a PDF or Word doc) needs a real document parser this app doesn't have outside Vaea's own built-in model. Tell the user plainly rather than guessing at its contents.`,
+    error: `This mode can only analyze images (png/jpeg/gif/webp), PDFs, and plain-text files client-side — "${contentType || "an unknown file type"}" (e.g. a Word doc) needs a real document parser this app doesn't have outside Vaea's own built-in model. Tell the user plainly rather than guessing at its contents.`,
   };
 }
 
@@ -263,6 +305,107 @@ async function listCalendarEventsTool(args) {
     };
   } catch (error) {
     return { connected: true, error: `Couldn't list calendar events: ${error.message}` };
+  }
+}
+
+function workspaceNotConnected() {
+  return { connected: false, message: "No Google Workspace connected. Tell the user to connect one in Settings -> Google Workspace before this can work." };
+}
+
+async function searchDriveFilesTool(args) {
+  const connection = await loadCalendarConnection();
+  if (!isCalendarConnected(connection)) return workspaceNotConnected();
+  try {
+    const { files, connection: refreshed } = await listDriveFiles(connection, { query: args.query, maxResults: args.max_results });
+    if (refreshed.accessToken !== connection.accessToken) await saveCalendarConnection(refreshed);
+    return { connected: true, count: files.length, files };
+  } catch (error) {
+    return { connected: true, error: `Couldn't search Drive: ${error.message}` };
+  }
+}
+
+async function readGoogleDocTool(args) {
+  const connection = await loadCalendarConnection();
+  if (!isCalendarConnected(connection)) return workspaceNotConnected();
+  try {
+    const { title, text, connection: refreshed } = await getDocument(connection, args.document_id);
+    if (refreshed.accessToken !== connection.accessToken) await saveCalendarConnection(refreshed);
+    return { connected: true, title, text };
+  } catch (error) {
+    return { connected: true, error: `Couldn't read the doc: ${error.message}` };
+  }
+}
+
+async function readGoogleSheetTool(args) {
+  const connection = await loadCalendarConnection();
+  if (!isCalendarConnected(connection)) return workspaceNotConnected();
+  try {
+    const { values, connection: refreshed } = await getSheetValues(connection, args.spreadsheet_id, args.range);
+    if (refreshed.accessToken !== connection.accessToken) await saveCalendarConnection(refreshed);
+    return { connected: true, values };
+  } catch (error) {
+    return { connected: true, error: `Couldn't read the sheet: ${error.message}` };
+  }
+}
+
+async function readGoogleSlidesTool(args) {
+  const connection = await loadCalendarConnection();
+  if (!isCalendarConnected(connection)) return workspaceNotConnected();
+  try {
+    const { title, slides, connection: refreshed } = await getPresentation(connection, args.presentation_id);
+    if (refreshed.accessToken !== connection.accessToken) await saveCalendarConnection(refreshed);
+    return { connected: true, title, slides };
+  } catch (error) {
+    return { connected: true, error: `Couldn't read the presentation: ${error.message}` };
+  }
+}
+
+async function listGoogleTasksTool(args) {
+  const connection = await loadCalendarConnection();
+  if (!isCalendarConnected(connection)) return workspaceNotConnected();
+  try {
+    const taskListId = args.task_list_id || "@default";
+    const { tasks, connection: refreshed } = await listGoogleTasks(connection, taskListId, { showCompleted: args.show_completed });
+    if (refreshed.accessToken !== connection.accessToken) await saveCalendarConnection(refreshed);
+    return { connected: true, count: tasks.length, tasks };
+  } catch (error) {
+    return { connected: true, error: `Couldn't list Google Tasks: ${error.message}` };
+  }
+}
+
+async function listGoogleTaskListsTool() {
+  const connection = await loadCalendarConnection();
+  if (!isCalendarConnected(connection)) return workspaceNotConnected();
+  try {
+    const { taskLists, connection: refreshed } = await listGoogleTaskLists(connection);
+    if (refreshed.accessToken !== connection.accessToken) await saveCalendarConnection(refreshed);
+    return { connected: true, taskLists };
+  } catch (error) {
+    return { connected: true, error: `Couldn't list Google Task lists: ${error.message}` };
+  }
+}
+
+async function readGoogleFormTool(args) {
+  const connection = await loadCalendarConnection();
+  if (!isCalendarConnected(connection)) return workspaceNotConnected();
+  try {
+    const { title, questions, responderUri, connection: refreshed } = await getForm(connection, args.form_id);
+    if (refreshed.accessToken !== connection.accessToken) await saveCalendarConnection(refreshed);
+    return { connected: true, title, questions, responderUri };
+  } catch (error) {
+    return { connected: true, error: `Couldn't read the form: ${error.message}` };
+  }
+}
+
+async function listGoogleFormResponsesTool(args) {
+  const connection = await loadCalendarConnection();
+  if (!isCalendarConnected(connection)) return workspaceNotConnected();
+  try {
+    const { responses, connection: refreshed } = await listGoogleFormResponses(connection, args.form_id);
+    if (refreshed.accessToken !== connection.accessToken) await saveCalendarConnection(refreshed);
+    return { connected: true, count: responses.length, responses };
+  } catch (error) {
+    return { connected: true, error: `Couldn't list form responses: ${error.message}` };
   }
 }
 
@@ -446,6 +589,22 @@ export async function runLocalTool(name, args, { dataset, externalVault } = {}) 
       return auditVaultTool(externalVault);
     case "list_calendar_events":
       return listCalendarEventsTool(args);
+    case "search_drive_files":
+      return searchDriveFilesTool(args);
+    case "read_google_doc":
+      return readGoogleDocTool(args);
+    case "read_google_sheet":
+      return readGoogleSheetTool(args);
+    case "read_google_slides":
+      return readGoogleSlidesTool(args);
+    case "list_google_task_lists":
+      return listGoogleTaskListsTool();
+    case "list_google_tasks":
+      return listGoogleTasksTool(args);
+    case "read_google_form":
+      return readGoogleFormTool(args);
+    case "list_google_form_responses":
+      return listGoogleFormResponsesTool(args);
     case "list_gmail_messages":
       return listGmailMessagesTool(args);
     case "read_gmail_message":

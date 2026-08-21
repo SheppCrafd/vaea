@@ -19,11 +19,16 @@ const ChatPage = lazy(() => import('@/pages/ChatPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const VaultSetupGuidePage = lazy(() => import('@/pages/VaultSetupGuidePage'));
 const LocalModeSetupGuidePage = lazy(() => import('@/pages/LocalModeSetupGuidePage'));
-const CalendarOAuthCallbackPage = lazy(() => import('@/pages/CalendarOAuthCallbackPage'));
+const GoogleWorkspaceOAuthCallbackPage = lazy(() => import('@/pages/GoogleWorkspaceOAuthCallbackPage'));
 const ClickUpOAuthCallbackPage = lazy(() => import('@/pages/ClickUpOAuthCallbackPage'));
 const GmailOAuthCallbackPage = lazy(() => import('@/pages/GmailOAuthCallbackPage'));
 const MicrosoftOAuthCallbackPage = lazy(() => import('@/pages/MicrosoftOAuthCallbackPage'));
 const SlackOAuthCallbackPage = lazy(() => import('@/pages/SlackOAuthCallbackPage'));
+const VaeaCalendarPage = lazy(() => import('@/pages/VaeaCalendarPage'));
+const MeetingsPage = lazy(() => import('@/pages/MeetingsPage'));
+const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
+const WorkflowCanvasPage = lazy(() => import('@/pages/WorkflowCanvasPage'));
+const MindMapPage = lazy(() => import('@/pages/MindMapPage'));
 // Add page imports here
 
 // Everything reachable only via /app/* — Dashboard, AppShell, the chat
@@ -116,11 +121,18 @@ const AuthenticatedApp = () => {
                 {/* Local Mode was called "Backdoor Mode" before this rename — keep the
                     old URL working for anyone with it bookmarked/linked. */}
                 <Route path="settings/backdoor-setup" element={<Navigate to="/app/settings/local-mode-setup" replace />} />
-                <Route path="settings/calendar-callback" element={<CalendarOAuthCallbackPage />} />
+                <Route path="settings/google-callback" element={<GoogleWorkspaceOAuthCallbackPage />} />
+                {/* Old Calendar-only callback URL — keep it working for anyone with it bookmarked. */}
+                <Route path="settings/calendar-callback" element={<Navigate to="/app/settings/google-callback" replace />} />
                 <Route path="settings/clickup-callback" element={<ClickUpOAuthCallbackPage />} />
                 <Route path="settings/gmail-callback" element={<GmailOAuthCallbackPage />} />
                 <Route path="settings/microsoft-callback" element={<MicrosoftOAuthCallbackPage />} />
                 <Route path="settings/slack-callback" element={<SlackOAuthCallbackPage />} />
+                <Route path="calendar" element={<VaeaCalendarPage />} />
+                <Route path="meetings" element={<MeetingsPage />} />
+                <Route path="notifications" element={<NotificationsPage />} />
+                <Route path="workflows" element={<WorkflowCanvasPage />} />
+                <Route path="mindmap" element={<MindMapPage />} />
                 {/* Add your page Route elements here */}
                 <Route index element={<AppShell><Dashboard /></AppShell>} />
                 <Route path="*" element={<AppShell><PageNotFound /></AppShell>} />

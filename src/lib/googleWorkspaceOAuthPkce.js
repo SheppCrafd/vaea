@@ -1,14 +1,27 @@
-// PKCE (Proof Key for Code Exchange) helpers for the Google Calendar
-// connector's Authorization Code flow — see the plan's rationale for using
-// a public "Desktop app" OAuth client: no client secret exists, so PKCE is
-// what proves this specific browser tab requested the code being exchanged.
+// PKCE (Proof Key for Code Exchange) helpers for the Google Workspace
+// connector's Authorization Code flow — one consent screen covering
+// Calendar, Drive, Docs, Sheets, Slides, Tasks, and Forms, against a public
+// "Desktop app" OAuth client: no client secret exists, so PKCE is what
+// proves this specific browser tab requested the code being exchanged.
+// Gmail is intentionally excluded from this scope list — see
+// gmailOAuthPkce.js, which runs its own independent flow.
 const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
-const SCOPE = "https://www.googleapis.com/auth/calendar";
+const SCOPE = [
+  "https://www.googleapis.com/auth/calendar",
+  "https://www.googleapis.com/auth/drive",
+  "https://www.googleapis.com/auth/documents",
+  "https://www.googleapis.com/auth/spreadsheets",
+  "https://www.googleapis.com/auth/presentations",
+  "https://www.googleapis.com/auth/tasks",
+  "https://www.googleapis.com/auth/forms.body",
+  "https://www.googleapis.com/auth/forms.responses.readonly",
+  "https://www.googleapis.com/auth/userinfo.email",
+].join(" ");
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CALENDAR_CLIENT_ID;
 
-const VERIFIER_KEY = "vaea_calendar_pkce_verifier";
-const STATE_KEY = "vaea_calendar_pkce_state";
+const VERIFIER_KEY = "vaea_workspace_pkce_verifier";
+const STATE_KEY = "vaea_workspace_pkce_state";
 
 function base64UrlEncode(bytes) {
   return btoa(String.fromCharCode(...bytes))
@@ -29,7 +42,7 @@ async function sha256Base64Url(text) {
 }
 
 function callbackUrl() {
-  return `${window.location.origin}/app/settings/calendar-callback`;
+  return `${window.location.origin}/app/settings/google-callback`;
 }
 
 // Builds the consent-screen URL and stashes the verifier + state in
@@ -58,9 +71,9 @@ export async function buildAuthorizationUrl() {
   return `${AUTH_URL}?${params}`;
 }
 
-// Called from CalendarOAuthCallbackPage.jsx once Google redirects back with
-// ?code=...&state=.... Validates state (CSRF/mixed-tab protection), then
-// exchanges the code for tokens — public client, no secret.
+// Called from GoogleWorkspaceOAuthCallbackPage.jsx once Google redirects
+// back with ?code=...&state=.... Validates state (CSRF/mixed-tab
+// protection), then exchanges the code for tokens — public client, no secret.
 export async function exchangeCodeForTokens(searchParams) {
   const code = searchParams.get("code");
   const state = searchParams.get("state");
@@ -71,7 +84,7 @@ export async function exchangeCodeForTokens(searchParams) {
   sessionStorage.removeItem(STATE_KEY);
   sessionStorage.removeItem(VERIFIER_KEY);
 
-  if (error) throw new Error(error === "access_denied" ? "Calendar access wasn't granted." : `Google returned an error: ${error}`);
+  if (error) throw new Error(error === "access_denied" ? "Google Workspace access wasn't granted." : `Google returned an error: ${error}`);
   if (!code) throw new Error("Google didn't send back an authorization code.");
   if (!state || state !== expectedState) throw new Error("This connection attempt doesn't match the one that started — try connecting again.");
   if (!verifier) throw new Error("This connection attempt expired — try connecting again.");

@@ -20,7 +20,7 @@ import {
 
 const VAULT_PHASES = [400, 1600, 1400, 1200, 1000, 800];
 
-const LINE_1 = "Finished connecting everything — Google Calendar, Gmail, Outlook,";
+const LINE_1 = "Finished connecting everything — Google Workspace, Gmail, Outlook,";
 const LINE_2 = "ClickUp, and Slack all connected.";
 const LINE_3 = "Next up: ";
 
