@@ -342,7 +342,7 @@ export default function ChatPage() {
           <Reveal delay={120}>
             <ChatDemo />
             <p className="text-center text-xs text-muted-foreground/50 mt-4 font-terminal tracking-wide">
-              Live demo · loops automatically
+              This is what it looks like in practice
             </p>
           </Reveal>
         </div>

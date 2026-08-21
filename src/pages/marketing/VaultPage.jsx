@@ -254,7 +254,7 @@ export default function VaultPage() {
           <Reveal delay={120}>
             <VaultWritingDemo />
             <p className="text-center text-xs text-muted-foreground/45 mt-4 font-terminal tracking-wide">
-              /vault-log · live demo · loops automatically
+              This is what it looks like in practice
             </p>
           </Reveal>
         </div>
