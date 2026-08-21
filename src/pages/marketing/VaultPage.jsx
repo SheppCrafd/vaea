@@ -100,9 +100,9 @@ function VaultWritingDemo() {
 
 function WikilinkDemo() {
   const NOTES = [
-    { path: "Decisions/Connector architecture.md", excerpt: "Decided on PKCE for Google, server exchange for ClickUp." },
-    { path: "Daily/2026-08-18.md", excerpt: "Finished [[Connector architecture]] — Calendar, Gmail done." },
-    { path: "Projects/Vaea v1.md", excerpt: "Sprint goal: deploy all connectors before end of month. See [[Connector architecture]]." },
+    { path: "Decisions/Client pricing.md", excerpt: "Decided to charge by project, not by hour. See [[client onboarding]] for how to pitch it." },
+    { path: "Daily/2026-08-18.md", excerpt: "Good call with Sarah. She liked the [[client pricing]] approach — follow up Friday." },
+    { path: "Projects/Q3 goals.md", excerpt: "Main focus: three new clients this quarter. Pricing settled. See [[client pricing]]." },
   ];
   return (
     <div className="space-y-3">
@@ -145,8 +145,8 @@ const FEATURES = [
   },
   {
     icon: GitBranch,
-    title: "Every write is a real git commit",
-    body: "Your own GitHub repo, your own history. Recoverable, versionable, portable — not stored anywhere Vaea controls.",
+    title: "Every write is automatically backed up",
+    body: "Saved to your own GitHub account. Go back to any version, anytime — nothing stored on Vaea's end.",
   },
   {
     icon: Sparkles,
@@ -174,11 +174,11 @@ const FAQS = [
   },
   {
     q: "How does Vaea actually read my notes?",
-    a: "You connect your GitHub repo in Settings → Vaea Vault. When you ask Vaea something that might be in your notes, it uses GitHub's API to search and read the relevant files. Nothing is pre-indexed or cached on Vaea's servers between requests — it's a live read, per question.",
+    a: "You connect your GitHub account in Settings → Vaea Vault. When you ask Vaea something that might be in your notes, it uses GitHub to search and read the relevant files. Nothing is stored on Vaea's servers between requests — it's a live read, per question.",
   },
   {
     q: "What does /vault-log actually write?",
-    a: "At the end of a session, /vault-log writes a real summary to Daily/YYYY-MM-DD.md in your vault — the same format a human would write. If a technical decision was made, it also writes a Decisions/ file with the reasoning. Every write is a git commit to your own repo; you get a real blame history and can recover any version.",
+    a: "At the end of a session, /vault-log writes a real summary to Daily/YYYY-MM-DD.md in your vault — the same format a human would write. If a real decision was made, it also writes a Decisions/ file with the reasoning. Every write is saved to your own GitHub history, so you can recover any version.",
   },
   {
     q: "Can Vaea overwrite or delete my existing notes?",
@@ -190,7 +190,7 @@ const FAQS = [
   },
   {
     q: "Is Vaea Vault available offline?",
-    a: "Reading and writing vault notes require a live connection to GitHub's API. In Local Mode, chat itself runs entirely offline, but vault reads still call GitHub when needed. If you need fully offline note-taking, that's Obsidian's own job — Vaea just reads alongside it.",
+    a: "Reading and writing vault notes require a live internet connection to GitHub. In Local Mode, chat itself runs entirely offline, but vault reads still check GitHub when needed. If you need fully offline note-taking, that's Obsidian's own job — Vaea just reads alongside it.",
   },
 ];
 
@@ -278,8 +278,8 @@ export default function VaultPage() {
               <p className="text-muted-foreground leading-relaxed">
                 Every note Vaea writes back uses the same{" "}
                 <span className="font-terminal" style={{ color: GLOW }}>{"[[wikilink]]"}</span>{" "}
-                format, so new entries fit naturally into your existing knowledge graph
-                rather than sitting isolated.
+                format, so new entries connect naturally to your existing notes
+                instead of sitting on their own.
               </p>
             </Reveal>
             <Reveal delay={100}>
@@ -304,7 +304,7 @@ export default function VaultPage() {
             <p className="text-muted-foreground max-w-lg mx-auto leading-relaxed mb-4">
               Type <span className="font-terminal">/vault-log</span> and Vaea writes a
               real daily note from the conversation — what happened, what was decided,
-              what moved. One git commit to your own repo. Not a transcript, not a chat
+              what moved. Saved to your own backup. Not a transcript, not a chat
               export: an actual note in the format you already use.
             </p>
             <p className="text-muted-foreground max-w-lg mx-auto leading-relaxed">
@@ -395,7 +395,7 @@ export default function VaultPage() {
         <Grain />
         <div className="relative max-w-3xl mx-auto px-6 py-24 sm:py-32 text-center">
           <Reveal>
-            <h2 className={displayL}>Your notes. Your repo.<br />Your AI reads them all.</h2>
+            <h2 className={displayL}>Your notes. Your backup.<br />Your AI reads them all.</h2>
             <p className="mt-5 text-muted-foreground max-w-md mx-auto leading-relaxed">
               Connect once in Settings → Vaea Vault. After that, "what did I
               decide last month?" is the whole question — Vaea goes and looks.

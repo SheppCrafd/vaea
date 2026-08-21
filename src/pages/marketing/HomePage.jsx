@@ -53,7 +53,7 @@ const VAULT_REASONS = [
   {
     icon: GitBranch,
     title: "Backed up on every change",
-    body: "Every note is a real commit to your own GitHub account. Nothing to lose, and none of it stored on our servers.",
+    body: "Every change is automatically saved to your own GitHub account. Nothing to lose, and none of it stored on our servers.",
   },
   {
     icon: MessageCircle,
@@ -64,8 +64,8 @@ const VAULT_REASONS = [
 
 const LOCAL_MODE_PIPELINE = [
   { icon: FolderOpen, label: "Connect a folder" },
-  { icon: FileJson, label: "Vaea writes a prompt" },
-  { icon: RefreshCw, label: "Your script polls" },
+  { icon: FileJson, label: "Vaea writes a file" },
+  { icon: RefreshCw, label: "Your program checks" },
   { icon: Cpu, label: "Your model answers" },
 ];
 
@@ -73,17 +73,17 @@ const LOCAL_MODE_REASONS = [
   {
     icon: ShieldOff,
     title: "No API key, no account, no server",
-    body: "Vaea writes a plain JSON file to a folder you picked and reads the reply back the same way. It never makes a network call of its own in this mode — nothing to configure, nothing to trust us with.",
+    body: "Vaea writes a file to a folder you picked and reads the reply back the same way. It never sends anything anywhere in this mode — nothing to configure, nothing to trust us with.",
   },
   {
     icon: Cpu,
     title: "Point it at Claude Code and go",
-    body: "Run bridge_watcher.py --claude-code and it answers every message through your own logged-in \"claude\" CLI session — or type /local-relay right in Claude Code's own chat, no background process at all.",
+    body: "Run the included watcher program, or type /local-relay in Claude Code's own chat — it answers through your local session, no extra setup needed.",
   },
   {
     icon: LockKeyhole,
     title: "Keep the one remaining call inside your own walls",
-    body: "The only thing that ever leaves your machine is whatever your chosen model itself calls out to — Claude Code's own request to Anthropic, for example, which a company can route through its own proxy, VPN, or allowlist same as any other outbound traffic, entirely separate from Vaea.",
+    body: "The only outbound request is whatever your chosen model makes — that's its own business, separate from Vaea. Vaea never adds its own.",
   },
 ];
 
@@ -293,7 +293,7 @@ function LocalModeSection() {
             Run it through Claude Code. Nothing leaves your PC.
           </h2>
           <p className="mt-5 text-muted-foreground max-w-lg mx-auto leading-relaxed">
-            Local Mode skips hosted AI entirely — no API key, no company&apos;s server in the
+            Local Mode skips hosted AI entirely — no account key, no company&apos;s server in the
             middle. Vaea talks to whatever&apos;s answering (your own local model, or Claude
             Code itself) through a folder on your own disk, nothing else.
           </p>

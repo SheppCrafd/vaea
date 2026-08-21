@@ -221,7 +221,7 @@ const CONNECTORS = [
   {
     icon: ShieldOff,
     name: "Local Mode",
-    body: "No service connected at all — your own model answers from a folder. Zero network calls from Vaea.",
+    body: "No service connected at all — your own AI model answers locally. Nothing leaves your device.",
   },
 ];
 
@@ -238,8 +238,8 @@ const MODES = [
   {
     icon: Key,
     label: "Bring your own key",
-    tagline: "Your API key, your model, Vaea's context.",
-    body: "Connect any provider — Anthropic, OpenAI, Google — and your key goes directly to their API. Vaea acts as the interface, not a proxy holding your key.",
+    tagline: "Your account key, your model, Vaea's context.",
+    body: "Connect any provider — Anthropic, OpenAI, Google — and your key goes straight to them. Vaea is just the interface; it never stores your key.",
     accent: "#a78bfa",
   },
   {
@@ -256,23 +256,23 @@ const MODES = [
 const FAQS = [
   {
     q: "How does Vaea Chat know what's on my calendar or in my inbox?",
-    a: "You connect your accounts in Settings (one-click OAuth, no setup on your end). When you ask about your schedule or email, Vaea reads it on the spot for that request only — nothing is stored on our servers between requests. The tokens that grant access live on your own device.",
+    a: "You connect your accounts in Settings (one click, no setup on your end). When you ask about your schedule or email, Vaea reads it on the spot for that request only — nothing is stored on our servers between requests. The credentials that grant access live on your own device.",
   },
   {
     q: "Can Vaea Chat actually delete things, or just read them?",
     a: "It can read, create, edit, and delete — but anything that changes or removes something goes through a confirm step first. You see exactly what's about to happen (the full event details, the task, the message) before it does. Vaea never removes something silently.",
   },
   {
-    q: "What's the difference between Built-in, BYOK, and Local Mode?",
-    a: "Built-in uses Vaea's hosted model — sign in, start chatting. Bring your own key sends your message directly to your chosen provider (Anthropic, OpenAI, Google) using your own API key, so Vaea is just the interface. Local Mode removes any hosted AI entirely — Vaea writes a prompt to a folder and your own model (or Claude Code) answers it. Vaea makes no network call in that mode.",
+    q: "What's the difference between Built-in, Bring Your Own Key, and Local Mode?",
+    a: "Built-in uses Vaea's hosted model — sign in, start chatting. Bring Your Own Key sends your message directly to your chosen provider (Anthropic, OpenAI, Google) using your own account key, so Vaea is just the interface. Local Mode removes any hosted AI entirely — Vaea writes a file to a folder and your own model (or Claude Code) answers it. Vaea sends nothing on its own in that mode.",
   },
   {
     q: "Is Vaea Chat available when I'm not signed in?",
-    a: "Local Mode and Bring Your Own Key both work without a Vaea account — they only need a device and either a local model or an API key. The built-in assistant requires a free account for the hosted AI call.",
+    a: "Local Mode and Bring Your Own Key both work without a Vaea account — they only need a device and either a local AI model or an account key. The built-in assistant requires a free account.",
   },
   {
     q: "Does connecting Gmail or Outlook mean Vaea stores my emails?",
-    a: "No. When Vaea Chat needs to check your inbox it fetches what's relevant at that moment, uses it for the reply, and doesn't persist it. The access token that lets Vaea read your email lives in your browser's device storage — not on any Vaea server.",
+    a: "No. When Vaea Chat needs to check your inbox it reads what's relevant at that moment, uses it for the reply, and doesn't store it. The access credential that lets Vaea read your email lives in your browser's own storage — not on any Vaea server.",
   },
   {
     q: "Can Vaea Chat learn from my conversations over time?",
