@@ -13,7 +13,7 @@ import {
   darkSectionBg, darkText, darkTopEdge, glassPanel, glassSheen,
   glassTileLight,
   pillOnDark, linkOnDark, eyebrowOnDark, eyebrowOnLight,
-  displayXL, displayL, displayM, GLOW,
+  displayXL, displayL, displayM, GLOW, GLOW_VIOLET,
 } from "./theme";
 
 // ─── hero chat demo ────────────────────────────────────────────────────────
