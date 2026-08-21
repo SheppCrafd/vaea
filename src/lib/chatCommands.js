@@ -33,4 +33,5 @@ export const CHAT_COMMANDS = [
   { name: "expand", description: "Expand a brief note or task description into a fuller explanation" },
   { name: "action-items", description: "Extract action items from any text in this conversation" },
   { name: "help", description: "List all available slash commands" },
+  { name: "snippet", description: "Save or reuse a text snippet — /snippet save <name>: <text>, or /snippet <name> to insert it" },
 ];

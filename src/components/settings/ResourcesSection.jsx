@@ -7,7 +7,7 @@ import { BookOpen, ChevronRight } from "lucide-react";
 // own framing).
 export default function ResourcesSection() {
   return (
-    <div className="bg-card border border-border rounded-xl p-6">
+    <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-6">
       <p className="text-xs font-medium text-muted-foreground mb-4 uppercase tracking-wider">Resources</p>
       <Link
         to="/app/settings/vault-setup"

@@ -16,10 +16,13 @@ import ChatSettingsModal from "@/components/ai/ChatSettingsModal";
 import ChatAuthPrompt from "@/components/ai/ChatAuthPrompt";
 import ChatReflectionConsent from "@/components/ai/ChatReflectionConsent";
 import MobileSidebarDrawer from "@/components/shared/MobileSidebarDrawer";
+import AgentsCard from "@/components/sidebar/AgentsCard";
+import PromptTemplatesCard from "@/components/sidebar/PromptTemplatesCard";
 
-// The session list's own content (New chat button + the list itself) —
-// factored out so the desktop docked <aside> and the mobile
-// MobileSidebarDrawer can both render it without duplicating the JSX.
+// The session list's own content (New chat button + the list itself), plus
+// the Agents and Prompt Templates cards below it — factored out so the
+// desktop docked <aside> and the mobile MobileSidebarDrawer can both render
+// it without duplicating the JSX.
 function ChatHistoryPanelContent({ chat, sessions }) {
   return (
     <>
@@ -48,6 +51,10 @@ function ChatHistoryPanelContent({ chat, sessions }) {
             ))}
           </div>
         )}
+      </div>
+      <div className="shrink-0 border-t border-border py-1">
+        <AgentsCard />
+        <PromptTemplatesCard onUse={chat.setInput} />
       </div>
     </>
   );

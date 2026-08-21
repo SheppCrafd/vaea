@@ -6,7 +6,7 @@ import { buildAuthorizationUrl } from "@/lib/gmailOAuthPkce";
 import { listMessages } from "@/lib/gmailApi";
 
 // Real recent-inbox preview, same on-demand-not-polled discipline as
-// GoogleCalendarSection's UpcomingEvents — Gmail's API is also a shared
+// GoogleWorkspaceSection's UpcomingEvents — Gmail's API is also a shared
 // per-project daily quota across every Vaea user.
 function RecentMessages({ connection, onTokenRefreshed }) {
   const [messages, setMessages] = useState(null);
@@ -119,7 +119,7 @@ export default function GmailSection() {
   };
 
   return (
-    <div className="bg-card border border-border rounded-xl p-6">
+    <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-6">
       <div className="flex items-center justify-between mb-1">
         <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
           <Mail className="w-3.5 h-3.5" /> Gmail

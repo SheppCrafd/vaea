@@ -10,6 +10,16 @@ vi.mock("@/lib/githubApi", () => ({
 }));
 import { listVaultNoteRepo, readVaultNoteContent, searchVaultNotes, auditVaultNotes } from "@/lib/githubApi";
 
+// pdf.js/tesseract.js both need real browser APIs (DOMMatrix, Worker, wasm
+// fetch) jsdom doesn't provide — mocked so analyze_attachment's PDF/OCR
+// branches are tested for their own wiring/error-handling, not pdf.js's or
+// tesseract.js's actual parsing internals (out of scope for a unit test).
+vi.mock("@/lib/documentParsing", () => ({
+  extractPdfText: vi.fn(),
+  ocrImage: vi.fn(),
+}));
+import { extractPdfText, ocrImage } from "@/lib/documentParsing";
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -336,11 +346,39 @@ describe("toolRunner: analyze_attachment (plain client-side fetch, image or plai
     expect(result.extracted_text).toBe("Real file contents.");
   });
 
-  it("returns an honest error for a file type with no client-side parser (e.g. a PDF), instead of guessing", async () => {
-    global.fetch.mockResolvedValueOnce({ ok: true, status: 200, statusText: "OK", headers: { get: () => "application/pdf" } });
+  it("returns an honest error for a file type with no client-side parser (e.g. a Word doc), instead of guessing", async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: true, status: 200, statusText: "OK",
+      headers: { get: () => "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
+    });
+    const runTool = makeToolRunner({ plan: [], dataset });
+    const result = await runTool("analyze_attachment", { file_url: "https://x/doc.docx" });
+    expect(result.error).toMatch(/document parser/);
+  });
+
+  it("extracts real text from a PDF attachment via pdf.js", async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: true, status: 200, statusText: "OK",
+      headers: { get: () => "application/pdf" },
+      arrayBuffer: async () => new ArrayBuffer(4),
+    });
+    extractPdfText.mockResolvedValueOnce({ text: "Real PDF text.", pageCount: 2, truncated: false });
     const runTool = makeToolRunner({ plan: [], dataset });
     const result = await runTool("analyze_attachment", { file_url: "https://x/doc.pdf" });
-    expect(result.error).toMatch(/document parser/);
+    expect(result.extracted_text).toBe("Real PDF text.");
+    expect(result.page_count).toBe(2);
+  });
+
+  it("returns an honest error when PDF parsing itself fails, instead of guessing", async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: true, status: 200, statusText: "OK",
+      headers: { get: () => "application/pdf" },
+      arrayBuffer: async () => new ArrayBuffer(4),
+    });
+    extractPdfText.mockRejectedValueOnce(new Error("corrupt PDF"));
+    const runTool = makeToolRunner({ plan: [], dataset });
+    const result = await runTool("analyze_attachment", { file_url: "https://x/doc.pdf" });
+    expect(result.error).toMatch(/corrupt PDF/);
   });
 
   it("never leaks the raw base64 blob into the UI-facing liveTrace entry", async () => {

@@ -22,14 +22,26 @@ import { loadAiIdentity, saveAiIdentity } from "@/lib/aiPreferences";
 import { createSnapshot } from "@/lib/backupSnapshots";
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
 import { writeVaultFile, SELF_NOTE_PATH, SELF_NOTE_HARD_CAP_CHARS } from "@/lib/githubApi";
-import { loadCalendarConnection, saveCalendarConnection, isCalendarConnected } from "@/lib/calendarConnection";
-import { createEvent, updateEvent, deleteEvent } from "@/lib/googleCalendarApi";
+import {
+  loadGoogleWorkspaceConnection as loadCalendarConnection,
+  saveGoogleWorkspaceConnection as saveCalendarConnection,
+  isGoogleWorkspaceConnected as isCalendarConnected,
+} from "@/lib/googleWorkspaceConnection";
+import { listEvents as listGoogleCalendarEvents, createEvent, updateEvent, deleteEvent } from "@/lib/googleCalendarApi";
+import { loadAgentBehavior } from "@/lib/agentBehaviorSettings";
+import { findFreeSlot, findRecurringSlots, findConflicts, VAEA_TAG } from "@/lib/vaeaCalendarScheduling";
+import { createTextFile as createDriveFile, deleteFile as deleteDriveFile } from "@/lib/googleDriveApi";
+import { createDocument as createGoogleDoc, appendText as appendGoogleDocText, replaceText as replaceGoogleDocText } from "@/lib/googleDocsApi";
+import { createSpreadsheet as createGoogleSheet, updateValues as updateGoogleSheetValues, appendValues as appendGoogleSheetValues } from "@/lib/googleSheetsApi";
+import { createPresentation as createGoogleSlides, addSlide as addGoogleSlide } from "@/lib/googleSlidesApi";
+import { createTask as createGoogleTask, updateTask as updateGoogleTask, deleteTask as deleteGoogleTask } from "@/lib/googleTasksApi";
+import { createForm as createGoogleForm, addTextQuestion as addGoogleFormQuestion } from "@/lib/googleFormsApi";
 import { loadGmailConnection, saveGmailConnection, isGmailConnected } from "@/lib/gmailConnection";
 import { sendMessage as sendGmailMessage } from "@/lib/gmailApi";
 import { loadMicrosoftConnection, saveMicrosoftConnection, isMicrosoftConnected } from "@/lib/microsoftConnection";
 import { loadSlackConnection, isSlackConnected } from "@/lib/slackConnection";
 import { sendMessage as sendSlackMessage } from "@/lib/slackApi";
-import { createEvent as createOutlookEvent, updateEvent as updateOutlookEvent, deleteEvent as deleteOutlookEvent, sendMessage as sendOutlookMessage } from "@/lib/microsoftGraphApi";
+import { listEvents as listOutlookEvents, createEvent as createOutlookEvent, updateEvent as updateOutlookEvent, deleteEvent as deleteOutlookEvent, sendMessage as sendOutlookMessage } from "@/lib/microsoftGraphApi";
 import { loadClickUpConnection, isClickUpConnected } from "@/lib/clickupConnection";
 import { createTask as createClickUpTask, updateTask as updateClickUpTask, deleteTask as deleteClickUpTask, sendMessage as sendClickUpMessage } from "@/lib/clickupApi";
 import { syncIdentityToSelfNote } from "@/lib/selfNote";
@@ -54,6 +66,8 @@ export const DESTRUCTIVE_ACTIONS = new Set([
   "DELETE_CALENDAR_EVENT",
   "DELETE_OUTLOOK_EVENT",
   "DELETE_CLICKUP_TASK",
+  "DELETE_DRIVE_FILE",
+  "DELETE_GOOGLE_TASK",
 ]);
 
 // UNDO_LAST_ACTION is a real tool the assistant can call, but it's handled
@@ -61,6 +75,61 @@ export const DESTRUCTIVE_ACTIONS = new Set([
 // executeAction below — it never appears alongside other actions in a plan
 // (the server prompt requires it to be the only tool call in a turn).
 export const NON_EXECUTABLE_ACTIONS = new Set(["UNDO_LAST_ACTION"]);
+
+// Vaea Calendar's auto-scheduling helpers (SCHEDULE_CALENDAR_TIME /
+// RESCHEDULE_CALENDAR_CONFLICTS below) — merges busy events across whatever
+// of Google Workspace/Microsoft 365 is connected, and picks which one to
+// actually write new auto-scheduled events into (Google Workspace first,
+// Microsoft 365 as the fallback, matching Vaea Calendar's own aggregation
+// order in VaeaCalendarPage.jsx).
+async function gatherBusyEvents({ earliest, latest }) {
+  const [google, microsoft] = await Promise.all([loadCalendarConnection(), loadMicrosoftConnection()]);
+  const [googleEvents, outlookEvents] = await Promise.all([
+    isCalendarConnected(google)
+      ? listGoogleCalendarEvents(google, { timeMin: earliest, timeMax: latest, maxResults: 100 }).then((r) => r.events).catch(() => [])
+      : [],
+    isMicrosoftConnected(microsoft)
+      ? listOutlookEvents(microsoft, { timeMin: earliest, timeMax: latest, maxResults: 100 }).then((r) => r.events).catch(() => [])
+      : [],
+  ]);
+  // microsoftGraphApi.js's shapeEvent appends a human-readable " (Time/Zone)"
+  // suffix to start/end for display purposes — strip it back off here so
+  // `new Date(...)` gets a real parseable ISO string for the busy-time math.
+  const stripTz = (s) => (s ? s.replace(/\s*\([^)]*\)\s*$/, "") : s);
+  return [
+    ...googleEvents.map((e) => ({ ...e, _provider: "google" })),
+    ...outlookEvents.map((e) => ({ ...e, _provider: "microsoft", start: { dateTime: stripTz(e.start) }, end: { dateTime: stripTz(e.end) } })),
+  ];
+}
+
+async function primaryCalendarConnection() {
+  const google = await loadCalendarConnection();
+  if (isCalendarConnected(google)) return { provider: "google", connection: google };
+  const microsoft = await loadMicrosoftConnection();
+  if (isMicrosoftConnected(microsoft)) return { provider: "microsoft", connection: microsoft };
+  return null;
+}
+
+async function createVaeaEvent(primary, { title, start, end, tag }) {
+  if (primary.provider === "google") {
+    const { event, connection } = await createEvent(primary.connection, {
+      summary: title,
+      description: tag,
+      start: { dateTime: start.toISOString() },
+      end: { dateTime: end.toISOString() },
+    });
+    await saveCalendarConnection(connection);
+    return event;
+  }
+  const { event, connection } = await createOutlookEvent(primary.connection, {
+    subject: title,
+    description: tag,
+    start: { dateTime: start.toISOString(), timeZone: "UTC" },
+    end: { dateTime: end.toISOString(), timeZone: "UTC" },
+  });
+  await saveMicrosoftConnection(connection);
+  return event;
+}
 
 // A reflection turn (see reflectionTrigger.js) runs with nobody having asked
 // anything this turn, so the normal trust model — DESTRUCTIVE_ACTIONS need a
@@ -600,6 +669,206 @@ export async function executeAction(action, args) {
       const { connection: refreshed } = await deleteEvent(connection, args.event_id);
       await saveCalendarConnection(refreshed);
       return { toolResult: { deleted: args.event_id } };
+    }
+
+    case "CREATE_DRIVE_FILE": {
+      const connection = await loadCalendarConnection();
+      if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
+      const { file, connection: refreshed } = await createDriveFile(connection, { name: args.name, content: args.content, mimeType: args.mime_type });
+      await saveCalendarConnection(refreshed);
+      return { toolResult: { driveFile: file } };
+    }
+
+    case "DELETE_DRIVE_FILE": {
+      const connection = await loadCalendarConnection();
+      if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
+      const { connection: refreshed } = await deleteDriveFile(connection, args.file_id);
+      await saveCalendarConnection(refreshed);
+      return { toolResult: { deleted: args.file_id } };
+    }
+
+    case "CREATE_GOOGLE_DOC": {
+      const connection = await loadCalendarConnection();
+      if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
+      const { document: doc, connection: refreshed } = await createGoogleDoc(connection, { title: args.title });
+      await saveCalendarConnection(refreshed);
+      return { toolResult: { document: doc } };
+    }
+
+    case "APPEND_GOOGLE_DOC_TEXT": {
+      const connection = await loadCalendarConnection();
+      if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
+      const { connection: refreshed } = await appendGoogleDocText(connection, args.document_id, args.text);
+      await saveCalendarConnection(refreshed);
+      return { toolResult: { appended: args.document_id } };
+    }
+
+    case "REPLACE_GOOGLE_DOC_TEXT": {
+      const connection = await loadCalendarConnection();
+      if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
+      const { occurrencesChanged, connection: refreshed } = await replaceGoogleDocText(connection, args.document_id, args.find, args.replace);
+      await saveCalendarConnection(refreshed);
+      return { toolResult: { occurrencesChanged } };
+    }
+
+    case "CREATE_GOOGLE_SHEET": {
+      const connection = await loadCalendarConnection();
+      if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
+      const { spreadsheet, connection: refreshed } = await createGoogleSheet(connection, { title: args.title });
+      await saveCalendarConnection(refreshed);
+      return { toolResult: { spreadsheet } };
+    }
+
+    case "UPDATE_GOOGLE_SHEET_VALUES": {
+      const connection = await loadCalendarConnection();
+      if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
+      const { connection: refreshed } = await updateGoogleSheetValues(connection, args.spreadsheet_id, args.range, args.values);
+      await saveCalendarConnection(refreshed);
+      return { toolResult: { updated: args.range } };
+    }
+
+    case "APPEND_GOOGLE_SHEET_VALUES": {
+      const connection = await loadCalendarConnection();
+      if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
+      const { connection: refreshed } = await appendGoogleSheetValues(connection, args.spreadsheet_id, args.range, args.values);
+      await saveCalendarConnection(refreshed);
+      return { toolResult: { appended: args.range } };
+    }
+
+    case "CREATE_GOOGLE_SLIDES": {
+      const connection = await loadCalendarConnection();
+      if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
+      const { presentation, connection: refreshed } = await createGoogleSlides(connection, { title: args.title });
+      await saveCalendarConnection(refreshed);
+      return { toolResult: { presentation } };
+    }
+
+    case "ADD_GOOGLE_SLIDE": {
+      const connection = await loadCalendarConnection();
+      if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
+      const { slideId, connection: refreshed } = await addGoogleSlide(connection, args.presentation_id, { title: args.title, body: args.body });
+      await saveCalendarConnection(refreshed);
+      return { toolResult: { slideId } };
+    }
+
+    case "CREATE_GOOGLE_TASK": {
+      const connection = await loadCalendarConnection();
+      if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
+      const { task, connection: refreshed } = await createGoogleTask(connection, args.task_list_id || "@default", { title: args.title, notes: args.notes, due: args.due });
+      await saveCalendarConnection(refreshed);
+      return { toolResult: { task } };
+    }
+
+    case "UPDATE_GOOGLE_TASK": {
+      const connection = await loadCalendarConnection();
+      if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
+      const patch = {};
+      if (args.title !== undefined) patch.title = args.title;
+      if (args.notes !== undefined) patch.notes = args.notes;
+      if (args.due !== undefined) patch.due = args.due;
+      if (args.completed !== undefined) patch.status = args.completed ? "completed" : "needsAction";
+      const { task, connection: refreshed } = await updateGoogleTask(connection, args.task_list_id || "@default", args.task_id, patch);
+      await saveCalendarConnection(refreshed);
+      return { toolResult: { task } };
+    }
+
+    case "DELETE_GOOGLE_TASK": {
+      const connection = await loadCalendarConnection();
+      if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
+      const { connection: refreshed } = await deleteGoogleTask(connection, args.task_list_id || "@default", args.task_id);
+      await saveCalendarConnection(refreshed);
+      return { toolResult: { deleted: args.task_id } };
+    }
+
+    case "CREATE_GOOGLE_FORM": {
+      const connection = await loadCalendarConnection();
+      if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
+      const { form, connection: refreshed } = await createGoogleForm(connection, { title: args.title });
+      await saveCalendarConnection(refreshed);
+      return { toolResult: { form } };
+    }
+
+    case "ADD_GOOGLE_FORM_QUESTION": {
+      const connection = await loadCalendarConnection();
+      if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
+      const { connection: refreshed } = await addGoogleFormQuestion(connection, args.form_id, { title: args.title, required: args.required });
+      await saveCalendarConnection(refreshed);
+      return { toolResult: { added: args.title } };
+    }
+
+    case "SCHEDULE_CALENDAR_TIME": {
+      const behavior = await loadAgentBehavior();
+      if (!behavior.autoSchedulingEnabled) {
+        throw new Error('Auto-scheduling is off — turn on "Let Vaea Calendar auto-schedule tasks" in Settings -> Agent Behavior first.');
+      }
+      const primary = await primaryCalendarConnection();
+      if (!primary) throw new Error("No Google Workspace or Microsoft 365 calendar connected — connect one in Settings.");
+      const tag = VAEA_TAG[args.block_type] || VAEA_TAG.task;
+      const durationMinutes = args.duration_minutes;
+      const busy = await gatherBusyEvents({
+        earliest: args.earliest || new Date().toISOString(),
+        latest: args.latest || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+      });
+
+      if (args.block_type === "task") {
+        const slot = findFreeSlot(busy, { durationMinutes, earliest: args.earliest, latest: args.latest });
+        if (!slot) throw new Error("Couldn't find a free slot in the next 14 days — try widening the range or shortening the duration.");
+        const event = await createVaeaEvent(primary, { title: args.title, start: slot.start, end: slot.end, tag });
+        return { toolResult: { scheduled: [{ title: args.title, start: slot.start.toISOString(), end: slot.end.toISOString() }], event } };
+      }
+
+      const slots = findRecurringSlots(busy, {
+        durationMinutes,
+        occurrences: args.occurrences || 4,
+        daysOfWeek: args.days_of_week,
+        startingFrom: args.earliest,
+      });
+      if (!slots.length) throw new Error("Couldn't find any free slots for this recurring block — try different days or a shorter duration.");
+      const created = [];
+      for (const slot of slots) {
+        // eslint-disable-next-line no-await-in-loop -- each booking depends on the previous one's token refresh being saved first
+        const event = await createVaeaEvent(primary, { title: args.title, start: slot.start, end: slot.end, tag });
+        created.push({ title: args.title, start: slot.start.toISOString(), end: slot.end.toISOString(), event });
+      }
+      return { toolResult: { scheduled: created.map(({ title, start, end }) => ({ title, start, end })), count: created.length } };
+    }
+
+    case "RESCHEDULE_CALENDAR_CONFLICTS": {
+      const primary = await primaryCalendarConnection();
+      if (!primary) throw new Error("No Google Workspace or Microsoft 365 calendar connected — connect one in Settings.");
+      const earliest = new Date().toISOString();
+      const latest = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+      const busy = await gatherBusyEvents({ earliest, latest });
+      // Outlook's shaped events don't carry a description field (see
+      // gatherBusyEvents/shapeEvent), so a Vaea-tagged Outlook event can't be
+      // recognized here yet — conflict detection is real, but Google-only
+      // until that gap closes.
+      const conflicts = findConflicts(busy);
+      if (!conflicts.length) return { toolResult: { moved: [], message: "No conflicts found." } };
+
+      const moved = [];
+      for (const { event } of conflicts) {
+        const durationMinutes = (new Date(event.end.dateTime) - new Date(event.start.dateTime)) / 60000;
+        const stillBusy = busy.filter((e) => e !== event);
+        const slot = findFreeSlot(stillBusy, { durationMinutes, earliest, latest });
+        if (!slot) continue;
+        // eslint-disable-next-line no-await-in-loop -- each move needs the previous one's fresh token saved first
+        if (event._provider === "google") {
+          const { connection } = await updateEvent(await loadCalendarConnection(), event.id, {
+            start: { dateTime: slot.start.toISOString() },
+            end: { dateTime: slot.end.toISOString() },
+          });
+          await saveCalendarConnection(connection);
+        } else {
+          const { connection } = await updateOutlookEvent(await loadMicrosoftConnection(), event.id, {
+            start: { dateTime: slot.start.toISOString(), timeZone: "UTC" },
+            end: { dateTime: slot.end.toISOString(), timeZone: "UTC" },
+          });
+          await saveMicrosoftConnection(connection);
+        }
+        moved.push({ title: event.summary || event.subject, new_start: slot.start.toISOString(), new_end: slot.end.toISOString() });
+      }
+      return { toolResult: { moved } };
     }
 
     case "CREATE_OUTLOOK_EVENT": {

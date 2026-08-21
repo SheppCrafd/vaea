@@ -8,7 +8,7 @@
 // client-side twins of entry.ts's own calendar tool bodies.
 //
 // Auth model: PKCE against a public "Desktop app" OAuth client (no client
-// secret exists — see CalendarOAuthCallbackPage.jsx for the authorization
+// secret exists — see GoogleWorkspaceOAuthCallbackPage.jsx for the authorization
 // half of the flow). Every exported call-making function below refreshes
 // an expired access token itself before the real request, using nothing
 // but the refresh token + the public client ID, and returns the

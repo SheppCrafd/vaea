@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { Check, Github, Loader2, TriangleAlert, Unlink } from "lucide-react";
+import { Check, Github, Loader2, Search, TriangleAlert, Unlink } from "lucide-react";
 import { loadVaultConnection, saveVaultConnection, clearVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
-import { testVaultConnection, readVaultNoteContent, writeVaultFile, SELF_NOTE_PATH, SELF_NOTE_TARGET_MAX_CHARS } from "@/lib/githubApi";
+import {
+  testVaultConnection, readVaultNoteContent, writeVaultFile, searchVaultNotes,
+  SELF_NOTE_PATH, SELF_NOTE_TARGET_MAX_CHARS,
+  MEMORY_NOTE_PATH, MEMORY_NOTE_TARGET_MAX_CHARS,
+} from "@/lib/githubApi";
 
 const DEFAULT_CONNECTION = { owner: "", repo: "", branch: "main", token: "" };
 
@@ -15,7 +19,15 @@ const DEFAULT_CONNECTION = { owner: "", repo: "", branch: "main", token: "" };
 // user is literally looking at Settings and clicking Save), so it writes
 // directly via writeVaultFile — no need to route through the chat/confirm
 // pipeline the way an assistant-proposed write does.
-function SelfNoteEditor({ connection }) {
+// Generic read/edit surface for a force-loaded vault note — Vaea Self.md
+// (the reflection feature's own notes about itself) and Vaea Memory.md
+// (durable facts about the user, written automatically during chat — see
+// REMEMBERING FACTS in systemPrompt.js/entry.ts) both use this exact same
+// shape, just a different path/description/placeholder. Save here is a
+// real, explicit user action, so it writes directly via writeVaultFile — no
+// need to route through the chat/confirm pipeline the way an
+// assistant-proposed write does.
+function VaultNoteEditor({ connection, path, maxChars, description, placeholder, commitMessage }) {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -26,11 +38,11 @@ function SelfNoteEditor({ connection }) {
     let cancelled = false;
     setLoading(true);
     // Any failure here (most commonly: the file doesn't exist yet — nothing
-    // has reflected since this feature shipped) is treated as "starts
+    // has written to it since this feature shipped) is treated as "starts
     // empty," not an error — the connection itself is already known-good by
     // the time this renders (it's only shown once `connected` is true), so
     // there's nothing useful to surface here beyond a blank editor.
-    readVaultNoteContent({ ...connection, path: SELF_NOTE_PATH })
+    readVaultNoteContent({ ...connection, path })
       .catch(() => "")
       .then((text) => {
         if (!cancelled) setContent(text);
@@ -41,18 +53,13 @@ function SelfNoteEditor({ connection }) {
     return () => {
       cancelled = true;
     };
-  }, [connection.owner, connection.repo, connection.branch, connection.token]);
+  }, [connection.owner, connection.repo, connection.branch, connection.token, path]);
 
   const handleSave = async () => {
     setSaving(true);
     setError("");
     try {
-      await writeVaultFile({
-        ...connection,
-        path: SELF_NOTE_PATH,
-        content,
-        commitMessage: "Update Vaea Self.md (manual edit)",
-      });
+      await writeVaultFile({ ...connection, path, content, commitMessage });
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 1500);
     } catch (err) {
@@ -62,17 +69,14 @@ function SelfNoteEditor({ connection }) {
     }
   };
 
-  const overCap = content.length > SELF_NOTE_TARGET_MAX_CHARS;
+  const overCap = content.length > maxChars;
 
   return (
     <div className="mt-6 pt-6 border-t border-border">
       <p className="text-sm font-medium mb-1">
-        <span className="font-terminal">{SELF_NOTE_PATH}</span>
+        <span className="font-terminal">{path}</span>
       </p>
-      <p className="text-xs text-muted-foreground mb-3">
-        What the assistant has written about itself — what it's learned working in this workspace, corrections to
-        how it operates. It updates this on its own during a check-in; you can read or correct it here anytime.
-      </p>
+      <p className="text-xs text-muted-foreground mb-3">{description}</p>
       {loading ? (
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground py-4">
           <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading…
@@ -82,13 +86,13 @@ function SelfNoteEditor({ connection }) {
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="Nothing written yet — this fills in the first time it checks in."
+            placeholder={placeholder}
             rows={8}
             className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all resize-y font-terminal"
           />
           <div className="flex items-center justify-between mt-1.5">
             <p className={`text-[11px] ${overCap ? "text-destructive" : "text-muted-foreground"}`}>
-              {content.length.toLocaleString()} / {SELF_NOTE_TARGET_MAX_CHARS.toLocaleString()} characters
+              {content.length.toLocaleString()} / {maxChars.toLocaleString()} characters
               {overCap ? " — over the target it's asked to stay under" : ""}
             </p>
           </div>
@@ -113,6 +117,81 @@ function SelfNoteEditor({ connection }) {
             </p>
           )}
         </>
+      )}
+    </div>
+  );
+}
+
+// A plain search box over the connected vault's note content — GitHub code
+// search under the hood (same call chat's own search_vault tool makes), not
+// a natural-language Q&A engine: real snippet matches you read yourself,
+// honestly labeled as search rather than oversold as something that
+// synthesizes an answer. Ask Vaea Chat directly for that instead — this is
+// for a quick "did I write anything about X" without opening a chat at all.
+function VaultSearchBar({ connection }) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!query.trim()) return;
+    setLoading(true);
+    setError("");
+    try {
+      const { matches } = await searchVaultNotes(connection, query.trim());
+      setResults(matches);
+    } catch (err) {
+      setError(err.message);
+      setResults(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="mt-6 pt-6 border-t border-border">
+      <p className="text-sm font-medium mb-1">Search your vault</p>
+      <p className="text-xs text-muted-foreground mb-3">
+        A plain keyword search over your note content — for a real synthesized answer, ask Vaea Chat instead.
+      </p>
+      <form onSubmit={handleSearch} className="flex items-center gap-2">
+        <div className="flex-1 flex items-center gap-2 bg-background border border-input rounded-md px-3 py-2 focus-within:ring-1 focus-within:ring-primary/50">
+          <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="e.g. client pricing"
+            className="flex-1 min-w-0 text-sm bg-transparent outline-none"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={loading || !query.trim()}
+          className="text-sm px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md transition-colors shadow-sm disabled:opacity-50"
+        >
+          {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Search"}
+        </button>
+      </form>
+      {error && (
+        <p className="flex items-start gap-1.5 text-xs text-destructive mt-2">
+          <TriangleAlert className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {error}
+        </p>
+      )}
+      {results && (
+        results.length === 0 ? (
+          <p className="text-xs text-muted-foreground mt-3">No matches.</p>
+        ) : (
+          <ul className="flex flex-col gap-2.5 mt-3">
+            {results.map((r) => (
+              <li key={r.path} className="text-xs">
+                <p className="font-terminal text-foreground">{r.path}</p>
+                {r.snippet && <p className="text-muted-foreground mt-0.5">{r.snippet}</p>}
+              </li>
+            ))}
+          </ul>
+        )
       )}
     </div>
   );
@@ -184,7 +263,7 @@ export default function ExternalVaultSection() {
   const connected = isVaultConnected(connection) && (status === "ok" || status === "saved");
 
   return (
-    <div className="bg-card border border-border rounded-xl p-6">
+    <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-6">
       <div className="flex items-center justify-between mb-1">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Vaea Vault</p>
         {connected && (
@@ -263,7 +342,27 @@ export default function ExternalVaultSection() {
         </p>
       )}
 
-      {connected && <SelfNoteEditor connection={connection} />}
+      {connected && (
+        <>
+          <VaultNoteEditor
+            connection={connection}
+            path={SELF_NOTE_PATH}
+            maxChars={SELF_NOTE_TARGET_MAX_CHARS}
+            description="What the assistant has written about itself — what it's learned working in this workspace, corrections to how it operates. It updates this on its own during a check-in; you can read or correct it here anytime."
+            placeholder="Nothing written yet — this fills in the first time it checks in."
+            commitMessage="Update Vaea Self.md (manual edit)"
+          />
+          <VaultNoteEditor
+            connection={connection}
+            path={MEMORY_NOTE_PATH}
+            maxChars={MEMORY_NOTE_TARGET_MAX_CHARS}
+            description="Durable facts about you and your work — never how the assistant should act, just things worth not re-explaining every conversation. It writes here on its own as facts come up in chat, organized by project; you can read or correct it here anytime."
+            placeholder="Nothing written yet — this fills in as facts come up in chat."
+            commitMessage="Update Vaea Memory.md (manual edit)"
+          />
+          <VaultSearchBar connection={connection} />
+        </>
+      )}
     </div>
   );
 }

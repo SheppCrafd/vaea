@@ -112,6 +112,45 @@ export async function searchVaultNotes({ owner, repo, token }, query) {
 // (zero incoming or outgoing [[links]]). Reads every scanned note's content
 // once, same MAX_NOTES cap as the server-side version.
 const MAX_AUDIT_NOTES = 80;
+// A small stopword list, not a real NLP pipeline — good enough to keep
+// "the"/"and"/"with" out of auto-generated tags and keyword-overlap checks
+// without pulling in a dependency for it. Deliberately short; false
+// negatives here just mean a common word slips into a tag, not a crash.
+const STOPWORDS = new Set([
+  "the", "and", "for", "with", "that", "this", "from", "have", "has", "was",
+  "were", "are", "not", "but", "you", "your", "our", "their", "its", "into",
+  "about", "when", "what", "which", "who", "how", "will", "would", "could",
+  "should", "there", "here", "than", "then", "them", "they", "been", "being",
+  "over", "under", "some", "more", "most", "such", "each", "every", "any",
+]);
+
+function extractWords(text) {
+  return (text.toLowerCase().match(/[a-z][a-z'-]{2,}/g) || []).filter((w) => !STOPWORDS.has(w));
+}
+
+// Auto-tagging (no cloud API, no embeddings — a plain word-frequency
+// heuristic, consistent with the rest of this app's local-first model): the
+// N most frequent non-stopword words in a note, title words weighted higher
+// since a note's own title is usually its best topic signal.
+const TAGS_PER_NOTE = 5;
+function extractTags(title, content) {
+  const counts = new Map();
+  for (const w of extractWords(title)) counts.set(w, (counts.get(w) || 0) + 3);
+  for (const w of extractWords(content)) counts.set(w, (counts.get(w) || 0) + 1);
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, TAGS_PER_NOTE).map(([w]) => w);
+}
+
+// Jaccard similarity of each note's word set — a plain, explainable
+// near-duplicate signal (no embeddings/cloud call) good enough to flag "you
+// might have written this twice," not a semantic-similarity engine.
+const DUPLICATE_THRESHOLD = 0.6;
+function jaccard(a, b) {
+  let intersection = 0;
+  for (const w of a) if (b.has(w)) intersection++;
+  const union = a.size + b.size - intersection;
+  return union === 0 ? 0 : intersection / union;
+}
+
 export async function auditVaultNotes({ owner, repo, branch, token }) {
   const paths = await listVaultNoteRepo({ owner, repo, branch, token });
   const scanned = paths.slice(0, MAX_AUDIT_NOTES);
@@ -119,6 +158,8 @@ export async function auditVaultNotes({ owner, repo, branch, token }) {
   const pathByTitle = new Map([...titleByPath.entries()].map(([p, t]) => [t, p]));
 
   const outgoing = new Map(); // path -> Set(linked titles, lowercased)
+  const wordSets = new Map(); // path -> Set(words) — reused for suggested_links and possible_duplicates below
+  const tags = {}; // path -> string[]
   const linkRegex = /\[\[([^\]|#]+)/g;
   for (const path of scanned) {
     const content = await readVaultNoteContent({ owner, repo, branch, token, path });
@@ -126,20 +167,63 @@ export async function auditVaultNotes({ owner, repo, branch, token }) {
     let m;
     while ((m = linkRegex.exec(content))) links.add(m[1].trim().toLowerCase());
     outgoing.set(path, links);
+    wordSets.set(path, new Set(extractWords(content)));
+    tags[path] = extractTags(titleByPath.get(path), content);
   }
 
   const broken_links = [];
+  const links = []; // {from, to} — every wikilink that resolved to a real note, the Mind Map page's edge list
   const hasIncoming = new Set();
-  for (const [path, links] of outgoing) {
-    for (const linkedTitle of links) {
+  for (const [path, linkTitles] of outgoing) {
+    for (const linkedTitle of linkTitles) {
       const target = pathByTitle.get(linkedTitle);
-      if (target) hasIncoming.add(target);
-      else broken_links.push({ from: path, broken_link: linkedTitle });
+      if (target) {
+        hasIncoming.add(target);
+        links.push({ from: path, to: target });
+      } else {
+        broken_links.push({ from: path, broken_link: linkedTitle });
+      }
     }
   }
   const isolated_notes = scanned.filter((p) => outgoing.get(p).size === 0 && !hasIncoming.has(p));
 
-  return { notes_scanned: scanned.length, notes_total: paths.length, broken_links, isolated_notes };
+  // Auto-linking suggestions and duplicate detection share one O(n^2) pass
+  // over the scanned set (bounded by MAX_AUDIT_NOTES, so at most ~3,200
+  // pairs) — a note pair with real word overlap that ISN'T already linked
+  // either direction is a suggestion; a pair past DUPLICATE_THRESHOLD is a
+  // possible duplicate instead (a much higher bar — most related notes
+  // should never trip this).
+  const suggested_links = [];
+  const possible_duplicates = [];
+  for (let i = 0; i < scanned.length; i++) {
+    for (let j = i + 1; j < scanned.length; j++) {
+      const pathA = scanned[i];
+      const pathB = scanned[j];
+      const similarity = jaccard(wordSets.get(pathA), wordSets.get(pathB));
+      if (similarity < 0.15) continue;
+      const titleA = titleByPath.get(pathA);
+      const titleB = titleByPath.get(pathB);
+      const alreadyLinked = outgoing.get(pathA).has(titleB) || outgoing.get(pathB).has(titleA);
+      if (similarity >= DUPLICATE_THRESHOLD) {
+        possible_duplicates.push({ a: pathA, b: pathB, similarity: Math.round(similarity * 100) / 100 });
+      } else if (!alreadyLinked) {
+        suggested_links.push({ a: pathA, b: pathB, similarity: Math.round(similarity * 100) / 100 });
+      }
+    }
+  }
+  suggested_links.sort((a, b) => b.similarity - a.similarity);
+  possible_duplicates.sort((a, b) => b.similarity - a.similarity);
+
+  return {
+    notes_scanned: scanned.length,
+    notes_total: paths.length,
+    broken_links,
+    links,
+    isolated_notes,
+    tags,
+    suggested_links: suggested_links.slice(0, 20),
+    possible_duplicates: possible_duplicates.slice(0, 20),
+  };
 }
 
 const MAX_PRIORITY_NOTES = 5;
@@ -229,14 +313,27 @@ export const SELF_NOTE_PATH = "Vaea Self.md";
 export const SELF_NOTE_TARGET_MAX_CHARS = 6000; // ~1500 tokens — a real "working notes" budget, not a hard wall
 export const SELF_NOTE_HARD_CAP_CHARS = 20000; // well past "the model is misbehaving," not a normal size
 
+// "Vaea Memory.md" — durable facts/preferences the assistant learns about
+// the user and their work, distinct from Vaea Self.md's "how I should
+// operate" standing instructions. Organized under "## General" plus one
+// "## <Project title>" section per project a fact is scoped to (so a detail
+// learned about one project never bleeds into another), same force-loaded
+// pattern as vault.md/Vaea Self.md — always current, no tool round-trip.
+// Cross-device sync is a free side effect of being vault-backed: this is a
+// GitHub repo, so it already follows the user everywhere Vaea Vault does.
+export const MEMORY_NOTE_PATH = "Vaea Memory.md";
+export const MEMORY_NOTE_TARGET_MAX_CHARS = 6000;
+export const MEMORY_NOTE_HARD_CAP_CHARS = 20000;
+
 export async function fetchVaultOverview({ owner, repo, branch, token }) {
-  const [summary, priorityNotes, recentNotes, selfNote] = await Promise.all([
+  const [summary, priorityNotes, recentNotes, selfNote, memory] = await Promise.all([
     readVaultFile({ owner, repo, branch, token, path: "vault.md" }).catch(() => null),
     fetchPriorityNotes({ owner, repo, branch, token }).catch(() => []),
     fetchRecentNotes({ owner, repo, branch, token }).catch(() => []),
     readVaultFile({ owner, repo, branch, token, path: SELF_NOTE_PATH }).catch(() => null),
+    readVaultFile({ owner, repo, branch, token, path: MEMORY_NOTE_PATH }).catch(() => null),
   ]);
-  return { summary, priorityNotes, recentNotes, selfNote };
+  return { summary, priorityNotes, recentNotes, selfNote, memory };
 }
 
 // GET /repos/{owner}/{repo} — used by ExternalVaultSection's "Test
