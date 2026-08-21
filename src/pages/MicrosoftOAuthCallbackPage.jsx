@@ -5,7 +5,7 @@ import { exchangeCodeForTokens } from "@/lib/microsoftOAuthPkce";
 import { saveMicrosoftConnection } from "@/lib/microsoftConnection";
 import { testMicrosoftConnection } from "@/lib/microsoftGraphApi";
 
-// Mirrors CalendarOAuthCallbackPage.jsx / GmailOAuthCallbackPage.jsx —
+// Mirrors GoogleWorkspaceOAuthCallbackPage.jsx / GmailOAuthCallbackPage.jsx —
 // exchange the code, resolve the real signed-in address, save, bounce back.
 export default function MicrosoftOAuthCallbackPage() {
   const [state, setState] = useState("working"); // working | error

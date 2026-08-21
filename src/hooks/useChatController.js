@@ -9,9 +9,11 @@ import { runByokChat, resumeOrphanedLocalModeRequest } from "@/lib/llm/byokChat"
 import { getPendingLocalModeRequest, clearPendingLocalModeRequest, getBridgeStatus, subscribeStatus } from "@/lib/llm/localBridgeStorage";
 import { readNdjson, ROUND_BOUNDARY_MARKER } from "@/lib/llm/streamUtils";
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
-import { loadCalendarConnection } from "@/lib/calendarConnection";
+import { loadGoogleWorkspaceConnection as loadCalendarConnection } from "@/lib/googleWorkspaceConnection";
 import { loadGmailConnection } from "@/lib/gmailConnection";
 import { loadMicrosoftConnection } from "@/lib/microsoftConnection";
+import { saveSnippet, findSnippet } from "@/lib/snippetsStore";
+import { loadAgentBehavior } from "@/lib/agentBehaviorSettings";
 import { loadSlackConnection } from "@/lib/slackConnection";
 import { loadClickUpConnection } from "@/lib/clickupConnection";
 import { fetchVaultOverview, SELF_NOTE_PATH } from "@/lib/githubApi";
@@ -788,7 +790,13 @@ export function useChatController({ activeProjectId } = {}) {
 
     const executable = actions.filter((a) => !NON_EXECUTABLE_ACTIONS.has(a.action));
 
-    if (executable.some((a) => DESTRUCTIVE_ACTIONS.has(a.action))) {
+    // "Approve every action, not just destructive ones" (Settings -> Agent
+    // Behavior, off by default) widens this same confirm gate to every
+    // staged action, not a separate approval queue — see chatActions.js's
+    // DESTRUCTIVE_ACTIONS comment for why this one gate is the real
+    // mechanism a widened toggle should reuse rather than duplicate.
+    const { approvalQueueEnabled } = await loadAgentBehavior();
+    if (approvalQueueEnabled || executable.some((a) => DESTRUCTIVE_ACTIONS.has(a.action))) {
       setLiveSteps([]);
       await createMessage.mutateAsync(
         {
@@ -831,6 +839,26 @@ export function useChatController({ activeProjectId } = {}) {
   const handleSend = async (e) => {
     e.preventDefault();
     if (!input.trim() && !attachedFile) return;
+
+    // /snippet is the one slash command handled entirely client-side, never
+    // sent to the model — saving/recalling a block of text needs no AI
+    // reasoning, so round-tripping it through a tool call would just be
+    // slower and burn a real request for nothing. "/snippet save <name>:
+    // <text>" saves and clears the composer; "/snippet <name>" drops the
+    // saved text back into the composer for review before actually sending —
+    // never sends on the user's behalf.
+    const saveMatch = input.match(/^\/snippet\s+save\s+([^:]+):\s*([\s\S]+)$/i);
+    if (saveMatch) {
+      await saveSnippet(saveMatch[1].trim(), saveMatch[2].trim());
+      setInput("");
+      return;
+    }
+    const useMatch = input.match(/^\/snippet\s+(\S+)\s*$/i);
+    if (useMatch) {
+      const snippet = await findSnippet(useMatch[1].trim());
+      setInput(snippet ? snippet.text : input);
+      return;
+    }
 
     // ensureSession()/the user-message create both hit Base44's hosted
     // ChatSession/ChatMessage entities, which RLS denies for an anonymous

@@ -5,7 +5,7 @@ import { exchangeCodeForTokens } from "@/lib/gmailOAuthPkce";
 import { saveGmailConnection } from "@/lib/gmailConnection";
 import { testGmailConnection } from "@/lib/gmailApi";
 
-// Mirrors CalendarOAuthCallbackPage.jsx — exchange the code, resolve the
+// Mirrors GoogleWorkspaceOAuthCallbackPage.jsx — exchange the code, resolve the
 // real connected address via testGmailConnection so the Settings card can
 // show it right away, save, bounce back.
 export default function GmailOAuthCallbackPage() {

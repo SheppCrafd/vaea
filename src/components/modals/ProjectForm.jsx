@@ -10,13 +10,14 @@ import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
 import DateField from "@/components/shared/DateField";
 import FormField from "@/components/shared/FormField";
 import EntitySelect from "@/components/shared/EntitySelect";
+import { useLastUsedValue } from "@/hooks/useLastUsedValue";
 
 export default function ProjectForm({ onDone }) {
   const [title, setTitle] = useState("");
   const [areaId, setAreaId] = useState("");
   const [productId, setProductId] = useState("");
   const [objective, setObjective] = useState("");
-  const [ownerName, setOwnerName] = useState("");
+  const [ownerName, setOwnerName] = useLastUsedValue("project_owner_name");
   const [dueDate, setDueDate] = useState("");
   const [stakeholderIds, setStakeholderIds] = useState([]);
   const { data: areas = [] } = useAreas();

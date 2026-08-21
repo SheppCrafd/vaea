@@ -6,7 +6,7 @@ import { buildAuthorizationUrl } from "@/lib/microsoftOAuthPkce";
 import { listEvents } from "@/lib/microsoftGraphApi";
 
 // Real upcoming-events preview, same on-demand-not-polled discipline as
-// GoogleCalendarSection/GmailSection — Graph is also a shared per-app quota
+// GoogleWorkspaceSection/GmailSection — Graph is also a shared per-app quota
 // across every Vaea user.
 function UpcomingEvents({ connection, onTokenRefreshed }) {
   const [events, setEvents] = useState(null);
@@ -110,7 +110,7 @@ export default function MicrosoftSection() {
   };
 
   return (
-    <div className="bg-card border border-border rounded-xl p-6">
+    <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-6">
       <div className="flex items-center justify-between mb-1">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Microsoft 365 / Outlook</p>
         {connected && (

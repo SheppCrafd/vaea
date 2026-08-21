@@ -614,6 +614,298 @@ export const TOOL_CATALOG = [
   },
 
   {
+    name: "SCHEDULE_CALENDAR_TIME",
+    staged: true,
+    description: "Vaea Calendar — find a genuinely free slot on the connected calendar(s) and book it, for a one-off task, a recurring protected focus block, or a recurring habit. Only works if the user has turned on \"Let Vaea Calendar auto-schedule tasks\" in Settings -> Agent Behavior — if they haven't, tell them that's where to enable it rather than guessing why nothing happened. Every block this creates is tagged in its description so RESCHEDULE_CALENDAR_CONFLICTS can find it later.",
+    parameters: {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        duration_minutes: { type: "number" },
+        block_type: { type: "string", enum: ["task", "focus", "habit"], description: "task: one-off. focus: a recurring protected deep-work block. habit: a recurring personal routine." },
+        occurrences: { type: "number", description: "For focus/habit only — how many times to book it. Defaults to 4." },
+        days_of_week: { type: "array", items: { type: "number" }, description: "For focus/habit only — which days (0=Sunday) it's allowed to land on. Omit for any day." },
+        earliest: { type: "string", description: "RFC3339 — don't search before this. Defaults to now." },
+        latest: { type: "string", description: "RFC3339 — don't search past this. Defaults to 14 days out." },
+      },
+      required: ["title", "duration_minutes", "block_type"],
+    },
+  },
+  {
+    name: "RESCHEDULE_CALENDAR_CONFLICTS",
+    staged: true,
+    description: "Vaea Calendar — find every Vaea-auto-scheduled block (from SCHEDULE_CALENDAR_TIME) that now overlaps a real, non-Vaea event, and move each conflicting block to the next free slot. This is reactive, not a background watcher — call it when the user asks to check, not proactively on every turn.",
+    parameters: { type: "object", properties: {}, required: [] },
+  },
+  {
+    name: "search_drive_files",
+    staged: false,
+    description: "Search the connected Google Drive by filename (see [GOOGLE WORKSPACE] below). Runs immediately and returns real data. Omit query to list the most recently modified files.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Optional filename substring to search for." },
+        max_results: { type: "number", description: "Defaults to 20." },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "CREATE_DRIVE_FILE",
+    staged: true,
+    description: "Create a plain-text file in the connected Google Drive. For a structured document/spreadsheet/presentation, use CREATE_GOOGLE_DOC/CREATE_GOOGLE_SHEET/CREATE_GOOGLE_SLIDES instead.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        content: { type: "string" },
+        mime_type: { type: "string", description: "Defaults to text/plain." },
+      },
+      required: ["name", "content"],
+    },
+  },
+  {
+    name: "DELETE_DRIVE_FILE",
+    staged: true,
+    description: "Delete a file from the connected Google Drive. Get file_id from search_drive_files first; never guess one. Destructive — goes through the normal confirm-before-destructive step.",
+    parameters: {
+      type: "object",
+      properties: { file_id: { type: "string" } },
+      required: ["file_id"],
+    },
+  },
+  {
+    name: "CREATE_GOOGLE_DOC",
+    staged: true,
+    description: "Create a new Google Doc in the connected Google Drive.",
+    parameters: {
+      type: "object",
+      properties: { title: { type: "string" } },
+      required: ["title"],
+    },
+  },
+  {
+    name: "read_google_doc",
+    staged: false,
+    description: "Read the full plain text of a Google Doc. Get document_id from search_drive_files first; never guess one. Runs immediately and returns real data.",
+    parameters: {
+      type: "object",
+      properties: { document_id: { type: "string" } },
+      required: ["document_id"],
+    },
+  },
+  {
+    name: "APPEND_GOOGLE_DOC_TEXT",
+    staged: true,
+    description: "Append text to the end of an existing Google Doc. Get document_id from search_drive_files or read_google_doc first; never guess one.",
+    parameters: {
+      type: "object",
+      properties: { document_id: { type: "string" }, text: { type: "string" } },
+      required: ["document_id", "text"],
+    },
+  },
+  {
+    name: "REPLACE_GOOGLE_DOC_TEXT",
+    staged: true,
+    description: "Find and replace every exact-match occurrence of text within a Google Doc.",
+    parameters: {
+      type: "object",
+      properties: { document_id: { type: "string" }, find: { type: "string" }, replace: { type: "string" } },
+      required: ["document_id", "find", "replace"],
+    },
+  },
+  {
+    name: "CREATE_GOOGLE_SHEET",
+    staged: true,
+    description: "Create a new Google Sheets spreadsheet in the connected Google Drive.",
+    parameters: {
+      type: "object",
+      properties: { title: { type: "string" } },
+      required: ["title"],
+    },
+  },
+  {
+    name: "read_google_sheet",
+    staged: false,
+    description: "Read cell values from a Google Sheets spreadsheet. Get spreadsheet_id from search_drive_files first; never guess one. Runs immediately and returns real data.",
+    parameters: {
+      type: "object",
+      properties: {
+        spreadsheet_id: { type: "string" },
+        range: { type: "string", description: "A1 notation, e.g. \"Sheet1!A1:C10\". Defaults to a broad range on the first sheet." },
+      },
+      required: ["spreadsheet_id"],
+    },
+  },
+  {
+    name: "UPDATE_GOOGLE_SHEET_VALUES",
+    staged: true,
+    description: "Overwrite cell values in a Google Sheets range. Pass the FULL rectangle of values for the range, not just the cells changing.",
+    parameters: {
+      type: "object",
+      properties: {
+        spreadsheet_id: { type: "string" },
+        range: { type: "string", description: "A1 notation, e.g. \"Sheet1!A1:C3\"." },
+        values: { type: "array", items: { type: "array", items: {} }, description: "2D array of rows, each an array of cell values." },
+      },
+      required: ["spreadsheet_id", "range", "values"],
+    },
+  },
+  {
+    name: "APPEND_GOOGLE_SHEET_VALUES",
+    staged: true,
+    description: "Append rows to the end of the data in a Google Sheets range/sheet.",
+    parameters: {
+      type: "object",
+      properties: {
+        spreadsheet_id: { type: "string" },
+        range: { type: "string", description: "A1 notation naming the sheet/table to append after, e.g. \"Sheet1\"." },
+        values: { type: "array", items: { type: "array", items: {} }, description: "2D array of rows to append." },
+      },
+      required: ["spreadsheet_id", "range", "values"],
+    },
+  },
+  {
+    name: "CREATE_GOOGLE_SLIDES",
+    staged: true,
+    description: "Create a new Google Slides presentation in the connected Google Drive.",
+    parameters: {
+      type: "object",
+      properties: { title: { type: "string" } },
+      required: ["title"],
+    },
+  },
+  {
+    name: "read_google_slides",
+    staged: false,
+    description: "Read the text content of every slide in a Google Slides presentation. Get presentation_id from search_drive_files first; never guess one. Runs immediately and returns real data.",
+    parameters: {
+      type: "object",
+      properties: { presentation_id: { type: "string" } },
+      required: ["presentation_id"],
+    },
+  },
+  {
+    name: "ADD_GOOGLE_SLIDE",
+    staged: true,
+    description: "Append a new title+body slide to an existing Google Slides presentation.",
+    parameters: {
+      type: "object",
+      properties: {
+        presentation_id: { type: "string" },
+        title: { type: "string" },
+        body: { type: "string" },
+      },
+      required: ["presentation_id"],
+    },
+  },
+  {
+    name: "list_google_task_lists",
+    staged: false,
+    description: "List the connected account's Google Tasks lists (see [GOOGLE WORKSPACE] below). Runs immediately and returns real data.",
+    parameters: { type: "object", properties: {}, required: [] },
+  },
+  {
+    name: "list_google_tasks",
+    staged: false,
+    description: "List tasks in a Google Tasks list. Defaults to the default list if task_list_id is omitted. Runs immediately and returns real data.",
+    parameters: {
+      type: "object",
+      properties: {
+        task_list_id: { type: "string", description: "From list_google_task_lists; omit for the default list." },
+        show_completed: { type: "boolean", description: "Defaults to false." },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "CREATE_GOOGLE_TASK",
+    staged: true,
+    description: "Create a task in a Google Tasks list — the user's actual Google Tasks, not Vaea's own tasks.",
+    parameters: {
+      type: "object",
+      properties: {
+        task_list_id: { type: "string", description: "From list_google_task_lists; omit for the default list." },
+        title: { type: "string" },
+        notes: { type: "string" },
+        due: { type: "string", description: "RFC3339 date, e.g. \"2026-08-20T00:00:00.000Z\"." },
+      },
+      required: ["title"],
+    },
+  },
+  {
+    name: "UPDATE_GOOGLE_TASK",
+    staged: true,
+    description: "Change or complete an existing Google Task. Get task_id from list_google_tasks first; never guess one. Only pass the fields actually changing.",
+    parameters: {
+      type: "object",
+      properties: {
+        task_list_id: { type: "string" },
+        task_id: { type: "string" },
+        title: { type: "string" },
+        notes: { type: "string" },
+        due: { type: "string" },
+        completed: { type: "boolean" },
+      },
+      required: ["task_id"],
+    },
+  },
+  {
+    name: "DELETE_GOOGLE_TASK",
+    staged: true,
+    description: "Delete a Google Task. Get task_id from list_google_tasks first; never guess one. Destructive — goes through the normal confirm-before-destructive step.",
+    parameters: {
+      type: "object",
+      properties: { task_list_id: { type: "string" }, task_id: { type: "string" } },
+      required: ["task_id"],
+    },
+  },
+  {
+    name: "CREATE_GOOGLE_FORM",
+    staged: true,
+    description: "Create a new Google Form in the connected Google Drive.",
+    parameters: {
+      type: "object",
+      properties: { title: { type: "string" } },
+      required: ["title"],
+    },
+  },
+  {
+    name: "read_google_form",
+    staged: false,
+    description: "Read a Google Form's questions. Get form_id from search_drive_files first; never guess one. Runs immediately and returns real data.",
+    parameters: {
+      type: "object",
+      properties: { form_id: { type: "string" } },
+      required: ["form_id"],
+    },
+  },
+  {
+    name: "ADD_GOOGLE_FORM_QUESTION",
+    staged: true,
+    description: "Add a short-answer text question to an existing Google Form.",
+    parameters: {
+      type: "object",
+      properties: {
+        form_id: { type: "string" },
+        title: { type: "string", description: "The question text." },
+        required: { type: "boolean", description: "Defaults to false." },
+      },
+      required: ["form_id", "title"],
+    },
+  },
+  {
+    name: "list_google_form_responses",
+    staged: false,
+    description: "List responses submitted to a Google Form. Get form_id from search_drive_files first; never guess one. Runs immediately and returns real data.",
+    parameters: {
+      type: "object",
+      properties: { form_id: { type: "string" } },
+      required: ["form_id"],
+    },
+  },
+
+  {
     name: "SEND_GMAIL_MESSAGE",
     staged: true,
     description: "Send an email from the connected Gmail account (see [GMAIL] below). Staged like every tool above, not run here — the user's own device sends it via the Gmail API using their locally-stored connection.",
@@ -922,7 +1214,7 @@ export const TOOL_CATALOG = [
   {
     name: "audit_vault",
     staged: false,
-    description: "Audit the connected Vaea Vault's [[wikilinks]] for structural issues: links pointing at a note that doesn't exist (broken links) and notes with zero incoming or outgoing links (isolated notes). Runs immediately and returns findings only — propose fixes afterward with WRITE_VAULT_NOTE, as a normal confirmable plan, same pattern as audit_workspace/\"/tidy\". Reads every note's content once, so mention it may take a moment on a large vault.",
+    description: "Audit the connected Vaea Vault: [[wikilink]] structural issues (broken links, isolated notes with zero incoming/outgoing links), suggested_links (note pairs with real topical overlap that aren't linked yet — a real candidate for you to propose a [[wikilink]] between, not a certainty), possible_duplicates (note pairs similar enough they may be the same note written twice — propose a merge, never delete either side without asking), and tags (auto-generated per-note keyword tags, a local word-frequency heuristic, not a synonym/topic-modeling system — treat them as a rough hint, not authoritative). Runs immediately and returns findings only — propose fixes afterward with WRITE_VAULT_NOTE, as a normal confirmable plan, same pattern as audit_workspace/\"/tidy\". Reads every note's content once, so mention it may take a moment on a large vault.",
     parameters: { type: "object", properties: {}, required: [] },
   },
   {

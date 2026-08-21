@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import {
   ArrowRight, CalendarDays, Mail, Building2, CheckSquare, BookOpen,
-  ShieldOff, Key, Check, Plus, Zap, Hash,
+  ShieldOff, Key, Zap, Hash, MessageCircle, Settings, Maximize2, X,
 } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
@@ -10,84 +10,47 @@ import {
   useTimeline, useDocumentMeta, usePageSchema,
 } from "./effects";
 import {
-  darkSectionBg, darkText, darkTopEdge, glassPanel, glassSheen,
+  darkSectionBg, darkText, darkTopEdge,
   glassTileLight,
   pillOnDark, linkOnDark, eyebrowOnDark, eyebrowOnLight,
-  displayXL, displayL, displayM, GLOW, GLOW_VIOLET,
+  displayXL, displayL, displayM, GLOW,
 } from "./theme";
 
 // ─── hero chat demo ────────────────────────────────────────────────────────
+// Built to the same discipline as demos.jsx: this is what the real in-app
+// chat (ChatBox.jsx/ChatMessageList.jsx) actually looks like, not a
+// plausible-looking approximation — a flat terminal transcript ("> " for the
+// user's own lines, dim unbulleted tool-log lines while it works, the reply
+// at full contrast, no avatars, no chat bubbles), a bg-primary/text-primary
+// header bar matching ChatBox's real chrome, and a real pending_action's
+// actual "Yes, do it" / "Cancel" buttons — not an invented "card" UI that
+// doesn't exist anywhere in the app.
 
 // phase 0 → nothing visible
 // phase 1 → user message typed in
-// phase 2 → "reading" badges + thinking cursor
+// phase 2 → tool-log lines revealing + thinking cursor
 // phase 3 → Vaea's response typed in
 // phase 4 → pause: full exchange visible
 // phase 5 → user follow-up typed in
 // phase 6 → brief thinking
-// phase 7 → staged action card appears
-// phase 8 → pause on staged action (restart)
+// phase 7 → Yes, do it / Cancel buttons appear
+// phase 8 → pause (restart)
 const DEMO_DURATIONS = [350, 1300, 900, 1700, 1500, 1100, 650, 1900, 2500];
 
 const USER_MSG_1 = "What's tomorrow look like? Check my calendar and any ClickUp tasks due.";
 const VAEA_REPLY = "You have a 10am Design Review (1hr). Three ClickUp tasks in the Launch space are due today — one went overdue yesterday. Want me to add a 45-min focus block at 8:30 before the call?";
 const USER_MSG_2 = "Yes, add it.";
-
-function ServiceBadge({ label }) {
-  return (
-    <span
-      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-terminal tracking-wide"
-      style={{ background: `${GLOW}18`, color: GLOW, border: `1px solid ${GLOW}30` }}
-    >
-      {label}
-    </span>
-  );
-}
-
-function StagedActionCard({ visible }) {
-  return (
-    <div
-      className={`mt-3 rounded-xl border transition-all duration-500 overflow-hidden ${
-        visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
-      }`}
-      style={{ borderColor: `${GLOW}35`, background: `${GLOW}09` }}
-    >
-      <div className="flex items-center gap-2 px-4 py-2.5 border-b" style={{ borderColor: `${GLOW}25` }}>
-        <Plus className="w-3.5 h-3.5 shrink-0" style={{ color: GLOW }} />
-        <span className="font-terminal text-[11px] tracking-widest uppercase" style={{ color: GLOW }}>
-          Add calendar event
-        </span>
-      </div>
-      <div className="px-4 py-3">
-        <p className="text-sm font-medium text-foreground/90">Focus block</p>
-        <p className="text-xs text-muted-foreground mt-0.5">Tomorrow · 8:30 – 9:15am</p>
-      </div>
-      <div className="px-4 pb-3 flex gap-2">
-        <button
-          type="button"
-          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
-          style={{ background: GLOW, color: "#0b1a1e" }}
-        >
-          <Check className="w-3 h-3" />
-          Confirm
-        </button>
-        <button
-          type="button"
-          className="text-xs px-3 py-1.5 rounded-lg transition-colors text-muted-foreground hover:text-foreground border border-foreground/10 hover:border-foreground/20"
-        >
-          Dismiss
-        </button>
-      </div>
-    </div>
-  );
-}
+// describeToolCall()'s real fn("label") shape (chatActions.js) — the same
+// literal strings a real liveSteps reveal shows, not "reading Calendar
+// ClickUp" pill badges, which is nothing the app renders.
+const TOOL_LOG_LINES = ['list_calendar_events()', 'list_clickup_tasks()'];
 
 function ChatDemo() {
   const { ref, step } = useTimeline(DEMO_DURATIONS);
 
   const showMsg1 = step >= 1;
   const typing1 = step === 1;
-  const showBadges = step >= 2;
+  const showToolLog = step >= 2;
   const showThinking1 = step === 2;
   const showReply = step >= 3;
   const typingReply = step === 3;
@@ -99,87 +62,74 @@ function ChatDemo() {
   return (
     <div
       ref={ref}
-      className={`relative rounded-2xl overflow-hidden w-full max-w-xl mx-auto ${glassPanel}`}
+      className="relative rounded-2xl overflow-hidden w-full max-w-xl mx-auto bg-card shadow-[0_0_0_1px_hsl(var(--foreground)/0.06),0_28px_58px_-12px_hsl(200_30%_12%/0.35)]"
       style={{ minHeight: 420 }}
     >
-      <div className={glassSheen} />
-      {/* chrome bar */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-foreground/[0.07]">
-        <div className="flex gap-1.5">
-          {["bg-foreground/15", "bg-foreground/10", "bg-foreground/10"].map((c, i) => (
-            <div key={i} className={`w-2.5 h-2.5 rounded-full ${c}`} />
-          ))}
+      {/* Real ChatBox.jsx header chrome: bg-primary bar, icon + name on the
+          left, a row of small icon buttons on the right — never macOS
+          traffic-light dots, which nothing in the app renders. */}
+      <div className="bg-primary px-4 py-3 flex items-center justify-between text-primary-foreground">
+        <div className="flex items-center gap-2">
+          <MessageCircle className="w-4 h-4" />
+          <span className="font-terminal font-semibold text-sm">Vaea Chat</span>
         </div>
-        <span className="font-terminal text-[11px] tracking-[0.18em] uppercase text-foreground/35 mx-auto">
-          Vaea Chat
-        </span>
+        <div className="flex items-center gap-2 text-primary-foreground/70">
+          <Settings className="w-3.5 h-3.5" />
+          <Maximize2 className="w-3.5 h-3.5" />
+          <X className="w-4 h-4" />
+        </div>
       </div>
 
-      <div className="px-5 py-4 space-y-4 min-h-[360px]">
-        {/* user msg 1 */}
+      <div className="px-4 py-4 space-y-4 min-h-[360px] font-terminal text-[13px] leading-relaxed bg-background/50">
         {showMsg1 && (
-          <div className="flex justify-end">
-            <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-foreground/[0.07] px-4 py-2.5 text-sm text-foreground/85">
-              {typing1
-                ? <><Typed text={USER_MSG_1} play cps={55} /><Caret /></>
-                : USER_MSG_1}
-            </div>
-          </div>
+          <p className="text-foreground whitespace-pre-wrap">
+            <span className="text-primary">{">"}</span>{" "}
+            {typing1 ? <><Typed text={USER_MSG_1} play cps={55} /><Caret /></> : USER_MSG_1}
+          </p>
         )}
 
-        {/* reading badges + vaea reply */}
-        {showBadges && (
-          <div className="space-y-2.5">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="font-terminal text-[10px] text-foreground/30 tracking-wider">reading</span>
-              <ServiceBadge label="Calendar" />
-              <ServiceBadge label="ClickUp" />
-              {showThinking1 && <Caret />}
+        {showToolLog && (
+          <div className="space-y-0.5">
+            <div className="text-muted-foreground space-y-0.5">
+              {TOOL_LOG_LINES.map((line) => <p key={line}>{line}</p>)}
             </div>
+            {showThinking1 && <Caret />}
 
             {showReply && (
-              <div className="flex gap-2.5">
-                <div
-                  className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center mt-0.5 font-terminal text-[10px] font-bold"
-                  style={{ background: `${GLOW}22`, color: GLOW }}
-                >
-                  V
-                </div>
-                <div className="flex-1 text-sm text-foreground/80 leading-relaxed">
-                  {typingReply
-                    ? <><Typed text={VAEA_REPLY} play cps={60} /><Caret /></>
-                    : VAEA_REPLY}
-                </div>
-              </div>
+              <p className="text-foreground mt-2">
+                {typingReply ? <><Typed text={VAEA_REPLY} play cps={60} /><Caret /></> : VAEA_REPLY}
+              </p>
             )}
           </div>
         )}
 
-        {/* user follow-up */}
         {showMsg2 && (
-          <div className="flex justify-end">
-            <div className="max-w-[60%] rounded-2xl rounded-tr-sm bg-foreground/[0.07] px-4 py-2.5 text-sm text-foreground/85">
-              {typing2
-                ? <><Typed text={USER_MSG_2} play cps={60} /><Caret /></>
-                : USER_MSG_2}
-            </div>
-          </div>
+          <p className="text-foreground whitespace-pre-wrap">
+            <span className="text-primary">{">"}</span>{" "}
+            {typing2 ? <><Typed text={USER_MSG_2} play cps={60} /><Caret /></> : USER_MSG_2}
+          </p>
         )}
 
         {showThinking2 && (
-          <div className="flex gap-2.5">
-            <div
-              className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center font-terminal text-[10px] font-bold"
-              style={{ background: `${GLOW}22`, color: GLOW }}
-            >
-              V
-            </div>
-            <div className="flex items-center h-6"><Caret /></div>
-          </div>
+          <p className="flex items-center gap-1.5">
+            <MessageCircle className="w-3.5 h-3.5 text-primary" />
+            <Caret />
+          </p>
         )}
 
-        {/* staged action card */}
-        {(step >= 6) && <StagedActionCard visible={showAction} />}
+        {/* Real ChatMessageList.jsx pending_action buttons — plain text
+            buttons, not a colored "staged action" card with an icon header
+            and a details block, which the app has no such thing of. */}
+        {step >= 6 && (
+          <div className={`flex gap-2 transition-all duration-500 ${showAction ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}`}>
+            <button type="button" className="text-xs px-2.5 py-1 bg-destructive text-destructive-foreground border border-border rounded-md">
+              Yes, do it
+            </button>
+            <button type="button" className="text-xs px-2.5 py-1 bg-secondary text-secondary-foreground border border-border rounded-md">
+              Cancel
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -190,8 +140,8 @@ function ChatDemo() {
 const CONNECTORS = [
   {
     icon: CalendarDays,
-    name: "Google Calendar",
-    body: "What's on tomorrow, what's free, add events — with a real Meet link if you want one.",
+    name: "Google Workspace",
+    body: "Calendar, Drive, Docs, Sheets, Slides, Tasks, Forms — what's on tomorrow, find a file, edit a doc, add events with a real Meet link if you want one.",
   },
   {
     icon: Mail,
@@ -287,7 +237,7 @@ const CHAT_PAGE_SCHEMA = {
   "@type": "WebPage",
   "name": "Vaea Chat — AI assistant that acts on your work",
   "url": "https://vaea.base44.app/chat",
-  "description": "Vaea Chat reads your Google Calendar, Gmail, Outlook, ClickUp tasks, and personal notes — then handles things when you ask, with a confirm step before anything changes. Free, local-first.",
+  "description": "Vaea Chat reads your Google Workspace (Calendar, Drive, Docs, Sheets, Slides, Tasks, Forms), Gmail, Outlook, ClickUp tasks, and personal notes — then handles things when you ask, with a confirm step before anything changes. Free, local-first.",
   "isPartOf": { "@type": "WebSite", "url": "https://vaea.base44.app/" },
 };
 
@@ -402,44 +352,35 @@ export default function ChatPage() {
             </Reveal>
 
             <Reveal delay={100}>
-              {/* Static staged action illustration */}
-              <div className={`rounded-2xl overflow-hidden ${glassPanel}`}>
-                <div className="glassSheen pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/[0.07] to-transparent" />
-                <div className="flex items-center gap-2 px-4 py-3 border-b border-foreground/[0.07]">
-                  <div className="flex gap-1.5">
-                    {["bg-foreground/15","bg-foreground/10","bg-foreground/10"].map((c,i) => (
-                      <div key={i} className={`w-2.5 h-2.5 rounded-full ${c}`} />
-                    ))}
-                  </div>
-                  <span className="font-terminal text-[11px] tracking-[0.18em] uppercase text-foreground/35 mx-auto">
-                    Proposed action
-                  </span>
+              {/* Real ChatMessageList.jsx pending_action pattern: one reply
+                  message describing the proposed action(s) in plain English,
+                  then that message's own "Yes, do it" / "Cancel" buttons —
+                  not a per-action card UI with individual Confirm/Skip
+                  buttons and safe/unsafe color coding, which the app has no
+                  such thing of. Same bg-primary header chrome as ChatDemo
+                  above, for the same reason: it's what the header actually
+                  looks like. */}
+              <div className="rounded-2xl overflow-hidden bg-card shadow-[0_0_0_1px_hsl(var(--foreground)/0.06),0_28px_58px_-12px_hsl(200_30%_12%/0.35)]">
+                <div className="bg-primary px-4 py-3 flex items-center gap-2 text-primary-foreground">
+                  <MessageCircle className="w-4 h-4" />
+                  <span className="font-terminal font-semibold text-sm">Vaea Chat</span>
                 </div>
-                <div className="p-5 space-y-3">
-                  {[
-                    { type: "Add calendar event", detail: "Focus block · Tomorrow 8:30am", safe: true },
-                    { type: "Create ClickUp task", detail: "Design QA — Launch space", safe: true },
-                    { type: "Delete calendar event", detail: "Old planning session · 2pm", safe: false },
-                  ].map(({ type, detail, safe }) => (
-                    <div key={type} className="rounded-xl border border-foreground/[0.08] overflow-hidden">
-                      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-foreground/[0.06]" style={{ background: safe ? `${GLOW}09` : "rgba(239,68,68,0.06)" }}>
-                        <span className="font-terminal text-[10px] tracking-widest uppercase" style={{ color: safe ? GLOW : "#f87171" }}>
-                          {type}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between px-4 py-3">
-                        <p className="text-xs text-foreground/70">{detail}</p>
-                        <div className="flex gap-1.5">
-                          <button className="text-[11px] px-2.5 py-1 rounded-lg font-medium" style={{ background: safe ? GLOW : "#ef4444", color: safe ? "#0b1a1e" : "#fff" }}>
-                            Confirm
-                          </button>
-                          <button className="text-[11px] px-2.5 py-1 rounded-lg border border-foreground/15 text-foreground/50">
-                            Skip
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                <div className="p-5 font-terminal text-[13px] leading-relaxed bg-background/50">
+                  <p className="text-foreground">
+                    <span className="text-primary">{">"}</span> Clean up my calendar and file the design QA task.
+                  </p>
+                  <p className="text-foreground mt-3">
+                    I'll add a Focus block tomorrow at 8:30am, create a "Design QA" task in the Launch space, and
+                    delete the old 2pm planning session that's no longer on anyone's calendar. Want me to go ahead?
+                  </p>
+                  <div className="mt-3 flex gap-2">
+                    <button type="button" className="text-xs px-2.5 py-1 bg-destructive text-destructive-foreground border border-border rounded-md">
+                      Yes, do it
+                    </button>
+                    <button type="button" className="text-xs px-2.5 py-1 bg-secondary text-secondary-foreground border border-border rounded-md">
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               </div>
             </Reveal>
