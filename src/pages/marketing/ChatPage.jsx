@@ -1,12 +1,15 @@
 import { Link } from "react-router-dom";
 import {
   ArrowRight, CalendarDays, Mail, Building2, CheckSquare, BookOpen,
-  ShieldOff, Key, Zap, Hash, MessageCircle, Settings, Maximize2, X,
+  ShieldOff, Key, Zap, Hash, Settings, Maximize2, X, Plus,
 } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+import ChatMessageList from "@/components/ai/ChatMessageList";
+import ChatIcon from "@/components/ai/ChatIcon";
+import { CHAT_ICON_OPTIONS } from "@/lib/chatIcon";
 import {
-  Reveal, StageLight, Grain, Caret, Typed,
+  Reveal, StageLight, Grain, Caret,
   useTimeline, useDocumentMeta, usePageSchema,
 } from "./effects";
 import {
@@ -17,60 +20,87 @@ import {
 } from "./theme";
 
 // ─── hero chat demo ────────────────────────────────────────────────────────
-// Built to the same discipline as demos.jsx: this is what the real in-app
-// chat (ChatBox.jsx/ChatMessageList.jsx) actually looks like, not a
-// plausible-looking approximation — a flat terminal transcript ("> " for the
-// user's own lines, dim unbulleted tool-log lines while it works, the reply
-// at full contrast, no avatars, no chat bubbles), a bg-primary/text-primary
-// header bar matching ChatBox's real chrome, and a real pending_action's
-// actual "Yes, do it" / "Cancel" buttons — not an invented "card" UI that
-// doesn't exist anywhere in the app.
+// Renders the real ChatBox.jsx header chrome and ChatMessageList.jsx
+// component — not a plausible-looking approximation. Two real turns: the
+// first goes through ChatMessageList's own isComputing/liveSteps reveal then
+// a persisted reply with its real typewriter animation; the second ends on
+// a real pending_action message with its actual "Yes, do it" / "Cancel"
+// buttons — not an invented "card" UI that doesn't exist anywhere in the app.
 
-// phase 0 → nothing visible
-// phase 1 → user message typed in
-// phase 2 → tool-log lines revealing + thinking cursor
-// phase 3 → Vaea's response typed in
+// phase 0 → nothing visible, composer empty
+// phase 1 → user message typed into the composer (not sent yet)
+// phase 2 → sent: ChatMessageList's own isComputing/liveSteps reveal
+// phase 3 → persisted reply, ChatMessageList's own real typewriter
 // phase 4 → pause: full exchange visible
-// phase 5 → user follow-up typed in
-// phase 6 → brief thinking
-// phase 7 → Yes, do it / Cancel buttons appear
+// phase 5 → second user message typed into the composer
+// phase 6 → sent: brief isComputing (no tool calls this turn)
+// phase 7 → persisted follow-up message with a real pending_action
 // phase 8 → pause (restart)
 const DEMO_DURATIONS = [350, 1300, 900, 1700, 1500, 1100, 650, 1900, 2500];
 
 const USER_MSG_1 = "What's tomorrow look like? Check my calendar and any ClickUp tasks due.";
 const VAEA_REPLY = "You have a 10am Design Review (1hr). Three ClickUp tasks in the Launch space are due today — one went overdue yesterday. Want me to add a 45-min focus block at 8:30 before the call?";
 const USER_MSG_2 = "Yes, add it.";
+const FOLLOWUP_REPLY = "Added — Focus block, 8:30-9:15am tomorrow.";
 // describeToolCall()'s real fn("label") shape (chatActions.js) — the same
 // literal strings a real liveSteps reveal shows, not "reading Calendar
 // ClickUp" pill badges, which is nothing the app renders.
 const TOOL_LOG_LINES = ['list_calendar_events()', 'list_clickup_tasks()'];
+const DEMO_ICON_CHOICE = { key: CHAT_ICON_OPTIONS[0].key };
+
+// Real PendingActionCard shape (ChatMessageList.jsx): pending_action.actions
+// is an array of { action } strings straight off DESTRUCTIVE_ACTIONS
+// (chatActions.js) — humanizeAction() turns CREATE_EVENT into "Create Event".
+const FOLLOWUP_PENDING = { actions: [{ action: "CREATE_EVENT" }] };
+const STAGED_ACTION_PENDING = {
+  actions: [{ action: "CREATE_EVENT" }, { action: "CREATE_TASK" }, { action: "DELETE_EVENT" }],
+};
+
+const STAGED_ACTION_MESSAGES = [
+  { id: "s1", role: "user", content: "Clean up my calendar and file the design QA task." },
+  {
+    id: "s2",
+    role: "assistant",
+    tool_log_detail: null,
+    pending_action: STAGED_ACTION_PENDING,
+    content:
+      "I'll add a Focus block tomorrow at 8:30am, create a \"Design QA\" task in the Launch space, and delete the old 2pm planning session that's no longer on anyone's calendar. Want me to go ahead?",
+  },
+];
 
 function ChatDemo() {
   const { ref, step } = useTimeline(DEMO_DURATIONS);
 
-  const showMsg1 = step >= 1;
-  const typing1 = step === 1;
-  const showToolLog = step >= 2;
-  const showThinking1 = step === 2;
-  const showReply = step >= 3;
-  const typingReply = step === 3;
-  const showMsg2 = step >= 5;
-  const typing2 = step === 5;
-  const showThinking2 = step === 6;
-  const showAction = step >= 7;
+  const sent1 = step >= 2;
+  const replied1 = step >= 3;
+  const sent2 = step >= 6;
+  const replied2 = step >= 7;
+  const computing = (sent1 && !replied1) || (sent2 && !replied2);
+
+  const messages = [
+    ...(sent1 ? [{ id: "u1", role: "user", content: USER_MSG_1 }] : []),
+    ...(replied1 ? [{ id: "a1", role: "assistant", content: VAEA_REPLY, tool_log_detail: null }] : []),
+    ...(sent2 ? [{ id: "u2", role: "user", content: USER_MSG_2 }] : []),
+    ...(replied2 ? [{ id: "a2", role: "assistant", content: FOLLOWUP_REPLY, tool_log_detail: null, pending_action: FOLLOWUP_PENDING }] : []),
+  ];
+  const liveSteps = sent1 && !replied1 ? TOOL_LOG_LINES : [];
+  const newMessageIds = new Set([step === 3 && "a1", step === 7 && "a2"].filter(Boolean));
+
+  const composerText = step === 1 ? USER_MSG_1 : step === 5 ? USER_MSG_2 : "";
+  const composerPlaying = step === 1 || step === 5;
 
   return (
     <div
       ref={ref}
-      className="relative rounded-2xl overflow-hidden w-full max-w-xl mx-auto bg-card shadow-[0_0_0_1px_hsl(var(--foreground)/0.06),0_28px_58px_-12px_hsl(200_30%_12%/0.35)]"
-      style={{ minHeight: 420 }}
+      className="relative rounded-2xl overflow-hidden w-full max-w-xl mx-auto bg-card shadow-[0_0_0_1px_hsl(var(--foreground)/0.06),0_28px_58px_-12px_hsl(200_30%_12%/0.35)] flex flex-col"
+      style={{ height: 460 }}
     >
       {/* Real ChatBox.jsx header chrome: bg-primary bar, icon + name on the
           left, a row of small icon buttons on the right — never macOS
           traffic-light dots, which nothing in the app renders. */}
-      <div className="bg-primary px-4 py-3 flex items-center justify-between text-primary-foreground">
+      <div className="bg-primary px-4 py-3 flex items-center justify-between text-primary-foreground shrink-0">
         <div className="flex items-center gap-2">
-          <MessageCircle className="w-4 h-4" />
+          <ChatIcon iconChoice={DEMO_ICON_CHOICE} className="w-5 h-5" />
           <span className="font-terminal font-semibold text-sm">Vaea Chat</span>
         </div>
         <div className="flex items-center gap-2 text-primary-foreground/70">
@@ -80,57 +110,37 @@ function ChatDemo() {
         </div>
       </div>
 
-      <div className="px-4 py-4 space-y-4 min-h-[360px] font-terminal text-[13px] leading-relaxed bg-background/50">
-        {showMsg1 && (
-          <p className="text-foreground whitespace-pre-wrap">
-            <span className="text-primary">{">"}</span>{" "}
-            {typing1 ? <><Typed text={USER_MSG_1} play cps={55} /><Caret /></> : USER_MSG_1}
-          </p>
-        )}
+      <ChatMessageList
+        messages={messages}
+        isComputing={computing}
+        liveSteps={liveSteps}
+        streamingText=""
+        iconChoice={DEMO_ICON_CHOICE}
+        hasMore={false}
+        onLoadMore={() => {}}
+        resolvingId={null}
+        onConfirm={() => {}}
+        onCancel={() => {}}
+        newMessageIds={newMessageIds}
+      />
 
-        {showToolLog && (
-          <div className="space-y-0.5">
-            <div className="text-muted-foreground space-y-0.5">
-              {TOOL_LOG_LINES.map((line) => <p key={line}>{line}</p>)}
-            </div>
-            {showThinking1 && <Caret />}
-
-            {showReply && (
-              <p className="text-foreground mt-2">
-                {typingReply ? <><Typed text={VAEA_REPLY} play cps={60} /><Caret /></> : VAEA_REPLY}
-              </p>
-            )}
-          </div>
-        )}
-
-        {showMsg2 && (
-          <p className="text-foreground whitespace-pre-wrap">
-            <span className="text-primary">{">"}</span>{" "}
-            {typing2 ? <><Typed text={USER_MSG_2} play cps={60} /><Caret /></> : USER_MSG_2}
-          </p>
-        )}
-
-        {showThinking2 && (
-          <p className="flex items-center gap-1.5">
-            <MessageCircle className="w-3.5 h-3.5 text-primary" />
-            <Caret />
-          </p>
-        )}
-
-        {/* Real ChatMessageList.jsx pending_action buttons — plain text
-            buttons, not a colored "staged action" card with an icon header
-            and a details block, which the app has no such thing of. */}
-        {step >= 6 && (
-          <div className={`flex gap-2 transition-all duration-500 ${showAction ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}`}>
-            <button type="button" className="text-xs px-2.5 py-1 bg-destructive text-destructive-foreground border border-border rounded-md">
-              Yes, do it
-            </button>
-            <button type="button" className="text-xs px-2.5 py-1 bg-secondary text-secondary-foreground border border-border rounded-md">
-              Cancel
-            </button>
-          </div>
-        )}
-      </div>
+      {/* Real ChatBox.jsx composer chrome — readOnly, no live typing target,
+          just the same pill input + Send button the app actually renders. */}
+      <form className="p-3 bg-card border-t border-foreground/[0.06] flex items-center gap-2 shrink-0">
+        <span className="shrink-0 p-2 text-muted-foreground">
+          <Plus className="w-4 h-4" />
+        </span>
+        <div className="flex-1 flex items-center gap-1.5 bg-muted/50 rounded-xl px-3 py-2 shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.04)] min-w-0">
+          <span className="font-terminal text-primary text-sm select-none">{">"}</span>
+          <span className="flex-1 min-w-0 font-terminal text-sm truncate">
+            {composerText}
+            {composerPlaying && <Caret />}
+          </span>
+        </div>
+        <button type="button" disabled className="shrink-0 text-sm px-4 py-2 bg-primary text-primary-foreground font-medium rounded-md shadow-sm disabled:opacity-50">
+          Send
+        </button>
+      </form>
     </div>
   );
 }
@@ -353,36 +363,30 @@ export default function ChatPage() {
             </Reveal>
 
             <Reveal delay={100}>
-              {/* Real ChatMessageList.jsx pending_action pattern: one reply
-                  message describing the proposed action(s) in plain English,
-                  then that message's own "Yes, do it" / "Cancel" buttons —
-                  not a per-action card UI with individual Confirm/Skip
-                  buttons and safe/unsafe color coding, which the app has no
-                  such thing of. Same bg-primary header chrome as ChatDemo
-                  above, for the same reason: it's what the header actually
-                  looks like. */}
-              <div className="rounded-2xl overflow-hidden bg-card shadow-[0_0_0_1px_hsl(var(--foreground)/0.06),0_28px_58px_-12px_hsl(200_30%_12%/0.35)]">
-                <div className="bg-primary px-4 py-3 flex items-center gap-2 text-primary-foreground">
-                  <MessageCircle className="w-4 h-4" />
+              {/* Real ChatBox.jsx header chrome + ChatMessageList.jsx —
+                  literally the same components as the hero demo above, with
+                  one persisted user message and one persisted assistant
+                  message carrying a real pending_action, so the "Yes, do
+                  it" / "Cancel" buttons are the component's own real
+                  rendering, not a hand-drawn recreation. */}
+              <div className="rounded-2xl overflow-hidden bg-card shadow-[0_0_0_1px_hsl(var(--foreground)/0.06),0_28px_58px_-12px_hsl(200_30%_12%/0.35)] flex flex-col" style={{ height: 260 }}>
+                <div className="bg-primary px-4 py-3 flex items-center gap-2 text-primary-foreground shrink-0">
+                  <ChatIcon iconChoice={DEMO_ICON_CHOICE} className="w-4 h-4" />
                   <span className="font-terminal font-semibold text-sm">Vaea Chat</span>
                 </div>
-                <div className="p-5 font-terminal text-[13px] leading-relaxed bg-background/50">
-                  <p className="text-foreground">
-                    <span className="text-primary">{">"}</span> Clean up my calendar and file the design QA task.
-                  </p>
-                  <p className="text-foreground mt-3">
-                    I'll add a Focus block tomorrow at 8:30am, create a "Design QA" task in the Launch space, and
-                    delete the old 2pm planning session that's no longer on anyone's calendar. Want me to go ahead?
-                  </p>
-                  <div className="mt-3 flex gap-2">
-                    <button type="button" className="text-xs px-2.5 py-1 bg-destructive text-destructive-foreground border border-border rounded-md">
-                      Yes, do it
-                    </button>
-                    <button type="button" className="text-xs px-2.5 py-1 bg-secondary text-secondary-foreground border border-border rounded-md">
-                      Cancel
-                    </button>
-                  </div>
-                </div>
+                <ChatMessageList
+                  messages={STAGED_ACTION_MESSAGES}
+                  isComputing={false}
+                  liveSteps={[]}
+                  streamingText=""
+                  iconChoice={DEMO_ICON_CHOICE}
+                  hasMore={false}
+                  onLoadMore={() => {}}
+                  resolvingId={null}
+                  onConfirm={() => {}}
+                  onCancel={() => {}}
+                  newMessageIds={new Set()}
+                />
               </div>
             </Reveal>
           </div>

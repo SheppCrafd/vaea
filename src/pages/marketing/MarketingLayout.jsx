@@ -7,10 +7,7 @@ import { hairlineH, focusRing } from "./theme";
 const NAV_LINKS = [
   { to: "/features", label: "Features" },
   { to: "/chat", label: "Vaea Chat" },
-  { to: "/calendar", label: "Vaea Calendar" },
-  { to: "/vmail", label: "Vmail" },
-  { to: "/meetings", label: "Vaea Meetings" },
-  { to: "/mindmap", label: "Mind Map" },
+  { to: "/workplace", label: "Vaea Workplace" },
   { to: "/vault", label: "Vaea Brain" },
   { to: "/how-it-works", label: "How it works" },
   { to: "/compare", label: "Compare" },
@@ -200,10 +197,7 @@ function Footer() {
               <li><Link to="/features" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Features</Link></li>
               <li><Link to="/how-it-works" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>How it works</Link></li>
               <li><Link to="/chat" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Vaea Chat</Link></li>
-              <li><Link to="/calendar" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Vaea Calendar</Link></li>
-              <li><Link to="/vmail" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Vmail</Link></li>
-              <li><Link to="/meetings" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Vaea Meetings</Link></li>
-              <li><Link to="/mindmap" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Mind Map</Link></li>
+              <li><Link to="/workplace" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Vaea Workplace</Link></li>
               <li><Link to="/vault" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Vaea Brain</Link></li>
               <li><Link to="/compare" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Compare</Link></li>
             </ul>

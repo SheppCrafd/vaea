@@ -6,13 +6,7 @@ import { useAiIdentity, useSaveAiIdentity } from "@/hooks/useAiIdentity";
 import { useReflectionPreferences, useSaveReflectionPreferences } from "@/hooks/useReflectionPreferences";
 import { useVaultConnected } from "@/hooks/useVaultConnected";
 import { syncIdentityToSelfNote } from "@/lib/selfNote";
-
-const FIELDS = [
-  { key: "name", label: "Name", placeholder: "Vaea Chat (default) — or give it a name of your own", rows: 1 },
-  { key: "identity", label: "Identity", placeholder: "Who is it? What's its role here?", rows: 2 },
-  { key: "soul", label: "Soul (tone & protocol)", placeholder: "E.g., Direct, no filler. When I mention a bug or ask which approach to take, always give me two alternatives and compare them before answering.", rows: 3 },
-  { key: "userProfile", label: "About you", placeholder: "How you work, what you value, how you like to communicate.", rows: 3 },
-];
+import IdentityField, { FIELDS } from "@/components/settings/IdentityField";
 
 // The in-app analog of a personal identity.md/soul.md/user.md set — three
 // distinct fields plus a name, editable by hand here, or drafted by the
@@ -120,28 +114,8 @@ export default function AiPreferencesSection() {
       </p>
 
       <div className="flex flex-col gap-4">
-        {FIELDS.map(({ key, label, placeholder, rows }) => (
-          <div key={key}>
-            <label htmlFor={`ai-identity-${key}`} className="text-sm font-medium mb-1.5 block">{label}</label>
-            {rows === 1 ? (
-              <input
-                id={`ai-identity-${key}`}
-                value={identity[key]}
-                onChange={(e) => handleChange(key, e.target.value)}
-                placeholder={placeholder}
-                className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all"
-              />
-            ) : (
-              <textarea
-                id={`ai-identity-${key}`}
-                value={identity[key]}
-                onChange={(e) => handleChange(key, e.target.value)}
-                placeholder={placeholder}
-                rows={rows}
-                className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all resize-none"
-              />
-            )}
-          </div>
+        {FIELDS.map((field) => (
+          <IdentityField key={field.key} field={field} value={identity[field.key]} onChange={(v) => handleChange(field.key, v)} />
         ))}
       </div>
 
