@@ -44,7 +44,11 @@ const MEETINGS_PAGE_SCHEMA = {
 };
 
 export default function MeetingsPage() {
-  useDocumentMeta("Vaea Meetings", "/meetings");
+  useDocumentMeta(
+    "Vaea Meetings — coming soon",
+    "/meetings",
+    "Notes, action items, and decisions pulled from your actual calls. Being built honestly, in order — a real transcript connector before anything gets faked."
+  );
   usePageSchema(MEETINGS_PAGE_SCHEMA);
 
   return (

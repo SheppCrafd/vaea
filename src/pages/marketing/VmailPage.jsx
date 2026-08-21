@@ -171,7 +171,11 @@ const VMAIL_FAQ_SCHEMA = {
 };
 
 export default function VmailPage() {
-  useDocumentMeta("Vmail — one inbox, managed for you", "/vmail");
+  useDocumentMeta(
+    "Vmail — one inbox, managed for you",
+    "/vmail",
+    "Gmail and Outlook merged into one real inbox with folders, search, and compose. Ask Vaea Chat to triage it, flag scams, archive the noise, or draft a reply."
+  );
   usePageSchema(VMAIL_PAGE_SCHEMA);
   usePageSchema(VMAIL_FAQ_SCHEMA);
 

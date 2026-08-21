@@ -256,7 +256,8 @@ const CHAT_FAQ_SCHEMA = {
 export default function ChatPage() {
   useDocumentMeta(
     "Vaea Chat — AI that acts on your work, not just talks about it",
-    "/chat"
+    "/chat",
+    "An AI assistant that reads your real workspace data and directly creates, updates, and completes things in it — with a confirm step before anything destructive."
   );
   usePageSchema(CHAT_PAGE_SCHEMA);
   usePageSchema(CHAT_FAQ_SCHEMA);

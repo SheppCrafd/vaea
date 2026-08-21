@@ -438,7 +438,11 @@ const FAQ_SCHEMA = {
 };
 
 export default function HomePage() {
-  useDocumentMeta("Vaea — from overwhelmed to organized", "/");
+  useDocumentMeta(
+    "Vaea — from overwhelmed to organized",
+    "/",
+    "A free, local-first task manager with an AI that acts on your work — reads your calendar, inbox, ClickUp, and Slack, then creates, updates, and completes things when you ask."
+  );
   usePageSchema(FAQ_SCHEMA);
 
   return (

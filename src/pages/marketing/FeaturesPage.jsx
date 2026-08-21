@@ -71,7 +71,11 @@ const FEATURES_PAGE_SCHEMA = {
 };
 
 export default function FeaturesPage() {
-  useDocumentMeta("Features | Vaea", "/features");
+  useDocumentMeta(
+    "Features | Vaea",
+    "/features",
+    "Every real feature in Vaea: the Areas/Products/Projects/Tasks hierarchy, Vaea Chat's connectors, Vaea Calendar, Vmail, Vaea Brain, and more — no vaporware."
+  );
   usePageSchema(FEATURES_PAGE_SCHEMA);
 
   return (

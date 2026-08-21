@@ -67,10 +67,14 @@ export default function Header() {
         {/* Each tab is a Link (navigate) + a separate close button, not a
             button nested inside the Link's own <a> — nesting interactive
             elements is invalid HTML and breaks focus/click semantics. */}
-        {/* overflow-x-auto, not flex-wrap: 8 tabs at narrower desktop widths
+        {/* overflow-x-auto, not flex-wrap: 9 tabs at narrower desktop widths
             scroll horizontally within the bar rather than wrapping to a
             second row, which would fight the header's fixed h-16 and clip
-            the wrapped tabs entirely. */}
+            the wrapped tabs entirely. shrink-0 + whitespace-nowrap on every
+            pill/label is load-bearing here — without it the flex row
+            shrinks each tab's text to fit instead of ever triggering the
+            scroll, wrapping "Vaea Chat" onto two lines inside its own pill
+            (confirmed live at 1100px/820px widths with all 9 tabs open). */}
         <nav className="hidden md:flex items-center gap-1 ml-2 overflow-x-auto max-w-[46vw]">
           {openTabs.map((tab) => {
             const { key, label, to, Icon } = tab;
@@ -80,14 +84,14 @@ export default function Header() {
               <SectionAnchor
                 key={key}
                 id={`tab:${key}`}
-                className={`flex items-center rounded-full transition-all ${active ? "bg-card shadow-sm" : "hover:bg-card/60"}`}
+                className={`flex items-center shrink-0 rounded-full transition-all ${active ? "bg-card shadow-sm" : "hover:bg-card/60"}`}
               >
                 <Link
                   to={to}
                   aria-current={active ? "page" : undefined}
-                  className={`flex items-center gap-1.5 text-sm pl-3 py-1.5 ${canClose ? "pr-1.5" : "pr-3"} ${active ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}
+                  className={`flex items-center gap-1.5 text-sm whitespace-nowrap pl-3 py-1.5 ${canClose ? "pr-1.5" : "pr-3"} ${active ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}
                 >
-                  <Icon className={`w-3.5 h-3.5 ${key === "chat" && !active ? "text-primary" : ""}`} />
+                  <Icon className={`w-3.5 h-3.5 shrink-0 ${key === "chat" && !active ? "text-primary" : ""}`} />
                   {label}
                 </Link>
                 {canClose && (

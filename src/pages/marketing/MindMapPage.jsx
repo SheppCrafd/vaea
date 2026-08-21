@@ -134,7 +134,11 @@ const MINDMAP_FAQ_SCHEMA = {
 };
 
 export default function MindMapPage() {
-  useDocumentMeta("Vaea Mind Map — how your notes actually connect", "/mindmap");
+  useDocumentMeta(
+    "Vaea Mind Map — how your notes actually connect",
+    "/mindmap",
+    "A force-directed graph of your connected Vaea Brain vault's notes and their real links — see how your thinking actually connects, not a flat file list."
+  );
   usePageSchema(MINDMAP_PAGE_SCHEMA);
   usePageSchema(MINDMAP_FAQ_SCHEMA);
 

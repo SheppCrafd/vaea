@@ -227,7 +227,11 @@ const VAULT_FAQ_SCHEMA = {
 // ─── page ────────────────────────────────────────────────────────────────────
 
 export default function VaultPage() {
-  useDocumentMeta("Vaea Brain — AI that reads and writes your personal notes", "/vault");
+  useDocumentMeta(
+    "Vaea Brain — AI that reads and writes your personal notes",
+    "/vault",
+    "Connect your own Obsidian vault on GitHub and Vaea Chat can read your notes for context and write real, committed changes back — nothing stored on Vaea's servers."
+  );
   usePageSchema(VAULT_PAGE_SCHEMA);
   usePageSchema(VAULT_FAQ_SCHEMA);
 

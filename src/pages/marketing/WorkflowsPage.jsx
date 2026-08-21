@@ -123,7 +123,11 @@ const WORKFLOWS_FAQ_SCHEMA = {
 };
 
 export default function WorkflowsPage() {
-  useDocumentMeta("Vaea Workflows — sketch it before you build it", "/workflows");
+  useDocumentMeta(
+    "Vaea Workflows — sketch it before you build it",
+    "/workflows",
+    "A freeform canvas for sticky-note-style cards you place and drag anywhere — real, saved per-device, and editable from Vaea Chat too."
+  );
   usePageSchema(WORKFLOWS_PAGE_SCHEMA);
   usePageSchema(WORKFLOWS_FAQ_SCHEMA);
 

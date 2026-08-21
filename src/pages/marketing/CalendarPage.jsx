@@ -129,7 +129,11 @@ const CALENDAR_FAQ_SCHEMA = {
 };
 
 export default function CalendarPage() {
-  useDocumentMeta("Vaea Calendar — every connected calendar, merged", "/calendar");
+  useDocumentMeta(
+    "Vaea Calendar — every connected calendar, merged",
+    "/calendar",
+    "Google Workspace and Microsoft 365, merged into one agenda alongside your committed project due dates. Ask Vaea Chat to add, move, or cancel events for you."
+  );
   usePageSchema(CALENDAR_PAGE_SCHEMA);
   usePageSchema(CALENDAR_FAQ_SCHEMA);
 
