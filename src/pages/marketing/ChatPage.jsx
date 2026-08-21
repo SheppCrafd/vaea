@@ -48,13 +48,21 @@ const FOLLOWUP_REPLY = "Added — Focus block, 8:30-9:15am tomorrow.";
 const TOOL_LOG_LINES = ['list_calendar_events()', 'list_clickup_tasks()'];
 const DEMO_ICON_CHOICE = { key: CHAT_ICON_OPTIONS[0].key };
 
+// Real PendingActionCard shape (ChatMessageList.jsx): pending_action.actions
+// is an array of { action } strings straight off DESTRUCTIVE_ACTIONS
+// (chatActions.js) — humanizeAction() turns CREATE_EVENT into "Create Event".
+const FOLLOWUP_PENDING = { actions: [{ action: "CREATE_EVENT" }] };
+const STAGED_ACTION_PENDING = {
+  actions: [{ action: "CREATE_EVENT" }, { action: "CREATE_TASK" }, { action: "DELETE_EVENT" }],
+};
+
 const STAGED_ACTION_MESSAGES = [
   { id: "s1", role: "user", content: "Clean up my calendar and file the design QA task." },
   {
     id: "s2",
     role: "assistant",
     tool_log_detail: null,
-    pending_action: true,
+    pending_action: STAGED_ACTION_PENDING,
     content:
       "I'll add a Focus block tomorrow at 8:30am, create a \"Design QA\" task in the Launch space, and delete the old 2pm planning session that's no longer on anyone's calendar. Want me to go ahead?",
   },
@@ -73,7 +81,7 @@ function ChatDemo() {
     ...(sent1 ? [{ id: "u1", role: "user", content: USER_MSG_1 }] : []),
     ...(replied1 ? [{ id: "a1", role: "assistant", content: VAEA_REPLY, tool_log_detail: null }] : []),
     ...(sent2 ? [{ id: "u2", role: "user", content: USER_MSG_2 }] : []),
-    ...(replied2 ? [{ id: "a2", role: "assistant", content: FOLLOWUP_REPLY, tool_log_detail: null, pending_action: true }] : []),
+    ...(replied2 ? [{ id: "a2", role: "assistant", content: FOLLOWUP_REPLY, tool_log_detail: null, pending_action: FOLLOWUP_PENDING }] : []),
   ];
   const liveSteps = sent1 && !replied1 ? TOOL_LOG_LINES : [];
   const newMessageIds = new Set([step === 3 && "a1", step === 7 && "a2"].filter(Boolean));
