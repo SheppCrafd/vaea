@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
-import { Search, Plus, SunMoon } from "lucide-react";
+import { Plus, SunMoon } from "lucide-react";
 import Portal from "@/lib/Portal";
 import { useAppStore } from "@/lib/store";
 import { useHighlight } from "@/lib/HighlightContext";
