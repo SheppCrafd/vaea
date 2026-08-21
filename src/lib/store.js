@@ -114,4 +114,37 @@ export const useAppStore = create((set) => ({
     saveOpenTabKeys(next);
     return { openTabKeys: next };
   }),
+
+  // ChatBox (the floating draggable/resizable chat window) — used to be
+  // mounted only inside AppShell (isChatMounted was a local useState there),
+  // which meant the popout only existed on the Dashboard route. Moved here,
+  // mounted once in AuthenticatedApp.jsx alongside every route, so it's
+  // reachable everywhere — including from the OPEN_APP_SECTION chat tool
+  // below, which needs to be able to pop it open from any page.
+  isChatMounted: false,
+  mountChat: () => set({ isChatMounted: true }),
+  // ChatBox owns its own open/collapsed state locally; this is just a
+  // signal it watches (any change, not the value itself) to know "something
+  // else wants me open now" without this store needing to know ChatBox's
+  // internal state shape.
+  chatOpenSignal: 0,
+  requestChatOpen: () => set((s) => ({ isChatMounted: true, chatOpenSignal: s.chatOpenSignal + 1 })),
+
+  // OPEN_APP_SECTION (chatActions.js) — a plain module with no router or DOM
+  // access of its own, so "go to this tab/section and highlight it" is a
+  // request dropped here instead of acted on directly. AuthenticatedApp.jsx
+  // (which has router context) is what actually calls navigate() and clears
+  // pendingRoute; pendingHighlightId is read by SectionAnchor.jsx wherever
+  // a tab/settings-section is rendered, and cleared once it's done
+  // scrolling to and pulsing the match.
+  pendingRoute: null,
+  pendingHighlightId: null,
+  openAppSection: (to, highlightId) => set((s) => ({
+    pendingRoute: to,
+    pendingHighlightId: highlightId || null,
+    isChatMounted: true,
+    chatOpenSignal: s.chatOpenSignal + 1,
+  })),
+  consumePendingRoute: () => set({ pendingRoute: null }),
+  clearHighlight: () => set({ pendingHighlightId: null }),
 }));

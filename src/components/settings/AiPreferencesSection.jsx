@@ -184,14 +184,14 @@ export default function AiPreferencesSection() {
             read-only look at your own tasks and projects.{" "}
             {vaultConnected ? (
               <>
-                It also keeps its own notes in your Vaea Vault and logs what happened while you were gone — those
+                It also keeps its own notes in your Vaea Brain and logs what happened while you were gone — those
                 save automatically. Everything else still needs your okay first.
               </>
             ) : (
               <>
                 It can never change anything without asking you first.{" "}
                 <Link to="/app/settings/vault-setup" className="underline underline-offset-2 hover:text-foreground">
-                  Connect Vaea Vault
+                  Connect Vaea Brain
                 </Link>{" "}
                 to let it keep its own notes there too.
               </>

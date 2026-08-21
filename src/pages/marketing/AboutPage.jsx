@@ -10,7 +10,11 @@ const CONTACT_LINKS = [
 ];
 
 export default function AboutPage() {
-  useDocumentMeta("About | Vaea", "/about");
+  useDocumentMeta(
+    "About | Vaea",
+    "/about",
+    "Vaea is a solo-built, solo-maintained personal task manager — not backed by a company or funding. What it is, why it exists, and how to reach the person who builds it."
+  );
 
   return (
     <MarketingLayout>

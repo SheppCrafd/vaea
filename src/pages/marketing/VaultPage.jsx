@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import {
-  ArrowRight, GitBranch, BookOpen, Check, Link2, Search, Sparkles, RefreshCw,
+  ArrowRight, GitBranch, BookOpen, Check, Link2, Search, Sparkles, RefreshCw, Brain,
 } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
@@ -163,6 +163,11 @@ const FEATURES = [
     title: "Opt in separately from everything else",
     body: "Vault access is its own connection, independent of chat or project data. Connect it when you're ready, skip it if you don't use Obsidian.",
   },
+  {
+    icon: Brain,
+    title: "It remembers what matters, on its own",
+    body: "Durable facts about you and your work — no \"remember this\" required — organized by project in Vaea Memory.md, a plain file you can read or correct anytime.",
+  },
 ];
 
 // ─── FAQ ────────────────────────────────────────────────────────────────────
@@ -170,11 +175,11 @@ const FEATURES = [
 const FAQS = [
   {
     q: "Do I need to already use Obsidian?",
-    a: "Yes — Vaea Vault assumes you have an Obsidian vault in a GitHub repo. If you don't use Obsidian, the other parts of Vaea (chat, projects, tasks, connectors) all work perfectly without it. Vault is an optional add-on, not a requirement.",
+    a: "Yes — Vaea Brain assumes you have an Obsidian vault in a GitHub repo. If you don't use Obsidian, the other parts of Vaea (chat, projects, tasks, connectors) all work perfectly without it. Vault is an optional add-on, not a requirement.",
   },
   {
     q: "How does Vaea actually read my notes?",
-    a: "You connect your GitHub account in Settings → Vaea Vault. When you ask Vaea something that might be in your notes, it uses GitHub to search and read the relevant files. Nothing is stored on Vaea's servers between requests — it's a live read, per question.",
+    a: "You connect your GitHub account in Settings → Vaea Brain. When you ask Vaea something that might be in your notes, it uses GitHub to search and read the relevant files. Nothing is stored on Vaea's servers between requests — it's a live read, per question.",
   },
   {
     q: "What does /vault-log actually write?",
@@ -182,14 +187,18 @@ const FAQS = [
   },
   {
     q: "Can Vaea overwrite or delete my existing notes?",
-    a: "Write operations always go through the same confirm-before-anything step as every other change in Vaea. And if you tell Vaea to update an existing note, it reads the current content first and carries everything forward — it never starts from scratch on a note that already exists.",
+    a: "Any note you ask Vaea to write or change goes through the same confirm-before-anything step as every other change in Vaea, and it reads the current content first so it never starts from scratch on a note that already exists. The one exception is Vaea Self.md and Vaea Memory.md — its own working notes about itself and about you — which it updates on its own as things come up, the same way it wouldn't ask permission to remember something you just told it. You can always read, edit, or delete anything it's written there.",
   },
   {
     q: "What's in Vaea Self.md and who controls it?",
     a: "Vaea Self.md lives in your vault. The Identity section is set by you through Settings → AI Preferences, and Vaea never touches it. The Notes section is where Vaea records its own self-observations — plain prose, one line per observation. You can read it, edit it, and delete any entry you disagree with.",
   },
   {
-    q: "Is Vaea Vault available offline?",
+    q: "What's in Vaea Memory.md?",
+    a: "Durable facts about you and your work that come up naturally in conversation — your fiscal year, how you like updates delivered, who reports to whom — organized by project so a detail from one doesn't bleed into another. It's separate from Vaea Self.md (that one's about how the assistant behaves, this one's about you), lives in your own vault, and you can read or correct it in Settings → Vaea Brain anytime.",
+  },
+  {
+    q: "Is Vaea Brain available offline?",
     a: "Reading and writing vault notes require a live internet connection to GitHub. In Local Mode, chat itself runs entirely offline, but vault reads still check GitHub when needed. If you need fully offline note-taking, that's Obsidian's own job — Vaea just reads alongside it.",
   },
 ];
@@ -199,9 +208,9 @@ const FAQS = [
 const VAULT_PAGE_SCHEMA = {
   "@context": "https://schema.org",
   "@type": "WebPage",
-  "name": "Vaea Vault — AI that reads and writes your personal notes",
+  "name": "Vaea Brain — AI that reads and writes your personal notes",
   "url": "https://vaea.base44.app/vault",
-  "description": "Vaea Vault connects your Obsidian notes (stored in your own GitHub repo) to Vaea Chat. The AI reads your notes for context and writes to them when you ask — every write is a real git commit. No proprietary format, no server storage.",
+  "description": "Vaea Brain connects your Obsidian notes (stored in your own GitHub repo) to Vaea Chat. The AI reads your notes for context and writes to them when you ask — every write is a real git commit. No proprietary format, no server storage.",
   "isPartOf": { "@type": "WebSite", "url": "https://vaea.base44.app/" },
 };
 
@@ -218,7 +227,11 @@ const VAULT_FAQ_SCHEMA = {
 // ─── page ────────────────────────────────────────────────────────────────────
 
 export default function VaultPage() {
-  useDocumentMeta("Vaea Vault — AI that reads and writes your personal notes", "/vault");
+  useDocumentMeta(
+    "Vaea Brain — AI that reads and writes your personal notes",
+    "/vault",
+    "Connect your own Obsidian vault on GitHub and Vaea Chat can read your notes for context and write real, committed changes back — nothing stored on Vaea's servers."
+  );
   usePageSchema(VAULT_PAGE_SCHEMA);
   usePageSchema(VAULT_FAQ_SCHEMA);
 
@@ -231,7 +244,7 @@ export default function VaultPage() {
         <Grain />
         <div className="relative max-w-5xl mx-auto px-6 pt-20 sm:pt-28 pb-16 sm:pb-20">
           <Reveal className="text-center mb-12">
-            <p className={`${eyebrowOnDark} mb-5`}>Vaea Vault</p>
+            <p className={`${eyebrowOnDark} mb-5`}>Vaea Brain</p>
             <h1 className={`${displayXL} max-w-3xl mx-auto`}>
               Your notes remember what you do.
             </h1>
@@ -396,7 +409,7 @@ export default function VaultPage() {
           <Reveal>
             <h2 className={displayL}>Your notes. Your backup.<br />Your AI reads them all.</h2>
             <p className="mt-5 text-muted-foreground max-w-md mx-auto leading-relaxed">
-              Connect once in Settings → Vaea Vault. After that, "what did I
+              Connect once in Settings → Vaea Brain. After that, "what did I
               decide last month?" is the whole question — Vaea goes and looks.
             </p>
             <div className="mt-10 flex items-center justify-center gap-5 flex-wrap">

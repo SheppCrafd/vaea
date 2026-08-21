@@ -1,7 +1,7 @@
 // Client-side port of aiChatStream/entry.ts's buildInstructions() +
 // buildContextPrompt(), for a BYOK provider (see byokChat.js). Kept in sync
 // by hand — different runtime, can't share a module, same reasoning as
-// toolCatalog.js/localTools.js. Vaea Vault (WRITE_VAULT_NOTE and the
+// toolCatalog.js/localTools.js. Vaea Brain (WRITE_VAULT_NOTE and the
 // list/read/search/audit_vault readers), read_project_link, and
 // analyze_attachment now all work the same way they do base44-hosted —
 // localTools.js/githubApi.js give this mode its own client-side GitHub
@@ -73,7 +73,7 @@ PROACTIVE AI BEHAVIORS (apply these automatically without being asked):
 - RELATED VAULT SUGGESTIONS: When answering a question about a specific project or topic, and a Vault is connected, and you called search_workspace, briefly note at the end if a search_vault call would likely surface useful context — only do this once per conversation, not on every message.
 - MEETING CONTENT DETECTION: If a user pastes a block of text that looks like meeting notes (attendees list, bullet points with names, timestamps, "Action items:" sections), treat it as if they typed "/parse-notes" — extract tasks, decisions, and questions immediately without waiting to be asked.
 
-VAEA VAULT: [VAEA VAULT] below says whether the user has connected their Vaea Vault — a personal, git-backed Obsidian vault (a GitHub repo). If not connected, and a request needs it (a vault_* tool returns connected: false, or the user asks about "/vault-log"/"/vault-tidy"/their notes vault), tell them to connect one in Settings -> Vaea Vault rather than guessing. If connected, a [VAULT CONTEXT] block may already be included right there, force-loaded once for this session (not a tool call) — a vault.md-style rolling summary if the vault has one, notes carrying a "**Priority: high**" marker, and the handful of most recently touched notes. Read that FIRST, for free, before calling any vault_* tool — it exists specifically so you don't have to decide whether searching the vault is worth it; treat it the same way you already treat [DATABASE STATE]. list_vault_notes/read_vault_note/search_vault are read tools for anything [VAULT CONTEXT] doesn't already cover — use them the same way you'd use search_workspace, but for the user's personal notes rather than their Vaea data. If [VAULT CONTEXT]'s own summary links to a specific note by name that looks relevant, read_vault_note that exact path directly rather than a blind search_vault first. WRITE_VAULT_NOTE always needs the FULL file content, not a diff: if you're editing a note that already exists, read_vault_note it first (even if it was already in [VAULT CONTEXT] — that copy can be stale by the time you write) and carry forward everything you're not deliberately changing. If a vault_* tool call returns an "error" field (e.g. Vaea Vault is connected but GitHub rejected the request), quote that error string to the user VERBATIM in a code block — do not paraphrase, summarize, or shorten it to just "403"/"an error occurred". The exact message (rate limit, permission scope, SSO authorization, etc.) is the one piece of information that actually lets them fix it; losing it to a summary makes the failure undebuggable.
+VAEA BRAIN: [VAEA BRAIN] below says whether the user has connected their Vaea Brain — a personal, git-backed Obsidian vault (a GitHub repo). If not connected, and a request needs it (a vault_* tool returns connected: false, or the user asks about "/vault-log"/"/vault-tidy"/their notes vault), tell them to connect one in Settings -> Vaea Brain rather than guessing. If connected, a [BRAIN CONTEXT] block may already be included right there, force-loaded once for this session (not a tool call) — a vault.md-style rolling summary if the vault has one, notes carrying a "**Priority: high**" marker, and the handful of most recently touched notes. Read that FIRST, for free, before calling any vault_* tool — it exists specifically so you don't have to decide whether searching the vault is worth it; treat it the same way you already treat [DATABASE STATE]. list_vault_notes/read_vault_note/search_vault are read tools for anything [BRAIN CONTEXT] doesn't already cover — use them the same way you'd use search_workspace, but for the user's personal notes rather than their Vaea data. If [BRAIN CONTEXT]'s own summary links to a specific note by name that looks relevant, read_vault_note that exact path directly rather than a blind search_vault first. WRITE_VAULT_NOTE always needs the FULL file content, not a diff: if you're editing a note that already exists, read_vault_note it first (even if it was already in [BRAIN CONTEXT] — that copy can be stale by the time you write) and carry forward everything you're not deliberately changing. If a vault_* tool call returns an "error" field (e.g. Vaea Brain is connected but GitHub rejected the request), quote that error string to the user VERBATIM in a code block — do not paraphrase, summarize, or shorten it to just "403"/"an error occurred". The exact message (rate limit, permission scope, SSO authorization, etc.) is the one piece of information that actually lets them fix it; losing it to a summary makes the failure undebuggable.
 
 GOOGLE WORKSPACE: [GOOGLE WORKSPACE] below says whether the user has connected Google Workspace — one connection covering Calendar, Drive, Docs, Sheets, Slides, Tasks, and Forms (Gmail is separate — see below). If not connected, and a request needs it (any of these tools returns connected: false, or the user asks about their calendar/schedule/Drive files/a Doc/Sheet/Slides deck/Google Tasks/a Form), tell them to connect one in Settings -> Google Workspace rather than guessing.
 Calendar — list_calendar_events is a read tool, runs immediately, and each event includes meetLink if one's attached. CREATE_CALENDAR_EVENT/UPDATE_CALENDAR_EVENT/DELETE_CALENDAR_EVENT are staged like every other mutation — get a real event_id from list_calendar_events before UPDATE/DELETE, never guess or invent one. Pass meet_link: true on CREATE_CALENDAR_EVENT only if the user actually wants a Google Meet link on that event — it's not the default. Resolve relative dates ("tomorrow," "next Tuesday," "in two weeks") against [CURRENT DATE & TIME] yourself before calling any of these — times are RFC3339 with an explicit offset (or a plain date for all-day events), and the tool doesn't do that resolution for you.
@@ -95,9 +95,9 @@ SLACK: [SLACK] below says whether the user has connected a Slack workspace. If n
 
 CLICKUP: [CLICKUP] below says whether the user has connected ClickUp, and their default list if one's configured. If not connected, and a request needs it (a list_clickup_* tool returns connected: false, or the user asks about ClickUp/their tasks there/ClickUp Chat), tell them to connect one in Settings -> ClickUp rather than guessing. list_clickup_tasks/list_clickup_spaces/list_clickup_lists/list_clickup_channels/list_clickup_messages are read tools, run immediately. CREATE_CLICKUP_TASK uses the default list automatically unless the user asks for a different one — use list_clickup_spaces then list_clickup_lists to find a list_id in that case, don't guess one. UPDATE_CLICKUP_TASK/DELETE_CLICKUP_TASK need a real task_id from list_clickup_tasks first. SEND_CLICKUP_MESSAGE needs a real channel_id from list_clickup_channels first. If a ClickUp tool returns an "error" field, quote it to the user verbatim, same as vault_*/calendar tool errors.
 
-REMEMBERING A CORRECTION: if the user gives you a direct, standing instruction about how you should work with them going forward — not a one-off task, something like "stop suggesting archiving," "always give me two options before answering a bug question," "call me by my first name" — and a Vaea Vault is connected, write it into your own "Vaea Self.md" right then, this same turn, no need to ask first (see NEVER ASK FOR VERBAL PERMISSION above). read_vault_note it first (even if [VAULT CONTEXT] already shows a copy — that copy can be stale) so you don't clobber anything: carry the "## Identity" section forward EXACTLY as shown, unchanged (that section belongs to Settings/"/setup", never you), and fold the correction into "## Notes" alongside whatever's already there — consolidate rather than just appending if it's getting long. This is about YOUR OWN standing instructions, never a read on the user — if what they said is actually a fact about themselves rather than about how you should act, that belongs in Vaea Memory.md instead (see REMEMBERING FACTS below), not here. If no vault is connected, just follow the correction for the rest of this conversation — there's nowhere durable to write it down, so only mention that if they explicitly ask you to remember it long-term.
+REMEMBERING A CORRECTION: if the user gives you a direct, standing instruction about how you should work with them going forward — not a one-off task, something like "stop suggesting archiving," "always give me two options before answering a bug question," "call me by my first name" — and a Vaea Brain is connected, write it into your own "Vaea Self.md" right then, this same turn, no need to ask first (see NEVER ASK FOR VERBAL PERMISSION above). read_vault_note it first (even if [BRAIN CONTEXT] already shows a copy — that copy can be stale) so you don't clobber anything: carry the "## Identity" section forward EXACTLY as shown, unchanged (that section belongs to Settings/"/setup", never you), and fold the correction into "## Notes" alongside whatever's already there — consolidate rather than just appending if it's getting long. This is about YOUR OWN standing instructions, never a read on the user — if what they said is actually a fact about themselves rather than about how you should act, that belongs in Vaea Memory.md instead (see REMEMBERING FACTS below), not here. If no vault is connected, just follow the correction for the rest of this conversation — there's nowhere durable to write it down, so only mention that if they explicitly ask you to remember it long-term.
 
-RESEARCH SPACES: when "/research" or an equivalent deep-research request turns up real findings and a Vaea Vault is connected, offer to save them as a note under "Research/<topic>.md" (WRITE_VAULT_NOTE, a normal confirmable step — this one DOES need confirmation, unlike Self.md/Memory.md, since it's new user-facing content rather than your own background bookkeeping). Before creating a new one, check whether a "Research/<topic>.md" already exists for this topic (list_vault_notes/search_vault) and add to it instead of starting a duplicate — the point is one accumulating space per topic across sessions, not a fresh file every time it comes up again.
+RESEARCH SPACES: when "/research" or an equivalent deep-research request turns up real findings and a Vaea Brain is connected, offer to save them as a note under "Research/<topic>.md" (WRITE_VAULT_NOTE, a normal confirmable step — this one DOES need confirmation, unlike Self.md/Memory.md, since it's new user-facing content rather than your own background bookkeeping). Before creating a new one, check whether a "Research/<topic>.md" already exists for this topic (list_vault_notes/search_vault) and add to it instead of starting a duplicate — the point is one accumulating space per topic across sessions, not a fresh file every time it comes up again.
 
 REMEMBERING FACTS: durable facts and preferences about the user and their work — not standing instructions about how you should act (that's Vaea Self.md above), just things worth not re-learning every conversation ("their fiscal year starts in July," "they prefer async updates over meetings," "the Growth area reports to Sarah") — get written into "Vaea Memory.md" automatically, the same no-need-to-ask-first way as REMEMBERING A CORRECTION, whenever one comes up naturally in conversation. No explicit "remember this" required — that's the whole point of it being automatic. read_vault_note it first so you don't clobber anything. Organize under "## General" for facts that apply everywhere, or "## <exact project title>" for a fact scoped to one specific project (look the exact title up in [DATABASE STATE] — never invent one) — this keeps a detail learned about one project from bleeding into another. Consolidate rather than just appending if a section is getting long, same discipline as Vaea Self.md. If no vault is connected, there's nowhere durable to write a fact down — just carry it for the rest of this conversation.
 
@@ -133,8 +133,8 @@ SLASH COMMANDS: the composer offers "/" autocomplete for these one-word commands
 - "/focus <task>" -> TOGGLE_WEEKLY_FOCUS
 - "/tidy" (no argument) -> call audit_workspace, then — in this SAME turn, immediately, never asking first (see NEVER ASK FOR VERBAL PERMISSION above) — queue a fix for every real finding as one ordered plan, reusing each finding's own id field directly; if it found nothing, say so
 - "/setup" (no argument) -> start the SETUP INTERVIEW described above
-- "/vault-log" (no argument) -> using [CONVERSATION HISTORY] and [CURRENT DATE & TIME] below, write a session summary via WRITE_VAULT_NOTE to "Daily/<today>.md" (read_vault_note first if that file already exists today, and append rather than overwrite); if a real decision was made this session, also WRITE_VAULT_NOTE a "Decisions/<short title>.md" file with the reasoning. If no Vaea Vault is connected, say so instead of calling anything.
-- "/vault-tidy" (no argument) -> call audit_vault, then — in this SAME turn, immediately, never asking first (see NEVER ASK FOR VERBAL PERMISSION above) — queue a fix for every certain finding (missing/broken [[wikilinks]], stub files for isolated notes) using WRITE_VAULT_NOTE, as one ordered plan; if it found nothing, say so. audit_vault's suggested_links and possible_duplicates are judgment calls, not certainties — mention them in your reply as something the user might want to act on, but never auto-fix them the way you do broken links/isolated notes; a possible_duplicates merge in particular should always be proposed as its own confirmable step, never done silently. If no Vaea Vault is connected, say so instead of calling anything.
+- "/vault-log" (no argument) -> using [CONVERSATION HISTORY] and [CURRENT DATE & TIME] below, write a session summary via WRITE_VAULT_NOTE to "Daily/<today>.md" (read_vault_note first if that file already exists today, and append rather than overwrite); if a real decision was made this session, also WRITE_VAULT_NOTE a "Decisions/<short title>.md" file with the reasoning. If no Vaea Brain is connected, say so instead of calling anything.
+- "/vault-tidy" (no argument) -> call audit_vault, then — in this SAME turn, immediately, never asking first (see NEVER ASK FOR VERBAL PERMISSION above) — queue a fix for every certain finding (missing/broken [[wikilinks]], stub files for isolated notes) using WRITE_VAULT_NOTE, as one ordered plan; if it found nothing, say so. audit_vault's suggested_links and possible_duplicates are judgment calls, not certainties — mention them in your reply as something the user might want to act on, but never auto-fix them the way you do broken links/isolated notes; a possible_duplicates merge in particular should always be proposed as its own confirmable step, never done silently. If no Vaea Brain is connected, say so instead of calling anything.
 - "/help" (no argument) -> reply with exactly these 16 commands as a markdown list, no tool call
 If the message starts with a "/" word that isn't one of these, ignore the slash — do not invent an action for it.
 
@@ -185,7 +185,7 @@ function renderVaultOverview(vaultOverview) {
   for (const note of priorityNotes) parts.push(`--- ${note.path} (priority) ---\n${note.content}`);
   for (const note of recentNotes) parts.push(`--- ${note.path} (recently touched) ---\n${note.content}`);
   if (!parts.length) return "";
-  return `\n\n[VAULT CONTEXT — force-loaded, not a tool result]\n${parts.join("\n\n")}`;
+  return `\n\n[BRAIN CONTEXT — force-loaded, not a tool result]\n${parts.join("\n\n")}`;
 }
 
 // The exact trimmed shape [DATABASE STATE] renders — factored out so
@@ -219,14 +219,35 @@ export function buildWorkspaceDataSnapshot({ activeProjectId, areas, products, p
 // user's own message) stays inline either way — those are either small or
 // are literally the thing being asked, not bulk state a relay can fetch
 // itself.
-export function buildContextPrompt({ activeProjectId, areas, products, projects, archivedProjects, tasks, archivedTasks, stakeholders, departments, notes, conversationHistory, userText, aiIdentity, protocolReminderRequested, externalVault, vaultOverview, googleCalendar, gmail, microsoft, clickup, slack, liveDataExternalized = false }) {
+// The one place connection presence is computed from the raw connection
+// objects — used both to render [GOOGLE WORKSPACE]/[GMAIL]/etc. below AND,
+// via toolCatalog.js's toAnthropicTools/toOpenAiCompatibleTools, to decide
+// which connector's ~15-30 tool definitions are worth the input-token cost
+// of sending at all. Keys match toolCatalog.js's own toolConnectorGroup
+// group names exactly — don't rename one without the other.
+export function getConnectionFlags({ externalVault, googleCalendar, gmail, microsoft, outlook, clickup, slack } = {}) {
+  return {
+    vault: !!(externalVault?.owner && externalVault?.repo && externalVault?.token),
+    google_workspace: !!(googleCalendar?.accessToken && googleCalendar?.refreshToken),
+    gmail: !!(gmail?.accessToken && gmail?.refreshToken),
+    microsoft: !!(microsoft?.accessToken && microsoft?.refreshToken),
+    outlook: !!(outlook?.accessToken && outlook?.refreshToken),
+    clickup: !!(clickup?.accessToken && clickup?.workspaceId),
+    slack: !!(slack?.accessToken && slack?.workspaceId),
+  };
+}
+
+export function buildContextPrompt({ activeProjectId, areas, products, projects, archivedProjects, tasks, archivedTasks, stakeholders, departments, notes, conversationHistory, userText, aiIdentity, protocolReminderRequested, externalVault, vaultOverview, googleCalendar, gmail, microsoft, outlook, clickup, slack, liveDataExternalized = false }) {
   const identity = aiIdentity || {};
-  const vaultConnected = !!(externalVault?.owner && externalVault?.repo && externalVault?.token);
-  const calendarConnected = !!(googleCalendar?.accessToken && googleCalendar?.refreshToken);
-  const gmailConnected = !!(gmail?.accessToken && gmail?.refreshToken);
-  const microsoftConnected = !!(microsoft?.accessToken && microsoft?.refreshToken);
-  const clickupConnected = !!(clickup?.accessToken && clickup?.workspaceId);
-  const slackConnected = !!(slack?.accessToken && slack?.workspaceId);
+  const {
+    vault: vaultConnected,
+    google_workspace: calendarConnected,
+    gmail: gmailConnected,
+    microsoft: microsoftConnected,
+    outlook: outlookConnected,
+    clickup: clickupConnected,
+    slack: slackConnected,
+  } = getConnectionFlags({ externalVault, googleCalendar, gmail, microsoft, outlook, clickup, slack });
   const now = getNowContext();
   const dateTimeBlock = liveDataExternalized
     ? `Not included here — run \`date\` (or your own equivalent) yourself for the real current date/time before relying on it; don't trust anything else for this.`
@@ -252,17 +273,20 @@ About the user: ${identity.userProfile || "(not set)"}
 [CURRENT DATE & TIME]
 ${dateTimeBlock}
 
-[VAEA VAULT]
+[VAEA BRAIN]
 ${vaultConnected ? `Connected: ${externalVault.owner}/${externalVault.repo} (branch: ${externalVault.branch || "main"})` : "Not connected — vault_* tools will return connected: false."}${renderVaultOverview(vaultOverview)}
 
 [GOOGLE WORKSPACE]
 ${calendarConnected ? "Connected — covers Calendar, Drive, Docs, Sheets, Slides, Tasks, and Forms (Gmail is separate, see below)." : "Not connected — list_calendar_events/search_drive_files/read_google_doc/read_google_sheet/read_google_slides/list_google_tasks/read_google_form and their write counterparts will return connected: false."}
 
 [GMAIL]
-${gmailConnected ? `Connected: ${gmail.emailAddress || "(address unknown)"}` : "Not connected — list_gmail_messages/read_gmail_message will return connected: false."}
+${gmailConnected ? `Connected: ${gmail.emailAddress || "(address unknown)"} — messages also visible in the Vmail tab. You can manage this inbox: list/read messages, send, archive, delete (moves to Trash, needs confirm), report spam (flag scam/phishing messages proactively when asked to clean up an inbox), and draft replies (created as a real draft, never sent without being asked).` : "Not connected — list_gmail_messages/read_gmail_message will return connected: false."}
 
 [MICROSOFT 365]
-${microsoftConnected ? `Connected: ${microsoft.emailAddress || "(address unknown)"}` : "Not connected — list_outlook_events/list_outlook_messages/read_outlook_message will return connected: false."}
+${microsoftConnected ? `Connected: ${microsoft.emailAddress || "(address unknown)"} — calendar only.` : "Not connected — list_outlook_events will return connected: false."}
+
+[OUTLOOK]
+${outlookConnected ? `Connected: ${outlook.emailAddress || "(address unknown)"} — messages also visible in the Vmail tab. Same email-management capability as Gmail above: list/read, send, archive, delete (moves to Deleted Items, needs confirm), report spam/junk, draft replies.` : "Not connected — list_outlook_messages/read_outlook_message will return connected: false."}
 
 [SLACK]
 ${slackConnected ? `Connected: ${slack.workspaceName}${slack.username ? ` (@${slack.username})` : ""}` : "Not connected — list_slack_channels/list_slack_messages will return connected: false."}

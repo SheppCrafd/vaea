@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { X, Plus, ChevronLeft, Paperclip, Maximize2, Info, Settings } from "lucide-react";
+import { useAppStore } from "@/lib/store";
 import { useSharedChatController } from "@/lib/ChatControllerContext";
 import { useWindowGeometry } from "@/hooks/useWindowGeometry";
 import { useSlashCommand } from "@/hooks/useSlashCommand";
@@ -32,6 +33,20 @@ export default function ChatBox({ startOpen = false }) {
 
   const chat = useSharedChatController();
   const { geometry, startMove, startResize } = useWindowGeometry();
+
+  // OPEN_APP_SECTION (chatActions.js) calls store.openAppSection(), which
+  // bumps chatOpenSignal — this panel might currently be collapsed (just a
+  // launcher button) on whatever page the tool is about to navigate to, so
+  // it needs its own signal to reopen, separate from startOpen (which only
+  // matters for this component's very first mount).
+  const chatOpenSignal = useAppStore((s) => s.chatOpenSignal);
+  const lastSeenSignal = useRef(chatOpenSignal);
+  useEffect(() => {
+    if (chatOpenSignal !== lastSeenSignal.current) {
+      lastSeenSignal.current = chatOpenSignal;
+      setIsChatOpen(true);
+    }
+  }, [chatOpenSignal]);
   const slashCommand = useSlashCommand(chat.input, chat.setInput);
   const inputHistory = useChatInputHistory({ messages: chat.chatState.messages, input: chat.input, setInput: chat.setInput });
 

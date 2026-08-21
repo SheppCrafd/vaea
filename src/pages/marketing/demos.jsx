@@ -287,7 +287,7 @@ export function NestFilm({ step }) {
   );
 }
 
-// --- 4. Vaea Vault ----------------------------------------------------------
+// --- 4. Vaea Brain ----------------------------------------------------------
 // A note being written into your own Obsidian vault, then committed. The
 // commit strip is the one visual that makes "backed up to your own GitHub,
 // not stored by us" land at a glance instead of asking you to trust the copy.

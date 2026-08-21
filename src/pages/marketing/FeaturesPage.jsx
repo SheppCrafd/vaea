@@ -21,7 +21,7 @@ const GROUPS = [
     ],
   },
   {
-    title: "Vaea Vault",
+    title: "Vaea Brain",
     lede: "Optional: connect your own Obsidian notes and let the assistant read and write them too — decisions, things you've learned, a running daily log.",
     items: [
       { icon: BookOpen, title: "A personal notes vault, still yours", body: "Your Obsidian notes on your own GitHub account — write the way you already do, nothing new to learn." },
@@ -71,7 +71,11 @@ const FEATURES_PAGE_SCHEMA = {
 };
 
 export default function FeaturesPage() {
-  useDocumentMeta("Features | Vaea", "/features");
+  useDocumentMeta(
+    "Features | Vaea",
+    "/features",
+    "Every real feature in Vaea: the Areas/Products/Projects/Tasks hierarchy, Vaea Chat's connectors, Vaea Calendar, Vmail, Vaea Brain, and more — no vaporware."
+  );
   usePageSchema(FEATURES_PAGE_SCHEMA);
 
   return (

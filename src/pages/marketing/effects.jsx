@@ -233,6 +233,11 @@ export function StageLight({ className = "" }) {
 // reloads index.html.
 const SITE_ORIGIN = "https://vaea.base44.app";
 
+function setMetaContent(selector, content) {
+  const el = document.head.querySelector(selector);
+  if (el) el.setAttribute("content", content);
+}
+
 export function useDocumentMeta(title, path, description) {
   useEffect(() => {
     document.title = title;
@@ -242,10 +247,20 @@ export function useDocumentMeta(title, path, description) {
       link.setAttribute("rel", "canonical");
       document.head.appendChild(link);
     }
-    link.setAttribute("href", `${SITE_ORIGIN}${path}`);
+    const url = `${SITE_ORIGIN}${path}`;
+    link.setAttribute("href", url);
+    // og:title/twitter:title and og:url used to stay hardcoded to whatever
+    // index.html shipped with (the homepage's own values) on every route —
+    // sharing a link to any other page showed the homepage's card. Title
+    // and url are always safe to set per-route; description only when the
+    // caller passed one (some pages, e.g. legal ones, intentionally don't).
+    setMetaContent('meta[property="og:title"]', title);
+    setMetaContent('meta[name="twitter:title"]', title);
+    setMetaContent('meta[property="og:url"]', url);
     if (description) {
-      const meta = document.head.querySelector('meta[name="description"]');
-      if (meta) meta.setAttribute("content", description);
+      setMetaContent('meta[name="description"]', description);
+      setMetaContent('meta[property="og:description"]', description);
+      setMetaContent('meta[name="twitter:description"]', description);
     }
   }, [title, path, description]);
 }

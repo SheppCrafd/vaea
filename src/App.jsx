@@ -23,6 +23,11 @@ import TermsPage from '@/pages/marketing/TermsPage';
 import ComparePage from '@/pages/marketing/ComparePage';
 import ChatPage from '@/pages/marketing/ChatPage';
 import VaultPage from '@/pages/marketing/VaultPage';
+import CalendarPage from '@/pages/marketing/CalendarPage';
+import VmailPage from '@/pages/marketing/VmailPage';
+import MeetingsPage from '@/pages/marketing/MeetingsPage';
+import WorkflowsPage from '@/pages/marketing/WorkflowsPage';
+import MindMapPage from '@/pages/marketing/MindMapPage';
 // Everything reachable only via /app/* — Dashboard, AppShell, the chat
 // controller, the command palette, the device storage gate — is lazy too,
 // same as /chat and /settings already were. Anonymous visitors landing on
@@ -58,6 +63,11 @@ function App() {
                       <Route path="/compare" element={<ComparePage />} />
                       <Route path="/chat" element={<ChatPage />} />
                       <Route path="/vault" element={<VaultPage />} />
+                      <Route path="/calendar" element={<CalendarPage />} />
+                      <Route path="/vmail" element={<VmailPage />} />
+                      <Route path="/meetings" element={<MeetingsPage />} />
+                      <Route path="/workflows" element={<WorkflowsPage />} />
+                      <Route path="/mindmap" element={<MindMapPage />} />
                       <Route path="/privacy" element={<PrivacyPage />} />
                       <Route path="/terms" element={<TermsPage />} />
                       <Route path="/login" element={<LoginPage />} />

@@ -469,13 +469,51 @@ describe("chatActions: destructive-action classification", () => {
   });
 });
 
+describe("chatActions: OPEN_APP_SECTION", () => {
+  it("navigates to a plain tab and highlights the tab itself, not a settings section", async () => {
+    const { useAppStore } = await import("./store.js");
+    const { toolResult } = await executeAction("OPEN_APP_SECTION", { tab: "vmail" });
+    expect(toolResult).toEqual({ opened: "vmail", section: null });
+    const state = useAppStore.getState();
+    expect(state.pendingRoute).toBe("/app/vmail");
+    expect(state.pendingHighlightId).toBe("tab:vmail");
+    expect(state.isChatMounted).toBe(true);
+  });
+
+  it("navigates to Settings with a section and highlights that section, not the Settings tab", async () => {
+    const { useAppStore } = await import("./store.js");
+    const { toolResult } = await executeAction("OPEN_APP_SECTION", { tab: "settings", settings_section: "outlook" });
+    expect(toolResult).toEqual({ opened: "settings", section: "outlook" });
+    const state = useAppStore.getState();
+    expect(state.pendingRoute).toBe("/app/settings");
+    expect(state.pendingHighlightId).toBe("settings:outlook");
+  });
+
+  it("ignores settings_section on a non-settings tab — highlights the tab, not a phantom section", async () => {
+    const { useAppStore } = await import("./store.js");
+    await executeAction("OPEN_APP_SECTION", { tab: "calendar", settings_section: "outlook" });
+    expect(useAppStore.getState().pendingHighlightId).toBe("tab:calendar");
+  });
+
+  it("throws on an unknown tab key rather than navigating nowhere silently", async () => {
+    await expect(executeAction("OPEN_APP_SECTION", { tab: "nonexistent" })).rejects.toThrow(/unknown tab/i);
+  });
+
+  it("bumps chatOpenSignal so a collapsed ChatBox reopens", async () => {
+    const { useAppStore } = await import("./store.js");
+    const before = useAppStore.getState().chatOpenSignal;
+    await executeAction("OPEN_APP_SECTION", { tab: "meetings" });
+    expect(useAppStore.getState().chatOpenSignal).toBe(before + 1);
+  });
+});
+
 describe("chatActions: WRITE_VAULT_NOTE", () => {
   beforeEach(() => {
     globalThis.fetch = vi.fn();
   });
 
   it("throws without ever calling fetch when no vault is connected", async () => {
-    await expect(executeAction("WRITE_VAULT_NOTE", { path: "Daily/2026-07-22.md", content: "x" })).rejects.toThrow(/no vaea vault connected/i);
+    await expect(executeAction("WRITE_VAULT_NOTE", { path: "Daily/2026-07-22.md", content: "x" })).rejects.toThrow(/no vaea brain connected/i);
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 

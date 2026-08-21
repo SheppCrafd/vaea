@@ -179,7 +179,7 @@ export default function MindMapPage() {
           <div className="max-w-2xl mx-auto pt-4">
             <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-8 text-center">
               <Network className="w-6 h-6 text-muted-foreground mx-auto mb-3" />
-              <p className="text-sm font-medium">Connect your Vaea Vault first</p>
+              <p className="text-sm font-medium">Connect your Vaea Brain first</p>
               <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
                 The map is built from how your real notes link to each other.
               </p>

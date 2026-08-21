@@ -333,7 +333,7 @@ export default function LocalModeSetupGuidePage() {
                 <p className="font-heading font-semibold text-sm mb-1">The one thing it can't do</p>
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   Web search — running your own model means no hosted search to inherit. Reading attached files
-                  and Vaea Vault notes both still work normally.
+                  and Vaea Brain notes both still work normally.
                 </p>
               </div>
             </div>
