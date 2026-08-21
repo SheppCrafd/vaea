@@ -37,7 +37,6 @@ const SlackOAuthCallbackPage = lazy(() => import('@/pages/SlackOAuthCallbackPage
 const VaeaCalendarPage = lazy(() => import('@/pages/VaeaCalendarPage'));
 const MeetingsPage = lazy(() => import('@/pages/MeetingsPage'));
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
-const WorkflowCanvasPage = lazy(() => import('@/pages/WorkflowCanvasPage'));
 const MindMapPage = lazy(() => import('@/pages/MindMapPage'));
 const VmailPage = lazy(() => import('@/pages/VmailPage'));
 // Add page imports here
@@ -160,7 +159,9 @@ const AuthenticatedApp = () => {
                 <Route path="calendar" element={<VaeaCalendarPage />} />
                 <Route path="meetings" element={<MeetingsPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
-                <Route path="workflows" element={<WorkflowCanvasPage />} />
+                {/* Workflows folded into Mind Map as its second tab — keep the
+                    old URL working for anyone with it bookmarked/linked. */}
+                <Route path="workflows" element={<Navigate to="/app/mindmap" replace />} />
                 <Route path="mindmap" element={<MindMapPage />} />
                 <Route path="vmail" element={<VmailPage />} />
                 {/* Add your page Route elements here */}

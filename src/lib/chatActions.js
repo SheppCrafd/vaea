@@ -981,9 +981,12 @@ export async function executeAction(action, args) {
     case "OPEN_APP_SECTION": {
       const tabEntry = TABS.find((t) => t.key === args.tab);
       if (!tabEntry) throw new Error(`Unknown tab "${args.tab}". Valid tabs: ${TABS.map((t) => t.key).join(", ")}.`);
-      const highlightId = args.tab === "settings" && args.settings_section ? `settings:${args.settings_section}` : `tab:${args.tab}`;
+      const highlightId =
+        args.tab === "settings" && args.settings_section ? `settings:${args.settings_section}`
+        : args.tab === "mindmap" && args.mindmap_tab ? `mindmap:${args.mindmap_tab}`
+        : `tab:${args.tab}`;
       useAppStore.getState().openAppSection(tabEntry.to, highlightId);
-      return { toolResult: { opened: args.tab, section: args.settings_section || null } };
+      return { toolResult: { opened: args.tab, section: args.settings_section || args.mindmap_tab || null } };
     }
 
     case "CREATE_OUTLOOK_EVENT": {
