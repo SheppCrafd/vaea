@@ -7,7 +7,7 @@ import { hairlineH, focusRing } from "./theme";
 const NAV_LINKS = [
   { to: "/features", label: "Features" },
   { to: "/chat", label: "Vaea Chat" },
-  { to: "/vault", label: "Vault" },
+  { to: "/vault", label: "Vaea Vault" },
   { to: "/how-it-works", label: "How it works" },
   { to: "/compare", label: "Compare" },
   { to: "/about", label: "About" },
