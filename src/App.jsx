@@ -23,10 +23,7 @@ import TermsPage from '@/pages/marketing/TermsPage';
 import ComparePage from '@/pages/marketing/ComparePage';
 import ChatPage from '@/pages/marketing/ChatPage';
 import VaultPage from '@/pages/marketing/VaultPage';
-import CalendarPage from '@/pages/marketing/CalendarPage';
-import VmailPage from '@/pages/marketing/VmailPage';
-import MeetingsPage from '@/pages/marketing/MeetingsPage';
-import MindMapPage from '@/pages/marketing/MindMapPage';
+import WorkplacePage from '@/pages/marketing/WorkplacePage';
 // Everything reachable only via /app/* — Dashboard, AppShell, the chat
 // controller, the command palette, the device storage gate — is lazy too,
 // same as /chat and /settings already were. Anonymous visitors landing on
@@ -62,13 +59,17 @@ function App() {
                       <Route path="/compare" element={<ComparePage />} />
                       <Route path="/chat" element={<ChatPage />} />
                       <Route path="/vault" element={<VaultPage />} />
-                      <Route path="/calendar" element={<CalendarPage />} />
-                      <Route path="/vmail" element={<VmailPage />} />
-                      <Route path="/meetings" element={<MeetingsPage />} />
-                      {/* Workflows folded into Mind Map as its second tab — keep the
+                      <Route path="/workplace" element={<WorkplacePage />} />
+                      {/* Calendar, Vmail, and Meetings folded into one "Vaea Workplace"
+                          marketing page — keep the old URLs working for anyone with
+                          them bookmarked/linked. */}
+                      <Route path="/calendar" element={<Navigate to="/workplace" replace />} />
+                      <Route path="/vmail" element={<Navigate to="/workplace" replace />} />
+                      <Route path="/meetings" element={<Navigate to="/workplace" replace />} />
+                      {/* Workflows folded into Vaea Brain (Vault) as a tab within it — keep the
                           old URL working for anyone with it bookmarked/linked. */}
-                      <Route path="/workflows" element={<Navigate to="/mindmap" replace />} />
-                      <Route path="/mindmap" element={<MindMapPage />} />
+                      <Route path="/workflows" element={<Navigate to="/vault" replace />} />
+                      <Route path="/mindmap" element={<Navigate to="/vault" replace />} />
                       <Route path="/privacy" element={<PrivacyPage />} />
                       <Route path="/terms" element={<TermsPage />} />
                       <Route path="/login" element={<LoginPage />} />

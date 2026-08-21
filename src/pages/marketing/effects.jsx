@@ -145,7 +145,11 @@ export function useTimeline(phaseDurations, { loop = true, restartPauseMs = 2400
 // the finished string. Once armed, subsequent `play` transitions (the
 // timeline's own loop restarting) animate normally — the typing effect
 // still plays, just never as part of the initial render.
-export function Typed({ text, play, complete, cps = 45, className = "" }) {
+// The reveal logic Typed renders as a <span> — split out so anything that
+// needs the revealed substring itself (not JSX around it) can drive off it
+// directly, e.g. an actual <input readOnly value={...}> in a settings-field
+// demo, where a <Typed> span can't stand in for a real form control.
+export function useTypedText(text, play, complete, cps = 45) {
   const [count, setCount] = useState(text.length);
   const armedRef = useRef(false);
 
@@ -192,7 +196,30 @@ export function Typed({ text, play, complete, cps = 45, className = "" }) {
     return () => cancelAnimationFrame(raf);
   }, [text, play, complete, cps]);
 
-  return <span className={className}>{text.slice(0, count)}</span>;
+  return text.slice(0, count);
+}
+
+// Types `text` out character by character while `play` is true; snaps to the
+// full string once `complete` is true (or immediately, under reduced
+// motion). Driven off elapsed time rather than a per-character interval, so
+// a backgrounded tab that drops frames resumes at the right position
+// instead of falling behind.
+//
+// The hero's own instance of this is also the page's LCP element, and a
+// rAF loop calling setState every frame — starting the instant this mounts,
+// which for the hero is before first paint — is exactly what was thrashing
+// the main thread during initial load/hydration and delaying LCP: the
+// browser never got to treat the hero text as "final" because it kept
+// changing. `armed` (inside useTypedText) gates the actual character-by-
+// character animation behind a post-mount requestIdleCallback: before it
+// fires, `play` still shows the complete text immediately rather than
+// animating, so first paint renders the finished string. Once armed,
+// subsequent `play` transitions (the timeline's own loop restarting)
+// animate normally — the typing effect still plays, just never as part of
+// the initial render.
+export function Typed({ text, play, complete, cps = 45, className = "" }) {
+  const shown = useTypedText(text, play, complete, cps);
+  return <span className={className}>{shown}</span>;
 }
 
 // The blinking block cursor — reuses .chat-cursor-blink, the same keyframe

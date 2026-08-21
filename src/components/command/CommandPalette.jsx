@@ -1,23 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
-import {
-  Search, FolderKanban, Package, Boxes, ListTodo, User,
-  Plus, SunMoon,
-} from "lucide-react";
+import { Search, Plus, SunMoon } from "lucide-react";
 import Portal from "@/lib/Portal";
 import { useAppStore } from "@/lib/store";
 import { useHighlight } from "@/lib/HighlightContext";
 import { useCommandPaletteData } from "@/hooks/useCommandPaletteData";
 import { FOCUSABLE_SELECTOR } from "@/hooks/useDialogA11y";
-
-const TYPE_ICON = {
-  area: Boxes,
-  product: Package,
-  project: FolderKanban,
-  task: ListTodo,
-  stakeholder: User,
-};
+import CommandPaletteResults from "@/components/command/CommandPaletteResults";
 
 const MAX_RESULTS = 8;
 
@@ -262,45 +252,16 @@ export default function CommandPalette() {
             <kbd className="shrink-0 text-[10px] font-mono text-muted-foreground border border-border rounded px-1.5 py-0.5">Esc</kbd>
           </div>
 
-          <div className="max-h-80 overflow-y-auto py-1.5">
-            {results.length === 0 ? (
-              <p className="px-4 py-6 text-center text-sm text-muted-foreground">No matches for "{query}"</p>
-            ) : (
-              results.map((result, index) => {
-                const Icon = result.Icon || TYPE_ICON[result.type] || Search;
-                const isActive = index === activeIndex;
-                const label = groupLabel(result);
-                const showHeader = label !== groupLabel(results[index - 1]);
-                return (
-                  <div key={result.key || `${result.type}-${result.id}`}>
-                    {showHeader && (
-                      <p className="px-4 pt-2.5 pb-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
-                    )}
-                    <button
-                      ref={(el) => { itemRefs.current[index] = el; }}
-                      onClick={(e) => runResult(index, { newTab: e.ctrlKey || e.metaKey })}
-                      onMouseEnter={() => setActiveIndex(index)}
-                      className={`w-full flex items-center gap-3 px-4 py-2 text-left transition-colors ${isActive ? "bg-secondary" : "hover:bg-secondary/60"}`}
-                    >
-                      <Icon className="w-4 h-4 shrink-0 text-muted-foreground" />
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-medium truncate">{result.title || result.label}</span>
-                        {result.subtitle && <span className="block text-xs text-muted-foreground truncate">{result.subtitle}</span>}
-                      </span>
-                    </button>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          <div className="flex items-center gap-3 px-4 py-2 border-t border-border text-[10px] text-muted-foreground">
-            <span className="flex items-center gap-1"><kbd className="font-mono border border-border rounded px-1 py-0.5">↑↓</kbd> navigate</span>
-            <span className="flex items-center gap-1"><kbd className="font-mono border border-border rounded px-1 py-0.5">↵</kbd> open</span>
-            {activeHasUrl && (
-              <span className="flex items-center gap-1"><kbd className="font-mono border border-border rounded px-1 py-0.5">ctrl+↵</kbd> new tab</span>
-            )}
-          </div>
+          <CommandPaletteResults
+            results={results}
+            activeIndex={activeIndex}
+            query={query}
+            groupLabel={groupLabel}
+            itemRefs={itemRefs}
+            onSelect={(index, e) => runResult(index, { newTab: e.ctrlKey || e.metaKey })}
+            onHover={setActiveIndex}
+            activeHasUrl={activeHasUrl}
+          />
         </div>
       </div>
     </Portal>

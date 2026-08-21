@@ -1,14 +1,18 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight, GitBranch, BookOpen, Check, Link2, Search, Sparkles, RefreshCw, Brain, Network,
+  Workflow, MousePointerClick, PenTool, MoveHorizontal, Bot,
 } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+import VaultGraph from "@/components/mindmap/VaultGraph";
+import WorkflowCanvas from "@/components/mindmap/WorkflowCanvas";
 import { Reveal, StageLight, Grain, useTimeline, Typed, Caret, useDocumentMeta, usePageSchema } from "./effects";
 import {
   darkSectionBg, darkText, darkTopEdge, glassPanel, glassSheen, glassTileLight,
   pillOnDark, linkOnDark, eyebrowOnDark, eyebrowOnLight,
-  displayXL, displayL, displayM, GLOW, focusRing,
+  displayXL, displayL, displayM, GLOW,
 } from "./theme";
 
 // ─── vault writing demo ─────────────────────────────────────────────────────
@@ -130,6 +134,93 @@ function WikilinkDemo() {
   );
 }
 
+// ─── mind map demo ──────────────────────────────────────────────────────────
+// Two tabs, exactly like the real /app/mindmap page (src/pages/MindMapPage.jsx)
+// — not a hand-drawn illustration of that page, it IS that page's own
+// VaultGraph/WorkflowCanvas components, rendered here in `demo` mode (fixed
+// sample data, dragging/hover/persistence all disabled).
+
+function MindMapDemo() {
+  const [tab, setTab] = useState("vault");
+  return (
+    <div className={`relative w-full max-w-xl mx-auto rounded-2xl overflow-hidden ${glassPanel}`}>
+      <div className={glassSheen} />
+      <div className="flex items-center gap-2 px-5 py-3.5 border-b border-foreground/[0.08]">
+        <Network className="w-3.5 h-3.5 text-foreground/35" />
+        <span className="font-terminal text-[11px] text-foreground/35 flex-1 min-w-0 truncate">Mind Map</span>
+      </div>
+      <div className="flex items-center gap-1 px-3 pt-2 border-b border-foreground/[0.08]">
+        {[{ key: "vault", label: "Vault", Icon: Network }, { key: "workflows", label: "Workflows", Icon: Workflow }].map(({ key, label, Icon }) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={`flex items-center gap-1.5 font-terminal text-[10px] px-2.5 py-1.5 border-b-2 -mb-px transition-colors ${tab === key ? "border-current text-foreground/70" : "border-transparent text-foreground/35"}`}
+            style={tab === key ? { borderColor: GLOW } : undefined}
+          >
+            <Icon className="w-3 h-3" /> {label}
+          </button>
+        ))}
+      </div>
+      <div className="relative h-[240px] flex flex-col">
+        {tab === "vault" ? <VaultGraph demo /> : <WorkflowCanvas demo />}
+      </div>
+      <div className="flex items-center gap-4 px-5 py-3 border-t border-foreground/[0.07] text-[10px] font-terminal text-foreground/40">
+        {tab === "vault" ? (
+          <>
+            <span className="flex items-center gap-1.5"><span className="w-3 h-px bg-foreground/30" /> linked</span>
+            <span className="flex items-center gap-1.5"><span className="w-3 h-px" style={{ background: GLOW, opacity: 0.6 }} /> suggested</span>
+          </>
+        ) : (
+          <span>Editable from Vaea Chat too</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const MINDMAP_FEATURES = [
+  {
+    icon: Sparkles,
+    title: "Suggested links, shown differently",
+    body: "Notes that seem topically related but aren't linked yet appear as dashed edges — a suggestion, not a fact, so you can tell the difference at a glance.",
+  },
+  {
+    icon: MousePointerClick,
+    title: "A live layout, not a static export",
+    body: "Nodes settle into place with a real force simulation and respond as you hover — this is a rendered view of your actual notes, not a snapshot.",
+  },
+  {
+    icon: PenTool,
+    title: "An open canvas for sketching a process",
+    body: "The Workflows tab is a freeform surface — sticky-note-style cards you place and connect in your head, not a form to fill in.",
+  },
+  {
+    icon: MoveHorizontal,
+    title: "Drag anywhere, saved per-device",
+    body: "Cards remember where you put them — real, persisted, not a session that resets when you close the tab.",
+  },
+  {
+    icon: Bot,
+    title: "Editable from Vaea Chat too",
+    body: "Ask the assistant to add, move, or remove a card and it acts on the exact same cards you placed by hand — one surface, not two.",
+  },
+];
+
+const MINDMAP_FAQS = [
+  {
+    q: "What are the dashed lines on the Mind Map's Vault tab?",
+    a: "Suggested links — notes that look topically related but don't have a [[wikilink]] between them yet. They're drawn differently from real links on purpose, so the graph never overstates what's actually connected.",
+  },
+  {
+    q: "Is the Vault graph editable?",
+    a: "Not directly — it's a read view of your real link structure. Adding a [[wikilink]] in Obsidian (or asking Vaea Chat to write one) is what changes what shows up here. The Workflows tab, by contrast, is fully editable — drag, add, and delete cards freely.",
+  },
+  {
+    q: "Does Workflows automate anything yet?",
+    a: "No — it's a genuine sketching surface today, not wired to an automation engine. It's real (drag, add, delete, persisted, editable from chat), just not automated yet.",
+  },
+];
+
 // ─── vault features ──────────────────────────────────────────────────────────
 
 const FEATURES = [
@@ -219,10 +310,12 @@ const VAULT_PAGE_SCHEMA = {
   "isPartOf": { "@type": "WebSite", "url": "https://vaea.base44.app/" },
 };
 
+const ALL_FAQS = [...FAQS, ...MINDMAP_FAQS];
+
 const VAULT_FAQ_SCHEMA = {
   "@context": "https://schema.org",
   "@type": "FAQPage",
-  "mainEntity": FAQS.map(({ q, a }) => ({
+  "mainEntity": ALL_FAQS.map(({ q, a }) => ({
     "@type": "Question",
     "name": q,
     "acceptedAnswer": { "@type": "Answer", "text": a },
@@ -357,31 +450,45 @@ export default function VaultPage() {
         </div>
       </section>
 
-      {/* ── MIND MAP CROSS-LINK ── light wash ── Mind Map isn't a separate
-          product to connect — it's this same vault's wikilinks rendered as
-          a graph, so it belongs on this page, not just its own tab. */}
-      <section className="relative border-t border-foreground/[0.05]">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(55%_50%_at_50%_0%,rgba(70,186,209,0.04),transparent_70%)]" />
-        <div className="relative max-w-2xl mx-auto px-6 py-16 sm:py-20 text-center">
-          <Reveal>
-            <p className={`${eyebrowOnLight} mb-4`}>
-              <span className="font-terminal">Mind Map</span>
+      {/* ── MIND MAP ── dark ── one tab of Vaea Brain, not a separate product:
+          the same vault's wikilinks rendered as a live graph, plus a
+          freeform Workflows canvas alongside it. */}
+      <section className={`relative overflow-hidden ${darkSectionBg} ${darkText} ${darkTopEdge}`}>
+        <StageLight />
+        <Grain />
+        <div className="relative max-w-5xl mx-auto px-6 py-16 sm:py-24">
+          <Reveal className="text-center mb-12">
+            <p className={`${eyebrowOnDark} mb-5`}>Mind Map</p>
+            <h2 className={`${displayL} max-w-2xl mx-auto`}>
+              The same vault, seen as a map.
+            </h2>
+            <p className="mt-6 text-muted-foreground max-w-xl mx-auto leading-relaxed">
+              Every wikilink you've already written becomes an edge on a live, force-directed
+              graph — no separate system to maintain. Switch to Workflows for an open canvas
+              to sketch out a process instead, no vault connection required.
             </p>
-            <h2 className={`${displayM} mb-5`}>The same vault, seen as a map.</h2>
-            <p className="text-muted-foreground leading-relaxed mb-6">
-              Every wikilink in your vault is already a real connection — Mind Map lays
-              them out as a live, force-directed graph instead of a folder tree, so you can
-              see how your notes actually relate to each other. Same connection, same data,
-              just a different view of it.
-            </p>
-            <Link
-              to="/mindmap"
-              className={`inline-flex items-center gap-2 text-sm font-medium rounded-full px-5 py-2.5 transition-colors ${focusRing}`}
-              style={{ background: `${GLOW}14`, color: GLOW, border: `1px solid ${GLOW}25` }}
-            >
-              See your Mind Map <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
           </Reveal>
+          <Reveal delay={120}>
+            <MindMapDemo />
+          </Reveal>
+        </div>
+      </section>
+
+      <section className="relative">
+        <div className="max-w-5xl mx-auto px-6 py-16 sm:py-24">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {MINDMAP_FEATURES.map(({ icon: Icon, title, body }, i) => (
+              <Reveal key={title} delay={i * 55} as="div" className={`flex gap-4 p-5 rounded-2xl ${glassTileLight}`}>
+                <div className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${GLOW}14`, border: `1px solid ${GLOW}25` }}>
+                  <Icon className="w-4 h-4" style={{ color: GLOW }} />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">{title}</p>
+                  <p className="mt-1 text-xs text-muted-foreground leading-relaxed">{body}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -416,7 +523,7 @@ export default function VaultPage() {
             <h2 className={displayM}>Questions about Vault</h2>
           </Reveal>
           <Accordion type="single" collapsible className="space-y-1">
-            {FAQS.map(({ q, a }) => (
+            {ALL_FAQS.map(({ q, a }) => (
               <AccordionItem key={q} value={q} className="border-b border-foreground/[0.06] last:border-0">
                 <AccordionTrigger className="text-left text-sm font-medium py-4 hover:no-underline hover:text-foreground/80 transition-colors">
                   {q}
