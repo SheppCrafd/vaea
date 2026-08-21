@@ -100,7 +100,7 @@ function ChatDemo() {
     <div
       ref={ref}
       className={`relative rounded-2xl overflow-hidden w-full max-w-xl mx-auto ${glassPanel}`}
-      style={{ minHeight: 320 }}
+      style={{ minHeight: 420 }}
     >
       <div className={glassSheen} />
       {/* chrome bar */}
@@ -115,7 +115,7 @@ function ChatDemo() {
         </span>
       </div>
 
-      <div className="px-5 py-4 space-y-4 min-h-[260px]">
+      <div className="px-5 py-4 space-y-4 min-h-[360px]">
         {/* user msg 1 */}
         {showMsg1 && (
           <div className="flex justify-end">
@@ -342,7 +342,6 @@ export default function ChatPage() {
           <Reveal delay={120}>
             <ChatDemo />
             <p className="text-center text-xs text-muted-foreground/50 mt-4 font-terminal tracking-wide">
-              This is what it looks like in practice
             </p>
           </Reveal>
         </div>
