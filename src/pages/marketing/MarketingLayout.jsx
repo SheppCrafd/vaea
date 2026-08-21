@@ -6,6 +6,8 @@ import { hairlineH, focusRing } from "./theme";
 
 const NAV_LINKS = [
   { to: "/features", label: "Features" },
+  { to: "/chat", label: "Vaea Chat" },
+  { to: "/vault", label: "Vault" },
   { to: "/how-it-works", label: "How it works" },
   { to: "/compare", label: "Compare" },
   { to: "/about", label: "About" },
@@ -72,7 +74,11 @@ function NavBar() {
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between gap-6">
         <div className="flex items-center gap-8">
           <Logo />
-          <nav className="hidden sm:flex items-center gap-6">
+          {/* 6 nav links + GitHub + auth controls gets tight at sm (640px).
+              Use gap-4 at sm (was gap-5 at 5 links — the extra item needs the
+              headroom back), full gap-6 at lg where there's room.
+              GitHub shows icon-only at sm–md, adds the label at lg. */}
+          <nav className="hidden sm:flex items-center gap-4 lg:gap-6">
             {NAV_LINKS.map(({ to, label }) => (
               <Link
                 key={to}
@@ -90,10 +96,11 @@ function NavBar() {
               href={GITHUB_URL}
               target="_blank"
               rel="noopener noreferrer"
+              aria-label="GitHub repository"
               className={`flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}
             >
               <Github className="w-3.5 h-3.5" />
-              GitHub
+              <span className="hidden lg:inline">GitHub</span>
             </a>
           </nav>
         </div>
@@ -188,6 +195,8 @@ function Footer() {
               <li><Link to="/" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Home</Link></li>
               <li><Link to="/features" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Features</Link></li>
               <li><Link to="/how-it-works" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>How it works</Link></li>
+              <li><Link to="/chat" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Vaea Chat</Link></li>
+              <li><Link to="/vault" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Vault</Link></li>
               <li><Link to="/compare" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Compare</Link></li>
             </ul>
           </div>

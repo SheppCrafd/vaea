@@ -21,6 +21,8 @@ import AboutPage from '@/pages/marketing/AboutPage';
 import PrivacyPage from '@/pages/marketing/PrivacyPage';
 import TermsPage from '@/pages/marketing/TermsPage';
 import ComparePage from '@/pages/marketing/ComparePage';
+import ChatPage from '@/pages/marketing/ChatPage';
+import VaultPage from '@/pages/marketing/VaultPage';
 // Everything reachable only via /app/* — Dashboard, AppShell, the chat
 // controller, the command palette, the device storage gate — is lazy too,
 // same as /chat and /settings already were. Anonymous visitors landing on
@@ -54,6 +56,8 @@ function App() {
                       <Route path="/how-it-works" element={<HowItWorksPage />} />
                       <Route path="/about" element={<AboutPage />} />
                       <Route path="/compare" element={<ComparePage />} />
+                      <Route path="/chat" element={<ChatPage />} />
+                      <Route path="/vault" element={<VaultPage />} />
                       <Route path="/privacy" element={<PrivacyPage />} />
                       <Route path="/terms" element={<TermsPage />} />
                       <Route path="/login" element={<LoginPage />} />

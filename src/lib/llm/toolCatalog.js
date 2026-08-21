@@ -844,6 +844,52 @@ export const TOOL_CATALOG = [
   },
 
   {
+    name: "SEND_SLACK_MESSAGE",
+    staged: true,
+    description: "Post a message to a Slack channel as the connected user (see [SLACK] below). Staged — not run here. Get the channel_id from list_slack_channels first; never guess one.",
+    parameters: {
+      type: "object",
+      properties: {
+        channel_id: { type: "string", description: "The channel's id, from list_slack_channels." },
+        text: { type: "string", description: "The message text." },
+      },
+      required: ["channel_id", "text"],
+    },
+  },
+  {
+    name: "list_slack_channels",
+    staged: false,
+    description: "List public channels in the connected Slack workspace (see [SLACK] below). Runs immediately. Use before list_slack_messages or SEND_SLACK_MESSAGE to find the right channel_id.",
+    parameters: { type: "object", properties: {}, required: [] },
+  },
+  {
+    name: "list_slack_messages",
+    staged: false,
+    description: "Read recent messages from a Slack channel. Get channel_id from list_slack_channels first. Runs immediately.",
+    parameters: {
+      type: "object",
+      properties: {
+        channel_id: { type: "string", description: "The channel's id, from list_slack_channels." },
+        limit: { type: "number", description: "Max messages to return. Defaults to 20." },
+      },
+      required: ["channel_id"],
+    },
+  },
+
+  {
+    name: "suggest_task_fields",
+    staged: false,
+    description: "Analyze a task description and suggest the most appropriate quadrant (1=urgent+important, 2=important not urgent, 3=urgent not important, 4=neither), whether it's highly important (H), and a brief rationale. Runs immediately. Call this when a user asks for help prioritizing a task they just described, or when they ask what quadrant something should go in.",
+    parameters: {
+      type: "object",
+      properties: {
+        description: { type: "string", description: "The task description to analyze." },
+        context: { type: "string", description: "Optional: any relevant context about the user's current priorities." },
+      },
+      required: ["description"],
+    },
+  },
+  {
     name: "search_workspace",
     staged: false,
     description: 'Search across all areas, products, projects (including archived), tasks (including archived), stakeholders, and notes for a keyword — use this for "what did we decide about X" / "find every task mentioning Y" style requests instead of scanning [DATABASE STATE] yourself.',

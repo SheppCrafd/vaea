@@ -6,8 +6,9 @@
 
 - A hierarchical work-tracking app: Areas → Products → Projects → Tasks, plus Stakeholders, Departments, and Notes.
 - Vaea Chat: a conversational AI assistant that reads your current workspace data and can directly create, update, or delete items in it (with a confirmation step before anything destructive) — not just a Q&A chatbot layered on top.
+- Connectors for external services so Vaea Chat can read and act on them: Google Calendar (events, free/busy, Google Meet links), Gmail (read inbox, send replies), Microsoft 365 / Outlook (calendar, Exchange mail, Teams meeting links — one sign-in for all three), ClickUp (create/update tasks, read ClickUp Chat channels, post messages), and Slack (read channel messages, post to channels — sent as the user, not a bot). Each connector is individually authorized via OAuth and stores tokens on the user's own device.
 - Local-first by default: real files on your own device (or a connected folder), not a hosted database. Cloud sync is available but opt-in, never the default.
-- Optional integration with an external Obsidian notes vault (git-backed) so the assistant can read and write your own notes (Vaea Vault).
+- Vaea Vault: optional integration with an external Obsidian notes vault (git-backed, stored in the user's own GitHub repo) so the assistant can read and write personal notes. Every write is a real git commit to the user's own repo — nothing stored on Vaea's servers. The vault page is at https://vaea.base44.app/vault.
 - Supports bring-your-own-key for several LLM providers (Anthropic, OpenAI, Google, xAI), and a fully local/offline mode that connects to a model running on the user's own machine (including using Claude Code itself as the model) with no API key and no data leaving the device (Local Mode).
 - Free. No pricing plans, no usage limits, no tiers.
 
@@ -27,6 +28,8 @@ Individuals — freelancers, solo founders, people juggling multiple projects �
 
 - Home: https://vaea.base44.app/
 - Features: https://vaea.base44.app/features
+- Vaea Chat (AI assistant and connectors): https://vaea.base44.app/chat
+- Vaea Vault (Obsidian + GitHub notes integration): https://vaea.base44.app/vault
 - How it works: https://vaea.base44.app/how-it-works
 - Compare (Vaea vs. typical task managers): https://vaea.base44.app/compare
 - About / contact: https://vaea.base44.app/about

@@ -318,6 +318,29 @@ function shapeOutlookMessage(m) {
   };
 }
 
+// Slack — client-side twin lives in src/lib/slackApi.js. Slack user tokens
+// don't expire (same model as ClickUp). Messages are posted as the user
+// (user_scope OAuth), not as a bot.
+const SLACK_API = 'https://slack.com/api';
+
+function slackNotConnected() {
+  return { connected: false, message: 'No Slack workspace connected. Tell the user to connect one in Settings -> Slack before this can work.' };
+}
+
+async function slackFetch(endpoint, accessToken, init = {}) {
+  const res = await fetch(`${SLACK_API}/${endpoint}`, {
+    ...init,
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json', ...init.headers },
+  });
+  if (!res.ok) throw new Error(`Slack network error (${res.status}).`);
+  const data = await res.json();
+  if (!data.ok) {
+    if (data.error === 'invalid_auth' || data.error === 'token_revoked') throw new Error('Slack rejected that token — try reconnecting.');
+    throw new Error(`Slack error: ${data.error}`);
+  }
+  return data;
+}
+
 // ClickUp — client-side twin lives in src/lib/clickupApi.js. No token
 // refresh needed here at all: ClickUp access tokens don't expire and no
 // refresh token is even issued (see clickupConnection.js's own comment),
@@ -403,7 +426,7 @@ function resolveNow(clientNow) {
 // from the request body, so these two tools can see fields the prompt
 // doesn't bother spelling out for every record), and externalVault (for the
 // vault_* tools below, connecting to a personal GitHub-hosted notes repo).
-function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCalendar, gmail, microsoft, clickup, emit, now }) {
+function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCalendar, gmail, microsoft, slack, clickup, emit, now }) {
   // Every live (already-executed) tool call gets pushed here as {label,
   // detail} — same shape a client-side executed mutation step gets from
   // describeToolCall (chatActions.js), so ChatMessageList can render both
@@ -909,6 +932,14 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCal
       inputSchema: z.object({ task_id: z.string().describe('The task\'s id, from list_clickup_tasks.') }),
       execute: queue('DELETE_CLICKUP_TASK'),
     }),
+    SEND_SLACK_MESSAGE: tool({
+      description: 'Post a message to a Slack channel as the connected user (see [SLACK] below). Staged — not run here. Get channel_id from list_slack_channels first.',
+      inputSchema: z.object({
+        channel_id: z.string().describe('The channel\'s id, from list_slack_channels.'),
+        text: z.string().describe('The message text.'),
+      }),
+      execute: queue('SEND_SLACK_MESSAGE'),
+    }),
     SEND_CLICKUP_MESSAGE: tool({
       description: 'Post a message to a ClickUp Chat channel. Get the channel_id from list_clickup_channels first; never guess one.',
       inputSchema: z.object({
@@ -979,6 +1010,21 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCal
         }
       },
     }),
+    suggest_task_fields: tool({
+      description: 'Analyze a task description and suggest the best quadrant (1=urgent+important, 2=important not urgent, 3=urgent not important, 4=neither), whether it\'s highly important (H), and a brief rationale. Runs immediately. Use when a user asks for help prioritizing a task.',
+      inputSchema: z.object({
+        description: z.string().describe('The task description to analyze.'),
+        context: z.string().optional().describe('Optional context about current priorities.'),
+      }),
+      execute: async ({ description, context }) => {
+        // Pure reasoning tool — the model's own output IS the result.
+        // Returning the input lets the model incorporate its own reasoning
+        // into the structured tool result format.
+        trace(`suggest_task_fields("${description.slice(0, 60)}")`);
+        return { description, context: context || '', guidance: 'Quadrant guide: 1=do now (urgent+important), 2=schedule (important, not urgent), 3=delegate (urgent, not important), 4=drop/defer (neither). Mark H if the task has outsized consequences if missed. Your own analysis of the task determines the right quadrant — use this result as the structured format for your response.' };
+      },
+    }),
+
     search_workspace: tool({
       description: 'Search across all areas, products, projects (including archived), tasks (including archived), stakeholders, and notes for a keyword — use this for "what did we decide about X" / "find every task mentioning Y" style requests instead of scanning [DATABASE STATE] yourself.',
       inputSchema: z.object({ query: z.string() }),
@@ -1309,6 +1355,43 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCal
       },
     }),
 
+    list_slack_channels: tool({
+      description: 'List public channels in the connected Slack workspace (see [SLACK] below). Runs immediately. Use before list_slack_messages or SEND_SLACK_MESSAGE to find the right channel_id.',
+      inputSchema: z.object({}),
+      execute: async () => {
+        if (!slack?.accessToken || !slack?.workspaceId) return slackNotConnected();
+        try {
+          const data = await slackFetch('conversations.list?types=public_channel&limit=100&exclude_archived=true', slack.accessToken);
+          const channels = (data.channels || []).map((ch) => ({ id: ch.id, name: ch.name, topic: ch.topic?.value || '', memberCount: ch.num_members }));
+          trace(`list_slack_channels() — ${channels.length} channel${channels.length === 1 ? '' : 's'}`, { channels });
+          return { connected: true, count: channels.length, channels };
+        } catch (error) {
+          return { connected: true, error: `Couldn't list Slack channels: ${error.message}` };
+        }
+      },
+    }),
+
+    list_slack_messages: tool({
+      description: 'Read recent messages from a Slack channel. Get channel_id from list_slack_channels first. Runs immediately.',
+      inputSchema: z.object({
+        channel_id: z.string().describe('The channel\'s id, from list_slack_channels.'),
+        limit: z.number().optional().describe('Max messages to return. Defaults to 20.'),
+      }),
+      execute: async ({ channel_id, limit }) => {
+        if (!slack?.accessToken || !slack?.workspaceId) return slackNotConnected();
+        try {
+          const data = await slackFetch(`conversations.history?channel=${encodeURIComponent(channel_id)}&limit=${limit || 20}`, slack.accessToken);
+          const messages = (data.messages || [])
+            .filter((m) => m.type === 'message' && !m.subtype)
+            .map((m) => ({ ts: m.ts, userId: m.user, text: m.text, replyCount: m.reply_count || 0 }));
+          trace(`list_slack_messages(${channel_id}) — ${messages.length} message${messages.length === 1 ? '' : 's'}`, { messages });
+          return { connected: true, count: messages.length, messages };
+        } catch (error) {
+          return { connected: true, error: `Couldn't list Slack messages: ${error.message}` };
+        }
+      },
+    }),
+
     list_clickup_spaces: tool({
       description: 'List every Space in the connected ClickUp workspace. Runs immediately. Use before list_clickup_lists if you need to find a list outside the default one.',
       inputSchema: z.object({}),
@@ -1431,6 +1514,12 @@ DOUBLE-CHECK EVERY ID RIGHT BEFORE YOU FINALIZE A PLAN: this matters most exactl
 
 GROUND YOUR PLAN IN REAL CONTEXT, DON'T JUST GUESS FROM A SUMMARY: [DATABASE STATE] is a trimmed projection, not everything real — a project's own "links" only show a label/URL, not what's actually at that link; [CONVERSATION HISTORY] is a plain transcript, not a search index; a project's own custom fields/notes aren't fully spelled out there either. Before committing to a plan for anything non-trivial or ambiguous — especially a request that references "that project's link", a URL the user just pasted directly into the conversation, "what we discussed before", an attached file, or a past decision you'd need to actually go check — use the tool that would really answer it (read_project_link — for ANY URL, not just one from a project's links array — search_workspace, analyze_attachment, or, if a Vaea Vault is connected, the vault_* readers) instead of guessing from what [DATABASE STATE] happens to summarize. These calls are real, run right here, and the user sees each one as a real step in what you did — treat reaching for one as a normal, expected part of planning a good answer, not an optional extra.
 
+PROACTIVE AI BEHAVIORS (apply these automatically without being asked):
+- TASK PRIORITIZATION: When a user creates or describes a task without a quadrant, proactively suggest one with a one-line rationale ("Quadrant 2 — important but not urgent") using suggest_task_fields if useful, or inline if obvious. Don't ask permission.
+- ACTION ITEM DETECTION: If a user message contains "I need to," "we decided to," "follow up on," "remind me to," or similar — and it wasn't a slash command — mention the implied task at the end of your reply and offer to CREATE_TASK for it.
+- MEETING CONTENT DETECTION: If a user pastes a block of text that looks like meeting notes (attendees list, action items section, timestamps), treat it as /parse-notes immediately — extract tasks, decisions, and questions, then propose CREATE_TASK/WRITE_VAULT_NOTE for them.
+- STALE DECISION FLAGGING: When reading vault notes and you encounter a Decisions/ note that appears outdated relative to the current project state, note it briefly — only if genuinely relevant to the current request.
+
 VAEA VAULT: [VAEA VAULT] below says whether the user has connected their Vaea Vault — a personal, git-backed Obsidian vault (a GitHub repo). If not connected, and a request needs it (a vault_* tool returns connected: false, or the user asks about "/vault-log"/"/vault-tidy"/their notes vault), tell them to connect one in Settings -> Vaea Vault rather than guessing. If connected, a [VAULT CONTEXT] block may already be included right there, force-loaded once for this session (not a tool call) — a vault.md-style rolling summary if the vault has one, notes carrying a "**Priority: high**" marker, and the handful of most recently touched notes. Read that FIRST, for free, before calling any vault_* tool — it exists specifically so you don't have to decide whether searching the vault is worth it; treat it the same way you already treat [DATABASE STATE]. list_vault_notes/read_vault_note/search_vault are read tools for anything [VAULT CONTEXT] doesn't already cover — use them the same way you'd use search_workspace, but for the user's personal notes rather than their Vaea data. If [VAULT CONTEXT]'s own summary links to a specific note by name that looks relevant, read_vault_note that exact path directly rather than a blind search_vault first. WRITE_VAULT_NOTE always needs the FULL file content, not a diff: if you're editing a note that already exists, read_vault_note it first (even if it was already in [VAULT CONTEXT] — that copy can be stale by the time you write) and carry forward everything you're not deliberately changing. If a vault_* tool call returns an "error" field (e.g. Vaea Vault is connected but GitHub rejected the request), quote that error string to the user VERBATIM in a code block — do not paraphrase, summarize, or shorten it to just "403"/"an error occurred". The exact message (rate limit, permission scope, SSO authorization, etc.) is the one piece of information that actually lets them fix it; losing it to a summary makes the failure undebuggable.
 
 GOOGLE CALENDAR: [GOOGLE CALENDAR] below says whether the user has connected their Google Calendar. If not connected, and a request needs it (list_calendar_events returns connected: false, or the user asks about their calendar/schedule/an event), tell them to connect one in Settings -> Google Calendar rather than guessing. list_calendar_events is a read tool, runs immediately, and each event includes meetLink if one's attached. CREATE_CALENDAR_EVENT/UPDATE_CALENDAR_EVENT/DELETE_CALENDAR_EVENT are staged like every other mutation — get a real event_id from list_calendar_events before UPDATE/DELETE, never guess or invent one. Pass meet_link: true on CREATE_CALENDAR_EVENT only if the user actually wants a Google Meet link on that event — it's not the default. Resolve relative dates ("tomorrow," "next Tuesday," "in two weeks") against [CURRENT DATE & TIME] yourself before calling any of these — times are RFC3339 with an explicit offset (or a plain date for all-day events), and the tool doesn't do that resolution for you. If a calendar tool returns an "error" field, quote it to the user verbatim, same as a vault_* tool error — don't paraphrase it away.
@@ -1438,6 +1527,8 @@ GOOGLE CALENDAR: [GOOGLE CALENDAR] below says whether the user has connected the
 GMAIL: [GMAIL] below says whether the user has connected Gmail. If not connected, and a request needs it (list_gmail_messages/read_gmail_message returns connected: false, or the user asks about their email/inbox), tell them to connect one in Settings -> Gmail rather than guessing. list_gmail_messages/read_gmail_message are read tools, run immediately. SEND_GMAIL_MESSAGE is staged like every other mutation. Get a real message_id from list_gmail_messages before read_gmail_message, never guess one. If a Gmail tool returns an "error" field, quote it to the user verbatim, same as vault_*/calendar tool errors.
 
 MICROSOFT 365: [MICROSOFT 365] below says whether the user has connected a Microsoft 365 or Outlook.com account — one connection covers Outlook Calendar, Outlook/Exchange mail, and Teams meeting links. If not connected, and a request needs it (a list_outlook_*/read_outlook_message tool returns connected: false, or the user asks about Outlook/their Microsoft calendar or inbox/a Teams meeting), tell them to connect one in Settings -> Microsoft 365 / Outlook rather than guessing. list_outlook_events/list_outlook_messages/read_outlook_message are read tools, run immediately. CREATE_OUTLOOK_EVENT/UPDATE_OUTLOOK_EVENT/DELETE_OUTLOOK_EVENT/SEND_OUTLOOK_MESSAGE are staged like every other mutation — get a real event_id/message_id from the matching list tool before UPDATE/DELETE/read, never guess or invent one. Pass teams_meeting: true on CREATE_OUTLOOK_EVENT only if the user actually wants a Teams link on that event. Resolve relative dates against [CURRENT DATE & TIME] yourself before calling any of these. If an Outlook tool returns an "error" field, quote it to the user verbatim, same as any other tool error.
+
+SLACK: [SLACK] below says whether the user has connected a Slack workspace. If not connected and a request needs it, tell them to connect in Settings -> Slack. list_slack_channels/list_slack_messages run immediately — always call list_slack_channels first to get a real channel_id before list_slack_messages or SEND_SLACK_MESSAGE. SEND_SLACK_MESSAGE is staged. Quote any "error" field verbatim.
 
 CLICKUP: [CLICKUP] below says whether the user has connected ClickUp, and their default list if one's configured. If not connected, and a request needs it (a list_clickup_* tool returns connected: false, or the user asks about ClickUp/their tasks there/ClickUp Chat), tell them to connect one in Settings -> ClickUp rather than guessing. list_clickup_tasks/list_clickup_spaces/list_clickup_lists/list_clickup_channels/list_clickup_messages are read tools, run immediately. CREATE_CLICKUP_TASK uses the default list automatically unless the user asks for a different one — use list_clickup_spaces then list_clickup_lists to find a list_id in that case, don't guess one. UPDATE_CLICKUP_TASK/DELETE_CLICKUP_TASK need a real task_id from list_clickup_tasks first. SEND_CLICKUP_MESSAGE needs a real channel_id from list_clickup_channels first. If a ClickUp tool returns an "error" field, quote it to the user verbatim, same as vault_*/calendar tool errors.
 
@@ -1477,7 +1568,21 @@ SLASH COMMANDS: the composer offers "/" autocomplete for these one-word commands
 - "/setup" (no argument) -> start the SETUP INTERVIEW described above
 - "/vault-log" (no argument) -> using [CONVERSATION HISTORY] and [CURRENT DATE & TIME] below, write a session summary via WRITE_VAULT_NOTE to "Daily/<today>.md" (read_vault_note first if that file already exists today, and append rather than overwrite); if a real decision was made this session, also WRITE_VAULT_NOTE a "Decisions/<short title>.md" file with the reasoning. If no Vaea Vault is connected, say so instead of calling anything.
 - "/vault-tidy" (no argument) -> call audit_vault, then — in this SAME turn, immediately, never asking first (see NEVER ASK FOR VERBAL PERMISSION above) — queue a fix for every real finding (missing/broken [[wikilinks]], stub files for isolated notes) using WRITE_VAULT_NOTE, as one ordered plan; if it found nothing, say so. If no Vaea Vault is connected, say so instead of calling anything.
-- "/help" (no argument) -> reply with exactly these 16 commands as a markdown list, no tool call
+- "/daily-brief" (no argument) -> Generate a scannable morning briefing in this SAME turn, using only tools that are actually connected. Structure: (1) Vaea workspace — call audit_workspace and surface overdue tasks, anything due today, and today's top-3/weekly-focus tasks; (2) Calendar — if Google Calendar or Microsoft 365 is connected, call list_calendar_events or list_outlook_events for today (time_min = start of today, time_max = end of today) and list what's on the schedule; (3) ClickUp — if connected, call list_clickup_tasks on the default list and surface anything overdue or due today; (4) Inbox — if Gmail or Microsoft 365 mail is connected, call list_gmail_messages or list_outlook_messages (query: "is:unread" or equivalent, max 5) and note the unread count and any obviously important senders; (5) Slack — if connected, call list_slack_channels first then list_slack_messages on the most general-looking channel (e.g. #general) and flag anything that looks like it needs a response. Skip any section whose service isn't connected rather than reporting "not connected" for it. End with one sentence about what needs attention first today.
+- "/parse-notes" (followed by pasted text) -> The user has pasted meeting notes or a document. Parse the text immediately — in this SAME turn — and extract: (a) action items / tasks (who does what by when, if mentioned), (b) decisions made, (c) open questions or risks raised. Present the extracted items clearly, then propose CREATE_TASK/WRITE_VAULT_NOTE for each one as a confirmable plan. Never ask the user to confirm what you extracted before proposing the plan — just propose it and let the confirm UI be the gate.
+- "/break-down" (optionally followed by a task name or goal) -> Break the described task or goal into concrete, actionable subtasks. If no task is specified, ask which task or project to break down (this is the one case where a single clarifying question is appropriate since no context was given). Once you have the task, propose a set of 3–7 subtasks via BULK_CREATE as a confirmable plan — each one specific enough that someone could start it without further explanation, not vague labels like "Research" or "Plan."
+- "/research [topic]" -> Conduct deep, multi-step research on the topic immediately — search the web if you have native search access, synthesize findings from multiple angles, cite sources inline (URLs in parentheses or footnotes), and present the result as a structured document the user can act on. Aim for substantive depth, not a bulleted summary of what you already know. If you lack native web search (in BYOK/Local Mode), say so and offer to work from what you already know or from documents they paste.
+- "/translate [target language] [content]" -> Translate the content to the specified language. If no content is provided in the message, ask the user to paste what they want translated. Preserve the original structure and tone; don't summarize. If the target language is ambiguous, ask one clarifying question.
+- "/rewrite [content or instruction]" -> Improve the writing quality of the provided text — clearer, more direct, better structured — while preserving its meaning and the user's voice. If no content is provided, ask what to rewrite. Do not expand it unless asked to; tighter is almost always better.
+- "/summarize [content or project name]" -> Summarize the provided content or, if a project name is given, call search_workspace to find it then summarize its current state (tasks, notes, objective, open items). Output should be scannable — use a short paragraph plus a bullet list for key points. If nothing is specified, summarize the current conversation.
+- "/email [recipient description] [subject or intent]" -> Draft a complete, ready-to-send email. Tone should match Vaea's direct, plain-language register unless the user specifies otherwise. Present the draft then offer to hand it to SEND_GMAIL_MESSAGE or SEND_OUTLOOK_MESSAGE if the relevant connector is connected — staged, with the confirm step, same as any outgoing action.
+- "/template [type or description]" -> Create a full project structure from a template. If the user specifies a type (e.g. "client project", "product launch", "weekly review"), generate a sensible Area/Product/Project/Task hierarchy for it via CREATE_* tools as a confirmable plan. If they paste a meeting transcript or brief, extract the implied structure from it instead.
+- "/focus-vault" -> For the rest of this conversation, restrict your answers to information in the connected Vaea Vault — do not use web search or [DATABASE STATE] for factual claims. If the vault isn't connected, say so. This mode is for "I want answers grounded only in my own notes" — like NotebookLM's source-grounding mode. The user can exit it by saying "back to normal" or starting a new session.
+- "/related [optional: project or topic]" -> Find vault notes related to the given project or topic. If no topic is given, infer it from the current conversation. Call search_vault or list_vault_notes and surface the most relevant 3–5 notes with a one-line summary of each and why it's relevant.
+- "/compare [option A] vs [option B]" -> Compare the two options directly. Structure: one short paragraph on each option, then a recommendation with one sentence of reasoning. Be direct — don't end with "it depends" without immediately saying what it depends on and which way that cuts for this user's context.
+- "/expand [brief note or idea]" -> Take the brief note or idea and expand it into a fuller explanation, preserving the original intent. The expanded version should be more complete but not padded — every sentence should add information, not restate what the brief note already said.
+- "/action-items" -> Scan the conversation history for tasks, commitments, and follow-ups that were mentioned but not yet turned into Vaea tasks. Present them as a list, then offer to CREATE_TASK for each one as a confirmable plan.
+- "/help" (no argument) -> reply with exactly these 31 commands as a markdown list, no tool call
 If the message starts with a "/" word that isn't one of these, ignore the slash — do not invent an action for it.
 
 If you can fully answer from [DATABASE STATE] and conversation history alone, or the request isn't actionable, just reply — you don't have to call a tool every turn.
@@ -1538,12 +1643,13 @@ function renderVaultOverview(vaultOverview) {
   return `\n\n[VAULT CONTEXT — force-loaded, not a tool result]\n${parts.join('\n\n')}`;
 }
 
-function buildContextPrompt({ activeProjectId, areas, products, projects, archivedProjects, tasks, archivedTasks, stakeholders, departments, notes, conversationHistory, userText, aiIdentity, externalVault, vaultOverview, googleCalendar, gmail, microsoft, clickup, protocolReminderRequested, now }) {
+function buildContextPrompt({ activeProjectId, areas, products, projects, archivedProjects, tasks, archivedTasks, stakeholders, departments, notes, conversationHistory, userText, aiIdentity, externalVault, vaultOverview, googleCalendar, gmail, microsoft, slack, clickup, protocolReminderRequested, now }) {
   const identity = aiIdentity || {};
   const vaultConnected = !!(externalVault?.owner && externalVault?.repo && externalVault?.token);
   const calendarConnected = !!(googleCalendar?.accessToken && googleCalendar?.refreshToken);
   const gmailConnected = !!(gmail?.accessToken && gmail?.refreshToken);
   const microsoftConnected = !!(microsoft?.accessToken && microsoft?.refreshToken);
+  const slackConnected = !!(slack?.accessToken && slack?.workspaceId);
   const clickupConnected = !!(clickup?.accessToken && clickup?.workspaceId);
   return `[YOUR IDENTITY]
 Name: ${identity.name || '(not set — you\'re currently displayed as "Vaea Chat")'}
@@ -1566,6 +1672,9 @@ ${gmailConnected ? `Connected: ${gmail.emailAddress || '(address unknown)'}` : '
 
 [MICROSOFT 365]
 ${microsoftConnected ? `Connected: ${microsoft.emailAddress || '(address unknown)'}` : 'Not connected — list_outlook_events/list_outlook_messages/read_outlook_message will return connected: false.'}
+
+[SLACK]
+${slackConnected ? `Connected: ${slack.workspaceName}${slack.username ? ` (@${slack.username})` : ''}` : 'Not connected — list_slack_channels/list_slack_messages will return connected: false.'}
 
 [CLICKUP]
 ${clickupConnected ? `Connected: ${clickup.workspaceName}${clickup.defaultListName ? ` (default list: ${clickup.defaultListName})` : ' (no default list configured)'}` : 'Not connected — list_clickup_* tools will return connected: false.'}
@@ -1609,7 +1718,7 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const {
       message, conversationHistory, activeProjectId, aiIdentity = {}, externalVault = {},
-      vaultOverview = null, googleCalendar = {}, gmail = {}, microsoft = {}, clickup = {}, protocolReminderRequested = false, clientNow = null,
+      vaultOverview = null, googleCalendar = {}, gmail = {}, microsoft = {}, slack = {}, clickup = {}, protocolReminderRequested = false, clientNow = null,
       areas = [], products = [], projects = [], archivedProjects = [],
       tasks = [], archivedTasks = [], stakeholders = [], departments = [], notes = [],
     } = body;
@@ -1635,7 +1744,7 @@ Deno.serve(async (req) => {
       activeProjectId, areas, products, projects, archivedProjects,
       tasks, archivedTasks, stakeholders, departments, notes,
       conversationHistory, userText: message, aiIdentity, externalVault,
-      vaultOverview, googleCalendar, gmail, microsoft, clickup, protocolReminderRequested, now,
+      vaultOverview, googleCalendar, gmail, microsoft, slack, clickup, protocolReminderRequested, now,
     });
 
     // Streamed as newline-delimited JSON, one object per line — our own
@@ -1657,7 +1766,7 @@ Deno.serve(async (req) => {
           const agent = new ToolLoopAgent({
             model: models('automatic'),
             instructions: buildInstructions(),
-            tools: buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCalendar, gmail, microsoft, clickup, emit, now }),
+            tools: buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCalendar, gmail, microsoft, slack, clickup, emit, now }),
             stopWhen: stepCountIs(40),
           });
 

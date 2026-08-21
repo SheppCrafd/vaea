@@ -4,8 +4,8 @@ import MarketingLayout from "./MarketingLayout";
 import { Reveal, StageLight, Grain, useDocumentMeta, usePageSchema } from "./effects";
 import {
   darkSectionBg, darkText, darkTopEdge, lightWash, glowTop, glassTileLight,
-  pillOnDark, linkOnDark, eyebrowOnDark, eyebrowOnLight, displayXL, displayL,
-  hairlineH, focusRing, GLOW,
+  pillOnDark, linkOnDark, linkOnLight, eyebrowOnDark, eyebrowOnLight, displayXL, displayL,
+  hairlineH, GLOW,
 } from "./theme";
 
 // Every row here is a genuinely verifiable property of Vaea itself (see
@@ -31,7 +31,7 @@ const ROWS = [
   },
   {
     label: "Which AI model runs it",
-    vaea: "Bring your own key for Anthropic, OpenAI, Google, or xAI — or use Local Mode to run it against your own model, or Claude Code, through a folder on your disk. No key, and Vaea itself makes no network call of its own.",
+    vaea: "Use your own account key from Anthropic, OpenAI, Google, or xAI — or use Local Mode (a way to use Vaea where nothing leaves your device) to run it against your own AI model, or Claude Code (Anthropic's free coding tool), through a folder on your disk. No account key needed, and Vaea itself makes no network call of its own.",
     typical: "Locked to whatever model the vendor picked. No choice, no local option.",
   },
   {
@@ -178,7 +178,7 @@ export default function ComparePage() {
             </p>
             <Link
               to="/how-it-works"
-              className={`mt-6 inline-flex items-center gap-1.5 text-sm text-foreground hover:text-foreground/80 transition-colors rounded-sm ${focusRing}`}
+              className={`mt-6 inline-flex items-center gap-1.5 ${linkOnLight}`}
             >
               See how it works
               <ArrowRight className="w-3.5 h-3.5" />
