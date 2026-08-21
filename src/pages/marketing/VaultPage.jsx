@@ -20,9 +20,9 @@ import {
 
 const VAULT_PHASES = [400, 1600, 1400, 1200, 1000, 800];
 
-const LINE_1 = "Finished the connector sprint — Google Calendar, Gmail, Outlook,";
-const LINE_2 = "ClickUp, and Slack all wired and deployed.";
-const LINE_3 = "Decided to scope the next sprint around ";
+const LINE_1 = "Finished connecting everything — Google Calendar, Gmail, Outlook,";
+const LINE_2 = "ClickUp, and Slack all connected.";
+const LINE_3 = "Next up: ";
 
 function VaultWritingDemo() {
   const { ref, step } = useTimeline(VAULT_PHASES);
@@ -69,8 +69,8 @@ function VaultWritingDemo() {
               ? <><Typed text={LINE_3} play cps={42} /><Caret /></>
               : <>
                   {LINE_3}
-                  <span style={{ color: GLOW }}>[[AI feature parity]]</span>
-                  {step >= 4 && " next."}
+                  <span style={{ color: GLOW }}>[[ideas for next week]]</span>
+                  {step >= 4 && ""}
                   {step === 4 && <Caret />}
                 </>
             }
