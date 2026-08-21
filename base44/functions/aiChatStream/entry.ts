@@ -1090,10 +1090,11 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCal
       execute: queue('RESTORE_BACKUP'),
     }),
     OPEN_APP_SECTION: tool({
-      description: 'Navigate the user\'s own screen to a specific tab — and for Settings, a specific section — so they can actually see it. Use this whenever someone asks where something lives ("where\'s the Outlook connector", "show me the mind map", "open notifications") instead of just describing it in words. Also pops the floating chat window open so the user keeps seeing the conversation while looking at the destination, scrolls straight to it, and briefly highlights it. Not destructive — runs immediately, no confirmation needed.',
+      description: 'Navigate the user\'s own screen to a specific tab — and for Settings, a specific section, or for Mind Map, a specific inner tab — so they can actually see it. Use this whenever someone asks where something lives ("where\'s the Outlook connector", "show me the mind map", "open my workflows", "open notifications") instead of just describing it in words. Also pops the floating chat window open so the user keeps seeing the conversation while looking at the destination, scrolls straight to it, and briefly highlights it. Not destructive — runs immediately, no confirmation needed.',
       inputSchema: z.object({
-        tab: z.enum(['dashboard', 'chat', 'calendar', 'vmail', 'meetings', 'notifications', 'workflows', 'mindmap', 'settings']).describe('Which tab to open.'),
+        tab: z.enum(['dashboard', 'chat', 'calendar', 'vmail', 'meetings', 'notifications', 'mindmap', 'settings']).describe('Which tab to open. Workflows lives inside Mind Map now (mindmap_tab: "workflows") — there\'s no separate "workflows" tab.'),
         settings_section: z.enum(['account', 'appearance', 'ai', 'ai-model', 'agent-behavior', 'storage', 'backup', 'connector-health', 'brain', 'google-workspace', 'gmail', 'microsoft', 'outlook', 'apple-mail', 'clickup', 'slack', 'resources']).optional().describe('Only used when tab is "settings" — which section to scroll to and highlight.'),
+        mindmap_tab: z.enum(['vault', 'workflows']).optional().describe('Only used when tab is "mindmap" — which of its two inner tabs to open ("vault" for the note graph, "workflows" for the sketching canvas).'),
       }),
       execute: queue('OPEN_APP_SECTION'),
     }),

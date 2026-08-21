@@ -8,8 +8,7 @@
 - Vaea Chat: a conversational AI assistant that reads your current workspace data and can directly create, update, or delete items in it (with a confirmation step before anything destructive) — not just a Q&A chatbot layered on top.
 - Vaea Calendar: a native calendar tab aggregating Google Workspace and Microsoft 365 calendars into one view, editable from Vaea Chat.
 - Vmail: a native email client tab (inbox, sent, archive, junk, trash folders; search; compose) aggregating Gmail and Outlook — Vaea Chat can read, send, archive, delete, flag spam, and draft replies across either connected account, with the same confirmation step before anything destructive.
-- Vaea Workflows: a freeform drag-and-drop canvas for sketching out how a process should work.
-- Mind Map: a node-graph view of a connected Vaea Brain vault's notes and their links.
+- Mind Map: one page, two tabs — a live graph of a connected Vaea Brain vault's real wikilinks, and Workflows, a freeform drag-and-drop canvas for sketching out how a process should work.
 - Connectors for external services so Vaea Chat can read and act on them: Google Workspace (Calendar, Drive, Docs, Sheets, Slides, Tasks, Forms), Gmail, Microsoft 365 (calendar + Teams meeting links), Outlook (mail), Apple Mail (connect only — message sync still in progress), ClickUp (create/update tasks, read ClickUp Chat channels, post messages), and Slack (read channel messages, post to channels — sent as the user, not a bot). Each connector is individually authorized via OAuth (or, for Apple Mail, an app-specific password) and stores its own tokens on the user's own device.
 - Local-first by default: real files on your own device (or a connected folder), not a hosted database. Cloud sync is available but opt-in, never the default.
 - Vaea Brain: optional integration with an external Obsidian notes vault (git-backed, stored in the user's own GitHub repo) so the assistant can read and write personal notes. Every write is a real git commit to the user's own repo — nothing stored on Vaea's servers. The page is at https://vaea.base44.app/vault.
@@ -35,8 +34,7 @@ Individuals — freelancers, solo founders, people juggling multiple projects �
 - Vaea Chat (AI assistant and connectors): https://vaea.base44.app/chat
 - Vaea Calendar (Google Workspace + Microsoft 365, aggregated): https://vaea.base44.app/calendar
 - Vmail (Gmail + Outlook email client): https://vaea.base44.app/vmail
-- Vaea Workflows (freeform process canvas): https://vaea.base44.app/workflows
-- Mind Map (vault note graph): https://vaea.base44.app/mindmap
+- Mind Map (vault note graph + Workflows canvas): https://vaea.base44.app/mindmap
 - Vaea Meetings (in progress — no transcript connector live yet): https://vaea.base44.app/meetings
 - Vaea Brain (Obsidian + GitHub notes integration): https://vaea.base44.app/vault
 - How it works: https://vaea.base44.app/how-it-works

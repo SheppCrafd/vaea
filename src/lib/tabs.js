@@ -1,4 +1,4 @@
-import { LayoutDashboard, MessageCircle, Settings as SettingsIcon, CalendarDays, Video, Bell, Workflow, Network, Inbox } from "lucide-react";
+import { LayoutDashboard, MessageCircle, Settings as SettingsIcon, CalendarDays, Video, Bell, Network, Inbox } from "lucide-react";
 
 // Header.jsx's tab bar, factored out to its own dependency-free module —
 // Header.jsx itself pulls in UserMenu.jsx (which touches `window` at
@@ -16,7 +16,8 @@ export const TABS = [
   { key: "vmail", label: "Vmail", to: "/app/vmail", Icon: Inbox, isActive: (path) => path.startsWith("/app/vmail") },
   { key: "meetings", label: "Vaea Meetings", to: "/app/meetings", Icon: Video, isActive: (path) => path.startsWith("/app/meetings") },
   { key: "notifications", label: "Notifications", to: "/app/notifications", Icon: Bell, isActive: (path) => path.startsWith("/app/notifications") },
-  { key: "workflows", label: "Vaea Workflows", to: "/app/workflows", Icon: Workflow, isActive: (path) => path.startsWith("/app/workflows") },
+  // Two tabs in one page (Vault | Workflows — see MindMapPage.jsx); no
+  // separate "workflows" header tab anymore, folded in on request.
   { key: "mindmap", label: "Mind Map", to: "/app/mindmap", Icon: Network, isActive: (path) => path.startsWith("/app/mindmap") },
   { key: "settings", label: "Settings", to: "/app/settings", Icon: SettingsIcon, isActive: (path) => path.startsWith("/app/settings") },
 ];

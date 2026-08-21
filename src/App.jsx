@@ -26,7 +26,6 @@ import VaultPage from '@/pages/marketing/VaultPage';
 import CalendarPage from '@/pages/marketing/CalendarPage';
 import VmailPage from '@/pages/marketing/VmailPage';
 import MeetingsPage from '@/pages/marketing/MeetingsPage';
-import WorkflowsPage from '@/pages/marketing/WorkflowsPage';
 import MindMapPage from '@/pages/marketing/MindMapPage';
 // Everything reachable only via /app/* — Dashboard, AppShell, the chat
 // controller, the command palette, the device storage gate — is lazy too,
@@ -66,7 +65,9 @@ function App() {
                       <Route path="/calendar" element={<CalendarPage />} />
                       <Route path="/vmail" element={<VmailPage />} />
                       <Route path="/meetings" element={<MeetingsPage />} />
-                      <Route path="/workflows" element={<WorkflowsPage />} />
+                      {/* Workflows folded into Mind Map as its second tab — keep the
+                          old URL working for anyone with it bookmarked/linked. */}
+                      <Route path="/workflows" element={<Navigate to="/mindmap" replace />} />
                       <Route path="/mindmap" element={<MindMapPage />} />
                       <Route path="/privacy" element={<PrivacyPage />} />
                       <Route path="/terms" element={<TermsPage />} />

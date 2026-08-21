@@ -10,7 +10,6 @@ const NAV_LINKS = [
   { to: "/calendar", label: "Vaea Calendar" },
   { to: "/vmail", label: "Vmail" },
   { to: "/meetings", label: "Vaea Meetings" },
-  { to: "/workflows", label: "Vaea Workflows" },
   { to: "/mindmap", label: "Mind Map" },
   { to: "/vault", label: "Vaea Brain" },
   { to: "/how-it-works", label: "How it works" },
@@ -204,7 +203,6 @@ function Footer() {
               <li><Link to="/calendar" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Vaea Calendar</Link></li>
               <li><Link to="/vmail" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Vmail</Link></li>
               <li><Link to="/meetings" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Vaea Meetings</Link></li>
-              <li><Link to="/workflows" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Vaea Workflows</Link></li>
               <li><Link to="/mindmap" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Mind Map</Link></li>
               <li><Link to="/vault" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Vaea Brain</Link></li>
               <li><Link to="/compare" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Compare</Link></li>

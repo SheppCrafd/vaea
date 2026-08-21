@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import {
-  ArrowRight, GitBranch, BookOpen, Check, Link2, Search, Sparkles, RefreshCw, Brain,
+  ArrowRight, GitBranch, BookOpen, Check, Link2, Search, Sparkles, RefreshCw, Brain, Network,
 } from "lucide-react";
 import MarketingLayout from "./MarketingLayout";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
@@ -8,7 +8,7 @@ import { Reveal, StageLight, Grain, useTimeline, Typed, Caret, useDocumentMeta, 
 import {
   darkSectionBg, darkText, darkTopEdge, glassPanel, glassSheen, glassTileLight,
   pillOnDark, linkOnDark, eyebrowOnDark, eyebrowOnLight,
-  displayXL, displayL, displayM, GLOW,
+  displayXL, displayL, displayM, GLOW, focusRing,
 } from "./theme";
 
 // ─── vault writing demo ─────────────────────────────────────────────────────
@@ -167,6 +167,11 @@ const FEATURES = [
     icon: Brain,
     title: "It remembers what matters, on its own",
     body: "Durable facts about you and your work — no \"remember this\" required — organized by project in Vaea Memory.md, a plain file you can read or correct anytime.",
+  },
+  {
+    icon: Network,
+    title: "See it as a map, not just a file list",
+    body: "Mind Map turns your real wikilinks into a live, force-directed graph of the same vault — a different view of this same data, not a separate thing to connect.",
   },
 ];
 
@@ -353,6 +358,34 @@ export default function VaultPage() {
               </Reveal>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── MIND MAP CROSS-LINK ── light wash ── Mind Map isn't a separate
+          product to connect — it's this same vault's wikilinks rendered as
+          a graph, so it belongs on this page, not just its own tab. */}
+      <section className="relative border-t border-foreground/[0.05]">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(55%_50%_at_50%_0%,rgba(70,186,209,0.04),transparent_70%)]" />
+        <div className="relative max-w-2xl mx-auto px-6 py-16 sm:py-20 text-center">
+          <Reveal>
+            <p className={`${eyebrowOnLight} mb-4`}>
+              <span className="font-terminal">Mind Map</span>
+            </p>
+            <h2 className={`${displayM} mb-5`}>The same vault, seen as a map.</h2>
+            <p className="text-muted-foreground leading-relaxed mb-6">
+              Every wikilink in your vault is already a real connection — Mind Map lays
+              them out as a live, force-directed graph instead of a folder tree, so you can
+              see how your notes actually relate to each other. Same connection, same data,
+              just a different view of it.
+            </p>
+            <Link
+              to="/mindmap"
+              className={`inline-flex items-center gap-2 text-sm font-medium rounded-full px-5 py-2.5 transition-colors ${focusRing}`}
+              style={{ background: `${GLOW}14`, color: GLOW, border: `1px solid ${GLOW}25` }}
+            >
+              See your Mind Map <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </Reveal>
         </div>
       </section>
 
