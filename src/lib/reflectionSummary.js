@@ -108,7 +108,7 @@ export function buildReflectionInstruction(
   const vaultGuidance = vaultConnected
     ? `
 
-You have a connected Vaea Vault, with two files you can write to directly this turn — no confirmation needed, they'll save automatically:
+You have a connected Vaea Brain, with two files you can write to directly this turn — no confirmation needed, they'll save automatically:
 - "${SELF_NOTE_PATH}" — your own notes about yourself: what you've learned about working in this particular workspace, corrections to how you'd been operating, style notes. It has two sections: "## ${SELF_NOTE_IDENTITY_HEADER}" (your name/identity/soul/about-the-user, set from Settings or "/setup" — never yours to edit; if you rewrite the file, carry that section forward EXACTLY as shown above in [VAULT CONTEXT], unchanged) and "## ${SELF_NOTE_NOTES_HEADER}" (yours). Only ever touch the Notes section — write its full revised body if you genuinely have something new to add, otherwise leave the whole file alone; don't touch it just to have touched it. This is about YOU, never a read on the user — no notes about their behavior, tone, or personality belong here.${
         nearingCap
           ? " Your Notes section is already getting long — if you're updating it, consolidate rather than append: fold related points together, cut anything stale or superseded, keep only what's still genuinely useful. Don't let it grow without bound."

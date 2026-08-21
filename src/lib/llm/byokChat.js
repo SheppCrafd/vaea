@@ -1,6 +1,6 @@
 import { PROVIDERS } from "@/lib/llm/providers";
 import { toAnthropicTools, toOpenAiCompatibleTools } from "@/lib/llm/toolCatalog";
-import { buildInstructions, buildContextPrompt } from "@/lib/llm/systemPrompt";
+import { buildInstructions, buildContextPrompt, getConnectionFlags } from "@/lib/llm/systemPrompt";
 import { makeToolRunner, MAX_ACTIONS_PER_REQUEST } from "@/lib/llm/toolRunner";
 import { callAnthropic } from "@/lib/llm/anthropicAdapter";
 import { callOpenAiCompatible } from "@/lib/llm/openaiCompatibleAdapter";
@@ -130,17 +130,23 @@ export async function runByokChat({ providerConfig, contextArgs, onEvent }) {
   if (isLocalBridge) {
     await writeWorkspaceDataFile(buildWorkspaceDataSnapshot(contextArgs));
   }
+  // local-bridge writes the FULL catalog to VAEA_TOOL_CATALOG.json once at
+  // folder-connect time (localBridgeStorage.js), not per-request, so
+  // filtering here wouldn't save anything for it and would just make that
+  // static file inconsistent with what's actually offered turn to turn —
+  // only anthropic/openai-compatible get the filtered set.
+  const connections = getConnectionFlags(contextArgs);
 
   const { reply, reasoning, thinking } = provider.adapter === "anthropic"
     ? await callAnthropic({
         apiKey: providerConfig.apiKey, model: providerConfig.model, systemPrompt, contextPrompt,
-        tools: toAnthropicTools(), runTool, onEvent,
+        tools: toAnthropicTools(connections), runTool, onEvent,
       })
     : isLocalBridge
     ? await callLocalBridge({ contextPrompt, runTool, sessionId: contextArgs.sessionId })
     : await callOpenAiCompatible({
         baseUrl: provider.baseUrl || providerConfig.baseUrl, apiKey: providerConfig.apiKey, model: providerConfig.model, systemPrompt, contextPrompt,
-        tools: toOpenAiCompatibleTools(), runTool, onEvent, providerId: provider.id,
+        tools: toOpenAiCompatibleTools(connections), runTool, onEvent, providerId: provider.id,
       });
 
   if (isLocalBridge && onEvent) {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, Check, LayoutGrid, Loader2, Mail, TriangleAlert, Unlink, Video } from "lucide-react";
+import { CalendarDays, Check, LayoutGrid, Loader2, TriangleAlert, Unlink, Video } from "lucide-react";
 import { loadMicrosoftConnection, saveMicrosoftConnection, clearMicrosoftConnection, isMicrosoftConnected, DEFAULTS } from "@/lib/microsoftConnection";
 import { buildAuthorizationUrl } from "@/lib/microsoftOAuthPkce";
 import { listEvents } from "@/lib/microsoftGraphApi";
@@ -74,9 +74,10 @@ function UpcomingEvents({ connection, onTokenRefreshed }) {
   );
 }
 
-// Microsoft 365 / Outlook.com — one connection, one consent screen, covers
-// Outlook Calendar, Outlook/Exchange mail, and Teams meeting links (the
-// assistant can add a real Teams join link to any event it creates). Same
+// Microsoft 365 / Outlook Calendar — Calendar + Teams meeting links only
+// (the assistant can add a real Teams join link to any event it creates).
+// Outlook/Exchange mail is a separate connector (OutlookSection.jsx, feeds
+// the Vmail tab) so a user can grant one without the other. Same
 // PKCE-against-a-shared-public-client flow as Calendar/Gmail — see
 // microsoftOAuthPkce.js.
 export default function MicrosoftSection() {
@@ -116,25 +117,23 @@ export default function MicrosoftSection() {
   return (
     <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-6">
       <div className="flex items-center justify-between mb-1">
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Microsoft 365 / Outlook</p>
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Microsoft 365 Calendar</p>
         {connected && (
           <span className="flex items-center gap-1 text-[11px] text-primary font-medium">
             <Check className="w-3.5 h-3.5" /> {connection.emailAddress || "Connected"}
           </span>
         )}
       </div>
-      <p className="text-xs text-muted-foreground mb-3">
-        One Microsoft sign-in covers three surfaces at once: Outlook Calendar, Outlook/Exchange mail, and Teams
-        meeting links (the assistant can attach a real join link to any event it creates). Works with a Microsoft
-        365 work account or a personal Outlook.com account either way. Cancelling an event or sending mail always
-        goes through the same confirm step any other destructive change does, and nothing about the account sits on
-        Vaea's servers — the connection lives on this device, sent along transiently only for the moment a request
-        actually needs it.
+      <p className="text-xs text-muted-foreground mb-4">
+        Connect your Microsoft/Outlook calendar and the assistant can look up what's on it, add events, or cancel
+        them (with a real Teams link if you want one) — cancelling always goes through the same confirm step any
+        other destructive change does. Works with both a Microsoft 365 work account and a personal Outlook.com
+        account. This is calendar only — connect Outlook mail separately below to feed the Vmail tab. Nothing about
+        this account sits on Vaea's servers: the connection lives on this device, sent along transiently only for
+        the moment a request actually needs it.
       </p>
       <div className="flex items-center gap-3 text-[11px] text-muted-foreground mb-4">
         <span className="flex items-center gap-1"><CalendarDays className="w-3 h-3" /> Calendar</span>
-        <span className="text-border">·</span>
-        <span className="flex items-center gap-1"><Mail className="w-3 h-3" /> Mail</span>
         <span className="text-border">·</span>
         <span className="flex items-center gap-1"><Video className="w-3 h-3" /> Teams</span>
       </div>

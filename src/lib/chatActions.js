@@ -19,7 +19,11 @@ import { filterActiveTasks } from "@/lib/taskUtils";
 import { CARD_VIEW_STORAGE_KEY, CARD_VIEW_CHANGE_EVENT } from "@/lib/cardViewConstants";
 import { APPEARANCE_CHANGE_EVENT, THEME_MODES, ACCENT_KEYS } from "@/lib/appearanceConstants";
 import { loadAiIdentity, saveAiIdentity } from "@/lib/aiPreferences";
-import { createSnapshot } from "@/lib/backupSnapshots";
+import { createSnapshot, restoreSnapshot } from "@/lib/backupSnapshots";
+import { loadNotificationRules, saveNotificationRules } from "@/lib/notificationRules";
+import { loadAgents, saveAgents } from "@/lib/agentsStore";
+import { loadPromptTemplates, savePromptTemplates } from "@/lib/promptTemplatesStore";
+import { loadWorkflowCards, saveWorkflowCards } from "@/lib/workflowCanvasStore";
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
 import { writeVaultFile, SELF_NOTE_PATH, SELF_NOTE_HARD_CAP_CHARS } from "@/lib/githubApi";
 import {
@@ -28,7 +32,7 @@ import {
   isGoogleWorkspaceConnected as isCalendarConnected,
 } from "@/lib/googleWorkspaceConnection";
 import { listEvents as listGoogleCalendarEvents, createEvent, updateEvent, deleteEvent } from "@/lib/googleCalendarApi";
-import { loadAgentBehavior } from "@/lib/agentBehaviorSettings";
+import { loadAgentBehavior, saveAgentBehavior } from "@/lib/agentBehaviorSettings";
 import { findFreeSlot, findRecurringSlots, findConflicts, VAEA_TAG } from "@/lib/vaeaCalendarScheduling";
 import { createTextFile as createDriveFile, deleteFile as deleteDriveFile } from "@/lib/googleDriveApi";
 import { createDocument as createGoogleDoc, appendText as appendGoogleDocText, replaceText as replaceGoogleDocText } from "@/lib/googleDocsApi";
@@ -37,14 +41,27 @@ import { createPresentation as createGoogleSlides, addSlide as addGoogleSlide } 
 import { createTask as createGoogleTask, updateTask as updateGoogleTask, deleteTask as deleteGoogleTask } from "@/lib/googleTasksApi";
 import { createForm as createGoogleForm, addTextQuestion as addGoogleFormQuestion } from "@/lib/googleFormsApi";
 import { loadGmailConnection, saveGmailConnection, isGmailConnected } from "@/lib/gmailConnection";
-import { sendMessage as sendGmailMessage } from "@/lib/gmailApi";
+import { sendMessage as sendGmailMessage, archiveMessage as archiveGmailMessage, trashMessage as trashGmailMessage, markSpam as markGmailSpam, createDraftReply as createGmailDraftReply } from "@/lib/gmailApi";
 import { loadMicrosoftConnection, saveMicrosoftConnection, isMicrosoftConnected } from "@/lib/microsoftConnection";
+import { loadOutlookConnection, saveOutlookConnection, isOutlookConnected } from "@/lib/outlookConnection";
 import { loadSlackConnection, isSlackConnected } from "@/lib/slackConnection";
 import { sendMessage as sendSlackMessage } from "@/lib/slackApi";
-import { listEvents as listOutlookEvents, createEvent as createOutlookEvent, updateEvent as updateOutlookEvent, deleteEvent as deleteOutlookEvent, sendMessage as sendOutlookMessage } from "@/lib/microsoftGraphApi";
+import {
+  listEvents as listOutlookEvents,
+  createEvent as createOutlookEvent,
+  updateEvent as updateOutlookEvent,
+  deleteEvent as deleteOutlookEvent,
+  sendMessage as sendOutlookMessage,
+  archiveMessage as archiveOutlookMessage,
+  deleteMessage as deleteOutlookMessage,
+  markSpam as markOutlookSpam,
+  createDraftReply as createOutlookDraftReply,
+} from "@/lib/microsoftGraphApi";
 import { loadClickUpConnection, isClickUpConnected } from "@/lib/clickupConnection";
 import { createTask as createClickUpTask, updateTask as updateClickUpTask, deleteTask as deleteClickUpTask, sendMessage as sendClickUpMessage } from "@/lib/clickupApi";
 import { syncIdentityToSelfNote } from "@/lib/selfNote";
+import { useAppStore } from "@/lib/store";
+import { TABS } from "@/lib/tabs";
 import { createArea, updateArea, deleteArea } from "@/hooks/useAreas";
 import { createProduct, updateProduct, deleteProduct } from "@/hooks/useProducts";
 import { createProject, updateProject, archiveProject, restoreProject, deleteProject } from "@/hooks/useProjects";
@@ -68,6 +85,10 @@ export const DESTRUCTIVE_ACTIONS = new Set([
   "DELETE_CLICKUP_TASK",
   "DELETE_DRIVE_FILE",
   "DELETE_GOOGLE_TASK",
+  "DELETE_WORKFLOW_CARD",
+  "RESTORE_BACKUP",
+  "DELETE_GMAIL_MESSAGE",
+  "DELETE_OUTLOOK_MESSAGE",
 ]);
 
 // UNDO_LAST_ACTION is a real tool the assistant can call, but it's handled
@@ -616,7 +637,7 @@ export async function executeAction(action, args) {
 
     case "WRITE_VAULT_NOTE": {
       const connection = await loadVaultConnection();
-      if (!isVaultConnected(connection)) throw new Error("No Vaea Vault connected — set one up in Settings.");
+      if (!isVaultConnected(connection)) throw new Error("No Vaea Brain connected — set one up in Settings.");
       const result = await writeVaultFile({
         owner: connection.owner,
         repo: connection.repo,
@@ -871,6 +892,100 @@ export async function executeAction(action, args) {
       return { toolResult: { moved } };
     }
 
+    // --- Full UI parity: notification rules, agents, prompt templates,
+    // workflow canvas cards, agent-behavior toggles, and manual backups —
+    // every one of these mirrors a button the user already has on the
+    // matching page. See toolCatalog.js's own comment above these entries.
+
+    case "CREATE_NOTIFICATION_RULE": {
+      const rules = await loadNotificationRules();
+      const next = [...rules.filter((r) => r.name !== args.name), { name: args.name, metric: args.metric, comparator: "gte", threshold: args.threshold }];
+      await saveNotificationRules(next);
+      return { toolResult: { rule: args.name } };
+    }
+
+    case "DELETE_NOTIFICATION_RULE": {
+      const rules = await loadNotificationRules();
+      await saveNotificationRules(rules.filter((r) => r.name !== args.name));
+      return { toolResult: { deleted: args.name } };
+    }
+
+    case "CREATE_AGENT": {
+      const agents = await loadAgents();
+      const next = [...agents, { id: crypto.randomUUID(), name: args.name, purpose: args.purpose || "" }];
+      await saveAgents(next);
+      return { toolResult: { agent: args.name } };
+    }
+
+    case "DELETE_AGENT": {
+      const agents = await loadAgents();
+      const target = agents.find((a) => a.name.toLowerCase() === args.name.toLowerCase());
+      if (!target) throw new Error(`No agent named "${args.name}" — check Settings for the exact name.`);
+      await saveAgents(agents.filter((a) => a.id !== target.id));
+      return { toolResult: { deleted: args.name } };
+    }
+
+    case "CREATE_PROMPT_TEMPLATE": {
+      const templates = await loadPromptTemplates();
+      const next = [...templates.filter((t) => t.name !== args.name), { id: crypto.randomUUID(), name: args.name, text: args.text }];
+      await savePromptTemplates(next);
+      return { toolResult: { template: args.name } };
+    }
+
+    case "DELETE_PROMPT_TEMPLATE": {
+      const templates = await loadPromptTemplates();
+      await savePromptTemplates(templates.filter((t) => t.name !== args.name));
+      return { toolResult: { deleted: args.name } };
+    }
+
+    case "CREATE_WORKFLOW_CARD": {
+      const cards = await loadWorkflowCards();
+      const card = { id: crypto.randomUUID(), text: args.text, x: 40 + Math.random() * 80, y: 60 + Math.random() * 80 };
+      await saveWorkflowCards([...cards, card]);
+      return { toolResult: { card } };
+    }
+
+    case "UPDATE_WORKFLOW_CARD": {
+      const cards = await loadWorkflowCards();
+      if (!cards.some((c) => c.id === args.card_id)) throw new Error("No card with that id — call list_workflow_cards first.");
+      await saveWorkflowCards(cards.map((c) => (c.id === args.card_id ? { ...c, text: args.text } : c)));
+      return { toolResult: { updated: args.card_id } };
+    }
+
+    case "DELETE_WORKFLOW_CARD": {
+      const cards = await loadWorkflowCards();
+      await saveWorkflowCards(cards.filter((c) => c.id !== args.card_id));
+      return { toolResult: { deleted: args.card_id } };
+    }
+
+    case "SET_AGENT_BEHAVIOR": {
+      const current = await loadAgentBehavior();
+      const next = { ...current };
+      if (args.approval_queue_enabled !== undefined) next.approvalQueueEnabled = args.approval_queue_enabled;
+      if (args.multi_model_comparison_enabled !== undefined) next.multiModelComparisonEnabled = args.multi_model_comparison_enabled;
+      if (args.auto_scheduling_enabled !== undefined) next.autoSchedulingEnabled = args.auto_scheduling_enabled;
+      await saveAgentBehavior(next);
+      return { toolResult: { agentBehavior: next } };
+    }
+
+    case "CREATE_BACKUP": {
+      const snapshot = await createSnapshot(args.label || "Manual backup (via chat)");
+      return { toolResult: { snapshot } };
+    }
+
+    case "RESTORE_BACKUP": {
+      await restoreSnapshot(args.snapshot_id);
+      return { toolResult: { restored: args.snapshot_id } };
+    }
+
+    case "OPEN_APP_SECTION": {
+      const tabEntry = TABS.find((t) => t.key === args.tab);
+      if (!tabEntry) throw new Error(`Unknown tab "${args.tab}". Valid tabs: ${TABS.map((t) => t.key).join(", ")}.`);
+      const highlightId = args.tab === "settings" && args.settings_section ? `settings:${args.settings_section}` : `tab:${args.tab}`;
+      useAppStore.getState().openAppSection(tabEntry.to, highlightId);
+      return { toolResult: { opened: args.tab, section: args.settings_section || null } };
+    }
+
     case "CREATE_OUTLOOK_EVENT": {
       const connection = await loadMicrosoftConnection();
       if (!isMicrosoftConnected(connection)) throw new Error("No Microsoft account connected — connect one in Settings.");
@@ -914,10 +1029,10 @@ export async function executeAction(action, args) {
     }
 
     case "SEND_OUTLOOK_MESSAGE": {
-      const connection = await loadMicrosoftConnection();
-      if (!isMicrosoftConnected(connection)) throw new Error("No Microsoft account connected — connect one in Settings.");
+      const connection = await loadOutlookConnection();
+      if (!isOutlookConnected(connection)) throw new Error("No Outlook account connected — connect one in Settings (feeds the Vmail tab).");
       const { connection: refreshed } = await sendOutlookMessage(connection, { to: args.to, subject: args.subject, body: args.body });
-      await saveMicrosoftConnection(refreshed);
+      await saveOutlookConnection(refreshed);
       return { toolResult: { sent: true } };
     }
 
@@ -927,6 +1042,70 @@ export async function executeAction(action, args) {
       const { id, connection: refreshed } = await sendGmailMessage(connection, { to: args.to, subject: args.subject, body: args.body });
       await saveGmailConnection(refreshed);
       return { toolResult: { sent: id } };
+    }
+
+    case "ARCHIVE_GMAIL_MESSAGE": {
+      const connection = await loadGmailConnection();
+      if (!isGmailConnected(connection)) throw new Error("No Gmail account connected — connect one in Settings.");
+      const { connection: refreshed } = await archiveGmailMessage(connection, args.message_id);
+      await saveGmailConnection(refreshed);
+      return { toolResult: { archived: args.message_id } };
+    }
+
+    case "DELETE_GMAIL_MESSAGE": {
+      const connection = await loadGmailConnection();
+      if (!isGmailConnected(connection)) throw new Error("No Gmail account connected — connect one in Settings.");
+      const { connection: refreshed } = await trashGmailMessage(connection, args.message_id);
+      await saveGmailConnection(refreshed);
+      return { toolResult: { deleted: args.message_id } };
+    }
+
+    case "REPORT_GMAIL_SPAM": {
+      const connection = await loadGmailConnection();
+      if (!isGmailConnected(connection)) throw new Error("No Gmail account connected — connect one in Settings.");
+      const { connection: refreshed } = await markGmailSpam(connection, args.message_id);
+      await saveGmailConnection(refreshed);
+      return { toolResult: { reportedSpam: args.message_id } };
+    }
+
+    case "DRAFT_GMAIL_REPLY": {
+      const connection = await loadGmailConnection();
+      if (!isGmailConnected(connection)) throw new Error("No Gmail account connected — connect one in Settings.");
+      const { draftId, connection: refreshed } = await createGmailDraftReply(connection, { messageId: args.message_id, to: args.to, subject: args.subject, body: args.body });
+      await saveGmailConnection(refreshed);
+      return { toolResult: { draft: draftId } };
+    }
+
+    case "ARCHIVE_OUTLOOK_MESSAGE": {
+      const connection = await loadOutlookConnection();
+      if (!isOutlookConnected(connection)) throw new Error("No Outlook account connected — connect one in Settings (feeds the Vmail tab).");
+      const { connection: refreshed } = await archiveOutlookMessage(connection, args.message_id);
+      await saveOutlookConnection(refreshed);
+      return { toolResult: { archived: args.message_id } };
+    }
+
+    case "DELETE_OUTLOOK_MESSAGE": {
+      const connection = await loadOutlookConnection();
+      if (!isOutlookConnected(connection)) throw new Error("No Outlook account connected — connect one in Settings (feeds the Vmail tab).");
+      const { connection: refreshed } = await deleteOutlookMessage(connection, args.message_id);
+      await saveOutlookConnection(refreshed);
+      return { toolResult: { deleted: args.message_id } };
+    }
+
+    case "REPORT_OUTLOOK_SPAM": {
+      const connection = await loadOutlookConnection();
+      if (!isOutlookConnected(connection)) throw new Error("No Outlook account connected — connect one in Settings (feeds the Vmail tab).");
+      const { connection: refreshed } = await markOutlookSpam(connection, args.message_id);
+      await saveOutlookConnection(refreshed);
+      return { toolResult: { reportedSpam: args.message_id } };
+    }
+
+    case "DRAFT_OUTLOOK_REPLY": {
+      const connection = await loadOutlookConnection();
+      if (!isOutlookConnected(connection)) throw new Error("No Outlook account connected — connect one in Settings (feeds the Vmail tab).");
+      const { draftId, connection: refreshed } = await createOutlookDraftReply(connection, { messageId: args.message_id, body: args.body });
+      await saveOutlookConnection(refreshed);
+      return { toolResult: { draft: draftId } };
     }
 
     case "SEND_SLACK_MESSAGE": {

@@ -543,7 +543,7 @@ export const TOOL_CATALOG = [
   {
     name: "WRITE_VAULT_NOTE",
     staged: true,
-    description: "Create or update one file in the connected Vaea Vault (a personal Obsidian/GitHub notes repo — see [VAEA VAULT] below). Staged like every tool above, not run here — the user's own device commits it via the GitHub API using their locally-stored token. Use for \"/vault-log\" (write today's [Daily/YYYY-MM-DD].md, and a [Decisions/...] file too if a real decision was made) and for \"/vault-tidy\" fixes (adding a missing [[wikilink]], creating a stub file). Always pass the FULL desired file content, not a diff — look up the current content via read_vault_note first if you're editing an existing note, and preserve everything in it you're not deliberately changing.",
+    description: "Create or update one file in the connected Vaea Brain (a personal Obsidian/GitHub notes repo — see [VAEA BRAIN] below). Staged like every tool above, not run here — the user's own device commits it via the GitHub API using their locally-stored token. Use for \"/vault-log\" (write today's [Daily/YYYY-MM-DD].md, and a [Decisions/...] file too if a real decision was made) and for \"/vault-tidy\" fixes (adding a missing [[wikilink]], creating a stub file). Always pass the FULL desired file content, not a diff — look up the current content via read_vault_note first if you're editing an existing note, and preserve everything in it you're not deliberately changing.",
     parameters: {
       type: "object",
       properties: {
@@ -908,7 +908,7 @@ export const TOOL_CATALOG = [
   {
     name: "SEND_GMAIL_MESSAGE",
     staged: true,
-    description: "Send an email from the connected Gmail account (see [GMAIL] below). Staged like every tool above, not run here — the user's own device sends it via the Gmail API using their locally-stored connection.",
+    description: "Send an email from the connected Gmail account (see [GMAIL] below) — shows up in the Vmail tab. Staged like every tool above, not run here — the user's own device sends it via the Gmail API using their locally-stored connection.",
     parameters: {
       type: "object",
       properties: {
@@ -922,7 +922,7 @@ export const TOOL_CATALOG = [
   {
     name: "list_gmail_messages",
     staged: false,
-    description: "List recent messages in the connected Gmail inbox (see [GMAIL] below). Runs immediately and returns real data. Optional query uses Gmail's own search syntax (e.g. \"is:unread\", \"from:someone@example.com\").",
+    description: "List recent messages in the connected Gmail inbox (see [GMAIL] below, also visible in the Vmail tab). Runs immediately and returns real data. Optional query uses Gmail's own search syntax (e.g. \"is:unread\", \"from:someone@example.com\").",
     parameters: {
       type: "object",
       properties: {
@@ -1007,7 +1007,7 @@ export const TOOL_CATALOG = [
   {
     name: "SEND_OUTLOOK_MESSAGE",
     staged: true,
-    description: "Send an email from the connected Outlook/Exchange account (see [MICROSOFT 365] below). Staged like every tool above, not run here — the user's own device sends it via Microsoft Graph using their locally-stored connection.",
+    description: "Send an email from the connected Outlook/Exchange account (see [OUTLOOK] below) — shows up in the Vmail tab. Staged like every tool above, not run here — the user's own device sends it via Microsoft Graph using their locally-stored Outlook mail connection.",
     parameters: {
       type: "object",
       properties: {
@@ -1021,7 +1021,7 @@ export const TOOL_CATALOG = [
   {
     name: "list_outlook_messages",
     staged: false,
-    description: "List recent messages in the connected Outlook inbox (see [MICROSOFT 365] below). Runs immediately and returns real data.",
+    description: "List recent messages in the connected Outlook inbox (see [OUTLOOK] below, also visible in the Vmail tab). Runs immediately and returns real data.",
     parameters: {
       type: "object",
       properties: {
@@ -1039,6 +1039,71 @@ export const TOOL_CATALOG = [
       type: "object",
       properties: { message_id: { type: "string", description: "The message's id, from list_outlook_messages." } },
       required: ["message_id"],
+    },
+  },
+
+  {
+    name: "ARCHIVE_GMAIL_MESSAGE",
+    staged: true,
+    description: "Archive a Gmail message (removes it from the inbox, keeps it — not a delete). Get message_id from list_gmail_messages first; never guess one. Non-destructive — runs immediately, no confirmation needed.",
+    parameters: { type: "object", properties: { message_id: { type: "string" } }, required: ["message_id"] },
+  },
+  {
+    name: "DELETE_GMAIL_MESSAGE",
+    staged: true,
+    description: "Move a Gmail message to Trash. Get message_id from list_gmail_messages first; never guess one. Destructive — goes through the normal confirm-before-destructive step like any other delete.",
+    parameters: { type: "object", properties: { message_id: { type: "string" } }, required: ["message_id"] },
+  },
+  {
+    name: "REPORT_GMAIL_SPAM",
+    staged: true,
+    description: "Mark a Gmail message as spam (moves it out of the inbox into Spam). Use this whenever a message looks like a scam/phishing attempt and the user asks you to deal with it, or you're managing the inbox and flag one yourself. Get message_id from list_gmail_messages first; never guess one. Non-destructive — runs immediately, no confirmation needed.",
+    parameters: { type: "object", properties: { message_id: { type: "string" } }, required: ["message_id"] },
+  },
+  {
+    name: "DRAFT_GMAIL_REPLY",
+    staged: true,
+    description: "Create a real Gmail draft replying to a message — threaded onto the original, correct \"Re:\" subject — WITHOUT sending it. The user reviews and sends it themselves (from their real Gmail, or ask them if they'd rather you send it outright via SEND_GMAIL_MESSAGE instead). Get message_id from list_gmail_messages first; never guess one. Non-destructive — runs immediately, no confirmation needed.",
+    parameters: {
+      type: "object",
+      properties: {
+        message_id: { type: "string", description: "The message being replied to, from list_gmail_messages." },
+        to: { type: "string", description: "Recipient — normally the original sender's address." },
+        subject: { type: "string", description: "Reply subject — \"Re: \" is added automatically if missing." },
+        body: { type: "string", description: "Plain-text reply body." },
+      },
+      required: ["message_id", "to", "subject", "body"],
+    },
+  },
+  {
+    name: "ARCHIVE_OUTLOOK_MESSAGE",
+    staged: true,
+    description: "Archive an Outlook message (moves it to the Archive folder, keeps it — not a delete). Get message_id from list_outlook_messages first; never guess one. Non-destructive — runs immediately, no confirmation needed.",
+    parameters: { type: "object", properties: { message_id: { type: "string" } }, required: ["message_id"] },
+  },
+  {
+    name: "DELETE_OUTLOOK_MESSAGE",
+    staged: true,
+    description: "Move an Outlook message to Deleted Items. Get message_id from list_outlook_messages first; never guess one. Destructive — goes through the normal confirm-before-destructive step like any other delete.",
+    parameters: { type: "object", properties: { message_id: { type: "string" } }, required: ["message_id"] },
+  },
+  {
+    name: "REPORT_OUTLOOK_SPAM",
+    staged: true,
+    description: "Mark an Outlook message as junk (moves it to the Junk Email folder). Use this whenever a message looks like a scam/phishing attempt and the user asks you to deal with it, or you're managing the inbox and flag one yourself. Get message_id from list_outlook_messages first; never guess one. Non-destructive — runs immediately, no confirmation needed.",
+    parameters: { type: "object", properties: { message_id: { type: "string" } }, required: ["message_id"] },
+  },
+  {
+    name: "DRAFT_OUTLOOK_REPLY",
+    staged: true,
+    description: "Create a real Outlook draft replying to a message — threaded onto the original via Graph's own reply endpoint — WITHOUT sending it. The user reviews and sends it themselves (from their real Outlook, or ask them if they'd rather you send it outright via SEND_OUTLOOK_MESSAGE instead). Get message_id from list_outlook_messages first; never guess one. Non-destructive — runs immediately, no confirmation needed.",
+    parameters: {
+      type: "object",
+      properties: {
+        message_id: { type: "string", description: "The message being replied to, from list_outlook_messages." },
+        body: { type: "string", description: "Plain-text reply body." },
+      },
+      required: ["message_id", "body"],
     },
   },
 
@@ -1196,25 +1261,25 @@ export const TOOL_CATALOG = [
   {
     name: "list_vault_notes",
     staged: false,
-    description: "List every note (path) in the connected Vaea Vault. Runs immediately. Use to get an overview before deciding what to read, or to check whether a note already exists before creating one.",
+    description: "List every note (path) in the connected Vaea Brain. Runs immediately. Use to get an overview before deciding what to read, or to check whether a note already exists before creating one.",
     parameters: { type: "object", properties: {}, required: [] },
   },
   {
     name: "read_vault_note",
     staged: false,
-    description: "Read one note's full content from the connected Vaea Vault by its exact path (from list_vault_notes or search_vault). Runs immediately and returns real content.",
+    description: "Read one note's full content from the connected Vaea Brain by its exact path (from list_vault_notes or search_vault). Runs immediately and returns real content.",
     parameters: { type: "object", properties: { path: { type: "string" } }, required: ["path"] },
   },
   {
     name: "search_vault",
     staged: false,
-    description: 'Search the connected Vaea Vault by keyword (GitHub code search, scoped to that one repo). Use for "what did we decide about X" / "find notes mentioning Y" style questions about the user\'s personal vault. Runs immediately.',
+    description: 'Search the connected Vaea Brain by keyword (GitHub code search, scoped to that one repo). Use for "what did we decide about X" / "find notes mentioning Y" style questions about the user\'s personal vault. Runs immediately.',
     parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] },
   },
   {
     name: "audit_vault",
     staged: false,
-    description: "Audit the connected Vaea Vault: [[wikilink]] structural issues (broken links, isolated notes with zero incoming/outgoing links), suggested_links (note pairs with real topical overlap that aren't linked yet — a real candidate for you to propose a [[wikilink]] between, not a certainty), possible_duplicates (note pairs similar enough they may be the same note written twice — propose a merge, never delete either side without asking), and tags (auto-generated per-note keyword tags, a local word-frequency heuristic, not a synonym/topic-modeling system — treat them as a rough hint, not authoritative). Runs immediately and returns findings only — propose fixes afterward with WRITE_VAULT_NOTE, as a normal confirmable plan, same pattern as audit_workspace/\"/tidy\". Reads every note's content once, so mention it may take a moment on a large vault.",
+    description: "Audit the connected Vaea Brain: [[wikilink]] structural issues (broken links, isolated notes with zero incoming/outgoing links), suggested_links (note pairs with real topical overlap that aren't linked yet — a real candidate for you to propose a [[wikilink]] between, not a certainty), possible_duplicates (note pairs similar enough they may be the same note written twice — propose a merge, never delete either side without asking), and tags (auto-generated per-note keyword tags, a local word-frequency heuristic, not a synonym/topic-modeling system — treat them as a rough hint, not authoritative). Runs immediately and returns findings only — propose fixes afterward with WRITE_VAULT_NOTE, as a normal confirmable plan, same pattern as audit_workspace/\"/tidy\". Reads every note's content once, so mention it may take a moment on a large vault.",
     parameters: { type: "object", properties: {}, required: [] },
   },
   {
@@ -1233,7 +1298,7 @@ export const TOOL_CATALOG = [
   {
     name: "analyze_attachment",
     staged: false,
-    description: 'Read the actual contents of a file the user attached in this conversation. Runs immediately as a plain client-side fetch: an image (png/jpeg/gif/webp) is handed to you directly so you can genuinely see it, a plain-text file\'s content is returned as-is — a PDF/Word doc/other binary format comes back as an honest error instead, since no document parser is available outside Vaea\'s own built-in model.',
+    description: 'Read the actual contents of a file the user attached in this conversation. Runs immediately as a plain client-side fetch: an image (png/jpeg/gif/webp) is handed to you directly so you can genuinely see it (plus a best-effort ocr_text field from a local OCR pass, useful if you have no vision input), a plain-text file\'s content is returned as-is, and a PDF gets real page-by-page text extraction (extracted_text, page_count). A Word doc/other binary format comes back as an honest error instead, since no document parser is available outside Vaea\'s own built-in model.',
     parameters: {
       type: "object",
       properties: {
@@ -1241,6 +1306,139 @@ export const TOOL_CATALOG = [
         focus: { type: "string", description: "What to focus the summary on, if the user asked about something specific." },
       },
       required: ["file_url"],
+    },
+  },
+
+  // --- Full UI parity: every one of these mirrors an action a real user can
+  // already take by hand in the app's own UI (Notifications' rule builder,
+  // the chat sidebar's Agents/Prompt Templates cards, the Workflow Canvas,
+  // Settings -> Agent Behavior, Settings -> Backup & Restore) — so asking
+  // the assistant to do it is never a dead end just because that surface
+  // happens to be a newer part of the app. ---
+
+  {
+    name: "CREATE_NOTIFICATION_RULE",
+    staged: true,
+    description: "Add a threshold rule to the Notifications page — the same rule builder the user has there themselves. Triggers when the given metric is at or above the threshold.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "A short label for the rule, e.g. \"5+ projects overdue\"." },
+        metric: { type: "string", enum: ["overdue_projects", "at_risk_projects", "not_started_tasks"] },
+        threshold: { type: "number" },
+      },
+      required: ["name", "metric", "threshold"],
+    },
+  },
+  {
+    name: "DELETE_NOTIFICATION_RULE",
+    staged: true,
+    description: "Remove a rule from the Notifications page by its exact name.",
+    parameters: { type: "object", properties: { name: { type: "string" } }, required: ["name"] },
+  },
+  {
+    name: "CREATE_AGENT",
+    staged: true,
+    description: "Add a named agent definition to the chat sidebar's Agents card — the same thing the user can do there with \"New agent\". This defines an agent (name + what it's for); it does not run anything on its own yet.",
+    parameters: {
+      type: "object",
+      properties: { name: { type: "string" }, purpose: { type: "string", description: "Optional one-line description of what it's for." } },
+      required: ["name"],
+    },
+  },
+  {
+    name: "DELETE_AGENT",
+    staged: true,
+    description: "Remove a named agent from the Agents card by its exact name.",
+    parameters: { type: "object", properties: { name: { type: "string" } }, required: ["name"] },
+  },
+  {
+    name: "CREATE_PROMPT_TEMPLATE",
+    staged: true,
+    description: "Save a reusable prompt template to the chat sidebar's Prompt Templates card — the same thing the user can do there with \"New template\". Clicking it later drops the text into the composer.",
+    parameters: {
+      type: "object",
+      properties: { name: { type: "string" }, text: { type: "string" } },
+      required: ["name", "text"],
+    },
+  },
+  {
+    name: "DELETE_PROMPT_TEMPLATE",
+    staged: true,
+    description: "Remove a saved prompt template by its exact name.",
+    parameters: { type: "object", properties: { name: { type: "string" } }, required: ["name"] },
+  },
+  {
+    name: "CREATE_WORKFLOW_CARD",
+    staged: true,
+    description: "Add a sticky-note card to the Workflow Canvas page — the same thing the user can do there with \"Add card\".",
+    parameters: { type: "object", properties: { text: { type: "string" } }, required: ["text"] },
+  },
+  {
+    name: "UPDATE_WORKFLOW_CARD",
+    staged: true,
+    description: "Change the text of an existing Workflow Canvas card. Get card_id from list_workflow_cards first; never guess one.",
+    parameters: { type: "object", properties: { card_id: { type: "string" }, text: { type: "string" } }, required: ["card_id", "text"] },
+  },
+  {
+    name: "DELETE_WORKFLOW_CARD",
+    staged: true,
+    description: "Remove a Workflow Canvas card. Get card_id from list_workflow_cards first; never guess one. Destructive — goes through the normal confirm-before-destructive step.",
+    parameters: { type: "object", properties: { card_id: { type: "string" } }, required: ["card_id"] },
+  },
+  {
+    name: "list_workflow_cards",
+    staged: false,
+    description: "List the cards currently on the Workflow Canvas. Runs immediately and returns real data.",
+    parameters: { type: "object", properties: {}, required: [] },
+  },
+  {
+    name: "SET_AGENT_BEHAVIOR",
+    staged: true,
+    description: "Turn one or more of Settings -> Agent Behavior's three toggles on or off — the same switches the user can flip there themselves. Only pass the ones actually changing.",
+    parameters: {
+      type: "object",
+      properties: {
+        approval_queue_enabled: { type: "boolean", description: "Approve every action, not just destructive ones." },
+        multi_model_comparison_enabled: { type: "boolean", description: "Compare answers across connected BYOK providers." },
+        auto_scheduling_enabled: { type: "boolean", description: "Let Vaea Calendar auto-schedule tasks." },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "CREATE_BACKUP",
+    staged: true,
+    description: "Create a manual backup snapshot of the whole workspace — the same thing the user can do in Settings -> Backup & Restore. A snapshot is also always taken automatically before any risky multi-step plan, so this is for an on-demand extra one.",
+    parameters: { type: "object", properties: { label: { type: "string", description: "Optional label, e.g. \"before reorg\"." } }, required: [] },
+  },
+  {
+    name: "list_backups",
+    staged: false,
+    description: "List available backup snapshots (most recent first). Runs immediately and returns real data.",
+    parameters: { type: "object", properties: {}, required: [] },
+  },
+  {
+    name: "RESTORE_BACKUP",
+    staged: true,
+    description: "Restore the workspace from a backup snapshot — the same \"Restore\" button in Settings -> Backup & Restore. Get snapshot_id from list_backups first; never guess one. Destructive (overwrites current data) — goes through the normal confirm-before-destructive step.",
+    parameters: { type: "object", properties: { snapshot_id: { type: "string" } }, required: ["snapshot_id"] },
+  },
+  {
+    name: "OPEN_APP_SECTION",
+    staged: true,
+    description: "Navigate the user's own screen to a specific tab — and for Settings, a specific section — so they can actually see it. Use this whenever someone asks where something lives (\"where's the Outlook connector\", \"show me the mind map\", \"open notifications\") instead of just describing it in words. Also pops the floating chat window open so the user keeps seeing the conversation while looking at the destination, scrolls straight to it, and briefly highlights it. Not destructive — runs immediately, no confirmation needed.",
+    parameters: {
+      type: "object",
+      properties: {
+        tab: { type: "string", enum: ["dashboard", "chat", "calendar", "vmail", "meetings", "notifications", "workflows", "mindmap", "settings"], description: "Which tab to open." },
+        settings_section: {
+          type: "string",
+          enum: ["account", "appearance", "ai", "ai-model", "agent-behavior", "storage", "backup", "connector-health", "brain", "google-workspace", "gmail", "microsoft", "outlook", "apple-mail", "clickup", "slack", "resources"],
+          description: "Only used when tab is \"settings\" — which section to scroll to and highlight (e.g. \"outlook\" for the Outlook connector, \"apple-mail\" for Apple Mail).",
+        },
+      },
+      required: ["tab"],
     },
   },
 ];
@@ -1293,12 +1491,51 @@ export function validateToolInput(name, input) {
   return null;
 }
 
+// Every tool's own connector, by name pattern rather than a per-entry field
+// — the catalog is 100+ tools now (mostly Google Workspace/Gmail/Microsoft/
+// Slack/ClickUp/Vault, added connector-by-connector across many sessions),
+// and every single one is real input-token cost on EVERY request whether or
+// not the model ever uses it. Most users have 1-2 connectors actually
+// connected, not all of them — sending a not-connected connector's ~15-30
+// tool definitions on a plain "hi" is pure waste, and was the single
+// biggest contributor to prompt bloat once the catalog grew this large.
+// null means "core" — always included regardless of connection state
+// (entity CRUD, appearance, AI identity, workspace/attachment reads, and
+// every local-only feature added this session that needs no connector at
+// all: notification rules, agents, prompt templates, workflow cards, agent
+// behavior, backups).
+function toolConnectorGroup(name) {
+  if (/GMAIL/i.test(name)) return "gmail";
+  // Outlook split into two independently-connected scopes: mail tools
+  // (message/mail) feed the Vmail tab off outlookConnection.js, event
+  // tools stay on the Calendar-only microsoftConnection.js grant.
+  if (/OUTLOOK.*(MESSAGE|SPAM|REPLY)|outlook_message/i.test(name)) return "outlook";
+  if (/OUTLOOK/i.test(name)) return "microsoft";
+  if (/CLICKUP/i.test(name)) return "clickup";
+  if (/SLACK/i.test(name)) return "slack";
+  if (/VAULT/i.test(name)) return "vault";
+  if (/GOOGLE|CALENDAR|DRIVE_FILE/i.test(name)) return "google_workspace";
+  return null;
+}
+
+// `connections` is optional so every existing call site (tests, anything
+// not yet passing it) keeps working unfiltered — pass real connection
+// booleans to actually get the savings. Keys match toolConnectorGroup's
+// return values.
+function filterByConnections(catalog, connections) {
+  if (!connections) return catalog;
+  return catalog.filter((t) => {
+    const group = toolConnectorGroup(t.name);
+    return !group || connections[group];
+  });
+}
+
 // Anthropic's Messages API wants { name, description, input_schema }.
-export function toAnthropicTools() {
-  return TOOL_CATALOG.map(({ name, description, parameters }) => ({ name, description, input_schema: parameters }));
+export function toAnthropicTools(connections) {
+  return filterByConnections(TOOL_CATALOG, connections).map(({ name, description, parameters }) => ({ name, description, input_schema: parameters }));
 }
 
 // OpenAI-compatible chat-completions wants { type: "function", function: { name, description, parameters } }.
-export function toOpenAiCompatibleTools() {
-  return TOOL_CATALOG.map(({ name, description, parameters }) => ({ type: "function", function: { name, description, parameters } }));
+export function toOpenAiCompatibleTools(connections) {
+  return filterByConnections(TOOL_CATALOG, connections).map(({ name, description, parameters }) => ({ type: "function", function: { name, description, parameters } }));
 }

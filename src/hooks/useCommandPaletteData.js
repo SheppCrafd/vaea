@@ -4,6 +4,14 @@ import { useProducts } from "@/hooks/useProducts";
 import { useProjects } from "@/hooks/useProjects";
 import { useAllTasks } from "@/hooks/useTasks";
 import { useStakeholders } from "@/hooks/useStakeholders";
+import { TABS } from "@/lib/tabs";
+
+// Every tab in the header bar, as its own searchable/quick-click result —
+// same list Header.jsx renders, so a new tab added there shows up here for
+// free. "Page" results skip a subtitle entirely (CommandPalette.jsx renders
+// them as just their own header/label, nothing else) since the title alone
+// already says what they are.
+const pageItems = TABS.map((t) => ({ type: "page", id: t.key, title: t.label, subtitle: null, Icon: t.Icon, url: t.to }));
 
 // One flat, typed list the command palette filters client-side against.
 // Every entity hook here already has staleTime: Infinity and is normally
@@ -51,6 +59,6 @@ export function useCommandPaletteData() {
       type: "stakeholder", id: s.id, title: s.name || "Unnamed stakeholder", subtitle: s.department ? `Stakeholder · ${s.department}` : "Stakeholder",
     }));
 
-    return [...areaItems, ...productItems, ...projectItems, ...taskItems, ...stakeholderItems];
+    return [...pageItems, ...areaItems, ...productItems, ...projectItems, ...taskItems, ...stakeholderItems];
   }, [areas, products, projects, tasks, stakeholders]);
 }

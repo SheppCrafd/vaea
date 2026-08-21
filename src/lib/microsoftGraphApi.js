@@ -4,7 +4,8 @@
 // refresh-then-call shape; see that file for the fuller comment on why.
 // Client-side twin of the same-shaped calls in
 // base44/functions/aiChatStream/entry.ts.
-import { refreshAccessToken } from "@/lib/microsoftOAuthPkce";
+import { refreshAccessToken as refreshCalendarToken } from "@/lib/microsoftOAuthPkce";
+import { refreshAccessToken as refreshOutlookToken } from "@/lib/outlookOAuthPkce";
 
 const GRAPH_BASE = "https://graph.microsoft.com/v1.0/me";
 const EXPIRY_SKEW_MS = 60 * 1000;
@@ -17,9 +18,16 @@ function isExpired(connection) {
   return !connection.expiresAt || Date.now() >= connection.expiresAt - EXPIRY_SKEW_MS;
 }
 
-async function ensureFreshToken(connection) {
+// refresher picks which scope's token endpoint call to make — Calendar
+// (microsoftConnection.js, Calendars.ReadWrite) and Outlook mail
+// (outlookConnection.js, Mail.Read/Mail.Send) are two independently
+// consented grants off the same Azure app, so refreshing needs the
+// matching scope or Microsoft rejects it. Defaults to the calendar
+// refresher since that was this function's only caller before mail split
+// out into its own connection.
+async function ensureFreshToken(connection, refresher = refreshCalendarToken) {
   if (!isExpired(connection)) return connection;
-  const refreshed = await refreshAccessToken(connection.refreshToken);
+  const refreshed = await refresher(connection.refreshToken);
   return { ...connection, ...refreshed };
 }
 
@@ -114,16 +122,23 @@ function shapeMessage(m) {
   };
 }
 
-export async function listMessages(connection, { query = "", maxResults = 10 } = {}) {
-  const fresh = await ensureFreshToken(connection);
-  const params = new URLSearchParams({ $top: String(maxResults), $orderby: "receivedDateTime desc" });
+// folder: one of Graph's well-known mail folder names (inbox, sentitems,
+// archive, junkemail, deleteditems) — omit for the default (inbox-scoped
+// /messages endpoint, same as before this param existed).
+export async function listMessages(connection, { query = "", maxResults = 10, folder = "" } = {}) {
+  const fresh = await ensureFreshToken(connection, refreshOutlookToken);
+  // Graph rejects $orderby combined with $search in the same request — drop
+  // ordering when there's a query; $search already returns its own
+  // relevance order.
+  const params = new URLSearchParams({ $top: String(maxResults), ...(query ? {} : { $orderby: "receivedDateTime desc" }) });
   if (query) params.set("$search", `"${query}"`);
-  const data = await graphFetch(`${GRAPH_BASE}/messages?${params}`, fresh.accessToken);
+  const base = folder ? `${GRAPH_BASE}/mailFolders/${folder}/messages` : `${GRAPH_BASE}/messages`;
+  const data = await graphFetch(`${base}?${params}`, fresh.accessToken);
   return { messages: (data.value || []).map(shapeMessage), connection: fresh };
 }
 
 export async function readMessage(connection, messageId) {
-  const fresh = await ensureFreshToken(connection);
+  const fresh = await ensureFreshToken(connection, refreshOutlookToken);
   const data = await graphFetch(`${GRAPH_BASE}/messages/${messageId}`, fresh.accessToken);
   return {
     message: {
@@ -139,7 +154,7 @@ export async function readMessage(connection, messageId) {
 }
 
 export async function sendMessage(connection, { to, subject, body }) {
-  const fresh = await ensureFreshToken(connection);
+  const fresh = await ensureFreshToken(connection, refreshOutlookToken);
   const payload = {
     message: {
       subject,
@@ -149,6 +164,63 @@ export async function sendMessage(connection, { to, subject, body }) {
   };
   await graphFetch(`${GRAPH_BASE}/sendMail`, fresh.accessToken, { method: "POST", body: JSON.stringify(payload) });
   return { sent: true, connection: fresh };
+}
+
+export async function archiveMessage(connection, messageId) {
+  const fresh = await ensureFreshToken(connection, refreshOutlookToken);
+  await graphFetch(`${GRAPH_BASE}/messages/${messageId}/move`, fresh.accessToken, {
+    method: "POST",
+    body: JSON.stringify({ destinationId: "archive" }),
+  });
+  return { connection: fresh };
+}
+
+// Graph's own DELETE already moves a message to Deleted Items rather than
+// purging it (same "reversible" behavior Gmail's /trash gives, just via a
+// plain DELETE verb instead of its own dedicated endpoint) — matches this
+// codebase's general soft-delete-first preference without needing a
+// separate move-to-folder call.
+export async function deleteMessage(connection, messageId) {
+  const fresh = await ensureFreshToken(connection, refreshOutlookToken);
+  try {
+    await graphFetch(`${GRAPH_BASE}/messages/${messageId}`, fresh.accessToken, { method: "DELETE" });
+  } catch (err) {
+    if (err.status !== 404) throw err;
+  }
+  return { connection: fresh };
+}
+
+export async function markSpam(connection, messageId) {
+  const fresh = await ensureFreshToken(connection, refreshOutlookToken);
+  await graphFetch(`${GRAPH_BASE}/messages/${messageId}/move`, fresh.accessToken, {
+    method: "POST",
+    body: JSON.stringify({ destinationId: "junkemail" }),
+  });
+  return { connection: fresh };
+}
+
+// Moves a message out of Deleted Items back to the inbox — Graph has no
+// dedicated "restore" endpoint, but /move to "inbox" does exactly that.
+export async function restoreMessage(connection, messageId) {
+  const fresh = await ensureFreshToken(connection, refreshOutlookToken);
+  await graphFetch(`${GRAPH_BASE}/messages/${messageId}/move`, fresh.accessToken, {
+    method: "POST",
+    body: JSON.stringify({ destinationId: "inbox" }),
+  });
+  return { connection: fresh };
+}
+
+// createReply returns a real draft (isDraft: true, threaded onto the
+// original — Graph handles the In-Reply-To/References headers itself)
+// which this then edits with the actual reply body — never sent from here.
+export async function createDraftReply(connection, { messageId, body }) {
+  const fresh = await ensureFreshToken(connection, refreshOutlookToken);
+  const draft = await graphFetch(`${GRAPH_BASE}/messages/${messageId}/createReply`, fresh.accessToken, { method: "POST", body: JSON.stringify({}) });
+  await graphFetch(`${GRAPH_BASE}/messages/${draft.id}`, fresh.accessToken, {
+    method: "PATCH",
+    body: JSON.stringify({ body: { contentType: "text", content: body } }),
+  });
+  return { draftId: draft.id, connection: fresh };
 }
 
 // Confirms the connection works and returns the real signed-in address —

@@ -118,16 +118,16 @@ const SECTIONS = [
   },
   {
     id: "vault",
-    title: "Vaea Vault (optional)",
+    title: "Vaea Brain (optional)",
     body: (
       <>
         <p>
-          Vaea Vault is a separate, optional feature that connects an Obsidian notes vault backed
+          Vaea Brain is a separate, optional feature that connects an Obsidian notes vault backed
           by your own GitHub repository. If you turn it on, Vaea reads and writes notes there on
           your behalf using a GitHub connection you authorize — every write is a real commit to
           your own repo, recoverable from GitHub's own history, and nothing about your vault is
           copied to or held by Vaea's servers beyond what's needed to make that one read or write.
-          Two further opt-ins inside Vaea Vault — the assistant reviewing its own replies, and
+          Two further opt-ins inside Vaea Brain — the assistant reviewing its own replies, and
           separately, it noticing patterns in how you work — are both off by default and controlled
           entirely by you in Settings.
         </p>

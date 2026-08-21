@@ -3,6 +3,8 @@ import { Check, X } from "lucide-react";
 import { loadGoogleWorkspaceConnection, isGoogleWorkspaceConnected } from "@/lib/googleWorkspaceConnection";
 import { loadGmailConnection, isGmailConnected } from "@/lib/gmailConnection";
 import { loadMicrosoftConnection, isMicrosoftConnected } from "@/lib/microsoftConnection";
+import { loadOutlookConnection, isOutlookConnected } from "@/lib/outlookConnection";
+import { loadAppleMailConnection, isAppleMailConnected } from "@/lib/appleMailConnection";
 import { loadClickUpConnection, isClickUpConnected } from "@/lib/clickupConnection";
 import { loadSlackConnection, isSlackConnected } from "@/lib/slackConnection";
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
@@ -10,10 +12,12 @@ import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
 const CONNECTORS = [
   { label: "Google Workspace", load: loadGoogleWorkspaceConnection, isConnected: isGoogleWorkspaceConnected, section: "google-workspace" },
   { label: "Gmail", load: loadGmailConnection, isConnected: isGmailConnected, section: "gmail" },
-  { label: "Microsoft 365 / Outlook", load: loadMicrosoftConnection, isConnected: isMicrosoftConnected, section: "microsoft" },
+  { label: "Microsoft 365 Calendar", load: loadMicrosoftConnection, isConnected: isMicrosoftConnected, section: "microsoft" },
+  { label: "Outlook Mail", load: loadOutlookConnection, isConnected: isOutlookConnected, section: "outlook" },
+  { label: "Apple Mail", load: loadAppleMailConnection, isConnected: isAppleMailConnected, section: "apple-mail" },
   { label: "ClickUp", load: loadClickUpConnection, isConnected: isClickUpConnected, section: "clickup" },
   { label: "Slack", load: loadSlackConnection, isConnected: isSlackConnected, section: "slack" },
-  { label: "Vaea Vault", load: loadVaultConnection, isConnected: isVaultConnected, section: "vault" },
+  { label: "Vaea Brain", load: loadVaultConnection, isConnected: isVaultConnected, section: "brain" },
 ];
 
 // One glance at every connector's real status — token freshness isn't

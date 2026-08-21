@@ -12,6 +12,8 @@ import ConnectorHealthSection from "@/components/settings/ConnectorHealthSection
 import GoogleWorkspaceSection from "@/components/settings/GoogleWorkspaceSection";
 import GmailSection from "@/components/settings/GmailSection";
 import MicrosoftSection from "@/components/settings/MicrosoftSection";
+import OutlookSection from "@/components/settings/OutlookSection";
+import AppleMailSection from "@/components/settings/AppleMailSection";
 import ClickUpSection from "@/components/settings/ClickUpSection";
 import SlackSection from "@/components/settings/SlackSection";
 import ResourcesSection from "@/components/settings/ResourcesSection";
@@ -27,7 +29,7 @@ const SECTIONS = [
   { key: "agent-behavior", label: "Agent Behavior", Component: AgentBehaviorSection },
   { key: "storage", label: "Data Storage", Component: StorageSection },
   { key: "backup", label: "Backup & Restore", Component: BackupRestoreSection },
-  // Vaea Vault, Google Workspace, and the rest below are all "let the
+  // Vaea Brain, Google Workspace, and the rest below are all "let the
   // assistant reach an outside account" connections — the same shape
   // (connect/disconnect, Connected badge, a live preview once linked)
   // rather than a toggle or form like everything above them. Marking the
@@ -37,10 +39,12 @@ const SECTIONS = [
   // leads the group — a status overview belongs before the individual
   // connectors it's summarizing, not after.
   { key: "connector-health", label: "Connector Health", Component: ConnectorHealthSection, groupLabel: "Connections" },
-  { key: "vault", label: "Vaea Vault", Component: ExternalVaultSection },
+  { key: "brain", label: "Vaea Brain", Component: ExternalVaultSection },
   { key: "google-workspace", label: "Google Workspace", Component: GoogleWorkspaceSection },
   { key: "gmail", label: "Gmail", Component: GmailSection },
-  { key: "microsoft", label: "Microsoft 365 / Outlook", Component: MicrosoftSection },
+  { key: "microsoft", label: "Microsoft 365 Calendar", Component: MicrosoftSection },
+  { key: "outlook", label: "Outlook Mail", Component: OutlookSection },
+  { key: "apple-mail", label: "Apple Mail", Component: AppleMailSection },
   { key: "clickup", label: "ClickUp", Component: ClickUpSection },
   { key: "slack", label: "Slack", Component: SlackSection },
   { key: "resources", label: "Resources", Component: ResourcesSection, groupLabel: "More" },
@@ -85,7 +89,10 @@ function SectionNavContent({ activeSection, onSelect }) {
 export default function SettingsPage() {
   const isSidebarOpen = useAppStore((s) => s.isSettingsSidebarOpen);
   const toggleSidebar = useAppStore((s) => s.toggleSettingsSidebar);
+  const pendingHighlightId = useAppStore((s) => s.pendingHighlightId);
+  const clearHighlight = useAppStore((s) => s.clearHighlight);
   const [activeSection, setActiveSection] = useState(SECTIONS[0].key);
+  const [pulseKey, setPulseKey] = useState(null);
   const sectionRefs = useRef({});
   const scrollContainerRef = useRef(null);
 
@@ -119,6 +126,26 @@ export default function SettingsPage() {
   const scrollToSection = (key) => {
     sectionRefs.current[key]?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+
+  // OPEN_APP_SECTION (chatActions.js) — "where's the Outlook connector"
+  // style requests land here as a "settings:<key>" pendingHighlightId.
+  // Every section already renders unconditionally on this one scrollable
+  // page (sectionRefs above), so there's no separate section to mount
+  // first — just scroll to it and pulse a ring around it.
+  useEffect(() => {
+    if (!pendingHighlightId?.startsWith("settings:")) return;
+    const key = pendingHighlightId.slice("settings:".length);
+    if (!SECTIONS.some((s) => s.key === key)) return;
+    scrollToSection(key);
+    setPulseKey(key);
+    const stopPulse = setTimeout(() => setPulseKey(null), 2200);
+    const clear = setTimeout(() => clearHighlight(), 2300);
+    return () => {
+      clearTimeout(stopPulse);
+      clearTimeout(clear);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingHighlightId]);
 
   // Same reasoning as AppShell.jsx's mobile drawers and ChatPage.jsx's own
   // copy of this pattern: below md the aside never docks, and the drawer's
@@ -184,7 +211,12 @@ export default function SettingsPage() {
               reactivated the previous one instead until this. */}
           <div className="max-w-2xl mx-auto px-6 pt-8 pb-[60vh] flex flex-col gap-6">
             {SECTIONS.map(({ key, Component }) => (
-              <div key={key} data-section-key={key} ref={(el) => { sectionRefs.current[key] = el; }}>
+              <div
+                key={key}
+                data-section-key={key}
+                ref={(el) => { sectionRefs.current[key] = el; }}
+                className={pulseKey === key ? "ring-2 ring-primary ring-offset-2 ring-offset-background animate-pulse rounded-2xl transition-shadow" : ""}
+              >
                 <Component />
               </div>
             ))}

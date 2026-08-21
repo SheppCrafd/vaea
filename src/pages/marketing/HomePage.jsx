@@ -20,7 +20,7 @@ import {
 const FAQS = [
   {
     q: "Do I need to be technical to use this?",
-    a: "No. If you can use a chat app, you can use Vaea — type what's on your plate in plain English and it sorts it out. The only technical-ish step is optional (Vaea Vault, for Obsidian users).",
+    a: "No. If you can use a chat app, you can use Vaea — type what's on your plate in plain English and it sorts it out. The only technical-ish step is optional (Vaea Brain, for Obsidian users).",
   },
   {
     q: "How long does it actually take to get set up?",
@@ -32,7 +32,7 @@ const FAQS = [
   },
   {
     q: "What if I don't use Obsidian or take notes anywhere?",
-    a: "Then skip Vaea Vault entirely — it's optional. Everything else (projects, tasks, Vaea Chat) works exactly the same without it.",
+    a: "Then skip Vaea Brain entirely — it's optional. Everything else (projects, tasks, Vaea Chat) works exactly the same without it.",
   },
   {
     q: "Does this cost anything?",
@@ -48,7 +48,7 @@ const VAULT_REASONS = [
   {
     icon: BookOpen,
     title: "Still just markdown files",
-    body: "Keep writing in Obsidian the way you already do — Vaea Vault just gets to read and write alongside you.",
+    body: "Keep writing in Obsidian the way you already do — Vaea Brain just gets to read and write alongside you.",
   },
   {
     icon: GitBranch,
@@ -349,12 +349,12 @@ function VaultSection() {
     <DarkBand>
       <div ref={ref} className="max-w-4xl mx-auto px-6 py-24 sm:py-32 text-center">
         <Reveal>
-          <p className={`${eyebrowOnDark} mb-4`}>Vaea Vault · optional</p>
+          <p className={`${eyebrowOnDark} mb-4`}>Vaea Brain · optional</p>
           <h2 className={`${displayL} max-w-2xl mx-auto`}>
             Already keeping notes somewhere? Bring them in too.
           </h2>
           <p className="mt-5 text-muted-foreground max-w-lg mx-auto leading-relaxed">
-            Vaea Vault connects your own Obsidian notes — decisions, things you&apos;ve learned, a
+            Vaea Brain connects your own Obsidian notes — decisions, things you&apos;ve learned, a
             running log of what happened and why — right into the assistant. It reads them for
             context, and writes to them when you ask.
           </p>

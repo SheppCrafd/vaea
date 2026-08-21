@@ -1,20 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Search, X, Menu, LayoutDashboard, MessageCircle, Settings as SettingsIcon, CalendarDays, Video, Bell, Workflow, Network } from "lucide-react";
+import { Search, X, Menu } from "lucide-react";
 import { useAppStore } from "@/lib/store";
+import { TABS } from "@/lib/tabs";
 import UserMenu from "@/components/layout/UserMenu";
 import Modal from "@/components/shared/Modal";
-
-const TABS = [
-  { key: "dashboard", label: "Dashboard", to: "/app", Icon: LayoutDashboard, isActive: (path) => path === "/app" },
-  { key: "chat", label: "Vaea Chat", to: "/app/chat", Icon: MessageCircle, isActive: (path) => path.startsWith("/app/chat") },
-  { key: "calendar", label: "Calendar", to: "/app/calendar", Icon: CalendarDays, isActive: (path) => path.startsWith("/app/calendar") },
-  { key: "meetings", label: "Meetings", to: "/app/meetings", Icon: Video, isActive: (path) => path.startsWith("/app/meetings") },
-  { key: "notifications", label: "Notifications", to: "/app/notifications", Icon: Bell, isActive: (path) => path.startsWith("/app/notifications") },
-  { key: "workflows", label: "Workflows", to: "/app/workflows", Icon: Workflow, isActive: (path) => path.startsWith("/app/workflows") },
-  { key: "mindmap", label: "Mind Map", to: "/app/mindmap", Icon: Network, isActive: (path) => path.startsWith("/app/mindmap") },
-  { key: "settings", label: "Settings", to: "/app/settings", Icon: SettingsIcon, isActive: (path) => path.startsWith("/app/settings") },
-];
+import SectionAnchor from "@/components/shared/SectionAnchor";
 
 // Rendered once, above every route (App.jsx) — purely app-level chrome:
 // logo, the page tab bar, global search, the settings shortcut. Nothing
@@ -86,8 +77,9 @@ export default function Header() {
             const active = tab.isActive(location.pathname);
             const canClose = openTabs.length > 1;
             return (
-              <div
+              <SectionAnchor
                 key={key}
+                id={`tab:${key}`}
                 className={`flex items-center rounded-full transition-all ${active ? "bg-card shadow-sm" : "hover:bg-card/60"}`}
               >
                 <Link
@@ -107,7 +99,7 @@ export default function Header() {
                     <X className="w-3 h-3" />
                   </button>
                 )}
-              </div>
+              </SectionAnchor>
             );
           })}
         </nav>

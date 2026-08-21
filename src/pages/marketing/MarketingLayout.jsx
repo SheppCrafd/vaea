@@ -7,7 +7,12 @@ import { hairlineH, focusRing } from "./theme";
 const NAV_LINKS = [
   { to: "/features", label: "Features" },
   { to: "/chat", label: "Vaea Chat" },
-  { to: "/vault", label: "Vaea Vault" },
+  { to: "/calendar", label: "Vaea Calendar" },
+  { to: "/vmail", label: "Vmail" },
+  { to: "/meetings", label: "Vaea Meetings" },
+  { to: "/workflows", label: "Vaea Workflows" },
+  { to: "/mindmap", label: "Mind Map" },
+  { to: "/vault", label: "Vaea Brain" },
   { to: "/how-it-works", label: "How it works" },
   { to: "/compare", label: "Compare" },
   { to: "/about", label: "About" },
@@ -72,18 +77,18 @@ function NavBar() {
   return (
     <header className="sticky top-0 z-30 bg-background/70 supports-[backdrop-filter]:bg-background/55 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_1px_0_0_hsl(var(--foreground)/0.06),0_16px_32px_-24px_hsl(200_30%_12%/0.3)] dark:shadow-[0_1px_0_0_hsl(var(--foreground)/0.08),0_0_24px_-8px_hsl(var(--foreground)/0.10)]">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between gap-6">
-        <div className="flex items-center gap-8">
+        <div className="flex items-center gap-8 min-w-0">
           <Logo />
-          {/* 6 nav links + GitHub + auth controls gets tight at sm (640px).
-              Use gap-4 at sm (was gap-5 at 5 links — the extra item needs the
-              headroom back), full gap-6 at lg where there's room.
-              GitHub shows icon-only at sm–md, adds the label at lg. */}
-          <nav className="hidden sm:flex items-center gap-4 lg:gap-6">
+          {/* overflow-x-auto, not flex-wrap: 11 links at narrower desktop
+              widths scroll horizontally within the bar rather than wrapping
+              to a second row, which would break the header's fixed h-16 —
+              same reasoning as the in-app Header.jsx tab bar. */}
+          <nav className="hidden sm:flex items-center gap-6 overflow-x-auto min-w-0">
             {NAV_LINKS.map(({ to, label }) => (
               <Link
                 key={to}
                 to={to}
-                className={`text-sm transition-colors rounded-sm ${focusRing} ${
+                className={`text-sm shrink-0 whitespace-nowrap transition-colors rounded-sm ${focusRing} ${
                   location.pathname === to
                     ? "text-foreground font-medium"
                     : "text-muted-foreground hover:text-foreground"
@@ -97,7 +102,7 @@ function NavBar() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="GitHub repository"
-              className={`flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}
+              className={`flex items-center gap-1.5 text-sm shrink-0 whitespace-nowrap text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}
             >
               <Github className="w-3.5 h-3.5" />
               <span className="hidden lg:inline">GitHub</span>
@@ -196,7 +201,12 @@ function Footer() {
               <li><Link to="/features" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Features</Link></li>
               <li><Link to="/how-it-works" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>How it works</Link></li>
               <li><Link to="/chat" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Vaea Chat</Link></li>
-              <li><Link to="/vault" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Vault</Link></li>
+              <li><Link to="/calendar" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Vaea Calendar</Link></li>
+              <li><Link to="/vmail" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Vmail</Link></li>
+              <li><Link to="/meetings" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Vaea Meetings</Link></li>
+              <li><Link to="/workflows" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Vaea Workflows</Link></li>
+              <li><Link to="/mindmap" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Mind Map</Link></li>
+              <li><Link to="/vault" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Vaea Brain</Link></li>
               <li><Link to="/compare" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Compare</Link></li>
             </ul>
           </div>

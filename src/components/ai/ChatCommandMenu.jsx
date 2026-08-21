@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import Portal from "@/lib/Portal";
 import { clampPositionToViewport } from "@/lib/viewportClamp";
 
@@ -9,6 +10,17 @@ const MAX_HEIGHT = 224; // max-h-56
 // the floating widget's panel clips overflow, so anything meant to hang
 // outside it has to render outside its DOM subtree).
 export default function ChatCommandMenu({ inputRef, matches, activeIndex, onHover, onSelect }) {
+  const itemRefs = useRef([]);
+
+  // ArrowUp/ArrowDown moves activeIndex (useSlashCommand.js's handleKeyDown)
+  // but never touched scroll position on its own — past the visible ~5
+  // rows, the highlight kept moving while the list stayed put. block:
+  // "nearest" only scrolls when the item is actually out of view, so mouse
+  // hover (which also sets activeIndex) doesn't cause any jitter.
+  useEffect(() => {
+    itemRefs.current[activeIndex]?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex]);
+
   if (!inputRef.current) return null;
   const rect = inputRef.current.getBoundingClientRect();
 
@@ -34,6 +46,7 @@ export default function ChatCommandMenu({ inputRef, matches, activeIndex, onHove
         {matches.map((cmd, i) => (
           <button
             key={cmd.name}
+            ref={(el) => { itemRefs.current[i] = el; }}
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onMouseEnter={() => onHover(i)}

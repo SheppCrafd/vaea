@@ -12,6 +12,7 @@ import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
 import { loadGoogleWorkspaceConnection as loadCalendarConnection } from "@/lib/googleWorkspaceConnection";
 import { loadGmailConnection } from "@/lib/gmailConnection";
 import { loadMicrosoftConnection } from "@/lib/microsoftConnection";
+import { loadOutlookConnection } from "@/lib/outlookConnection";
 import { saveSnippet, findSnippet } from "@/lib/snippetsStore";
 import { loadAgentBehavior } from "@/lib/agentBehaviorSettings";
 import { loadSlackConnection } from "@/lib/slackConnection";
@@ -372,6 +373,7 @@ export function useChatController({ activeProjectId } = {}) {
     // Same trust model, same reasoning, as googleCalendar just above.
     const gmail = await loadGmailConnection();
     const microsoft = await loadMicrosoftConnection();
+    const outlook = await loadOutlookConnection();
     const slack = await loadSlackConnection();
     // ClickUp's connection has no token-freshness concept at all (see
     // clickupConnection.js) — nothing to refresh-and-persist here, just a
@@ -401,6 +403,7 @@ export function useChatController({ activeProjectId } = {}) {
           googleCalendar,
           gmail,
           microsoft,
+          outlook,
           slack,
           clickup,
           areas: areas.filter((a) => !a.deleted_at),
@@ -441,6 +444,10 @@ export function useChatController({ activeProjectId } = {}) {
         externalVault,
         vaultOverview,
         googleCalendar,
+        gmail,
+        microsoft,
+        outlook,
+        slack,
         clickup,
         // Mirrors the CLI's own UserPromptSubmit hook (see protocolReminder.js) —
         // decided client-side from the user's own just-typed message, not

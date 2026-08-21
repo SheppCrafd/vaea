@@ -79,7 +79,7 @@ const CONNECT_STEPS = [
     title: "Connect it in Vaea",
     body: (
       <>
-        Open <strong className="text-foreground">Settings → Vaea Vault</strong> (or the{" "}
+        Open <strong className="text-foreground">Settings → Vaea Brain</strong> (or the{" "}
         <Settings className="w-3.5 h-3.5 inline -mt-0.5" /> icon in chat). Enter the GitHub username/org, repo,
         branch, and the token from the step above, then hit <strong className="text-foreground">Connect</strong>.
       </>
@@ -118,7 +118,7 @@ const USES = [
 ];
 
 // Shown instead of the generic "build one from scratch" flow when Settings
-// -> Vaea Vault already has a real connection — the exact gap the from-
+// -> Vaea Brain already has a real connection — the exact gap the from-
 // scratch guide below doesn't cover: getting a repo that already exists
 // (whatever its history) open in Obsidian on THIS device, using the real
 // owner/repo/branch already connected rather than a <placeholder>.
@@ -130,7 +130,7 @@ function ConnectedVaultWalkthrough({ connection }) {
         <Check className="w-3.5 h-3.5" /> Already connected
       </p>
       <p className="text-sm text-muted-foreground mb-5">
-        Settings → Vaea Vault is already pointed at{" "}
+        Settings → Vaea Brain is already pointed at{" "}
         <span className="font-terminal text-xs text-foreground">{connection.owner}/{connection.repo}</span>{" "}
         (branch <span className="font-terminal text-xs text-foreground">{connection.branch}</span>). Vaea reads
         and writes it over the GitHub API already — what's left is a real, editable copy on this device.
@@ -195,7 +195,7 @@ export default function VaultSetupGuidePage() {
             <ArrowLeft className="w-3.5 h-3.5" />
             Settings
           </Link>
-          <h1 className="font-heading text-lg font-semibold">Vaea Vault Setup</h1>
+          <h1 className="font-heading text-lg font-semibold">Vaea Brain Setup</h1>
         </div>
       </div>
 
@@ -205,7 +205,7 @@ export default function VaultSetupGuidePage() {
           Optional · your own Obsidian + GitHub vault
         </p>
         <h2 className="font-heading text-3xl font-semibold leading-tight mb-3">
-          Set up Vaea Vault
+          Set up Vaea Brain
         </h2>
         <p className="text-muted-foreground leading-relaxed mb-8">
           A personal, freeform space for decisions, things you learned, and a running daily log — Obsidian for

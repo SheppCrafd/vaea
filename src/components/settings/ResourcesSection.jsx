@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { BookOpen, ChevronRight } from "lucide-react";
 
 // A place for links that aren't a Vaea setting to toggle — currently just
-// the Vaea Vault (Obsidian+git notes vault) setup guide, which is
+// the Vaea Brain (Obsidian+git notes vault) setup guide, which is
 // deliberately NOT built into the app itself (see VaultSetupGuidePage.jsx's
 // own framing).
 export default function ResourcesSection() {
@@ -18,7 +18,7 @@ export default function ResourcesSection() {
             <BookOpen className="w-4 h-4 text-primary" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium">Vaea Vault setup guide</p>
+            <p className="text-sm font-medium">Vaea Brain setup guide</p>
             <p className="text-xs text-muted-foreground">Obsidian + GitHub, for notes that live outside Vaea</p>
           </div>
         </div>

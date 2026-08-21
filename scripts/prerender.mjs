@@ -34,7 +34,7 @@ const distDir = join(root, "dist");
 // Routes that render outside AuthenticatedApp (see src/App.jsx) — real,
 // crawlable marketing content. /app/* is deliberately excluded: it's
 // auth-gated and has nothing for a crawler to index.
-const ROUTES = ["/", "/features", "/chat", "/vault", "/how-it-works", "/about", "/login", "/signup", "/compare", "/privacy", "/terms"];
+const ROUTES = ["/", "/features", "/chat", "/vault", "/calendar", "/vmail", "/meetings", "/workflows", "/mindmap", "/how-it-works", "/about", "/login", "/signup", "/compare", "/privacy", "/terms"];
 
 async function loadChromium() {
   try {
