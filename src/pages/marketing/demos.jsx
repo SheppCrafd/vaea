@@ -1,8 +1,14 @@
 import {
-  Search, Package, FolderKanban, ListTodo, Boxes, BookOpen, GitBranch,
+  Search, Package, FolderKanban, Boxes, BookOpen, GitBranch,
   Check, Plus, MessageCircle, Settings,
 } from "lucide-react";
-import { Typed, Caret } from "./effects";
+import ChatMessageList from "@/components/ai/ChatMessageList";
+import ChatIcon from "@/components/ai/ChatIcon";
+import { CHAT_ICON_OPTIONS } from "@/lib/chatIcon";
+import CommandPaletteResults from "@/components/command/CommandPaletteResults";
+import ProjectMiniStats from "@/components/projects/ProjectMiniStats";
+import IdentityField, { FIELDS as IDENTITY_FIELDS } from "@/components/settings/IdentityField";
+import { Typed, Caret, useTypedText } from "./effects";
 import { glassPanel, glassSheen } from "./theme";
 
 // ---------------------------------------------------------------------------
@@ -42,18 +48,6 @@ function GlassFrame({ children, minHeight, className = "" }) {
   );
 }
 
-function Line({ show, children, className = "" }) {
-  return (
-    <p
-      className={`transition-all duration-300 ${className} ${
-        show ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"
-      }`}
-    >
-      {children}
-    </p>
-  );
-}
-
 // --- 1. Vaea Chat -----------------------------------------------------------
 // The hero film: a whole real session, from the sentence you'd actually type
 // to the plain-English summary of what changed.
@@ -72,42 +66,70 @@ export const CHAT_CAPTIONS = [
   { title: "Then it does them", body: "Real changes to your real workspace — and a plain summary of what moved, so you can see it worked.", from: 6, to: 8 },
 ];
 
+// Real describeToolCall()/describePlan() output shapes (chatActions.js) —
+// see this file's own header comment.
+const TOOL_LOG_LINES = [
+  "plan · 3 steps across 3 projects",
+  'tool call · archive_project("Q1 Newsletter")',
+  'tool call · move_project("Landing Page Copy")',
+  'tool call · archive_project("Old Brand Deck")',
+];
+// Exact shape splitToolLogPrefix (ChatMessageList.jsx) expects: a fenced
+// ```tool-log block, a blank line, then the reply — the real persisted-
+// message format useChatController.js's buildLoggedContent produces.
+const CHAT_MESSAGE_CONTENT = "```tool-log\n" + TOOL_LOG_LINES.join("\n") + "\n```\n\n" + CHAT_REPLY;
+const DEMO_ICON_CHOICE = { key: CHAT_ICON_OPTIONS[0].key };
+
 export function ChatFilm({ step }) {
+  // Steps 0: composer only (nothing to hand ChatMessageList yet — there's
+  // no real "message" until it's actually sent, same as the real composer).
+  // Steps 1-5: one user message, isComputing true, liveSteps growing —
+  // literally ChatMessageList's own live-generation UI, driven by this
+  // timeline instead of a real stream.
+  // Steps 6-8: the persisted assistant message lands with isNew so
+  // ChatMessageList's own real typewriter (useTypewriter) reveals the reply
+  // — not a second, fake typing effect standing in for it.
+  const sent = step >= 1;
+  const computing = step >= 1 && step < 6;
+  const messages = sent
+    ? [
+        { id: "u1", role: "user", content: CHAT_ASK },
+        ...(step >= 6 ? [{ id: "a1", role: "assistant", content: CHAT_MESSAGE_CONTENT, tool_log_detail: null }] : []),
+      ]
+    : [];
+  const liveSteps = TOOL_LOG_LINES.slice(0, Math.max(0, step - 1));
+
   return (
     <GlassFrame minHeight="19rem">
-      <div className="flex items-center gap-1.5 px-5 py-3.5 border-b border-foreground/10">
-        <span className="w-2.5 h-2.5 rounded-full bg-foreground/15" />
-        <span className="w-2.5 h-2.5 rounded-full bg-foreground/15" />
-        <span className="w-2.5 h-2.5 rounded-full bg-foreground/15" />
-        <span className="ml-2 font-terminal text-[11px] text-foreground/40">Vaea Chat</span>
+      {/* Matches ChatBox.jsx's real header chrome exactly (bg-primary bar,
+          ChatIcon + name) — not the macOS-traffic-light chrome this film
+          used to invent, which exists nowhere in the real app. */}
+      <div className="flex items-center gap-2 px-4 py-3 bg-primary text-primary-foreground">
+        <ChatIcon iconChoice={DEMO_ICON_CHOICE} className="w-5 h-5" />
+        <span className="font-terminal font-semibold text-sm">Vaea Chat</span>
       </div>
 
-      <div className="p-5 font-terminal text-[13px] leading-relaxed text-left">
-        <p className="text-foreground/90">
-          <span className="text-[#46BAD1]">{">"}</span>{" "}
-          <Typed text={CHAT_ASK} play={step === 0} complete={step > 0} cps={48} />
-          {step === 0 && <Caret />}
-        </p>
-
-        {step === 1 && (
-          <p className="mt-3 flex items-center gap-1.5 text-foreground/40">
-            <span className="w-3 h-3 rounded-full border border-[#46BAD1]/60 border-t-transparent animate-spin" />
+      <div className="h-64 flex flex-col text-left">
+        {!sent ? (
+          <div className="p-5 font-terminal text-[13px] leading-relaxed text-foreground/90 flex-1">
+            <span className="text-[#46BAD1]">{">"}</span>{" "}
+            <Typed text={CHAT_ASK} play={step === 0} complete={step > 0} cps={48} />
             <Caret />
-          </p>
-        )}
-
-        <div className="mt-3 space-y-1 text-foreground/40">
-          <Line show={step >= 2}>plan · 3 steps across 3 projects</Line>
-          <Line show={step >= 3}>tool call · archive_project(&quot;Q1 Newsletter&quot;)</Line>
-          <Line show={step >= 4}>tool call · move_project(&quot;Landing Page Copy&quot;)</Line>
-          <Line show={step >= 5}>tool call · archive_project(&quot;Old Brand Deck&quot;)</Line>
-        </div>
-
-        {step >= 6 && (
-          <p className="mt-3 text-foreground/90">
-            <Typed text={CHAT_REPLY} play={step === 6} complete={step > 6} cps={60} />
-            {step >= 7 && <Caret />}
-          </p>
+          </div>
+        ) : (
+          <ChatMessageList
+            messages={messages}
+            isComputing={computing}
+            liveSteps={liveSteps}
+            streamingText=""
+            iconChoice={DEMO_ICON_CHOICE}
+            hasMore={false}
+            onLoadMore={() => {}}
+            resolvingId={null}
+            onConfirm={() => {}}
+            onCancel={() => {}}
+            newMessageIds={step === 6 ? new Set(["a1"]) : new Set()}
+          />
         )}
       </div>
     </GlassFrame>
@@ -123,35 +145,32 @@ export function ChatFilm({ step }) {
 
 export const PALETTE_PHASES = [1100, 1300, 900, 750, 750, 1600];
 
+// Same shape CommandPaletteResults expects: quick-action rows (run: fn, no
+// url) before a query, real-entity-shaped rows (type/id/title/subtitle)
+// once one's typed — group labels drive CommandPaletteResults' own header
+// rows exactly like the real palette's Pages/Dashboard groups do.
 const PALETTE_QUICK = [
-  { Icon: Plus, label: "Create Task" },
-  { Icon: Plus, label: "Create Project" },
-  { Icon: MessageCircle, label: "Open full-page chat" },
-  { Icon: Settings, label: "Open Settings" },
+  { key: "q1", label: "Create Task", Icon: Plus, run: () => {} },
+  { key: "q2", label: "Create Project", Icon: Plus, run: () => {} },
+  { key: "q3", label: "Open full-page chat", Icon: MessageCircle, run: () => {} },
+  { key: "q4", label: "Open Settings", Icon: Settings, run: () => {} },
 ];
 
 const PALETTE_RESULTS = [
-  { Icon: Package, title: "Growth", subtitle: "Product" },
-  { Icon: FolderKanban, title: "Landing Page Copy", subtitle: "in Growth" },
-  { Icon: ListTodo, title: "Write header copy", subtitle: "Landing Page Copy" },
+  { type: "product", id: "p1", title: "Growth", subtitle: "Product" },
+  { type: "project", id: "p2", title: "Landing Page Copy", subtitle: "in Growth" },
+  { type: "task", id: "p3", title: "Write header copy", subtitle: "Landing Page Copy" },
 ];
 
-function Kbd({ children, lit }) {
-  return (
-    <kbd
-      className={`font-mono border rounded px-1 py-0.5 transition-colors duration-200 ${
-        lit ? "border-primary/60 bg-primary/10 text-foreground" : "border-border"
-      }`}
-    >
-      {children}
-    </kbd>
-  );
+function demoGroupLabel(result) {
+  if (!result) return null;
+  return result.run ? "Quick actions" : "Dashboard";
 }
 
 export function PaletteFilm({ step }) {
   const showResults = step >= 2;
   const selected = step <= 2 ? 0 : step === 3 ? 1 : 2;
-  const rows = showResults ? PALETTE_RESULTS : PALETTE_QUICK;
+  const results = showResults ? PALETTE_RESULTS : PALETTE_QUICK;
 
   return (
     <div className="w-full rounded-xl border border-border bg-card text-foreground shadow-[0_25px_50px_-12px_rgb(0_0_0/0.25)] dark:shadow-[0_0_1px_0_hsl(var(--foreground)/0.15),0_0_50px_-8px_hsl(var(--foreground)/0.14)] overflow-hidden text-left">
@@ -168,71 +187,77 @@ export function PaletteFilm({ step }) {
         <kbd className="shrink-0 text-[10px] font-mono text-muted-foreground border border-border rounded px-1.5 py-0.5">Esc</kbd>
       </div>
 
-      <div className="py-1.5" style={{ minHeight: "9rem" }}>
-        {rows.map((row, i) => {
-          const Icon = row.Icon;
-          return (
-            <div
-              key={row.title || row.label}
-              className={`flex items-center gap-3 px-4 py-2 transition-colors duration-200 ${
-                i === selected ? "bg-secondary" : ""
-              }`}
-            >
-              <Icon className="w-4 h-4 shrink-0 text-muted-foreground" />
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-medium truncate">{row.title || row.label}</span>
-                {row.subtitle && <span className="block text-xs text-muted-foreground truncate">{row.subtitle}</span>}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="flex items-center gap-3 px-4 py-2 border-t border-border text-[10px] text-muted-foreground">
-        <span className="flex items-center gap-1"><Kbd lit={step === 3 || step === 4}>↑↓</Kbd> navigate</span>
-        <span className="flex items-center gap-1"><Kbd lit={step >= 5}>↵</Kbd> open</span>
-        <span className="flex items-center gap-1"><Kbd>ctrl+↵</Kbd> new tab</span>
+      {/* 4 quick-action rows (+ group header) render taller than 3 results
+          rows (+ group header) — reserved at the larger of the two so the
+          step-2 transition between them never shrinks the card. */}
+      <div style={{ minHeight: "11.5rem" }}>
+        <CommandPaletteResults
+          results={results}
+          activeIndex={selected}
+          query={step === 1 ? "growth" : ""}
+          groupLabel={demoGroupLabel}
+          onSelect={() => {}}
+          onHover={() => {}}
+          activeHasUrl={showResults}
+        />
       </div>
     </div>
   );
 }
 
 // --- 3. The nesting -------------------------------------------------------
-// Area → Product → Project → tasks, each level built out in order so the
-// containment is something you watch happen rather than have to infer. Each
-// level uses its real elevation treatment from the app's own design system
-// (Area: bg-card + shadow-md; Product: recessed bg-muted/40 with no shadow;
-// Project: pops back to bg-card) — see AreaCard.jsx / ProductCard.jsx and
-// the Visual Design Refresh decision note.
+// Area → Product → Project, each level built out in order so the
+// containment is something you watch happen rather than have to infer. Area
+// and Product shells are hand-matched to AreaCard.jsx/ProductCard.jsx's own
+// elevation treatment (those components are wired to @dnd-kit's live drag
+// context and real mutation hooks — not safe to force into a static
+// marketing page). The Project tile's own stats — quadrant grid, risk/
+// question flags, status bar — render through the real ProjectMiniStats.jsx
+// component, the exact same one every real Dashboard tile uses; a real
+// Dashboard tile never shows individual task names on the tile itself (see
+// ProjectCard.jsx's own comment — that's one click away in the detail
+// modal), so this film doesn't either, matching the real tile exactly
+// instead of a plausible-looking invention.
 
 export const NEST_PHASES = [650, 650, 650, 750, 950, 950, 1800];
 
-// STATUS_COLORS, taskUtils.js. NOT_STARTED is a theme-adaptive CSS var in the
-// real app, so it's referenced the same way here rather than hardcoded.
+// STATUS_COLORS, taskUtils.js.
 const DONE = "#86E7B0";
 const IN_PROGRESS = "#FEF08A";
 const NOT_STARTED = "var(--status-not-started)";
 
-const NEST_TASKS = ["Write header copy", "Draft CTA variants", "Ship to staging"];
+// One fixed quadrant split (this film is telling a status-progression
+// story, not an urgency/importance one) — real shape ProjectMiniStats
+// expects, same 4 quadrants getQuadrantCounts() always returns.
+const NEST_QUADRANTS = [
+  { quadrant: "urgent-important", count: 2, hasFocus: false, hasHighlightedStakeholder: false },
+  { quadrant: "not-urgent-important", count: 1, hasFocus: false, hasHighlightedStakeholder: false },
+  { quadrant: "urgent-not-important", count: 0, hasFocus: false, hasHighlightedStakeholder: false },
+  { quadrant: "not-urgent-not-important", count: 0, hasFocus: false, hasHighlightedStakeholder: false },
+];
 
 export function NestFilm({ step }) {
-  // Task 1 completes at phase 4; task 2 starts moving at phase 5.
+  // Task 1 completes at phase 4; task 2 starts moving at phase 5 — same
+  // status timeline the old version told, now expressed the way a real
+  // Dashboard tile actually shows it (the bottom status bar), not a task
+  // checklist no real tile has.
   const statuses = [
-    step >= 4 ? DONE : NOT_STARTED,
-    step >= 5 ? IN_PROGRESS : NOT_STARTED,
-    NOT_STARTED,
+    step >= 4 ? "DONE" : "NOT_STARTED",
+    step >= 5 ? "IN_PROGRESS" : "NOT_STARTED",
+    "NOT_STARTED",
   ];
-  const counts = [
-    statuses.filter((s) => s === NOT_STARTED).length,
-    statuses.filter((s) => s === IN_PROGRESS).length,
-    statuses.filter((s) => s === DONE).length,
+  const counts = {
+    NOT_STARTED: statuses.filter((s) => s === "NOT_STARTED").length,
+    IN_PROGRESS: statuses.filter((s) => s === "IN_PROGRESS").length,
+    DONE: statuses.filter((s) => s === "DONE").length,
+  };
+  // MINI_STATUS_BUCKETS, taskUtils.js — real keys/labels/order/colors.
+  const miniStats = [
+    { key: "NOT_STARTED", label: "Not Started", color: NOT_STARTED, count: counts.NOT_STARTED },
+    { key: "IN_PROGRESS", label: "In Prog", color: IN_PROGRESS, count: counts.IN_PROGRESS },
+    { key: "DONE", label: "Done", color: DONE, count: counts.DONE },
   ];
-  // MINI_STATUS_BUCKETS, taskUtils.js — real labels, real order.
-  const buckets = [
-    { label: "Not Started", color: NOT_STARTED, count: counts[0] },
-    { label: "In Prog", color: IN_PROGRESS, count: counts[1] },
-    { label: "Done", color: DONE, count: counts[2] },
-  ];
+  const miniTotal = 3;
 
   const grow = (show) =>
     `transition-all duration-500 ease-out ${show ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}`;
@@ -252,34 +277,13 @@ export function NestFilm({ step }) {
           Website Relaunch
         </p>
 
-        <div className={`mt-3 rounded-lg bg-card border border-border shadow-[0_1px_2px_0_rgb(0_0_0/0.05)] dark:shadow-[0_0_0_1px_hsl(var(--foreground)/0.06),0_0_8px_-2px_hsl(var(--foreground)/0.10)] p-3 ${grow(step >= 2)}`}>
-          <p className="text-sm font-medium flex items-center gap-2">
-            <FolderKanban className="w-3.5 h-3.5 text-muted-foreground" />
-            Landing Page Copy
+        <div className={`mt-3 rounded-lg bg-card border border-border shadow-[0_1px_2px_0_rgb(0_0_0/0.05)] dark:shadow-[0_0_0_1px_hsl(var(--foreground)/0.06),0_0_8px_-2px_hsl(var(--foreground)/0.10)] p-3 w-[7.5rem] ${grow(step >= 2)}`}>
+          <p className="text-sm font-medium flex items-center gap-2 mb-2">
+            <FolderKanban className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+            <span className="truncate">Landing Page Copy</span>
           </p>
-
-          <div className={`mt-2.5 space-y-1.5 ${grow(step >= 3)}`}>
-            {NEST_TASKS.map((task, i) => (
-              <div key={task} className="flex items-center gap-2 text-xs text-muted-foreground">
-                {/* 300ms, not 500 — the bucket counts below update instantly
-                    as text, so a slower dot visibly lags behind its own count. */}
-                <span
-                  className="w-2 h-2 rounded-full shrink-0 transition-colors duration-300"
-                  style={{ background: statuses[i] }}
-                />
-                <span className={statuses[i] === DONE ? "line-through opacity-60" : ""}>{task}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className={`mt-3 pt-2.5 border-t border-border flex items-center gap-3 ${grow(step >= 3)}`}>
-            {buckets.map(({ label, color, count }) => (
-              <span key={label} className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
-                {label}
-                <span className="font-medium text-foreground tabular-nums">{count}</span>
-              </span>
-            ))}
+          <div className={`flex flex-col items-center ${grow(step >= 3)}`}>
+            <ProjectMiniStats quadrants={NEST_QUADRANTS} miniStats={miniStats} miniTotal={miniTotal} onOpenTable={() => {}} />
           </div>
         </div>
       </div>
@@ -385,23 +389,31 @@ export function SelfNoteFilm({ step }) {
 
 export const IDENTITY_PHASES = [1200, 2000, 2300, 1200, 1800];
 
-const ID_NAME = "Anvil";
-const ID_IDENTITY = "My second brain for everything I'm juggling.";
-const ID_SOUL = "Direct, no filler. Ask before anything destructive.";
+const ID_VALUES = {
+  name: "Anvil",
+  identity: "My second brain for everything I'm juggling.",
+  soul: "Direct, no filler. Ask before anything destructive.",
+};
 
-function Field({ label, children }) {
-  return (
-    <div>
-      <p className="text-[11px] font-medium text-muted-foreground mb-1.5">{label}</p>
-      <div className="min-h-[2.25rem] rounded-md border border-input bg-background px-3 py-2 text-[13px]">
-        {children}
-      </div>
-    </div>
-  );
-}
+// Real Name/Identity/Soul field config + markup from AiPreferencesSection.jsx
+// (via IdentityField.jsx) — "About you" (the 4th real field) is left out of
+// this film's 3-beat story, not hidden from the real Settings page.
+const IDENTITY_DEMO_FIELDS = IDENTITY_FIELDS.slice(0, 3);
 
 export function IdentityFilm({ step }) {
   const named = step >= 3;
+  // Real per-character reveal (useTypedText, the same hook Typed itself
+  // wraps) driven straight into the real <input>/<textarea> — one call per
+  // field since IDENTITY_DEMO_FIELDS' length is fixed, not looped, so the
+  // rules of hooks hold.
+  const nameValue = useTypedText(ID_VALUES.name, step === 0, step > 0, 7);
+  const identityValue = useTypedText(ID_VALUES.identity, step === 1, step > 1, 30);
+  const soulValue = useTypedText(ID_VALUES.soul, step === 2, step > 2, 30);
+  const shown = [
+    { field: IDENTITY_DEMO_FIELDS[0], value: nameValue },
+    { field: IDENTITY_DEMO_FIELDS[1], value: identityValue },
+    { field: IDENTITY_DEMO_FIELDS[2], value: soulValue },
+  ];
   // text-foreground is load-bearing, not decorative: this is a light card
   // deliberately placed on a dark band, so without it every label and field
   // inherits the band's near-white text and renders white-on-white.
@@ -410,26 +422,21 @@ export function IdentityFilm({ step }) {
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
         <Settings className="w-3.5 h-3.5 text-muted-foreground" />
         <span className="text-xs font-medium">Settings · AI Preferences</span>
-        {step >= 4 && (
-          <span className="ml-auto flex items-center gap-1 text-[11px] text-muted-foreground">
-            <Check className="w-3 h-3 text-[#86E7B0]" /> Saved
-          </span>
-        )}
+        {/* Always rendered, opacity toggled — a whole "Saved" chip
+            conditionally mounted mid-timeline is the exact layout-shift
+            shape already fixed elsewhere in this file. */}
+        <span className={`ml-auto flex items-center gap-1 text-[11px] text-muted-foreground transition-opacity duration-300 ${step >= 4 ? "opacity-100" : "opacity-0"}`}>
+          <Check className="w-3 h-3 text-[#86E7B0]" /> Saved
+        </span>
       </div>
 
       <div className="p-4 space-y-3" style={{ minHeight: "13rem" }}>
-        <Field label="Name">
-          <Typed text={ID_NAME} play={step === 0} complete={step > 0} cps={7} />
-          {step === 0 && <Caret className="bg-primary/70" />}
-        </Field>
-        <Field label="Identity">
-          <Typed text={ID_IDENTITY} play={step === 1} complete={step > 1} cps={30} />
-          {step === 1 && <Caret className="bg-primary/70" />}
-        </Field>
-        <Field label="Soul (tone & protocol)">
-          <Typed text={ID_SOUL} play={step === 2} complete={step > 2} cps={30} />
-          {step === 2 && <Caret className="bg-primary/70" />}
-        </Field>
+        {shown.map(({ field, value }, i) => (
+          <div key={field.key} className="relative">
+            <IdentityField field={field} value={value} readOnly />
+            {step === i && <Caret className="absolute left-3 bottom-2.5 bg-primary/70" />}
+          </div>
+        ))}
       </div>
 
       {/* The payoff: the chat's own header takes the name immediately. */}
@@ -440,7 +447,7 @@ export function IdentityFilm({ step }) {
             named ? "text-foreground" : "text-muted-foreground"
           }`}
         >
-          {named ? ID_NAME : "Vaea Chat"}
+          {named ? ID_VALUES.name : "Vaea Chat"}
         </span>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import { memo, useState, lazy, Suspense } from "react";
-import { Expand, GripVertical, AlertTriangle, HelpCircle, Trash2 } from "lucide-react";
+import { Expand, GripVertical, Trash2 } from "lucide-react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { useTasks } from "@/hooks/useTasks";
 import { useProjectNotes } from "@/hooks/useProjectNotes";
@@ -8,8 +8,9 @@ import { useHighlightMatch } from "@/hooks/useHighlightDim";
 import { useHighlight } from "@/lib/HighlightContext";
 import { useUpdateProject, useDeleteProject } from "@/hooks/useProjects";
 import { confirmThen } from "@/lib/entityUtils";
-import { getQuadrantCounts, getMiniStatusCounts, STATUS_COLORS } from "@/lib/taskUtils";
+import { getQuadrantCounts, getMiniStatusCounts } from "@/lib/taskUtils";
 import EditableTitle from "@/components/shared/EditableTitle";
+import ProjectMiniStats from "@/components/projects/ProjectMiniStats";
 
 // Lazy: neither modal is needed until a user opens it from this card.
 const TaskTableModal = lazy(() => import("@/components/projects/TaskTableModal"));
@@ -74,9 +75,6 @@ function ProjectCard({ project, stakeholderIds = [] }) {
   const miniStats = getMiniStatusCounts(tasks);
   const miniTotal = miniStats.reduce((sum, c) => sum + c.count, 0);
 
-  const hasRisks = riskNotes.length > 0;
-  const hasQuestions = questionNotes.length > 0;
-
   return (
     <div
       ref={setRefs}
@@ -131,97 +129,14 @@ function ProjectCard({ project, stakeholderIds = [] }) {
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center gap-1 w-full min-h-0">
-        <button
-          onClick={() => setIsTableOpen(true)}
-          className="shrink-0 grid grid-cols-2 gap-0.5 border border-border rounded overflow-hidden w-11 h-11 text-xs z-20 select-none"
-          title="Open Task Table"
-          // The per-cell color coding (this week's focus vs. a highlighted
-          // stakeholder's task) has no other way to reach a screen reader —
-          // the whole quadrant grid is one button, not four — so its meaning
-          // gets folded into this one label rather than only living in color.
-          aria-label={`Open Task Table${
-            quadrants.some((q) => q.hasFocus) || quadrants.some((q) => q.hasHighlightedStakeholder)
-              ? ` — ${[
-                  quadrants.some((q) => q.hasFocus) && "includes this week's focus",
-                  quadrants.some((q) => q.hasHighlightedStakeholder) && "includes the highlighted stakeholder",
-                ]
-                  .filter(Boolean)
-                  .join(", ")}`
-              : ""
-          }`}
-        >
-          {quadrants.map((q) => (
-            <div
-              key={q.quadrant}
-              title={
-                q.hasHighlightedStakeholder
-                  ? "Includes the highlighted stakeholder"
-                  : q.hasFocus
-                  ? "Includes this week's focus"
-                  : undefined
-              }
-              className={`relative flex items-center justify-center transition-colors ${
-                q.hasHighlightedStakeholder
-                  ? "text-foreground font-bold"
-                  : q.hasFocus
-                  ? "bg-green-800 text-white font-bold"
-                  : "bg-muted/40 text-muted-foreground"
-              }`}
-              style={q.hasHighlightedStakeholder ? { backgroundColor: STATUS_COLORS.DONE } : undefined}
-            >
-              {q.count}
-            </div>
-          ))}
-        </button>
-
-        {/* Both flag icons render always, so the tile's composition never
-            shifts as notes come and go — greyed out while there's nothing
-            behind them, full color the moment there is. */}
-        <div className="flex flex-col gap-0.5 shrink-0">
-          <AlertTriangle
-            className={`w-3.5 h-3.5 ${hasRisks ? "" : "text-muted-foreground/35"}`}
-            style={hasRisks ? { color: "#FCA5A5" } : undefined}
-            aria-label={hasRisks ? `${riskNotes.length} risk${riskNotes.length === 1 ? "" : "s"}` : "No risks"}
-          >
-            {/* The mini tile only has room for the flag icon, not the risk
-                text itself — the hover tooltip is the one place that text
-                still reads in full, not just as a count. */}
-            <title>{hasRisks ? riskNotes.map((n) => n.content).join("\n") : "No risks"}</title>
-          </AlertTriangle>
-          <HelpCircle
-            className={`w-3.5 h-3.5 ${hasQuestions ? "" : "text-muted-foreground/35"}`}
-            style={hasQuestions ? { color: "#FDBA74" } : undefined}
-            aria-label={hasQuestions ? `${questionNotes.length} question${questionNotes.length === 1 ? "" : "s"}` : "No open questions"}
-          >
-            <title>{hasQuestions ? questionNotes.map((n) => n.content).join("\n") : "No open questions"}</title>
-          </HelpCircle>
-        </div>
-      </div>
-
-      {miniTotal > 0 ? (
-        <div className="w-full flex h-1.5 rounded-full overflow-hidden shrink-0 mb-0.5">
-          {miniStats
-            .filter((s) => s.count > 0)
-            .map((s) => (
-              <div
-                key={s.key}
-                className="h-full"
-                style={{ width: `${(s.count / miniTotal) * 100}%`, backgroundColor: s.color }}
-                title={`${s.label}: ${s.count}`}
-              />
-            ))}
-        </div>
-      ) : (
-        // Zero tasks still shows the bar — an empty vessel (white with a
-        // thin black border; inverted in dark mode), not a missing one, so
-        // every tile keeps the same footprint and "no tasks yet" is legible
-        // at a glance.
-        <div
-          className="w-full h-1.5 rounded-full shrink-0 mb-0.5 bg-white border border-black dark:bg-black dark:border-white"
-          title="No tasks yet"
-        />
-      )}
+      <ProjectMiniStats
+        quadrants={quadrants}
+        riskNotes={riskNotes}
+        questionNotes={questionNotes}
+        miniStats={miniStats}
+        miniTotal={miniTotal}
+        onOpenTable={() => setIsTableOpen(true)}
+      />
 
       <Suspense fallback={null}>
         {isTableOpen && (
