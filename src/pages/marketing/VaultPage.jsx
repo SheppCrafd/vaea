@@ -20,9 +20,9 @@ import {
 
 const VAULT_PHASES = [400, 1600, 1400, 1200, 1000, 800];
 
-const LINE_1 = "Finished the connector sprint — Google Calendar, Gmail, Outlook,";
-const LINE_2 = "ClickUp, and Slack all wired and deployed.";
-const LINE_3 = "Decided to scope the next sprint around ";
+const LINE_1 = "Finished connecting everything — Google Calendar, Gmail, Outlook,";
+const LINE_2 = "ClickUp, and Slack all connected.";
+const LINE_3 = "Next up: ";
 
 function VaultWritingDemo() {
   const { ref, step } = useTimeline(VAULT_PHASES);
@@ -36,16 +36,6 @@ function VaultWritingDemo() {
         <span className="font-terminal text-[11px] text-foreground/35 flex-1 min-w-0 truncate">
           Daily/2026-08-20.md
         </span>
-        {/* unsaved dot while actively typing (steps 1–4) — the single visual
-            cue that reads "document editor" rather than "chat window" at a
-            glance, the same way VSCode tabs show a dot on unsaved files */}
-        {step >= 1 && step < 5 && (
-          <span
-            className="w-1.5 h-1.5 rounded-full shrink-0"
-            style={{ background: GLOW }}
-            aria-hidden="true"
-          />
-        )}
         {step >= 5 && (
           <span className="font-terminal text-[10px]" style={{ color: GLOW }}>
             saved
@@ -54,7 +44,7 @@ function VaultWritingDemo() {
       </div>
 
       {/* markdown content */}
-      <div className="px-5 py-5 font-terminal text-[13px] leading-relaxed text-foreground/85 min-h-[10rem] text-left">
+      <div className="px-5 py-5 font-terminal text-[13px] leading-relaxed text-foreground/85 min-h-[180px] text-left">
         <p className="text-foreground/40">
           <span className="text-foreground/70">#</span> 2026-08-20
         </p>
@@ -79,8 +69,8 @@ function VaultWritingDemo() {
               ? <><Typed text={LINE_3} play cps={42} /><Caret /></>
               : <>
                   {LINE_3}
-                  <span style={{ color: GLOW }}>[[AI feature parity]]</span>
-                  {step >= 4 && " next."}
+                  <span style={{ color: GLOW }}>[[ideas for next week]]</span>
+                  {step >= 4 && ""}
                   {step === 4 && <Caret />}
                 </>
             }
@@ -110,9 +100,9 @@ function VaultWritingDemo() {
 
 function WikilinkDemo() {
   const NOTES = [
-    { path: "Decisions/Connector architecture.md", excerpt: "Decided on PKCE for Google, server exchange for ClickUp." },
-    { path: "Daily/2026-08-18.md", excerpt: "Finished [[Connector architecture]] — Calendar, Gmail done." },
-    { path: "Projects/Vaea v1.md", excerpt: "Sprint goal: deploy all connectors before end of month. See [[Connector architecture]]." },
+    { path: "Decisions/Client pricing.md", excerpt: "Decided to charge by project, not by hour. See [[client onboarding]] for how to pitch it." },
+    { path: "Daily/2026-08-18.md", excerpt: "Good call with Sarah. She liked the [[client pricing]] approach — follow up Friday." },
+    { path: "Projects/Q3 goals.md", excerpt: "Main focus: three new clients this quarter. Pricing settled. See [[client pricing]]." },
   ];
   return (
     <div className="space-y-3">
@@ -140,39 +130,6 @@ function WikilinkDemo() {
   );
 }
 
-// ─── vaea self.md static card ────────────────────────────────────────────────
-// A small, static glass card that makes "Vaea Self.md" tangible — shows a
-// realistic excerpt of what the Notes section looks like in practice, without
-// animating or over-dramatising it. Font-terminal at 12px matches the vault
-// writing demo's aesthetic without competing with the hero.
-
-function SelfMdCard() {
-  const LINES = [
-    { prefix: "## Notes", body: null, dim: true },
-    { prefix: null, body: "When asked for a quick fix, skip the explanation and just make the change.", dim: false },
-    { prefix: null, body: "User prefers seeing the plan before any destructive action, even small ones.", dim: false },
-    { prefix: null, body: "Technical decisions land better with the tradeoff named, not just the choice.", dim: false },
-  ];
-  return (
-    <div className={`relative mx-auto mt-10 max-w-sm rounded-2xl overflow-hidden ${glassPanel}`}>
-      <div className={glassSheen} />
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-foreground/[0.08]">
-        <BookOpen className="w-3 h-3 text-foreground/30" />
-        <span className="font-terminal text-[10px] text-foreground/30 flex-1 min-w-0 truncate">
-          Vaea Self.md
-        </span>
-      </div>
-      <div className="px-4 py-4 font-terminal text-[12px] leading-relaxed space-y-1 text-left">
-        {LINES.map(({ prefix, body, dim }, i) => (
-          <p key={i} className={dim ? "text-foreground/35" : "text-foreground/70"}>
-            {prefix ?? `- ${body}`}
-          </p>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ─── vault features ──────────────────────────────────────────────────────────
 
 const FEATURES = [
@@ -188,8 +145,8 @@ const FEATURES = [
   },
   {
     icon: GitBranch,
-    title: "Every write is automatically saved to your own backup on GitHub",
-    body: "Your own GitHub account, your own history — with full version history. Recoverable, portable — not stored anywhere Vaea controls.",
+    title: "Every write is automatically backed up",
+    body: "Saved to your own GitHub account. Go back to any version, anytime — nothing stored on Vaea's end.",
   },
   {
     icon: Sparkles,
@@ -213,15 +170,15 @@ const FEATURES = [
 const FAQS = [
   {
     q: "Do I need to already use Obsidian?",
-    a: "Yes — Vaea Vault assumes you have an Obsidian vault backed up to your own GitHub account. If you don't use Obsidian, the other parts of Vaea (chat, projects, tasks, connectors) all work perfectly without it. Vault is an optional add-on, not a requirement.",
+    a: "Yes — Vaea Vault assumes you have an Obsidian vault in a GitHub repo. If you don't use Obsidian, the other parts of Vaea (chat, projects, tasks, connectors) all work perfectly without it. Vault is an optional add-on, not a requirement.",
   },
   {
     q: "How does Vaea actually read my notes?",
-    a: "You connect your GitHub account in Settings → Vaea Vault. When you ask Vaea something that might be in your notes, it searches and reads the relevant files directly from GitHub. Nothing is pre-indexed or cached on Vaea's servers between requests — it's a live read, per question.",
+    a: "You connect your GitHub account in Settings → Vaea Vault. When you ask Vaea something that might be in your notes, it uses GitHub to search and read the relevant files. Nothing is stored on Vaea's servers between requests — it's a live read, per question.",
   },
   {
     q: "What does /vault-log actually write?",
-    a: "At the end of a session, /vault-log writes a real summary to Daily/YYYY-MM-DD.md in your vault — the same format a human would write. If a technical decision was made, it also writes a Decisions/ file with the reasoning. Every write is a save to your own GitHub backup; you get a real change history and can recover any version.",
+    a: "At the end of a session, /vault-log writes a real summary to Daily/YYYY-MM-DD.md in your vault — the same format a human would write. If a real decision was made, it also writes a Decisions/ file with the reasoning. Every write is saved to your own GitHub history, so you can recover any version.",
   },
   {
     q: "Can Vaea overwrite or delete my existing notes?",
@@ -233,15 +190,7 @@ const FAQS = [
   },
   {
     q: "Is Vaea Vault available offline?",
-    a: "Reading and writing vault notes require a live connection to GitHub's API. In Local Mode, chat itself runs entirely offline, but vault reads still call GitHub when needed. If you need fully offline note-taking, that's Obsidian's own job — Vaea just reads alongside it.",
-  },
-  {
-    q: "How do I set up Vaea Vault?",
-    a: "Open Settings → Vaea Vault, paste your GitHub repo URL, and grant read/write access. That's it — no plugin to install in Obsidian, no change to your folder structure. Vaea reads your existing notes exactly as they are.",
-  },
-  {
-    q: "Is my notes data backed up?",
-    a: "Yes — because Vaea Vault uses your own GitHub account, every note Vaea writes is automatically saved to your own backup there. You own it, you control the history, and you can recover any version. Nothing is stored on Vaea's servers.",
+    a: "Reading and writing vault notes require a live internet connection to GitHub. In Local Mode, chat itself runs entirely offline, but vault reads still check GitHub when needed. If you need fully offline note-taking, that's Obsidian's own job — Vaea just reads alongside it.",
   },
 ];
 
@@ -252,7 +201,7 @@ const VAULT_PAGE_SCHEMA = {
   "@type": "WebPage",
   "name": "Vaea Vault — AI that reads and writes your personal notes",
   "url": "https://vaea.base44.app/vault",
-  "description": "Connect your Obsidian notes to Vaea Chat via your own GitHub repo. Ask what you decided last month — the AI reads and writes your notes as real git commits.",
+  "description": "Vaea Vault connects your Obsidian notes (stored in your own GitHub repo) to Vaea Chat. The AI reads your notes for context and writes to them when you ask — every write is a real git commit. No proprietary format, no server storage.",
   "isPartOf": { "@type": "WebSite", "url": "https://vaea.base44.app/" },
 };
 
@@ -269,11 +218,7 @@ const VAULT_FAQ_SCHEMA = {
 // ─── page ────────────────────────────────────────────────────────────────────
 
 export default function VaultPage() {
-  useDocumentMeta(
-    "Vaea Vault — AI that reads and writes your personal notes",
-    "/vault",
-    "Connect your Obsidian notes to Vaea Chat. The AI reads your notes to answer questions, writes new ones when you ask, and every save goes straight to your own GitHub backup."
-  );
+  useDocumentMeta("Vaea Vault — AI that reads and writes your personal notes", "/vault");
   usePageSchema(VAULT_PAGE_SCHEMA);
   usePageSchema(VAULT_FAQ_SCHEMA);
 
@@ -291,12 +236,9 @@ export default function VaultPage() {
               Your notes remember what you do.
             </h1>
             <p className="mt-6 text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
-              Connect your Obsidian notes and Vaea Chat reads every note for context — and
-              writes new ones when you ask. Your own backup on GitHub, your own history,
-              your own files. Nothing changes about how you work.
-            </p>
-            <p className="mt-3 text-sm text-muted-foreground/70 max-w-xl mx-auto">
-              Obsidian is a free note-taking app where your notes are plain text files on your own computer — no cloud required.
+              Connect your Obsidian vault and Vaea Chat reads every note for context — and
+              writes new ones when you ask. Your own GitHub repo, your own history,
+              your own Obsidian. Nothing changes about how you work.
             </p>
             <div className="mt-8 flex items-center justify-center gap-5 flex-wrap">
               <Link to="/signup" className={pillOnDark}>
@@ -312,7 +254,6 @@ export default function VaultPage() {
           <Reveal delay={120}>
             <VaultWritingDemo />
             <p className="text-center text-xs text-muted-foreground/45 mt-4 font-terminal tracking-wide">
-              /vault-log · live demo · loops automatically
             </p>
           </Reveal>
         </div>
@@ -336,8 +277,8 @@ export default function VaultPage() {
               <p className="text-muted-foreground leading-relaxed">
                 Every note Vaea writes back uses the same{" "}
                 <span className="font-terminal" style={{ color: GLOW }}>{"[[wikilink]]"}</span>{" "}
-                format, so new entries fit naturally into your existing knowledge graph
-                rather than sitting isolated.
+                format, so new entries connect naturally to your existing notes
+                instead of sitting on their own.
               </p>
             </Reveal>
             <Reveal delay={100}>
@@ -362,7 +303,7 @@ export default function VaultPage() {
             <p className="text-muted-foreground max-w-lg mx-auto leading-relaxed mb-4">
               Type <span className="font-terminal">/vault-log</span> and Vaea writes a
               real daily note from the conversation — what happened, what was decided,
-              what moved. One save to your own GitHub backup. Not a transcript, not a chat
+              what moved. Saved to your own backup. Not a transcript, not a chat
               export: an actual note in the format you already use.
             </p>
             <p className="text-muted-foreground max-w-lg mx-auto leading-relaxed">
@@ -422,7 +363,6 @@ export default function VaultPage() {
               considered framing it as the assistant developing "self-awareness." That
               would be dishonest. What you get instead is real: a file it keeps about itself.
             </p>
-            <SelfMdCard />
           </Reveal>
         </div>
       </section>
