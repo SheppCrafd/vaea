@@ -11,7 +11,7 @@ const SECTIONS = [
       <>
         <p>
           Vaea is a free personal project and task manager, built and maintained solo, with an
-          optional AI assistant (Vaea Chat) and an optional notes vault integration (Vaea Vault).
+          optional AI assistant (Vaea Chat) and an optional notes vault integration (Vaea Brain).
           There are no paid tiers and no usage limits — using it means agreeing to these terms.
         </p>
       </>
@@ -30,7 +30,7 @@ const SECTIONS = [
             Privacy Policy
           </Link>{" "}
           for exactly where it lives and who can see it. If you use device storage, you're
-          responsible for your own backups (Vaea Vault's git history aside) — losing the folder or
+          responsible for your own backups (Vaea Brain's git history aside) — losing the folder or
           file means losing that data, since it's never copied to our servers.
         </p>
       </>

@@ -165,7 +165,7 @@ const CONNECTORS = [
   },
   {
     icon: BookOpen,
-    name: "Vaea Vault",
+    name: "Vaea Brain",
     body: "Your Obsidian notes on GitHub. Ask what you decided last quarter and it'll go look.",
   },
   {
@@ -226,7 +226,7 @@ const FAQS = [
   },
   {
     q: "Can Vaea Chat learn from my conversations over time?",
-    a: "It keeps your chat history so you can refer back to earlier exchanges. Beyond that, a separate opt-in (off by default) lets it review its own replies and write notes to itself — so it can get better at helping you without making assumptions about you that it hasn't been told to make.",
+    a: "Yes, two ways, if you've connected Vaea Brain. It notices durable facts about you and your work as they come up in conversation — no need to say \"remember this\" — and writes them to a note in your own vault you can read or correct anytime. Separately, a review pass (opt-in, off by default) lets it write notes to itself about how it's doing. Both are just files in your own vault, nothing hidden.",
   },
 ];
 

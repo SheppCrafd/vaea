@@ -475,7 +475,7 @@ describe("chatActions: WRITE_VAULT_NOTE", () => {
   });
 
   it("throws without ever calling fetch when no vault is connected", async () => {
-    await expect(executeAction("WRITE_VAULT_NOTE", { path: "Daily/2026-07-22.md", content: "x" })).rejects.toThrow(/no vaea vault connected/i);
+    await expect(executeAction("WRITE_VAULT_NOTE", { path: "Daily/2026-07-22.md", content: "x" })).rejects.toThrow(/no vaea brain connected/i);
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 

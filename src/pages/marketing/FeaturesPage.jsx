@@ -21,7 +21,7 @@ const GROUPS = [
     ],
   },
   {
-    title: "Vaea Vault",
+    title: "Vaea Brain",
     lede: "Optional: connect your own Obsidian notes and let the assistant read and write them too — decisions, things you've learned, a running daily log.",
     items: [
       { icon: BookOpen, title: "A personal notes vault, still yours", body: "Your Obsidian notes on your own GitHub account — write the way you already do, nothing new to learn." },

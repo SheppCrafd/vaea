@@ -1,31 +1,20 @@
-// PKCE OAuth against Microsoft's identity platform, using ONE shared,
-// Vaea-owned Azure AD app registration — same "no per-user setup" principle
-// as Google Calendar/Gmail's shared client (see googleOAuthPkce.js).
-//
-// The one thing that's NOT a copy-paste of the Google version: which Azure
-// platform type the redirect URI is registered under matters a lot here.
-// Registering it as a "Single-page application" redirect gets you PKCE with
-// no client secret too, but Microsoft caps THAT flow's refresh token at 24
-// hours, forcing a re-auth (often invisible, via an iframe — but not always,
-// e.g. Safari's third-party-cookie blocking) once a day. Registering the
-// SAME redirect URI under "Mobile and desktop applications" instead is
-// still a genuine public client (no secret, "Allow public client flows" =
-// Yes) but gets the normal long-lived refresh token, same as Google's
-// "Desktop app" credential type. That's the one to use here — worth calling
-// out clearly in the setup guide so it isn't picked wrong later.
-//
-// Tenant is "common" (work/school AND personal Microsoft/Outlook.com
-// accounts). Scope is Calendar + Teams-meeting-link only — Outlook/Exchange
-// mail is a separate, independently-consented grant off this same Azure
-// app, requested by outlookOAuthPkce.js instead, so a user can connect one
-// without the other.
+// PKCE OAuth against Microsoft's identity platform, requesting ONLY mail
+// scopes — the Outlook-mail half of what used to be one combined
+// Calendar+Mail+Teams grant (see microsoftOAuthPkce.js for that history).
+// Same shared, Vaea-owned Azure AD app/client id as microsoftOAuthPkce.js —
+// this is a second, independently-consented redirect off the SAME app
+// registration, not a new app. The one setup step this needs that Calendar
+// didn't: this callback path (below) has to be added as a second redirect
+// URI on that existing Azure app registration (Azure Portal -> App
+// registrations -> Authentication -> Add URI) — a one-line addition, not a
+// new registration.
 const AUTH_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize";
 const TOKEN_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
-const SCOPE = "offline_access openid Calendars.ReadWrite";
+const SCOPE = "offline_access openid Mail.Read Mail.Send";
 const CLIENT_ID = import.meta.env.VITE_MICROSOFT_CLIENT_ID;
 
-const VERIFIER_KEY = "vaea_microsoft_pkce_verifier";
-const STATE_KEY = "vaea_microsoft_pkce_state";
+const VERIFIER_KEY = "vaea_outlook_pkce_verifier";
+const STATE_KEY = "vaea_outlook_pkce_state";
 
 function base64UrlEncode(bytes) {
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -43,7 +32,7 @@ async function sha256Base64Url(text) {
 }
 
 function callbackUrl() {
-  return `${window.location.origin}/app/settings/microsoft-callback`;
+  return `${window.location.origin}/app/settings/outlook-callback`;
 }
 
 export async function buildAuthorizationUrl() {
@@ -78,7 +67,7 @@ export async function exchangeCodeForTokens(searchParams) {
   sessionStorage.removeItem(STATE_KEY);
   sessionStorage.removeItem(VERIFIER_KEY);
 
-  if (error) throw new Error(error === "access_denied" ? "Microsoft access wasn't granted." : errorDescription || `Microsoft returned an error: ${error}`);
+  if (error) throw new Error(error === "access_denied" ? "Outlook access wasn't granted." : errorDescription || `Microsoft returned an error: ${error}`);
   if (!code) throw new Error("Microsoft didn't send back an authorization code.");
   if (!state || state !== expectedState) throw new Error("This connection attempt doesn't match the one that started — try connecting again.");
   if (!verifier) throw new Error("This connection attempt expired — try connecting again.");

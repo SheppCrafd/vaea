@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
 import {
   Search, FolderKanban, Package, Boxes, ListTodo, User,
-  Plus, MessageCircle, Settings, SunMoon,
+  Plus, SunMoon,
 } from "lucide-react";
 import Portal from "@/lib/Portal";
 import { useAppStore } from "@/lib/store";
@@ -47,6 +47,7 @@ export default function CommandPalette() {
   const inputRef = useRef(null);
   const panelRef = useRef(null);
   const triggerRef = useRef(null);
+  const itemRefs = useRef([]);
 
   // Ctrl/Cmd+K opens from anywhere in the app, including while some other
   // input has focus (e.g. mid-edit on a card field) — that's the whole
@@ -116,22 +117,18 @@ export default function CommandPalette() {
     }
   }, [isOpen]);
 
+  // "Open full-page chat"/"Open Settings" used to live here as their own
+  // one-off entries — now redundant with the Pages group (every header tab,
+  // including Chat and Settings) that's always shown alongside these below.
   const quickActions = useMemo(() => [
     { key: "create-task", label: "Create Task", Icon: Plus, run: () => { openCreateModal("task"); navigate("/app"); } },
     { key: "create-project", label: "Create Project", Icon: Plus, run: () => { openCreateModal("project"); navigate("/app"); } },
     { key: "create-product", label: "Create Product", Icon: Plus, run: () => { openCreateModal("product"); navigate("/app"); } },
     { key: "create-area", label: "Create Area", Icon: Plus, run: () => { openCreateModal("area"); navigate("/app"); } },
-    // url set (not just run) on the two that are real, plain routes with
-    // nothing else to set up first — that's what makes Ctrl/Cmd+Enter or
-    // Ctrl/Cmd+click able to open them in a new tab below. The create-*
-    // actions and the theme toggle have no such standalone URL (creating
-    // opens a modal via in-memory store state, not a route; the theme is a
-    // preference, not a page) so the modifier is a no-op for those — they
-    // just run normally either way.
-    { key: "open-chat", label: "Open full-page chat", Icon: MessageCircle, url: "/app/chat", run: () => navigate("/app/chat") },
-    { key: "open-settings", label: "Open Settings", Icon: Settings, url: "/app/settings", run: () => navigate("/app/settings") },
     { key: "toggle-theme", label: resolvedTheme === "dark" ? "Switch to light theme" : "Switch to dark theme", Icon: SunMoon, run: () => setTheme(resolvedTheme === "dark" ? "light" : "dark") },
   ], [openCreateModal, navigate, resolvedTheme, setTheme]);
+
+  const pageItems = useMemo(() => items.filter((i) => i.type === "page"), [items]);
 
   // The URL a result deep-links to, when it has one — shared by the normal
   // (same-tab) jump below and the Ctrl/Cmd-modified (new-tab) path in
@@ -140,6 +137,7 @@ export default function CommandPalette() {
   // meaningful to open in a second tab) — same-tab only, always.
   const resolveUrl = (item) => {
     switch (item.type) {
+      case "page": return item.url;
       case "area": return `/app?${new URLSearchParams({ areaId: item.id })}`;
       case "product": return `/app?${new URLSearchParams({ productId: item.id })}`;
       case "project": return `/app?${new URLSearchParams({ projectId: item.id })}`;
@@ -170,7 +168,23 @@ export default function CommandPalette() {
       .slice(0, MAX_RESULTS);
   }, [items, query]);
 
-  const results = query.trim() ? searchResults : quickActions;
+  // Empty query: every tab, always browsable as a quick-click, plus the
+  // handful of create/toggle actions. Non-empty query: whatever matched,
+  // pages included (a tab's own name is searchable same as anything else).
+  const results = query.trim() ? searchResults : [...pageItems, ...quickActions];
+
+  // One header row per group, in place right above that group's first
+  // result — "Pages" needs no extra "which page is this on" indicator (a
+  // page result already IS the page, so it just renders as its own plain
+  // labeled row, no subtitle), everything else surfaces under "Dashboard"
+  // since that's the one screen areas/products/projects/tasks/stakeholders
+  // all actually open on.
+  const groupLabel = (result) => {
+    if (!result) return null;
+    if (result.type === "page") return "Pages";
+    if (result.run) return "Quick actions";
+    return "Dashboard";
+  };
 
   // Ctrl/Cmd+Enter or Ctrl/Cmd+click opens the result's page in a new
   // background tab instead of navigating the current one — the standard
@@ -206,6 +220,15 @@ export default function CommandPalette() {
       runResult(activeIndex, { newTab: e.ctrlKey || e.metaKey });
     }
   };
+
+  // ArrowUp/ArrowDown (handleKeyDown below) moves activeIndex but never
+  // touched scroll position on its own — same bug as ChatCommandMenu.jsx's
+  // "/" list, fixed the same way. block: "nearest" only scrolls when the
+  // highlighted row is actually out of view, so mouse hover (which also
+  // sets activeIndex) causes no jitter.
+  useEffect(() => {
+    itemRefs.current[activeIndex]?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex]);
 
   const activeResult = results[activeIndex];
   const activeHasUrl = !!(activeResult && (activeResult.url || (!activeResult.run && resolveUrl(activeResult))));
@@ -246,19 +269,26 @@ export default function CommandPalette() {
               results.map((result, index) => {
                 const Icon = result.Icon || TYPE_ICON[result.type] || Search;
                 const isActive = index === activeIndex;
+                const label = groupLabel(result);
+                const showHeader = label !== groupLabel(results[index - 1]);
                 return (
-                  <button
-                    key={result.key || `${result.type}-${result.id}`}
-                    onClick={(e) => runResult(index, { newTab: e.ctrlKey || e.metaKey })}
-                    onMouseEnter={() => setActiveIndex(index)}
-                    className={`w-full flex items-center gap-3 px-4 py-2 text-left transition-colors ${isActive ? "bg-secondary" : "hover:bg-secondary/60"}`}
-                  >
-                    <Icon className="w-4 h-4 shrink-0 text-muted-foreground" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-medium truncate">{result.title || result.label}</span>
-                      {result.subtitle && <span className="block text-xs text-muted-foreground truncate">{result.subtitle}</span>}
-                    </span>
-                  </button>
+                  <div key={result.key || `${result.type}-${result.id}`}>
+                    {showHeader && (
+                      <p className="px-4 pt-2.5 pb-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+                    )}
+                    <button
+                      ref={(el) => { itemRefs.current[index] = el; }}
+                      onClick={(e) => runResult(index, { newTab: e.ctrlKey || e.metaKey })}
+                      onMouseEnter={() => setActiveIndex(index)}
+                      className={`w-full flex items-center gap-3 px-4 py-2 text-left transition-colors ${isActive ? "bg-secondary" : "hover:bg-secondary/60"}`}
+                    >
+                      <Icon className="w-4 h-4 shrink-0 text-muted-foreground" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-medium truncate">{result.title || result.label}</span>
+                        {result.subtitle && <span className="block text-xs text-muted-foreground truncate">{result.subtitle}</span>}
+                      </span>
+                    </button>
+                  </div>
                 );
               })
             )}

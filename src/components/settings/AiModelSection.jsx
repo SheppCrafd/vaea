@@ -189,7 +189,7 @@ export default function AiModelSection() {
             {isLocalBridge
               ? "Web search isn't available with your own model — there's no hosted search to inherit."
               : "Web search isn't available with this provider — Anthropic and xAI have their own built in, but this one doesn't."}{" "}
-            Attachment reading and Vaea Vault work the same as with Vaea's built-in model.
+            Attachment reading and Vaea Brain work the same as with Vaea's built-in model.
           </p>
         )}
       </div>

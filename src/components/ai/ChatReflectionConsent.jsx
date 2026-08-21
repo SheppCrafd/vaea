@@ -58,14 +58,14 @@ export default function ChatReflectionConsent() {
           based on a read-only look at your own tasks and projects.{" "}
           {vaultConnected ? (
             <>
-              It can also keep its own notes in your Vaea Vault and log what happened while you were gone — those
+              It can also keep its own notes in your Vaea Brain and log what happened while you were gone — those
               save automatically. Everything else still needs your okay first.
             </>
           ) : (
             <>
               It can never change anything without asking you first.{" "}
               <Link to="/app/settings/vault-setup" className="underline underline-offset-2 hover:text-foreground">
-                Connect Vaea Vault
+                Connect Vaea Brain
               </Link>{" "}
               to let it keep its own notes there too.
             </>

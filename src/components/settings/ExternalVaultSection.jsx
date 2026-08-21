@@ -203,13 +203,15 @@ const FIELDS = [
   { key: "branch", label: "Branch", placeholder: "main" },
 ];
 
-// "Vaea Vault" — connects the assistant to a personal, git-backed Obsidian
-// vault it can read from and write to — search it for context, log sessions
-// to it ("/vault-log"), audit and fix its wikilinks ("/vault-tidy"). It's
-// still the user's own external GitHub repo (Vaea just connects to it, the
-// same way it always has — this is a naming/branding change, not a new
-// storage location); see vaultConnection.js for connection storage and
-// githubApi.js for the actual GitHub calls this makes.
+// "Vaea Brain" (renamed from "Vaea Vault" — same feature, new name only;
+// internal identifiers like vaultConnection.js/externalVault/isVaultConnected
+// stay as-is, this is purely the user-facing label) — connects the
+// assistant to a personal, git-backed Obsidian vault it can read from and
+// write to — search it for context, log sessions to it ("/vault-log"),
+// audit and fix its wikilinks ("/vault-tidy"). It's still the user's own
+// external GitHub repo (Vaea just connects to it, the same way it always
+// has); see vaultConnection.js for connection storage and githubApi.js for
+// the actual GitHub calls this makes.
 export default function ExternalVaultSection() {
   const [connection, setConnection] = useState(DEFAULT_CONNECTION);
   const [status, setStatus] = useState("idle"); // idle | testing | ok | error | saved
@@ -265,7 +267,7 @@ export default function ExternalVaultSection() {
   return (
     <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-6">
       <div className="flex items-center justify-between mb-1">
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Vaea Vault</p>
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Vaea Brain</p>
         {connected && (
           <span className="flex items-center gap-1 text-[11px] text-primary font-medium">
             <Check className="w-3.5 h-3.5" /> Connected
@@ -273,7 +275,7 @@ export default function ExternalVaultSection() {
         )}
       </div>
       <p className="text-xs text-muted-foreground mb-4">
-        Vaea Vault lets the assistant read and write a personal Obsidian vault stored on GitHub — pull in context,
+        Vaea Brain lets the assistant read and write a personal Obsidian vault stored on GitHub — pull in context,
         log sessions, keep wikilinks and structure in shape. On-demand reads run on the assistant's own turn mid-
         conversation; writes always happen via a normal request, same as everything else it does. It also pulls a
         lightweight overview once when a chat session opens — <span className="font-terminal">vault.md</span> if your

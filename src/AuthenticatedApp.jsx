@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect } from 'react'
-import { Route, Routes, Navigate, useLocation } from 'react-router-dom';
+import { Route, Routes, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -10,6 +10,15 @@ import AppShell from '@/components/layout/AppShell';
 import Header from '@/components/layout/Header';
 import Dashboard from '@/pages/Dashboard';
 import CommandPalette from '@/components/command/CommandPalette';
+import ChatLauncherButton from '@/components/ai/ChatLauncherButton';
+import { useAppStore } from '@/lib/store';
+// Code-split, like /chat and /settings already are — pulls in react-markdown
+// and its own session/action machinery, none of which every page needs
+// downloaded up front. Moved here from AppShell.jsx (Dashboard-only) so the
+// floating popout is reachable from every /app/* route, not just Dashboard —
+// needed for OPEN_APP_SECTION (chatActions.js) to be able to pop it open
+// while navigating the user to some other tab entirely.
+const ChatBox = lazy(() => import('@/components/ai/ChatBox'));
 // /chat and /settings are code-split out of the main bundle — they're
 // reached only by an explicit click (never on first load), so there's no
 // reason to make every visitor download and parse their code (react-markdown,
@@ -23,12 +32,14 @@ const GoogleWorkspaceOAuthCallbackPage = lazy(() => import('@/pages/GoogleWorksp
 const ClickUpOAuthCallbackPage = lazy(() => import('@/pages/ClickUpOAuthCallbackPage'));
 const GmailOAuthCallbackPage = lazy(() => import('@/pages/GmailOAuthCallbackPage'));
 const MicrosoftOAuthCallbackPage = lazy(() => import('@/pages/MicrosoftOAuthCallbackPage'));
+const OutlookOAuthCallbackPage = lazy(() => import('@/pages/OutlookOAuthCallbackPage'));
 const SlackOAuthCallbackPage = lazy(() => import('@/pages/SlackOAuthCallbackPage'));
 const VaeaCalendarPage = lazy(() => import('@/pages/VaeaCalendarPage'));
 const MeetingsPage = lazy(() => import('@/pages/MeetingsPage'));
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
 const WorkflowCanvasPage = lazy(() => import('@/pages/WorkflowCanvasPage'));
 const MindMapPage = lazy(() => import('@/pages/MindMapPage'));
+const VmailPage = lazy(() => import('@/pages/VmailPage'));
 // Add page imports here
 
 // Everything reachable only via /app/* — Dashboard, AppShell, the chat
@@ -41,6 +52,23 @@ const MindMapPage = lazy(() => import('@/pages/MindMapPage'));
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+  const isChatMounted = useAppStore((s) => s.isChatMounted);
+  const mountChat = useAppStore((s) => s.mountChat);
+  const pendingRoute = useAppStore((s) => s.pendingRoute);
+  const consumePendingRoute = useAppStore((s) => s.consumePendingRoute);
+
+  // OPEN_APP_SECTION (chatActions.js) drops a route here since that plain
+  // module has no router access of its own — this is the one place that
+  // actually calls navigate() for it. pendingHighlightId (same store) is
+  // left alone here; whatever SectionAnchor/SettingsPage instance matches
+  // it reads and clears it once the destination has actually mounted.
+  useEffect(() => {
+    if (pendingRoute) {
+      navigate(pendingRoute);
+      consumePendingRoute();
+    }
+  }, [pendingRoute, navigate, consumePendingRoute]);
 
   // The public marketing pages are normal scrollable documents; this app
   // shell (everything under /app) is a fixed, non-scrolling frame instead
@@ -127,16 +155,28 @@ const AuthenticatedApp = () => {
                 <Route path="settings/clickup-callback" element={<ClickUpOAuthCallbackPage />} />
                 <Route path="settings/gmail-callback" element={<GmailOAuthCallbackPage />} />
                 <Route path="settings/microsoft-callback" element={<MicrosoftOAuthCallbackPage />} />
+                <Route path="settings/outlook-callback" element={<OutlookOAuthCallbackPage />} />
                 <Route path="settings/slack-callback" element={<SlackOAuthCallbackPage />} />
                 <Route path="calendar" element={<VaeaCalendarPage />} />
                 <Route path="meetings" element={<MeetingsPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="workflows" element={<WorkflowCanvasPage />} />
                 <Route path="mindmap" element={<MindMapPage />} />
+                <Route path="vmail" element={<VmailPage />} />
                 {/* Add your page Route elements here */}
                 <Route index element={<AppShell><Dashboard /></AppShell>} />
                 <Route path="*" element={<AppShell><PageNotFound /></AppShell>} />
               </Routes>
+              {/* Floating popout, everywhere except /app/chat itself (already
+                  a full page of chat — a second copy of it floating on top
+                  would be redundant, not additive). */}
+              {!location.pathname.startsWith('/app/chat') && (
+                isChatMounted ? (
+                  <ChatBox startOpen />
+                ) : (
+                  <ChatLauncherButton onOpen={mountChat} />
+                )
+              )}
             </Suspense>
           </div>
         </div>

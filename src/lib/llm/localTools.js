@@ -28,11 +28,14 @@ import { getForm, listResponses as listGoogleFormResponses } from "@/lib/googleF
 import { loadGmailConnection, saveGmailConnection, isGmailConnected } from "@/lib/gmailConnection";
 import { listMessages as listGmailMessages, readMessage as readGmailMessage } from "@/lib/gmailApi";
 import { loadMicrosoftConnection, saveMicrosoftConnection, isMicrosoftConnected } from "@/lib/microsoftConnection";
+import { loadOutlookConnection, saveOutlookConnection, isOutlookConnected } from "@/lib/outlookConnection";
 import { loadSlackConnection, isSlackConnected } from "@/lib/slackConnection";
 import { listChannels as listSlackChannels, listMessages as listSlackMessages } from "@/lib/slackApi";
 import { listEvents as listOutlookEvents, listMessages as listOutlookMessages, readMessage as readOutlookMessage } from "@/lib/microsoftGraphApi";
 import { loadClickUpConnection, isClickUpConnected } from "@/lib/clickupConnection";
 import { listSpaces, listLists, listTasks, listChannels, listMessages } from "@/lib/clickupApi";
+import { loadWorkflowCards } from "@/lib/workflowCanvasStore";
+import { listSnapshots } from "@/lib/backupSnapshots";
 
 const MAX_LINK_CONTENT_CHARS = 6000;
 
@@ -237,7 +240,7 @@ export function auditWorkspace(dataset) {
 // the model is told plainly to relay "connect one in Settings" rather than
 // guessing or pretending a call worked.
 function vaultNotConnected() {
-  return { connected: false, message: "No Vaea Vault connected. Tell the user to connect one in Settings -> Vaea Vault before this can work." };
+  return { connected: false, message: "No Vaea Brain connected. Tell the user to connect one in Settings -> Vaea Brain before this can work." };
 }
 
 async function listVaultNotesTool(externalVault) {
@@ -438,7 +441,11 @@ async function readGmailMessageTool(args) {
 }
 
 function microsoftNotConnected() {
-  return { connected: false, message: "No Microsoft account connected. Tell the user to connect one in Settings -> Microsoft 365 / Outlook before this can work." };
+  return { connected: false, message: "No Microsoft 365 calendar connected. Tell the user to connect one in Settings -> Microsoft 365 Calendar before this can work." };
+}
+
+function outlookNotConnected() {
+  return { connected: false, message: "No Outlook mail connected. Tell the user to connect one in Settings -> Outlook Mail (feeds the Vmail tab) before this can work." };
 }
 
 async function listOutlookEventsTool(args) {
@@ -454,11 +461,11 @@ async function listOutlookEventsTool(args) {
 }
 
 async function listOutlookMessagesTool(args) {
-  const connection = await loadMicrosoftConnection();
-  if (!isMicrosoftConnected(connection)) return microsoftNotConnected();
+  const connection = await loadOutlookConnection();
+  if (!isOutlookConnected(connection)) return outlookNotConnected();
   try {
     const { messages, connection: refreshed } = await listOutlookMessages(connection, { query: args.query, maxResults: args.max_results });
-    if (refreshed.accessToken !== connection.accessToken) await saveMicrosoftConnection(refreshed);
+    if (refreshed.accessToken !== connection.accessToken) await saveOutlookConnection(refreshed);
     return { connected: true, count: messages.length, messages };
   } catch (error) {
     return { connected: true, error: `Couldn't list Outlook messages: ${error.message}` };
@@ -466,11 +473,11 @@ async function listOutlookMessagesTool(args) {
 }
 
 async function readOutlookMessageTool(args) {
-  const connection = await loadMicrosoftConnection();
-  if (!isMicrosoftConnected(connection)) return microsoftNotConnected();
+  const connection = await loadOutlookConnection();
+  if (!isOutlookConnected(connection)) return outlookNotConnected();
   try {
     const { message, connection: refreshed } = await readOutlookMessage(connection, args.message_id);
-    if (refreshed.accessToken !== connection.accessToken) await saveMicrosoftConnection(refreshed);
+    if (refreshed.accessToken !== connection.accessToken) await saveOutlookConnection(refreshed);
     return { connected: true, message };
   } catch (error) {
     return { connected: true, error: `Couldn't read that message: ${error.message}` };
@@ -560,6 +567,16 @@ async function listClickUpMessagesTool(args) {
   }
 }
 
+async function listWorkflowCardsTool() {
+  const cards = await loadWorkflowCards();
+  return { count: cards.length, cards: cards.map((c) => ({ id: c.id, text: c.text })) };
+}
+
+async function listBackupsTool() {
+  const snapshots = await listSnapshots();
+  return { count: snapshots.length, snapshots };
+}
+
 // Dispatches one of the catalog's non-staged ("live") tools by name. Staged
 // (mutation) tools never reach here — byokChat.js's tool runner queues those
 // directly without needing a dataset at all. Async — the vault_* tools make
@@ -605,6 +622,10 @@ export async function runLocalTool(name, args, { dataset, externalVault } = {}) 
       return readGoogleFormTool(args);
     case "list_google_form_responses":
       return listGoogleFormResponsesTool(args);
+    case "list_workflow_cards":
+      return listWorkflowCardsTool();
+    case "list_backups":
+      return listBackupsTool();
     case "list_gmail_messages":
       return listGmailMessagesTool(args);
     case "read_gmail_message":

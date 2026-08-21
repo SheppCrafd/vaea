@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Workflow, Plus, X } from "lucide-react";
 import StandalonePageHeader from "@/components/shared/StandalonePageHeader";
+import { loadWorkflowCards, saveWorkflowCards } from "@/lib/workflowCanvasStore";
 
 // A genuine freeform diagram surface — sticky-note-style cards you place and
 // drag anywhere on an open canvas. Phase 1 is deliberately NOT bound to
@@ -9,27 +10,28 @@ import StandalonePageHeader from "@/components/shared/StandalonePageHeader";
 // actually orchestrate something) is Phase 7, once that engine exists in
 // Notifications. Promising automation before the engine is real would be
 // exactly the kind of fake demo this whole pass is trying to avoid.
-const STORAGE_KEY = "vaea_workflow_canvas_cards";
+// Cards live in workflowCanvasStore.js (deviceStorage) rather than raw
+// localStorage so the AI chat tools (CREATE/UPDATE/DELETE_WORKFLOW_CARD)
+// can read and write the exact same cards a user places by hand.
 const CARD_W = 200;
 const CARD_H = 110;
 
-function loadCards() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
 export default function WorkflowCanvasPage() {
-  const [cards, setCards] = useState(loadCards);
+  const [cards, setCards] = useState([]);
+  const [loaded, setLoaded] = useState(false);
   const dragRef = useRef(null);
   const canvasRef = useRef(null);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
-  }, [cards]);
+    loadWorkflowCards().then((c) => {
+      setCards(c);
+      setLoaded(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (loaded) saveWorkflowCards(cards);
+  }, [cards, loaded]);
 
   const addCard = () => {
     const canvas = canvasRef.current?.getBoundingClientRect();

@@ -18,7 +18,7 @@ vi.mock("@/lib/documentParsing", () => ({
   extractPdfText: vi.fn(),
   ocrImage: vi.fn(),
 }));
-import { extractPdfText, ocrImage } from "@/lib/documentParsing";
+import { extractPdfText } from "@/lib/documentParsing";
 
 beforeEach(() => {
   vi.clearAllMocks();
