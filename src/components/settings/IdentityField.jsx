@@ -1,3 +1,5 @@
+import { forwardRef } from "react";
+
 // The real Name/Identity/Soul/About-you field config and its exact
 // label+input/textarea markup — split out of AiPreferencesSection.jsx so
 // demos.jsx's IdentityFilm can render this exact component (readOnly, no
@@ -10,7 +12,13 @@ export const FIELDS = [
   { key: "userProfile", label: "About you", placeholder: "How you work, what you value, how you like to communicate.", rows: 3 },
 ];
 
-export default function IdentityField({ field, value, onChange, readOnly = false }) {
+// forwardRef exists for one caller: demos.jsx's IdentityFilm focuses the
+// actively-"typing" field and calls setSelectionRange(value.length,
+// value.length) on every keystroke so the browser's own real caret blinks
+// at the true end of the text — including where a textarea wraps a line,
+// which an absolutely-positioned decorative caret span can't track. The
+// real Settings page never passes a ref.
+const IdentityField = forwardRef(function IdentityField({ field, value, onChange, readOnly = false }, ref) {
   const { key, label, placeholder, rows } = field;
   const id = `ai-identity-${key}${readOnly ? "-demo" : ""}`;
   return (
@@ -18,6 +26,7 @@ export default function IdentityField({ field, value, onChange, readOnly = false
       <label htmlFor={id} className="text-sm font-medium mb-1.5 block">{label}</label>
       {rows === 1 ? (
         <input
+          ref={ref}
           id={id}
           value={value}
           onChange={(e) => onChange?.(e.target.value)}
@@ -27,6 +36,7 @@ export default function IdentityField({ field, value, onChange, readOnly = false
         />
       ) : (
         <textarea
+          ref={ref}
           id={id}
           value={value}
           onChange={(e) => onChange?.(e.target.value)}
@@ -38,4 +48,6 @@ export default function IdentityField({ field, value, onChange, readOnly = false
       )}
     </div>
   );
-}
+});
+
+export default IdentityField;

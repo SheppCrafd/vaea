@@ -3,6 +3,9 @@ import { Network, Loader2, TriangleAlert } from "lucide-react";
 import { Link } from "react-router-dom";
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
 import { auditVaultNotes } from "@/lib/githubApi";
+import { loadPhysics, savePhysics } from "@/lib/mindMapPhysics";
+import MindMapPhysicsSettings from "@/components/mindmap/MindMapPhysicsSettings";
+import NoteContentModal from "@/components/mindmap/NoteContentModal";
 
 // Real rendering, built on Phase 2's vault auto-linking work: auditVaultNotes
 // already returns every resolved [[wikilink]] (links) plus suggested_links
@@ -16,40 +19,44 @@ import { auditVaultNotes } from "@/lib/githubApi";
 // component — animated/non-interactive there via the `demo` prop — instead
 // of a hand-drawn recreation.
 const MAX_ITERATIONS = 300;
-const REPULSION = 2400;
-const SPRING_LENGTH = 90;
-const SPRING_STRENGTH = 0.02;
-const DAMPING = 0.85;
 
-function runForceLayout(nodes, edges, width, height) {
+// Obsidian-style: nodes settle from repulsion + link springs + a real pull
+// toward the canvas center (previously missing entirely — only a hard
+// boundary clamp kept nodes on-canvas, which reads very differently from a
+// graph that actually centers itself). All four terms are user-tunable via
+// MindMapPhysicsSettings (src/lib/mindMapPhysics.js), not fixed constants.
+function runForceLayout(nodes, edges, width, height, physics) {
+  const { centerGravity, repulsion, linkStrength, linkDistance } = physics;
+  const cx = width / 2, cy = height / 2;
   const positions = new Map(nodes.map((n, i) => {
     const angle = (i / nodes.length) * Math.PI * 2;
     const r = Math.min(width, height) / 3;
-    return [n, { x: width / 2 + Math.cos(angle) * r, y: height / 2 + Math.sin(angle) * r, vx: 0, vy: 0 }];
+    return [n, { x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r, vx: 0, vy: 0 }];
   }));
 
   for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
     for (const a of nodes) {
       const pa = positions.get(a);
-      let fx = 0, fy = 0;
+      let fx = (cx - pa.x) * centerGravity;
+      let fy = (cy - pa.y) * centerGravity;
       for (const b of nodes) {
         if (a === b) continue;
         const pb = positions.get(b);
         const dx = pa.x - pb.x, dy = pa.y - pb.y;
         const distSq = Math.max(dx * dx + dy * dy, 1);
-        const force = REPULSION / distSq;
+        const force = repulsion / distSq;
         fx += (dx / Math.sqrt(distSq)) * force;
         fy += (dy / Math.sqrt(distSq)) * force;
       }
-      pa.vx = (pa.vx + fx) * DAMPING;
-      pa.vy = (pa.vy + fy) * DAMPING;
+      pa.vx = (pa.vx + fx) * 0.85;
+      pa.vy = (pa.vy + fy) * 0.85;
     }
     for (const { from, to } of edges) {
       const pa = positions.get(from), pb = positions.get(to);
       if (!pa || !pb) continue;
       const dx = pb.x - pa.x, dy = pb.y - pa.y;
       const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
-      const force = (dist - SPRING_LENGTH) * SPRING_STRENGTH;
+      const force = (dist - linkDistance) * linkStrength;
       const fx = (dx / dist) * force, fy = (dy / dist) * force;
       pa.vx += fx; pa.vy += fy;
       pb.vx -= fx; pb.vy -= fy;
@@ -66,6 +73,14 @@ function runForceLayout(nodes, edges, width, height) {
 
 function titleOf(path) {
   return path.split("/").pop().replace(/\.md$/, "");
+}
+
+// Stable per-tag hue — same tag always gets the same color within a
+// session, no palette to maintain by hand as new tags show up.
+function tagHue(tag) {
+  let hash = 0;
+  for (let i = 0; i < tag.length; i++) hash = (hash * 31 + tag.charCodeAt(i)) >>> 0;
+  return hash % 360;
 }
 
 // Fixed sample graph for the marketing demo — real shape (links +
@@ -87,22 +102,31 @@ const DEMO_GRAPH = {
 
 export default function VaultGraph({ demo = false }) {
   const [connected, setConnected] = useState(demo ? true : null);
+  const [connection, setConnection] = useState(null);
   const [graph, setGraph] = useState(demo ? DEMO_GRAPH : null);
   const [error, setError] = useState("");
   const [hovered, setHovered] = useState(null);
+  const [openNote, setOpenNote] = useState(null);
+  const [physics, setPhysics] = useState(loadPhysics);
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const positionsRef = useRef(null);
 
+  const updatePhysics = (next) => {
+    setPhysics(next);
+    savePhysics(next);
+  };
+
   useEffect(() => {
     if (demo) return;
     (async () => {
-      const connection = await loadVaultConnection();
-      const isConnected = isVaultConnected(connection);
+      const conn = await loadVaultConnection();
+      const isConnected = isVaultConnected(conn);
       setConnected(isConnected);
       if (!isConnected) return;
+      setConnection(conn);
       try {
-        const result = await auditVaultNotes(connection);
+        const result = await auditVaultNotes(conn);
         setGraph(result);
       } catch (err) {
         setError(err.message);
@@ -129,7 +153,7 @@ export default function VaultGraph({ demo = false }) {
     const nodes = [...nodeSet];
     if (nodes.length === 0) return;
 
-    const positions = runForceLayout(nodes, graph.links || [], width, height);
+    const positions = runForceLayout(nodes, graph.links || [], width, height, physics);
     positionsRef.current = positions;
 
     const draw = () => {
@@ -164,9 +188,11 @@ export default function VaultGraph({ demo = false }) {
 
       for (const n of nodes) {
         const p = positions.get(n);
+        const tag = physics.groupByTag ? (graph.tags?.[n] || [])[0] : null;
+        const nodeColor = hovered === n ? teal : tag ? `hsl(${tagHue(tag)}, 55%, 55%)` : fg;
         ctx.beginPath();
         ctx.arc(p.x, p.y, hovered === n ? 6 : 4, 0, Math.PI * 2);
-        ctx.fillStyle = hovered === n ? teal : fg;
+        ctx.fillStyle = nodeColor;
         ctx.fill();
         ctx.font = "11px Inter, sans-serif";
         ctx.fillStyle = fg;
@@ -175,10 +201,10 @@ export default function VaultGraph({ demo = false }) {
       }
     };
     draw();
-  }, [graph, hovered]);
+  }, [graph, hovered, physics]);
 
-  const handleMouseMove = (e) => {
-    if (demo || !positionsRef.current) return;
+  const nodeAt = (e) => {
+    if (!positionsRef.current || !canvasRef.current) return null;
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left, y = e.clientY - rect.top;
     let closest = null, closestDist = 14;
@@ -186,11 +212,28 @@ export default function VaultGraph({ demo = false }) {
       const dist = Math.hypot(p.x - x, p.y - y);
       if (dist < closestDist) { closest = n; closestDist = dist; }
     }
-    setHovered(closest);
+    return closest;
+  };
+
+  const handleMouseMove = (e) => {
+    if (demo) return;
+    setHovered(nodeAt(e));
+  };
+
+  // Demo mode never opens a note — nothing real to read for an invented
+  // sample graph, same "hover/persistence disabled" boundary the rest of
+  // this component already draws for marketing use.
+  const handleClick = (e) => {
+    if (demo) return;
+    const node = nodeAt(e);
+    if (node) setOpenNote(node);
   };
 
   return (
-    <div className="flex-1 min-h-0 overflow-hidden" ref={containerRef}>
+    <div className="flex-1 min-h-0 overflow-hidden relative" ref={containerRef}>
+      {!demo && graph && (graph.links?.length || graph.suggested_links?.length) ? (
+        <MindMapPhysicsSettings physics={physics} onChange={updatePhysics} />
+      ) : null}
       {connected === false ? (
         <div className="max-w-2xl mx-auto pt-4">
           <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-8 text-center">
@@ -225,7 +268,16 @@ export default function VaultGraph({ demo = false }) {
           </div>
         </div>
       ) : (
-        <canvas ref={canvasRef} onMouseMove={handleMouseMove} className="w-full h-full cursor-default" />
+        <canvas
+          ref={canvasRef}
+          onMouseMove={handleMouseMove}
+          onClick={handleClick}
+          className={`w-full h-full ${!demo && hovered ? "cursor-pointer" : "cursor-default"}`}
+        />
+      )}
+
+      {openNote && connection && (
+        <NoteContentModal path={openNote} connection={connection} onClose={() => setOpenNote(null)} />
       )}
     </div>
   );

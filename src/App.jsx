@@ -58,7 +58,8 @@ function App() {
                       <Route path="/about" element={<AboutPage />} />
                       <Route path="/compare" element={<ComparePage />} />
                       <Route path="/chat" element={<ChatPage />} />
-                      <Route path="/vault" element={<VaultPage />} />
+                      <Route path="/brain" element={<VaultPage />} />
+                      <Route path="/vault" element={<Navigate to="/brain" replace />} />
                       <Route path="/workplace" element={<WorkplacePage />} />
                       {/* Calendar, Vmail, and Meetings folded into one "Vaea Workplace"
                           marketing page — keep the old URLs working for anyone with
@@ -68,8 +69,8 @@ function App() {
                       <Route path="/meetings" element={<Navigate to="/workplace" replace />} />
                       {/* Workflows folded into Vaea Brain (Vault) as a tab within it — keep the
                           old URL working for anyone with it bookmarked/linked. */}
-                      <Route path="/workflows" element={<Navigate to="/vault" replace />} />
-                      <Route path="/mindmap" element={<Navigate to="/vault" replace />} />
+                      <Route path="/workflows" element={<Navigate to="/brain" replace />} />
+                      <Route path="/mindmap" element={<Navigate to="/brain" replace />} />
                       <Route path="/privacy" element={<PrivacyPage />} />
                       <Route path="/terms" element={<TermsPage />} />
                       <Route path="/login" element={<LoginPage />} />

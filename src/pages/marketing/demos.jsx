@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useRef } from "react";
 import {
   Search, Package, FolderKanban, Boxes, BookOpen, GitBranch,
   Check, Plus, MessageCircle, Settings,
@@ -414,6 +415,25 @@ export function IdentityFilm({ step }) {
     { field: IDENTITY_DEMO_FIELDS[1], value: identityValue },
     { field: IDENTITY_DEMO_FIELDS[2], value: soulValue },
   ];
+
+  // A decorative caret absolutely positioned over these fields can't track
+  // where the text actually wraps inside the Identity/Soul textareas — it
+  // used to sit pinned to the field's bottom-left corner regardless of how
+  // many lines the revealed text had actually wrapped onto, floating
+  // visibly disconnected from the real cursor position. Focusing the field
+  // and moving its own native selection to the end instead gives a real
+  // browser caret that always blinks in the true spot, wrap included.
+  const nameRef = useRef(null);
+  const identityRef = useRef(null);
+  const soulRef = useRef(null);
+  const fieldRefs = useMemo(() => [nameRef, identityRef, soulRef], []);
+  useEffect(() => {
+    const el = fieldRefs[step]?.current;
+    if (!el) return;
+    el.focus({ preventScroll: true });
+    el.setSelectionRange(el.value.length, el.value.length);
+  }, [step, nameValue, identityValue, soulValue, fieldRefs]);
+
   // text-foreground is load-bearing, not decorative: this is a light card
   // deliberately placed on a dark band, so without it every label and field
   // inherits the band's near-white text and renders white-on-white.
@@ -432,10 +452,7 @@ export function IdentityFilm({ step }) {
 
       <div className="p-4 space-y-3" style={{ minHeight: "13rem" }}>
         {shown.map(({ field, value }, i) => (
-          <div key={field.key} className="relative">
-            <IdentityField field={field} value={value} readOnly />
-            {step === i && <Caret className="absolute left-3 bottom-2.5 bg-primary/70" />}
-          </div>
+          <IdentityField key={field.key} ref={fieldRefs[i]} field={field} value={value} readOnly />
         ))}
       </div>
 

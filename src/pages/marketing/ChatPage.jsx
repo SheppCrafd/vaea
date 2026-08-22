@@ -9,7 +9,7 @@ import ChatMessageList from "@/components/ai/ChatMessageList";
 import ChatIcon from "@/components/ai/ChatIcon";
 import { CHAT_ICON_OPTIONS } from "@/lib/chatIcon";
 import {
-  Reveal, StageLight, Grain, Caret,
+  Reveal, StageLight, Grain, Caret, useTypedText,
   useTimeline, useDocumentMeta, usePageSchema,
 } from "./effects";
 import {
@@ -56,17 +56,61 @@ const STAGED_ACTION_PENDING = {
   actions: [{ action: "CREATE_EVENT" }, { action: "CREATE_TASK" }, { action: "DELETE_EVENT" }],
 };
 
-const STAGED_ACTION_MESSAGES = [
-  { id: "s1", role: "user", content: "Clean up my calendar and file the design QA task." },
-  {
-    id: "s2",
-    role: "assistant",
-    tool_log_detail: null,
-    pending_action: STAGED_ACTION_PENDING,
-    content:
-      "I'll add a Focus block tomorrow at 8:30am, create a \"Design QA\" task in the Launch space, and delete the old 2pm planning session that's no longer on anyone's calendar. Want me to go ahead?",
-  },
-];
+const STAGED_ASK = "Clean up my calendar and file the design QA task.";
+const STAGED_REPLY =
+  "I'll add a Focus block tomorrow at 8:30am, create a \"Design QA\" task in the Launch space, and delete the old 2pm planning session that's no longer on anyone's calendar. Want me to go ahead?";
+
+// phase 0 → composer typing
+// phase 1 → sent: isComputing
+// phase 2 → persisted reply + real pending_action, real typewriter
+// phase 3 → pause (restart)
+const STAGED_DURATIONS = [1100, 900, 2600, 2200];
+
+function StagedActionDemo() {
+  const { ref, step } = useTimeline(STAGED_DURATIONS);
+  const composer = useTypedText(STAGED_ASK, step === 0, step > 0, 55);
+  const sent = step >= 1;
+  const replied = step >= 2;
+  const messages = [
+    ...(sent ? [{ id: "s1", role: "user", content: STAGED_ASK }] : []),
+    ...(replied
+      ? [{ id: "s2", role: "assistant", tool_log_detail: null, pending_action: STAGED_ACTION_PENDING, content: STAGED_REPLY }]
+      : []),
+  ];
+
+  return (
+    <div
+      ref={ref}
+      className="rounded-2xl overflow-hidden bg-card shadow-[0_0_0_1px_hsl(var(--foreground)/0.06),0_28px_58px_-12px_hsl(200_30%_12%/0.35)] flex flex-col"
+      style={{ height: 300 }}
+    >
+      <div className="bg-primary px-4 py-3 flex items-center gap-2 text-primary-foreground shrink-0">
+        <ChatIcon iconChoice={DEMO_ICON_CHOICE} className="w-4 h-4" />
+        <span className="font-terminal font-semibold text-sm">Vaea Chat</span>
+      </div>
+      {!sent ? (
+        <div className="flex-1 p-4 font-terminal text-[13px] leading-relaxed text-foreground/90 text-left">
+          <span className="text-primary">{">"}</span> {composer}
+          <Caret />
+        </div>
+      ) : (
+        <ChatMessageList
+          messages={messages}
+          isComputing={sent && !replied}
+          liveSteps={[]}
+          streamingText=""
+          iconChoice={DEMO_ICON_CHOICE}
+          hasMore={false}
+          onLoadMore={() => {}}
+          resolvingId={null}
+          onConfirm={() => {}}
+          onCancel={() => {}}
+          newMessageIds={step === 2 ? new Set(["s2"]) : new Set()}
+        />
+      )}
+    </div>
+  );
+}
 
 function ChatDemo() {
   const { ref, step } = useTimeline(DEMO_DURATIONS);
@@ -86,7 +130,12 @@ function ChatDemo() {
   const liveSteps = sent1 && !replied1 ? TOOL_LOG_LINES : [];
   const newMessageIds = new Set([step === 3 && "a1", step === 7 && "a2"].filter(Boolean));
 
-  const composerText = step === 1 ? USER_MSG_1 : step === 5 ? USER_MSG_2 : "";
+  // Real per-character reveal (useTypedText) driven into the composer, not
+  // the full string swapped in at once — the same mechanism the rest of the
+  // site's "someone is typing" beats use.
+  const composer1 = useTypedText(USER_MSG_1, step === 1, step > 1, 55);
+  const composer2 = useTypedText(USER_MSG_2, step === 5, step > 5, 55);
+  const composerText = step === 1 ? composer1 : step === 5 ? composer2 : "";
   const composerPlaying = step === 1 || step === 5;
 
   return (
@@ -266,7 +315,8 @@ const CHAT_FAQ_SCHEMA = {
 export default function ChatPage() {
   useDocumentMeta(
     "Vaea Chat — AI that acts on your work, not just talks about it",
-    "/chat"
+    "/chat",
+    "An AI assistant that reads your real workspace data and directly creates, updates, and completes things in it — with a confirm step before anything destructive."
   );
   usePageSchema(CHAT_PAGE_SCHEMA);
   usePageSchema(CHAT_FAQ_SCHEMA);
@@ -363,30 +413,12 @@ export default function ChatPage() {
 
             <Reveal delay={100}>
               {/* Real ChatBox.jsx header chrome + ChatMessageList.jsx —
-                  literally the same components as the hero demo above, with
-                  one persisted user message and one persisted assistant
-                  message carrying a real pending_action, so the "Yes, do
-                  it" / "Cancel" buttons are the component's own real
-                  rendering, not a hand-drawn recreation. */}
-              <div className="rounded-2xl overflow-hidden bg-card shadow-[0_0_0_1px_hsl(var(--foreground)/0.06),0_28px_58px_-12px_hsl(200_30%_12%/0.35)] flex flex-col" style={{ height: 260 }}>
-                <div className="bg-primary px-4 py-3 flex items-center gap-2 text-primary-foreground shrink-0">
-                  <ChatIcon iconChoice={DEMO_ICON_CHOICE} className="w-4 h-4" />
-                  <span className="font-terminal font-semibold text-sm">Vaea Chat</span>
-                </div>
-                <ChatMessageList
-                  messages={STAGED_ACTION_MESSAGES}
-                  isComputing={false}
-                  liveSteps={[]}
-                  streamingText=""
-                  iconChoice={DEMO_ICON_CHOICE}
-                  hasMore={false}
-                  onLoadMore={() => {}}
-                  resolvingId={null}
-                  onConfirm={() => {}}
-                  onCancel={() => {}}
-                  newMessageIds={new Set()}
-                />
-              </div>
+                  literally the same components as the hero demo above,
+                  animated through a real send: composer typing, a brief
+                  isComputing, then a persisted assistant message carrying a
+                  real pending_action, so the "Yes, do it" / "Cancel"
+                  buttons are the component's own real rendering. */}
+              <StagedActionDemo />
             </Reveal>
           </div>
         </div>

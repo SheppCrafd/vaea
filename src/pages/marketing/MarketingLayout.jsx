@@ -8,7 +8,7 @@ const NAV_LINKS = [
   { to: "/features", label: "Features" },
   { to: "/chat", label: "Vaea Chat" },
   { to: "/workplace", label: "Vaea Workplace" },
-  { to: "/vault", label: "Vaea Brain" },
+  { to: "/brain", label: "Vaea Brain" },
   { to: "/how-it-works", label: "How it works" },
   { to: "/compare", label: "Compare" },
   { to: "/about", label: "About" },
@@ -197,7 +197,7 @@ function Footer() {
               <li><Link to="/how-it-works" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>How it works</Link></li>
               <li><Link to="/chat" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Vaea Chat</Link></li>
               <li><Link to="/workplace" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Vaea Workplace</Link></li>
-              <li><Link to="/vault" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Vaea Brain</Link></li>
+              <li><Link to="/brain" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Vaea Brain</Link></li>
               <li><Link to="/compare" className={`text-muted-foreground hover:text-foreground transition-colors rounded-sm ${focusRing}`}>Compare</Link></li>
             </ul>
           </div>
