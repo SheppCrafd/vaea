@@ -49,7 +49,7 @@ export default function CalendarView({
         <div className="flex items-center gap-1.5 text-sm text-muted-foreground py-6">
           <Loader2 className="w-4 h-4 animate-spin" /> Loading your calendar…
         </div>
-      ) : !anyConnected ? (
+      ) : !anyConnected && groups.length === 0 ? (
         <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-8 text-center">
           <CalendarDays className="w-6 h-6 text-muted-foreground mx-auto mb-3" />
           <p className="text-sm font-medium">No calendar connected yet</p>
@@ -71,6 +71,16 @@ export default function CalendarView({
           {error && (
             <p className="flex items-start gap-1.5 text-xs text-destructive mb-4">
               <TriangleAlert className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {error}
+            </p>
+          )}
+          {!anyConnected && groups.length > 0 && (
+            <p className="text-xs text-muted-foreground mb-4">
+              No calendar connected yet — showing your committed project due dates only.{" "}
+              {!demo && (
+                <Link to="/app/settings" className="underline underline-offset-2 hover:text-foreground">
+                  Connect Google Workspace or Microsoft 365
+                </Link>
+              )}
             </p>
           )}
           {view === "week" ? (

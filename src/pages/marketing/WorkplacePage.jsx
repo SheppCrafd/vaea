@@ -9,7 +9,7 @@ import CalendarView from "@/components/calendar/CalendarView";
 import InboxFrame from "@/components/vmail/InboxFrame";
 import { Reveal, StageLight, Grain, useTimeline, useDocumentMeta, usePageSchema } from "./effects";
 import {
-  darkSectionBg, darkText, darkTopEdge, glassPanel, glassSheen, glassTileLight,
+  darkSectionBg, darkText, darkTopEdge, glassTileLight,
   pillOnDark, linkOnDark, eyebrowOnDark, eyebrowOnLight,
   displayXL, displayL, displayM, GLOW,
 } from "./theme";
@@ -35,25 +35,17 @@ const AGENDA_ITEMS = [
   { id: "e3", date: new Date(new Date().setHours(14, 0, 0, 0)), title: "Q3 roadmap due", source: "Vaea project", meetLink: false },
 ];
 
+// No outer decorative frame — the real /app/calendar page has no card
+// wrapping its agenda, just CalendarView's own "day" card
+// (bg-card border rounded-2xl shadow-md, real date header). Wrapping that
+// in a second "Today" card with its own header was fake chrome the app
+// doesn't have — the exact "card inside a card" this demo used to be.
 function CalendarAgendaDemo() {
-  const { ref, step } = useTimeline(CALENDAR_PHASES);
+  const { ref } = useTimeline(CALENDAR_PHASES);
   const groups = [[TODAY_KEY, AGENDA_ITEMS]];
   return (
-    <div ref={ref} className={`relative w-full max-w-xl mx-auto rounded-2xl overflow-hidden ${glassPanel}`}>
-      <div className={glassSheen} />
-      <div className="flex items-center gap-2 px-5 py-3.5 border-b border-foreground/[0.08]">
-        <CalendarDays className="w-3.5 h-3.5 text-foreground/35" />
-        <span className="font-terminal text-[11px] text-foreground/35 flex-1 min-w-0 truncate">Today</span>
-        <span
-          className={`font-terminal text-[10px] transition-opacity duration-500 ${step >= 2 ? "opacity-100" : "opacity-0"}`}
-          style={{ color: GLOW }}
-        >
-          2 sources merged
-        </span>
-      </div>
-      <div className="px-5 py-5 text-left">
-        <CalendarView view="agenda" groups={groups} demo />
-      </div>
+    <div ref={ref} className="w-full max-w-2xl mx-auto text-left">
+      <CalendarView view="agenda" groups={groups} demo />
     </div>
   );
 }
@@ -71,6 +63,14 @@ const DEMO_MESSAGES = [
   { id: "m3", provider: "gmail", label: "Gmail", from: '"IT Security"', subject: "URGENT: verify your account now", date: new Date(Date.now() - 60 * 60000).toISOString(), unread: true, flagged: true },
 ];
 
+// No outer decorative frame or fake "2 accounts" badge — the real
+// /app/vmail page has no card wrapping InboxFrame, it just sits full-width
+// on the page background. A plain bg-card boundary (the same minimal
+// treatment PaletteFilm/NestFilm/IdentityFilm already use in demos.jsx for
+// other real-component reuse) gives the marketing card *some* edge without
+// inventing chrome the app doesn't have. Widened from the old max-w-xl,
+// which wasn't wide enough for the real folder-tab row + search box and
+// visibly clipped both — this is why real width matters, not just real code.
 function InboxDemo() {
   const { ref, step } = useTimeline(VMAIL_PHASES);
   const flaggedGone = step >= 4;
@@ -79,22 +79,12 @@ function InboxDemo() {
     .filter((m) => !(flaggedGone && m.flagged));
 
   return (
-    <div ref={ref} className={`relative w-full max-w-xl mx-auto rounded-2xl overflow-hidden ${glassPanel}`}>
-      <div className={glassSheen} />
-      <div className="flex items-center gap-2 px-5 py-3.5 border-b border-foreground/[0.08]">
-        <Inbox className="w-3.5 h-3.5 text-foreground/35" />
-        <span className="font-terminal text-[11px] text-foreground/35 flex-1 min-w-0 truncate">Vmail</span>
-        <span className="font-terminal text-[10px] text-foreground/25">2 accounts</span>
-      </div>
-      <div className="min-h-[240px] flex flex-col text-left">
-        <InboxFrame folder="inbox" onFolderChange={() => {}} messages={visible} demo />
-      </div>
-      <div
-        className={`px-5 py-3 border-t border-foreground/[0.08] flex items-center gap-2 transition-all duration-500 ${flaggedGone ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}`}
-      >
-        <MessageCircle className="w-3.5 h-3.5 shrink-0" style={{ color: GLOW }} />
-        <span className="font-terminal text-[11px] text-foreground/50">"That IT Security email is phishing — I reported it as spam."</span>
-      </div>
+    <div
+      ref={ref}
+      className="w-full max-w-3xl mx-auto rounded-xl border border-border bg-card shadow-[0_4px_6px_-1px_rgb(0_0_0/0.1),0_2px_4px_-2px_rgb(0_0_0/0.1)] dark:shadow-[0_0_0_1px_hsl(var(--foreground)/0.06),0_0_16px_-4px_hsl(var(--foreground)/0.10)] overflow-hidden flex flex-col text-left"
+      style={{ height: 340 }}
+    >
+      <InboxFrame folder="inbox" onFolderChange={() => {}} messages={visible} demo />
     </div>
   );
 }
@@ -350,20 +340,17 @@ export default function WorkplacePage() {
             </p>
           </Reveal>
           <Reveal delay={100}>
-            <div className={`relative w-full max-w-md mx-auto rounded-2xl overflow-hidden ${glassPanel}`}>
-              <div className={glassSheen} />
-              <div className="flex items-center gap-2 px-5 py-3.5 border-b border-foreground/[0.08]">
-                <Video className="w-3.5 h-3.5 text-foreground/35" />
-                <span className="font-terminal text-[11px] text-foreground/35">Meetings</span>
-              </div>
-              <div className="px-5 py-10 text-center">
-                <Video className="w-6 h-6 text-foreground/25 mx-auto mb-3" />
-                <p className="text-sm font-medium text-foreground/80">No meeting source connected yet</p>
-                <p className="text-xs text-foreground/40 mt-1.5 max-w-xs mx-auto leading-relaxed">
-                  What the real tab shows today — a plain, honest empty state, not a mockup
-                  of a feature that doesn't exist.
-                </p>
-              </div>
+            {/* Real MeetingsPage.jsx empty-state card, exactly — bg-card
+                border rounded-2xl shadow-md, no outer "Meetings" label
+                header, which is nothing the real page renders. */}
+            <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-8 text-center max-w-md mx-auto">
+              <Video className="w-6 h-6 text-muted-foreground mx-auto mb-3" />
+              <p className="text-sm font-medium">No meeting source connected yet</p>
+              <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                This page will connect to Zoom, Google Meet, and Microsoft Teams so meeting notes,
+                action items, and decisions land here and on the right project automatically. Those
+                connections aren't built yet — nothing to set up here in the meantime.
+              </p>
             </div>
           </Reveal>
           <div className="grid sm:grid-cols-3 gap-4 mt-12 max-w-4xl mx-auto">

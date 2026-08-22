@@ -11,6 +11,7 @@ import Header from '@/components/layout/Header';
 import Dashboard from '@/pages/Dashboard';
 import CommandPalette from '@/components/command/CommandPalette';
 import ChatLauncherButton from '@/components/ai/ChatLauncherButton';
+import ConnectorSuggestionBanner from '@/components/shared/ConnectorSuggestionBanner';
 import { useAppStore } from '@/lib/store';
 // Code-split, like /chat and /settings already are — pulls in react-markdown
 // and its own session/action machinery, none of which every page needs
@@ -137,6 +138,7 @@ const AuthenticatedApp = () => {
       <ChatControllerProvider>
         <div className="h-screen flex flex-col overflow-hidden">
           <Header />
+          <ConnectorSuggestionBanner />
           <div className="flex-1 min-h-0">
             <Suspense fallback={null}>
               <CommandPalette />
