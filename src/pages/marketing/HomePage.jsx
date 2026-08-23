@@ -72,7 +72,7 @@ const LOCAL_MODE_PIPELINE = [
 const LOCAL_MODE_REASONS = [
   {
     icon: ShieldOff,
-    title: "No API key, no account, no server",
+    title: "No account key, no account, no server",
     body: "Vaea writes a file to a folder you picked and reads the reply back the same way. It never sends anything anywhere in this mode — nothing to configure, nothing to trust us with.",
   },
   {

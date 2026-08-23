@@ -48,15 +48,16 @@ const SECTIONS = [
     body: (
       <>
         <p>
-          For the built-in AI and BYOK, Vaea Chat needs you signed in to use — that account is
-          what a resumable conversation history gets scoped to. Local Mode is the one exception:
-          it runs without signing in at all (see Local Mode below). Whichever way you're chatting,
-          when you send a message it's forwarded to whichever AI model is answering it — Vaea's
-          own provider, your own API key, or your own Local Mode connection — for that single
-          request. Your message content is not stored on Vaea's servers once the reply comes back.
+          For the built-in AI and Bring Your Own Key, Vaea Chat needs you signed in to use — that
+          account is what a resumable conversation history gets scoped to. Local Mode is the one
+          exception: it runs without signing in at all (see Local Mode below). Whichever way
+          you're chatting, when you send a message it's forwarded to whichever AI model is
+          answering it — Vaea's own provider, your own account key, or your own Local Mode
+          connection — for that single request. Your message content is not stored on Vaea's
+          servers once the reply comes back.
         </p>
         <p className="mt-3">
-          For the built-in AI and BYOK, your chat session history (the list of past conversations
+          For the built-in AI and Bring Your Own Key, your chat session history (the list of past conversations
           and their messages, so you can come back to them) lives on our servers rather than your
           device, scoped to your account — the one piece of data outside the local-first/cloud-opt-in
           rules above. Local Mode keeps this local too: your conversation history is written as
@@ -70,14 +71,14 @@ const SECTIONS = [
   },
   {
     id: "byok",
-    title: "Bring your own API key (BYOK)",
+    title: "Bring your own account key",
     body: (
       <>
         <p>
-          If you connect your own API key for an AI provider instead of using Vaea's default, that
-          key is stored locally on your device — in your browser's own storage, never uploaded to
-          or held by Vaea's servers. When Vaea Chat needs it, requests go directly from your
-          browser to that provider's API. We never see the key and we never see the response
+          If you connect your own account key for an AI provider instead of using Vaea's default,
+          that key is stored locally on your device — in your browser's own storage, never
+          uploaded to or held by Vaea's servers. When Vaea Chat needs it, requests go directly from
+          your browser to that provider. We never see the key and we never see the response
           before your browser does.
         </p>
       </>
@@ -109,7 +110,7 @@ const SECTIONS = [
         <p>
           Sign-in (Google, Microsoft, Apple, or email) is handled by Base44, the platform Vaea is
           built and hosted on — Vaea itself never sees or stores your password. Signing in
-          unlocks the built-in AI, BYOK chat, and cloud storage; browsing, organizing, editing,
+          unlocks the built-in AI, Bring Your Own Key chat, and cloud storage; browsing, organizing, editing,
           and importing a spreadsheet all work the same whether you're signed in or not — and
           Local Mode runs chat without signing in too.
         </p>
