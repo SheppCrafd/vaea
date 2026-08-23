@@ -38,6 +38,24 @@ export function detailForLogLine(toolLogDetail, i) {
 
 function makeMarkdownComponents(toolLogDetail, onOpenDetail) {
   return {
+    p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+    ul: ({ children }) => <ul className="mb-2 last:mb-0 pl-5 space-y-1 list-disc">{children}</ul>,
+    ol: ({ children }) => <ol className="mb-2 last:mb-0 pl-5 space-y-1 list-decimal">{children}</ol>,
+    li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+    h1: ({ children }) => <h1 className="mt-3 mb-1.5 first:mt-0 text-base font-semibold">{children}</h1>,
+    h2: ({ children }) => <h2 className="mt-3 mb-1.5 first:mt-0 text-base font-semibold">{children}</h2>,
+    h3: ({ children }) => <h3 className="mt-2.5 mb-1 first:mt-0 text-sm font-semibold">{children}</h3>,
+    strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+    em: ({ children }) => <em className="italic">{children}</em>,
+    blockquote: ({ children }) => (
+      <blockquote className="my-2 pl-3 border-l-2 border-border text-muted-foreground">{children}</blockquote>
+    ),
+    a: ({ children, href }) => (
+      <a href={href} target="_blank" rel="noopener noreferrer" className="underline decoration-dotted underline-offset-2 hover:text-foreground">
+        {children}
+      </a>
+    ),
+    hr: () => <hr className="my-2 border-border" />,
     pre: ({ children }) => <>{children}</>,
     code({ className, children }) {
       if (className === "language-tool-log") {
@@ -65,6 +83,30 @@ function makeMarkdownComponents(toolLogDetail, onOpenDetail) {
     },
   };
 }
+
+// Same block-level styling as makeMarkdownComponents' reply text, minus the
+// tool-log/code handling — the live streaming preview below never contains a
+// ```tool-log block (that's only ever part of a *persisted* message).
+const STREAM_MARKDOWN_COMPONENTS = {
+  p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+  ul: ({ children }) => <ul className="mb-2 last:mb-0 pl-5 space-y-1 list-disc">{children}</ul>,
+  ol: ({ children }) => <ol className="mb-2 last:mb-0 pl-5 space-y-1 list-decimal">{children}</ol>,
+  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+  h1: ({ children }) => <h1 className="mt-3 mb-1.5 first:mt-0 text-base font-semibold">{children}</h1>,
+  h2: ({ children }) => <h2 className="mt-3 mb-1.5 first:mt-0 text-base font-semibold">{children}</h2>,
+  h3: ({ children }) => <h3 className="mt-2.5 mb-1 first:mt-0 text-sm font-semibold">{children}</h3>,
+  strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+  em: ({ children }) => <em className="italic">{children}</em>,
+  blockquote: ({ children }) => (
+    <blockquote className="my-2 pl-3 border-l-2 border-border text-muted-foreground">{children}</blockquote>
+  ),
+  a: ({ children, href }) => (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="underline decoration-dotted underline-offset-2 hover:text-foreground">
+      {children}
+    </a>
+  ),
+  hr: () => <hr className="my-2 border-border" />,
+};
 
 // A persisted message's content is `` ```tool-log\n...\n``` `` + the reply
 // text, when the turn did anything real (see useChatController.js's
@@ -304,12 +346,12 @@ export default function ChatMessageList({ messages, isComputing, liveSteps, stre
             return (
               <>
                 {past && (
-                  <div className="text-muted-foreground transition-colors duration-500 [&_p]:mb-2 [&_p:last-child]:mb-0 mb-2">
-                    <ReactMarkdown urlTransform={sanitizeUrl}>{past}</ReactMarkdown>
+                  <div className="text-muted-foreground transition-colors duration-500 mb-2">
+                    <ReactMarkdown urlTransform={sanitizeUrl} components={STREAM_MARKDOWN_COMPONENTS}>{past}</ReactMarkdown>
                   </div>
                 )}
-                <div className="text-foreground [&_p]:mb-2 [&_p:last-child]:mb-0">
-                  <ReactMarkdown urlTransform={sanitizeUrl}>{current}</ReactMarkdown>
+                <div className="text-foreground">
+                  <ReactMarkdown urlTransform={sanitizeUrl} components={STREAM_MARKDOWN_COMPONENTS}>{current}</ReactMarkdown>
                 </div>
               </>
             );
