@@ -39,7 +39,7 @@ export default function StatusDropdown({ task, onStatusChange, statusOptions = D
           <button
             key={status}
             onClick={() => handleSelect(status)}
-            className="w-full text-left px-3 py-1.5 text-xs capitalize hover:bg-accent"
+            className="w-full text-left px-3 py-1.5 text-xs capitalize hover:bg-accent transition-colors"
           >
             {status.replace(/_/g, " ")}
           </button>

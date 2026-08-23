@@ -161,7 +161,7 @@ export default function ChatToolLogDetail({ detail, onClose }) {
     >
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-terminal text-sm font-semibold text-foreground truncate pr-2">{title}</h3>
-        <button onClick={onClose} aria-label="Close" className="shrink-0 text-muted-foreground hover:text-foreground">
+        <button onClick={onClose} aria-label="Close" className="shrink-0 text-muted-foreground hover:text-foreground transition-colors">
           <X className="w-4 h-4" />
         </button>
       </div>

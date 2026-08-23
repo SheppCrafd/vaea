@@ -82,7 +82,7 @@ export default function CustomFieldsSection({
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Custom Fields</p>
         <button
           onClick={() => setIsAdding((v) => !v)}
-          className="flex items-center gap-1 text-xs px-2 py-1 bg-secondary text-secondary-foreground border border-border rounded-md hover:opacity-80"
+          className="flex items-center gap-1 text-xs px-2 py-1 bg-secondary text-secondary-foreground border border-border rounded-md hover:opacity-80 transition-colors"
         >
           <Plus className="w-3 h-3" /> Add Field
         </button>
@@ -109,7 +109,7 @@ export default function CustomFieldsSection({
                 <input type="checkbox" checked={displayFields.includes(f.key)} onChange={() => toggleCardDisplay(f.key)} />
                 Card
               </label>
-              <button onClick={() => removeField(f.key)} aria-label="Remove field" className="shrink-0 text-muted-foreground hover:text-destructive">
+              <button onClick={() => removeField(f.key)} aria-label="Remove field" className="shrink-0 text-muted-foreground hover:text-destructive transition-colors">
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>

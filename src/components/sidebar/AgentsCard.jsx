@@ -140,7 +140,7 @@ export default function AgentsCard() {
                 </div>
               </form>
             ) : (
-              <div key={agent.id} className="flex items-start gap-2 text-xs px-2 py-2 rounded-lg hover:bg-secondary/40 group">
+              <div key={agent.id} className="flex items-start gap-2 text-xs px-2 py-2 rounded-lg hover:bg-secondary/40 transition-colors group">
                 <Bot className="w-3.5 h-3.5 shrink-0 mt-0.5 text-muted-foreground" />
                 <div className="min-w-0 flex-1">
                   <p className="font-medium truncate">{agent.name}</p>
@@ -154,21 +154,21 @@ export default function AgentsCard() {
                   onClick={() => runAgent(agent)}
                   disabled={runningId === agent.id}
                   aria-label={`Run ${agent.name}`}
-                  className="text-muted-foreground hover:text-foreground p-0.5 rounded shrink-0 opacity-0 group-hover:opacity-100 disabled:opacity-100"
+                  className="text-muted-foreground hover:text-foreground p-0.5 rounded shrink-0 opacity-0 group-hover:opacity-100 disabled:opacity-100 transition-colors"
                 >
                   {runningId === agent.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
                 </button>
                 <button
                   onClick={() => startEdit(agent)}
                   aria-label={`Edit ${agent.name}`}
-                  className="text-muted-foreground hover:text-foreground p-0.5 rounded shrink-0 opacity-0 group-hover:opacity-100"
+                  className="text-muted-foreground hover:text-foreground p-0.5 rounded shrink-0 opacity-0 group-hover:opacity-100 transition-colors"
                 >
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => removeAgent(agent.id)}
                   aria-label={`Remove ${agent.name}`}
-                  className="text-muted-foreground hover:text-destructive p-0.5 rounded shrink-0 opacity-0 group-hover:opacity-100"
+                  className="text-muted-foreground hover:text-destructive p-0.5 rounded shrink-0 opacity-0 group-hover:opacity-100 transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -208,7 +208,7 @@ export default function AgentsCard() {
           ) : (
             <button
               onClick={() => { setAdding(true); setEditingId(null); }}
-              className="w-full flex items-center gap-1.5 text-xs px-2 py-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary/40"
+              className="w-full flex items-center gap-1.5 text-xs px-2 py-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary/40 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" /> New agent
             </button>

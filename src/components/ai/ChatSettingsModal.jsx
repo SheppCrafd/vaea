@@ -29,7 +29,7 @@ export default function ChatSettingsModal({ onClose }) {
     >
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border px-6 py-4 flex items-center justify-between">
         <h2 className="font-heading text-lg font-semibold">Vaea Chat Settings</h2>
-        <button onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground">
+        <button onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground transition-colors">
           <X className="w-4 h-4" />
         </button>
       </div>

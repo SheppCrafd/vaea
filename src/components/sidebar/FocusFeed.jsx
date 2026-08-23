@@ -75,13 +75,13 @@ export default function FocusFeed() {
           <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
         ))}
       </select>
-      <button onClick={() => move.onClick(task)} aria-label={move.label} title={move.label} className="shrink-0 text-muted-foreground hover:text-foreground">
+      <button onClick={() => move.onClick(task)} aria-label={move.label} title={move.label} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors">
         <move.Icon className="w-3.5 h-3.5" />
       </button>
-      <button onClick={() => handleArchive(task)} aria-label="Archive task" className="shrink-0 text-muted-foreground hover:text-foreground">
+      <button onClick={() => handleArchive(task)} aria-label="Archive task" className="shrink-0 text-muted-foreground hover:text-foreground transition-colors">
         <Archive className="w-3.5 h-3.5" />
       </button>
-      <button onClick={() => handleDelete(task)} aria-label="Delete task" className="shrink-0 text-muted-foreground hover:text-destructive">
+      <button onClick={() => handleDelete(task)} aria-label="Delete task" className="shrink-0 text-muted-foreground hover:text-destructive transition-colors">
         <Trash2 className="w-3.5 h-3.5" />
       </button>
     </div>

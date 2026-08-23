@@ -44,17 +44,17 @@ export default function AttachmentsAndLinks({ project, onSave }) {
         <div className="flex flex-col gap-1.5 mb-2">
           {attachments.map((a, i) => (
             <div key={i} className="flex items-center justify-between gap-2 text-xs bg-secondary/20 border border-border rounded px-2 py-1.5">
-              <a href={sanitizeHttpUrl(a.url) || "#"} target="_blank" rel="noreferrer" title={a.name} className="flex items-center gap-1.5 text-primary hover:underline truncate min-w-0">
+              <a href={sanitizeHttpUrl(a.url) || "#"} target="_blank" rel="noreferrer" title={a.name} className="flex items-center gap-1.5 text-primary hover:underline truncate min-w-0 transition-colors">
                 <Paperclip className="w-3 h-3 shrink-0" />
                 <span className="truncate">{a.name}</span>
               </a>
-              <button onClick={() => removeAttachment(i)} aria-label="Remove attachment" className="shrink-0 text-muted-foreground hover:text-destructive">
+              <button onClick={() => removeAttachment(i)} aria-label="Remove attachment" className="shrink-0 text-muted-foreground hover:text-destructive transition-colors">
                 <X className="w-3 h-3" />
               </button>
             </div>
           ))}
         </div>
-        <label className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 bg-secondary text-secondary-foreground border border-border rounded-md cursor-pointer hover:opacity-80">
+        <label className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 bg-secondary text-secondary-foreground border border-border rounded-md cursor-pointer hover:opacity-80 transition-colors">
           <Upload className="w-3 h-3" />
           {isUploading ? "Uploading..." : "Add file"}
           <input type="file" onChange={handleFileChange} disabled={isUploading} className="hidden" />
@@ -71,12 +71,12 @@ export default function AttachmentsAndLinks({ project, onSave }) {
                 target="_blank"
                 rel="noreferrer"
                 title={l.label && l.label !== l.url ? `${l.label} — ${l.url}` : l.url}
-                className="flex items-center gap-1.5 text-primary hover:underline truncate min-w-0"
+                className="flex items-center gap-1.5 text-primary hover:underline truncate min-w-0 transition-colors"
               >
                 <Link2 className="w-3 h-3 shrink-0" />
                 <span className="truncate">{l.label}</span>
               </a>
-              <button onClick={() => removeLink(i)} aria-label="Remove link" className="shrink-0 text-muted-foreground hover:text-destructive">
+              <button onClick={() => removeLink(i)} aria-label="Remove link" className="shrink-0 text-muted-foreground hover:text-destructive transition-colors">
                 <X className="w-3 h-3" />
               </button>
             </div>
