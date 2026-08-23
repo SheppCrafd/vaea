@@ -170,7 +170,6 @@ export default function VmailPage() {
 
   useEffect(() => {
     load();
-     
   }, [folder, search]);
 
   const handleSearchSubmit = (e) => {

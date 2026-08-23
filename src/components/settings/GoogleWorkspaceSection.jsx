@@ -36,7 +36,6 @@ function UpcomingEvents({ connection, onTokenRefreshed }) {
 
   useEffect(() => {
     load();
-     
   }, []);
 
   return (

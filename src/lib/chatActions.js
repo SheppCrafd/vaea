@@ -852,7 +852,6 @@ export async function executeAction(action, args) {
       if (!slots.length) throw new Error("Couldn't find any free slots for this recurring block — try different days or a shorter duration.");
       const created = [];
       for (const slot of slots) {
-         
         const event = await createVaeaEvent(primary, { title: args.title, start: slot.start, end: slot.end, tag });
         created.push({ title: args.title, start: slot.start.toISOString(), end: slot.end.toISOString(), event });
       }
@@ -878,7 +877,6 @@ export async function executeAction(action, args) {
         const stillBusy = busy.filter((e) => e !== event);
         const slot = findFreeSlot(stillBusy, { durationMinutes, earliest, latest });
         if (!slot) continue;
-         
         if (event._provider === "google") {
           const { connection } = await updateEvent(await loadCalendarConnection(), event.id, {
             start: { dateTime: slot.start.toISOString() },

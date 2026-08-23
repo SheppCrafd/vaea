@@ -89,7 +89,6 @@ export function useTasksForProjects(projectIds = []) {
   const idsKey = projectIds.join(",");
   const tasks = useMemo(
     () => allTasks.filter((t) => projectIds.includes(t.project_id)),
-     
     [allTasks, idsKey]
   );
   return { ...rest, data: tasks };

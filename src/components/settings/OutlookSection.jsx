@@ -27,7 +27,6 @@ function RecentMessages({ connection, onTokenRefreshed }) {
 
   useEffect(() => {
     load();
-     
   }, []);
 
   return (

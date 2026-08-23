@@ -53,7 +53,6 @@ export function useChatInputHistory({ messages, input, setInput }) {
   // from the most recent entry, which is confusing to reason about.
   useEffect(() => {
     if (index !== null && input !== entries[index]) setIndex(null);
-     
   }, [input]);
 
   const handleKeyDown = (e) => {

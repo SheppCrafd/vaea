@@ -97,7 +97,6 @@ export default function ChatPage() {
   useEffect(() => {
     const msg = location.state?.initialMessage;
     if (msg && !chat.input) chat.setInput(msg);
-     
   }, []);
 
   // Same reasoning as AppShell.jsx's mobile drawers: below md the aside
@@ -195,7 +194,6 @@ export default function ChatPage() {
           <ChatMessageList
             messages={chat.chatState.messages}
             isComputing={chat.isComputing}
-            isLoading={chat.chatState.isLoading}
             liveSteps={chat.liveSteps}
             streamingText={chat.streamingText}
             iconChoice={chat.iconChoice}

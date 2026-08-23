@@ -53,7 +53,6 @@ export default function DateField({ value, onSave, className = "", unstyled = fa
 
   useEffect(() => {
     if (open) setViewDate(selected || new Date());
-     
   }, [open]);
 
   useEffect(() => {

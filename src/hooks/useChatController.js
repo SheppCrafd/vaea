@@ -278,7 +278,6 @@ export function useChatController({ activeProjectId } = {}) {
       cancelled = true;
       unsubscribe();
     };
-     
   }, []);
 
   const invalidateAppQueries = async () => {

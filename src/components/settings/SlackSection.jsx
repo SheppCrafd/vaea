@@ -37,7 +37,6 @@ function ChannelList({ connection }) {
 
   useEffect(() => {
     load();
-     
   }, []);
 
   return (
