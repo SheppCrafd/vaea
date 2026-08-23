@@ -175,7 +175,11 @@ const SECTIONS = [
 ];
 
 export default function PrivacyPage() {
-  useDocumentMeta("Privacy Policy | Vaea", "/privacy");
+  useDocumentMeta(
+    "Privacy Policy | Vaea",
+    "/privacy",
+    "How Vaea handles your data: local-first by default, plain language, no legal filler — what actually happens to your projects, tasks, and chat messages."
+  );
 
   return (
     <MarketingLayout>
