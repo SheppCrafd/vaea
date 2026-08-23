@@ -111,6 +111,12 @@ export default function WorkflowCanvas({ addTrigger, demo = false }) {
 
   const handleWheel = (e) => {
     if (demo) return;
+    // Only actually prevents the page from scrolling under the canvas when
+    // attached as a real, non-passive DOM listener (see the useEffect
+    // below) — React's onWheel prop attaches passively by default, where
+    // preventDefault() is silently ignored (confirmed via a real browser
+    // pass: a console error, and the page genuinely scrolling behind the
+    // canvas while zooming).
     e.preventDefault();
     const rect = canvasRef.current.getBoundingClientRect();
     const cursorCanvas = toCanvasSpace(e.clientX, e.clientY);
@@ -118,6 +124,15 @@ export default function WorkflowCanvas({ addTrigger, demo = false }) {
     const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
     setView({ scale: nextScale, x: cursorCanvas.x - cx / nextScale, y: cursorCanvas.y - cy / nextScale });
   };
+  const wheelHandlerRef = useRef(handleWheel);
+  wheelHandlerRef.current = handleWheel;
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+    const listener = (e) => wheelHandlerRef.current(e);
+    el.addEventListener("wheel", listener, { passive: false });
+    return () => el.removeEventListener("wheel", listener);
+  }, []);
 
   const zoomByFactor = (factor) => setView((v) => ({ ...v, scale: Math.min(MAX_SCALE, Math.max(MIN_SCALE, v.scale * factor)) }));
   const resetView = () => setView({ scale: 1, x: 0, y: 0 });
@@ -129,7 +144,6 @@ export default function WorkflowCanvas({ addTrigger, demo = false }) {
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
-      onWheel={handleWheel}
       style={{ backgroundPosition: `${-view.x * view.scale}px ${-view.y * view.scale}px`, backgroundSize: `${20 * view.scale}px ${20 * view.scale}px` }}
       className={`flex-1 min-h-0 relative overflow-hidden touch-none bg-[radial-gradient(hsl(var(--foreground)/0.08)_1px,transparent_1px)] ${demo ? "pointer-events-none" : "cursor-default active:cursor-grabbing"}`}
     >
@@ -169,7 +183,7 @@ export default function WorkflowCanvas({ addTrigger, demo = false }) {
       </div>
 
       {!demo && (
-        <div className="absolute bottom-2 right-2 z-10 flex items-center gap-0.5 rounded-md bg-card/90 border border-border shadow-sm backdrop-blur-sm p-0.5">
+        <div className="absolute bottom-2 left-2 z-10 flex items-center gap-0.5 rounded-md bg-card/90 border border-border shadow-sm backdrop-blur-sm p-0.5">
           <button type="button" onClick={() => zoomByFactor(1 / 1.3)} aria-label="Zoom out" title="Zoom out" className="w-6 h-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
             <ZoomOut className="w-3.5 h-3.5" />
           </button>
