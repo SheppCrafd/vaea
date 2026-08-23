@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
-import { Plus, X, Trash2, GripVertical, Pencil } from "lucide-react";
+import { Plus, X, GripVertical, Pencil } from "lucide-react";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { useStakeholders, useDeleteStakeholder, useUpdateStakeholder } from "@/hooks/useStakeholders";
 import { useDepartments, useCreateDepartment, useRenameDepartment, useDeleteDepartment } from "@/hooks/useDepartments";
 import { useProducts } from "@/hooks/useProducts";
@@ -178,9 +179,7 @@ function DepartmentToolbar({ department, memberCount }) {
       <button onClick={startRenaming} aria-label="Rename department" className="text-muted-foreground hover:text-foreground">
         <Pencil className="w-3.5 h-3.5" />
       </button>
-      <button onClick={handleDelete} aria-label="Delete department" className="text-muted-foreground hover:text-destructive">
-        <Trash2 className="w-3.5 h-3.5" />
-      </button>
+      <DeleteButton onClick={handleDelete} label="Delete department" />
     </div>);
 
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { X, Archive, RotateCcw, Trash2, ChevronDown, ChevronRight, Sparkles } from "lucide-react";
+import { X, Archive, RotateCcw, ChevronDown, ChevronRight, Sparkles } from "lucide-react";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { useNavigate } from "react-router-dom";
 import Modal from "@/components/shared/Modal";
 import { useProjectNotes } from "@/hooks/useProjectNotes";
@@ -320,17 +321,17 @@ export default function ProjectDetailModal({ project, onClose }) {
           {/* Footer Actions */}
           <div className="p-4 border-t border-border bg-muted/10 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <button
+              <DeleteButton
                 onClick={() =>
                   confirmThen(`Delete project "${project.title}"? This cannot be undone.`, () => {
                     deleteProject.mutate(project.id);
                     onClose();
                   })
                 }
-                className="text-xs flex items-center gap-1.5 text-muted-foreground hover:text-destructive px-3 py-1.5 rounded transition-colors"
-              >
-                <Trash2 className="w-4 h-4" /> Delete Project
-              </button>
+                label="Delete project"
+                showLabel
+                size="md"
+              />
             </div>
 
             {project.is_archived ? (

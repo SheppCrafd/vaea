@@ -1,4 +1,5 @@
-import { Archive, ArrowDown, ArrowUp, Trash2 } from "lucide-react";
+import { Archive, ArrowDown, ArrowUp } from "lucide-react";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { useAllTasks, useUpdateTask, useToggleTopThree, useDeleteTask } from "@/hooks/useTasks";
 import { useProjects } from "@/hooks/useProjects";
 import { useToast } from "@/components/ui/use-toast";
@@ -81,9 +82,7 @@ export default function FocusFeed() {
       <button onClick={() => handleArchive(task)} aria-label="Archive task" className="shrink-0 text-muted-foreground hover:text-foreground transition-colors">
         <Archive className="w-3.5 h-3.5" />
       </button>
-      <button onClick={() => handleDelete(task)} aria-label="Delete task" className="shrink-0 text-muted-foreground hover:text-destructive transition-colors">
-        <Trash2 className="w-3.5 h-3.5" />
-      </button>
+      <DeleteButton onClick={() => handleDelete(task)} label="Delete task" className="shrink-0" />
     </div>
   );
 

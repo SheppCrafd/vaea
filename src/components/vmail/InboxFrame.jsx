@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Inbox, Send, Archive, ShieldAlert, Trash2, ArchiveRestore, Loader2, TriangleAlert, Search, Settings as SettingsIcon } from "lucide-react";
+import { DeleteButton } from "@/components/ui/delete-button";
 
 // The real Vmail folder-nav + search bar + message list, split out of
 // VmailPage.jsx so the marketing page can render this exact component
@@ -135,9 +136,7 @@ export default function InboxFrame({
                               </button>
                             )}
                             {folder !== "trash" ? (
-                              <button onClick={() => onMessageAction(m, "delete")} aria-label="Delete" title="Delete" className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md">
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              <DeleteButton onClick={() => onMessageAction(m, "delete")} className="p-1.5 rounded-md" />
                             ) : (
                               <button onClick={() => onMessageAction(m, "restore")} aria-label="Restore" title="Restore" className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-md">
                                 <ArchiveRestore className="w-3.5 h-3.5" />

@@ -4,7 +4,6 @@ import AccountSection from "@/components/settings/AccountSection";
 import AppearanceSection from "@/components/settings/AppearanceSection";
 import AiPreferencesSection from "@/components/settings/AiPreferencesSection";
 import AiModelSection from "@/components/settings/AiModelSection";
-import AgentBehaviorSection from "@/components/settings/AgentBehaviorSection";
 import BackupRestoreSection from "@/components/settings/BackupRestoreSection";
 import StorageSection from "@/components/settings/StorageSection";
 import ExternalVaultSection from "@/components/settings/ExternalVaultSection";
@@ -26,7 +25,6 @@ const SECTIONS = [
   { key: "appearance", label: "Appearance", Component: AppearanceSection },
   { key: "ai", label: "AI Preferences", Component: AiPreferencesSection },
   { key: "ai-model", label: "AI Model", Component: AiModelSection },
-  { key: "agent-behavior", label: "Agent Behavior", Component: AgentBehaviorSection },
   { key: "storage", label: "Data Storage", Component: StorageSection },
   { key: "backup", label: "Backup & Restore", Component: BackupRestoreSection },
   { key: "connector-health", label: "Connector Health", Component: ConnectorHealthSection },
