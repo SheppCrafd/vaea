@@ -188,6 +188,7 @@ export default function ChatBox({ startOpen = false }) {
             onConfirm={chat.handleConfirm}
             onCancel={chat.handleCancel}
             newMessageIds={chat.newMessageIds}
+            onMessageTyped={chat.clearNewMessage}
           />
 
           {chat.attachedFile && (
