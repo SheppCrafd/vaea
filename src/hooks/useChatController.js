@@ -154,6 +154,29 @@ export function useChatController({ activeProjectId } = {}) {
     if (!id) return;
     setNewMessageIds((prev) => new Set(prev).add(id));
   };
+  // Real, confirmed bug fixed here: nothing ever removed an id from
+  // newMessageIds once its typewriter finished, and this Set lives on the
+  // controller instance — which deliberately survives route navigation
+  // (ChatControllerContext.jsx's whole reason for existing) even though the
+  // rendered message *components* don't (React Router really does unmount
+  // /app/chat on navigation away). So navigating off /chat and back
+  // remounted every still-"new" message's row with fresh startedRef/
+  // finishedRef, and ChatMessageList.jsx's useTypewriter replayed the whole
+  // animation again — reported live as "errors always re-typewrite
+  // whenever the user opens the chat again" (errors specifically noticed
+  // first only because they're visually distinct, not because they're
+  // special-cased anywhere; every message type has the same bug). Called
+  // once a message's own typewriter genuinely finishes (see
+  // ChatMessageList.jsx's onMessageTyped), not on every render.
+  const clearNewMessage = (id) => {
+    if (!id) return;
+    setNewMessageIds((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  };
   // The session id of a reflection-created check-in (see runReflectionTurn
   // below), if one exists and hasn't been opened yet. Deliberately NOT the
   // same as switching activeSessionId out from under the user the moment
@@ -1149,6 +1172,7 @@ export function useChatController({ activeProjectId } = {}) {
     liveSteps,
     streamingText,
     newMessageIds,
+    clearNewMessage,
     aiIdentity,
     attachedFile, setAttachedFile,
     isUploadingAttachment,

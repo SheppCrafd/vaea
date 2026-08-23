@@ -95,6 +95,9 @@ function tick(nodes, positions, edges, width, height, physics, alpha) {
 const MIN_SCALE = 0.2;
 const MAX_SCALE = 3;
 const DRAG_THRESHOLD_PX = 4;
+// A referentially-stable "no proposals" fallback for demo mode — see its
+// own use below for the real infinite-loop bug this specifically avoids.
+const EMPTY_ARRAY = [];
 
 function titleOf(path) {
   return path.split("/").pop().replace(/\.md$/, "");
@@ -148,7 +151,20 @@ export default function VaultGraph({ demo = false }) {
   // proposeVaultNotesIfAny) — rendered here as "new" nodes even though
   // they're not real notes yet. demo never has any (nothing to propose in a
   // fixed sample graph).
-  const proposedPaths = useAppStore((s) => (demo ? [] : s.pendingVaultProposals));
+  //
+  // A real, confirmed bug lived here: `useAppStore((s) => (demo ? [] : ...))`
+  // returns a BRAND NEW `[]` literal every single render whenever demo is
+  // true — Zustand's selector-identity check sees "changed" every time, so
+  // the seeding effect below (keyed on `[graph, proposedPaths]`) re-ran
+  // every render, called setView(), triggered another render, got another
+  // new `[]`... a real infinite "Maximum update depth exceeded" loop on the
+  // marketing site's Mind Map demo, caught via a live Playwright console-
+  // error sweep. The selector itself now only ever picks the store's own
+  // stable array reference — the demo branch is a plain expression in the
+  // component body instead, using a module-level constant so it's
+  // referentially stable across renders too.
+  const storedProposedPaths = useAppStore((s) => s.pendingVaultProposals);
+  const proposedPaths = demo ? EMPTY_ARRAY : storedProposedPaths;
   // Pan/zoom view state, not physics state — reset (demo excepted) never
   // resets these, so zooming in to inspect a cluster survives a physics
   // tweak or a hover redraw. { x, y } is the canvas-space point currently
@@ -734,7 +750,12 @@ export default function VaultGraph({ demo = false }) {
       )}
 
       {openNote && connection && (
-        <NoteContentModal path={openNote} connection={connection} onClose={() => setOpenNote(null)} />
+        <NoteContentModal
+          path={openNote}
+          connection={connection}
+          onClose={() => setOpenNote(null)}
+          onSaved={() => refreshGraph(connection)}
+        />
       )}
     </div>
   );

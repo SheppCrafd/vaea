@@ -99,10 +99,20 @@ export function splitToolLogPrefix(content) {
 // ever looked at mount-time `enabled` would miss that second render
 // entirely and never animate at all — confirmed live: instrumented both
 // updates and watched them arrive one render apart, every time.
-function useTypewriter(fullText, enabled) {
+// `onFinish` fires exactly once, the real moment this message's own
+// animation completes — the caller (ChatAssistantMessage, then
+// ChatMessageList's own onMessageTyped prop) uses it to tell
+// useChatController.js this id is no longer "new", closing the real bug
+// where a remount (e.g. navigating off /app/chat and back — React Router
+// really does unmount that route) replayed the whole typewriter again,
+// since nothing had ever cleared the id from newMessageIds and this hook's
+// own startedRef/finishedRef are fresh on every mount.
+function useTypewriter(fullText, enabled, onFinish) {
   const [shownLength, setShownLength] = useState(() => (enabled ? 0 : fullText.length));
   const finishedRef = useRef(false);
   const startedRef = useRef(false); // guards against restarting once `enabled` has already kicked it off
+  const onFinishRef = useRef(onFinish);
+  onFinishRef.current = onFinish;
 
   useEffect(() => {
     if (!enabled || startedRef.current) return;
@@ -114,6 +124,7 @@ function useTypewriter(fullText, enabled) {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       setShownLength(fullText.length);
       finishedRef.current = true;
+      onFinishRef.current?.();
       return;
     }
     let raf;
@@ -126,6 +137,7 @@ function useTypewriter(fullText, enabled) {
         raf = requestAnimationFrame(tick);
       } else {
         finishedRef.current = true;
+        onFinishRef.current?.();
       }
     };
     raf = requestAnimationFrame(tick);
@@ -143,10 +155,11 @@ function useTypewriter(fullText, enabled) {
 // component *type* each time — React can't reconcile a changed component
 // type in place, so it unmounted and remounted the whole rendered message
 // instead, replaying the tool-log lines' fade-in every single keystroke.
-function ChatAssistantMessage({ m, onOpenDetail, isNew }) {
+function ChatAssistantMessage({ m, onOpenDetail, isNew, onFinishTyping }) {
   const components = useMemo(() => makeMarkdownComponents(m.tool_log_detail, onOpenDetail), [m.tool_log_detail, onOpenDetail]);
   const { prefix, reply } = useMemo(() => splitToolLogPrefix(m.content), [m.content]);
-  const { shown, isTyping } = useTypewriter(reply, isNew);
+  const handleFinishTyping = () => onFinishTyping?.(m.id);
+  const { shown, isTyping } = useTypewriter(reply, isNew, handleFinishTyping);
   return (
     <div className="text-foreground">
       <ReactMarkdown urlTransform={sanitizeUrl} components={components}>{prefix + shown}</ReactMarkdown>
@@ -162,7 +175,7 @@ function ChatAssistantMessage({ m, onOpenDetail, isNew }) {
 // register as the marketing site's hero mockup, not a decorative match: it's
 // the one place real assistant output belongs (see --font-terminal in
 // index.css).
-export default function ChatMessageList({ messages, isComputing, liveSteps, streamingText, iconChoice, hasMore, onLoadMore, resolvingId, onConfirm, onCancel, newMessageIds }) {
+export default function ChatMessageList({ messages, isComputing, liveSteps, streamingText, iconChoice, hasMore, onLoadMore, resolvingId, onConfirm, onCancel, newMessageIds, onMessageTyped }) {
   const containerRef = useRef(null);
   const [openDetail, setOpenDetail] = useState(null);
   // Tracks whether the user was already at (or very near) the bottom right
@@ -212,7 +225,7 @@ export default function ChatMessageList({ messages, isComputing, liveSteps, stre
               <span className="text-primary">{'>'}</span> {m.content}
             </p>
           ) : (
-            <ChatAssistantMessage m={m} onOpenDetail={setOpenDetail} isNew={newMessageIds?.has(m.id) ?? false} />
+            <ChatAssistantMessage m={m} onOpenDetail={setOpenDetail} isNew={newMessageIds?.has(m.id) ?? false} onFinishTyping={onMessageTyped} />
           )}
           {m.pending_action && (
             <div className="mt-1.5 flex gap-2 justify-start">
