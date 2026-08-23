@@ -6,7 +6,7 @@ import Portal from "@/lib/Portal";
 import { useAppStore } from "@/lib/store";
 import { useHighlight } from "@/lib/HighlightContext";
 import { useCommandPaletteData } from "@/hooks/useCommandPaletteData";
-import { FOCUSABLE_SELECTOR } from "@/hooks/useDialogA11y";
+import { useDialogA11y } from "@/hooks/useDialogA11y";
 import CommandPaletteResults from "@/components/command/CommandPaletteResults";
 
 const MAX_RESULTS = 8;
@@ -34,15 +34,17 @@ export default function CommandPalette() {
 
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
-  const inputRef = useRef(null);
   const panelRef = useRef(null);
-  const triggerRef = useRef(null);
   const itemRefs = useRef([]);
 
   // Ctrl/Cmd+K opens from anywhere in the app, including while some other
   // input has focus (e.g. mid-edit on a card field) — that's the whole
-  // point of a global quick-jump shortcut. Escape closes only while open,
-  // so it doesn't swallow every other component's own Escape handling.
+  // point of a global quick-jump shortcut. This effect only ever opens or
+  // toggles the palette; once open, Escape/Tab/focus-restore are all
+  // useDialogA11y's job below (it also registers this dialog on
+  // overlayStack, so Escape respects stacking against any Modal.jsx dialog
+  // open at the same time — this hand-rolled listener had no such
+  // awareness and would close both on one Escape press).
   //
   // Ctrl+K collides with browser/OS-chrome shortcuts on some setups (Edge's
   // own search-bar handling intercepts it before any page-level
@@ -66,44 +68,23 @@ export default function CommandPalette() {
       } else if (e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey && !isOpen && !isEditableTarget(document.activeElement)) {
         e.preventDefault();
         openPalette();
-      } else if (e.key === "Escape" && isOpen) {
-        closePalette();
-      } else if (e.key === "Tab" && isOpen) {
-        // Only the search input is ever a real Tab stop in here (results
-        // are chosen with ↑↓, not Tab) — so trapping just means Tab can't
-        // carry focus out into the dimmed page behind the overlay.
-        const root = panelRef.current;
-        const focusables = root ? Array.from(root.querySelectorAll(FOCUSABLE_SELECTOR)) : [];
-        if (!focusables.length) return;
-        const first = focusables[0];
-        const last = focusables[focusables.length - 1];
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, openPalette, closePalette]);
 
+  // Escape, Tab-trap, initial focus (lands on the search input — it's the
+  // panel's only focusable element until results render), and focus-restore
+  // on close are all handled by the same shared hook every Modal.jsx dialog
+  // uses, including registering on overlayStack so a nested Modal opened
+  // from a quick action takes priority over this one.
+  useDialogA11y({ isOpen, onClose: closePalette, containerRef: panelRef });
+
   useEffect(() => {
     if (isOpen) {
-      triggerRef.current = document.activeElement;
       setQuery("");
       setActiveIndex(0);
-      // Portal content mounts after this effect's own render pass —
-      // deferring focus a tick keeps it from landing before the input exists.
-      const raf = requestAnimationFrame(() => inputRef.current?.focus());
-      return () => {
-        cancelAnimationFrame(raf);
-        // Return focus to whatever opened the palette — nothing here did
-        // that before; focus just landed wherever the DOM removal left it.
-        triggerRef.current?.focus?.();
-      };
     }
   }, [isOpen]);
 
@@ -240,7 +221,6 @@ export default function CommandPalette() {
           <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border">
             <span className="font-terminal text-primary text-sm shrink-0 select-none" aria-hidden="true">{'>'}</span>
             <input
-              ref={inputRef}
               value={query}
               onChange={(e) => { setQuery(e.target.value); setActiveIndex(0); }}
               onKeyDown={handleKeyDown}
