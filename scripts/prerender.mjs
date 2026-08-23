@@ -76,6 +76,24 @@ async function main() {
 
   try {
     const page = await browser.newPage();
+    // The "/" route's own rendered snapshot is what gets written to
+    // dist/index.html — but that exact file is also the SPA fallback the
+    // running preview server serves as the INITIAL html for every other
+    // route's page.goto() below (vite preview has no dist/<route>/index.html
+    // to serve yet at that point in the loop). Writing "/" 's snapshot to
+    // disk immediately used to overwrite dist/index.html with Home's own
+    // already-rendered <title>/meta description mid-run — every later route
+    // that doesn't call useDocumentMeta with its own description (e.g.
+    // Privacy, Terms) would then boot from that poisoned shell and silently
+    // keep Home's description, since useDocumentMeta only overwrites it
+    // when a description was actually passed. Real, confirmed bug — dist/
+    // privacy/index.html and dist/terms/index.html were both shipping
+    // Home's meta description verbatim (a duplicate-meta-description issue,
+    // not just a cosmetic one). Fixed by holding every route's write until
+    // ALL routes have been captured, so the pristine, client-only
+    // dist/index.html (nothing route-specific baked in) stays the shell
+    // every route boots from throughout the whole loop.
+    const pending = [];
     for (const route of ROUTES) {
       try {
         await page.goto(new URL(route, address).toString(), { waitUntil: "load" });
@@ -91,15 +109,18 @@ async function main() {
         await page.waitForTimeout(150);
         const html = await page.content();
         const outDir = route === "/" ? distDir : join(distDir, route.slice(1));
-        mkdirSync(outDir, { recursive: true });
-        writeFileSync(join(outDir, "index.html"), html, "utf8");
-        console.log(`[prerender] wrote dist${route === "/" ? "" : route}/index.html`);
+        pending.push({ route, outDir, html });
       } catch (err) {
         // One route's failure shouldn't cost the others — dist/ keeps the
         // client-only shell for this route, everything else still gets a
         // real prerendered snapshot.
         console.warn(`[prerender] ${route} failed (${err.message.split("\n")[0]}) — leaving dist/'s client-only build for that route.`);
       }
+    }
+    for (const { route, outDir, html } of pending) {
+      mkdirSync(outDir, { recursive: true });
+      writeFileSync(join(outDir, "index.html"), html, "utf8");
+      console.log(`[prerender] wrote dist${route === "/" ? "" : route}/index.html`);
     }
   } catch (err) {
     console.warn(`[prerender] failed mid-run (${err.message}) — dist/ still has the client-only build for any route not yet written.`);

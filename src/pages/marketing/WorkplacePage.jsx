@@ -227,7 +227,7 @@ export default function WorkplacePage() {
   useDocumentMeta(
     "Vaea Workplace — calendar, inbox, and meetings, merged",
     "/workplace",
-    "Google Workspace and Microsoft 365 calendars merged into one agenda, Gmail and Outlook merged into one inbox, and meeting notes joining once a real transcript connector exists — all editable through Vaea Chat."
+    "Google Workspace and Microsoft 365 calendars merged into one agenda, Gmail and Outlook merged into one inbox — all editable through Vaea Chat."
   );
   usePageSchema(WORKPLACE_PAGE_SCHEMA);
   usePageSchema(WORKPLACE_FAQ_SCHEMA);
