@@ -1045,10 +1045,34 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCal
       inputSchema: z.object({ name: z.string() }),
       execute: queue('DELETE_AGENT'),
     }),
+    UPDATE_AGENT: tool({
+      description: 'Edit an existing agent\'s name, purpose, and/or auto-run cadence. Only pass the fields actually changing. Find it by its current exact name.',
+      inputSchema: z.object({
+        name: z.string().describe('The agent\'s current exact name.'),
+        new_name: z.string().optional(),
+        purpose: z.string().optional(),
+        cadence_hours: z.number().optional().describe('Hours between auto-runs, checked the next time the app is open (never a true background timer) — 6, 24, etc. Pass 0 to turn auto-run off and leave it manual-only.'),
+      }),
+      execute: queue('UPDATE_AGENT'),
+    }),
+    RUN_AGENT: tool({
+      description: 'Start a real run of a named agent right now, in a brand-new chat session — the same thing the user can do with the Agents card\'s "Run" button. The run acts on the agent\'s purpose using the normal tool pipeline (destructive actions still need the user\'s confirm click there, same as any turn); this turn\'s own reply just confirms it started. Must be the ONLY tool you call this turn if used.',
+      inputSchema: z.object({ name: z.string() }),
+      execute: queue('RUN_AGENT'),
+    }),
     CREATE_PROMPT_TEMPLATE: tool({
       description: 'Save a reusable prompt template to the chat sidebar\'s Prompt Templates card — the same thing the user can do there with "New template". Clicking it later drops the text into the composer.',
       inputSchema: z.object({ name: z.string(), text: z.string() }),
       execute: queue('CREATE_PROMPT_TEMPLATE'),
+    }),
+    UPDATE_PROMPT_TEMPLATE: tool({
+      description: 'Edit an existing prompt template\'s name and/or text. Only pass the fields actually changing. Find it by its current exact name.',
+      inputSchema: z.object({
+        name: z.string().describe('The template\'s current exact name.'),
+        new_name: z.string().optional(),
+        text: z.string().optional(),
+      }),
+      execute: queue('UPDATE_PROMPT_TEMPLATE'),
     }),
     DELETE_PROMPT_TEMPLATE: tool({
       description: 'Remove a saved prompt template by its exact name.',
@@ -2066,7 +2090,7 @@ POPULATING WITH SAMPLE DATA: when asked to populate/seed/fill the workspace with
 
 MASS DELETION: queue every DELETE_*/BULK_DELETE call the request calls for, all in this same turn — never split a mixed create+delete request to sneak the destructive part through separately.
 
-UNDO_LAST_ACTION must be the ONLY tool call in a turn if used.
+UNDO_LAST_ACTION must be the ONLY tool call in a turn if used. Same for RUN_AGENT — it starts a whole separate run in its own new session, not something to combine with other work this turn.
 
 ATTACHMENTS: if the latest message contains "[Attached: filename](url)", the file is already uploaded. If asked to analyze/summarize/read it, call analyze_attachment first. If asked to attach it to a project/task, call UPDATE_PROJECT/UPDATE_TASK with an attachments array containing {"name","url"} merged with that entity's existing attachments (look those up in [DATABASE STATE] first). If asked to set it as a stakeholder's photo, use avatar_url instead. If unsure whether to replace vs. add to an existing array, ask.
 
@@ -2102,7 +2126,8 @@ SLASH COMMANDS: the composer offers "/" autocomplete for these one-word commands
 - "/compare [option A] vs [option B]" -> Compare the two options directly. Structure: one short paragraph on each option, then a recommendation with one sentence of reasoning. Be direct — don't end with "it depends" without immediately saying what it depends on and which way that cuts for this user's context.
 - "/expand [brief note or idea]" -> Take the brief note or idea and expand it into a fuller explanation, preserving the original intent. The expanded version should be more complete but not padded — every sentence should add information, not restate what the brief note already said.
 - "/action-items" -> Scan the conversation history for tasks, commitments, and follow-ups that were mentioned but not yet turned into Vaea tasks. Present them as a list, then offer to CREATE_TASK for each one as a confirmable plan.
-- "/help" (no argument) -> reply with exactly these 31 commands as a markdown list, no tool call
+- "/workflow" (no argument) -> call list_workflow_cards, then read them as an ordered plan (top-to-bottom, then left-to-right for ties) and carry it out immediately using whatever real tools each step calls for — same "act now, don't just describe" discipline as "/tidy". If a card's text is genuinely ambiguous about what it maps to, make your best reasonable interpretation and say what you assumed rather than stopping to ask. If the canvas has no cards, say so instead of calling anything.
+- "/help" (no argument) -> reply with exactly these 32 commands as a markdown list, no tool call
 If the message starts with a "/" word that isn't one of these, ignore the slash — do not invent an action for it.
 
 If you can fully answer from [DATABASE STATE] and conversation history alone, or the request isn't actionable, just reply — you don't have to call a tool every turn.

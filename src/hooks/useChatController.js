@@ -28,10 +28,28 @@ import { useAiIdentity } from "@/hooks/useAiIdentity";
 import { computeWorkspaceDelta, buildReflectionInstruction } from "@/lib/reflectionSummary";
 import { runReflectionIfDue } from "@/lib/reflectionTrigger";
 import { loadReflectionPreferences, saveReflectionPreferences, VAULT_TIDY_INTERVAL_MS, DREAM_INTERVAL_MS, VAULT_LOG_IDLE_MS } from "@/lib/reflectionPreferences";
+import { loadAgents, saveAgents } from "@/lib/agentsStore";
+import { buildAgentInstruction, getDueAgents } from "@/lib/agentRunner";
 import { ICON_STORAGE_KEY, loadIconChoice } from "@/lib/chatIcon";
 import { getNowContext } from "@/lib/nowContext";
+import { useAppStore } from "@/lib/store";
 
 const SESSION_STORAGE_KEY = "vaea_chat_active_session";
+
+// Whenever a turn's pending (not-yet-confirmed) actions include a proposal
+// to write a vault note, surface it visually instead of leaving it buried
+// in a chat bubble: record the path(s) in the store (VaultGraph.jsx renders
+// them as "new" nodes) and jump the user to the Mind Map's Vault tab so
+// they actually see it land. No-op if nothing pending is a vault write.
+function proposeVaultNotesIfAny(pendingActions) {
+  const paths = (pendingActions || [])
+    .filter((a) => a.action === "WRITE_VAULT_NOTE")
+    .map((a) => a.args?.path)
+    .filter(Boolean);
+  if (!paths.length) return;
+  useAppStore.getState().setPendingVaultProposals(paths);
+  useAppStore.getState().openAppSection("/app/mindmap");
+}
 
 // Query keys that can change as a result of an AI-driven mutation — kept
 // broad and invalidated in bulk after any successful action, since chat
@@ -611,6 +629,7 @@ export function useChatController({ activeProjectId } = {}) {
       ? await executeActionSequence(sanitizedAutoExecute, {})
       : [];
     const toolLog = [...liveTrace.map((l) => l.label), ...autoResults.map(describeToolCall)];
+    proposeVaultNotesIfAny(pending);
 
     const created = await createMessage.mutateAsync({
       session_id: session.id,
@@ -623,13 +642,63 @@ export function useChatController({ activeProjectId } = {}) {
     setReflectionSessionId(session.id);
   };
 
+  // Foreground, on-demand run of a named agent (agentsStore.js) — a real
+  // chat turn in a brand-new session, scoped to the agent's purpose, using
+  // the SAME action pipeline as a normal user turn (applyAssistantReply,
+  // below) rather than reflection's own narrow allowlist: an agent is
+  // meant to actually do things, gated by the same destructive/
+  // approval-queue confirm rules as any other turn, not a new,
+  // less-supervised execution surface. Callable from three places: the
+  // Agents card's own "Run" button, RUN_AGENT (the model asking to start
+  // one — special-cased in applyAssistantReply below, same shape as
+  // UNDO_LAST_ACTION), and runDueAgents just below (cadence auto-run).
+  const runAgentTurn = async (agent) => {
+    const session = await createSession.mutateAsync({ title: agent.name });
+    const data = await invokeAssistant({
+      message: buildAgentInstruction(agent),
+      conversationHistory: "",
+      activeProjectId: null,
+      sessionId: session.id,
+      protocolReminderRequested: false,
+    });
+    await applyAssistantReply(session.id, data, {
+      onSuccess: (created) => {
+        markMessageNew(created.id);
+        if (session.id !== activeSessionIdRef.current) setReflectionSessionId(session.id);
+      },
+    });
+    const agents = await loadAgents();
+    await saveAgents(agents.map((a) => (a.id === agent.id ? { ...a, lastRunAt: new Date().toISOString() } : a)));
+  };
+
+  // Same "only when the app actually happens to be open" honesty as
+  // reflection's own cadence (see reflectionTrigger.js) — no background
+  // worker exists to check this while the tab is closed. Runs due agents
+  // one at a time (not Promise.all) so two agents launching at once never
+  // race to create/select a session.
+  const runDueAgents = async () => {
+    const due = getDueAgents(await loadAgents());
+    for (const agent of due) await runAgentTurn(agent).catch(() => {});
+  };
+
+  const runAgentByName = async (name) => {
+    const agents = await loadAgents();
+    const target = agents.find((a) => a.name.toLowerCase() === name.toLowerCase());
+    if (!target) throw new Error(`No agent named "${name}" — check the Agents list for the exact name.`);
+    await runAgentTurn(target);
+  };
+
   // Call from the actual moment Vaea Chat is opened (ChatBox's isChatOpen
   // becoming true; ChatPage mounting) — not from this hook's own bare
   // mount, which happens on every dashboard load even while the floating
   // widget stays collapsed. Fire-and-forget by design: opening chat should
   // never visibly wait on this.
   const notifyChatOpened = () => {
-    runReflectionIfDue({ runReflectionTurn });
+    runReflectionIfDue({
+      runReflectionTurn,
+      checkVaultConnected: async () => isVaultConnected(await loadVaultConnection()),
+    });
+    runDueAgents();
   };
 
   // Arms (or re-arms) the "auto /vault-log after an hour of silence in this
@@ -724,6 +793,7 @@ export function useChatController({ activeProjectId } = {}) {
       const isDestructive = executable.some((a) => DESTRUCTIVE_ACTIONS.has(a.action));
       const results = isDestructive ? [] : await executeActionSequence(executable, {});
       const toolLog = [...liveTrace.map((l) => l.label), describePlan(executable), ...results.map(describeToolCall)];
+      if (isDestructive) proposeVaultNotesIfAny(executable);
       const created = await createMessage.mutateAsync({
         session_id: sessionId, role: "assistant",
         content: buildLoggedContent(reply, toolLog),
@@ -782,6 +852,12 @@ export function useChatController({ activeProjectId } = {}) {
         const undoResult = await runUndo();
         if (!undoResult.hadAction) replyText += "\n\n⚠️ There was nothing to undo.";
         else if (!undoResult.ok) replyText += `\n\n⚠️ Undo failed: ${undoResult.error.message}`;
+      } else if (actions[0]?.action === "RUN_AGENT") {
+        try {
+          await runAgentByName(actions[0].args?.name || "");
+        } catch (error) {
+          replyText += `\n\n⚠️ ${error.message}`;
+        }
       }
       setLiveSteps([]);
       await createMessage.mutateAsync(
@@ -805,6 +881,7 @@ export function useChatController({ activeProjectId } = {}) {
     const { approvalQueueEnabled } = await loadAgentBehavior();
     if (approvalQueueEnabled || executable.some((a) => DESTRUCTIVE_ACTIONS.has(a.action))) {
       setLiveSteps([]);
+      proposeVaultNotesIfAny(executable);
       await createMessage.mutateAsync(
         {
           session_id: sessionId, role: "assistant",
@@ -980,6 +1057,7 @@ export function useChatController({ activeProjectId } = {}) {
   const handleConfirm = async (message) => {
     const { actions } = message.pending_action;
     setResolvingId(message.id);
+    useAppStore.getState().setPendingVaultProposals([]);
     setIsComputing(true);
     try {
       setLiveSteps([describePlan(actions)]);
@@ -1046,6 +1124,7 @@ export function useChatController({ activeProjectId } = {}) {
 
   const handleCancel = async (message) => {
     setResolvingId(message.id);
+    useAppStore.getState().setPendingVaultProposals([]);
     try {
       await updateMessage.mutateAsync({ id: message.id, data: { session_id: message.session_id, role: message.role, content: message.content, pending_action: null } });
       await createMessage.mutateAsync(
@@ -1085,6 +1164,7 @@ export function useChatController({ activeProjectId } = {}) {
     chatState,
     reflectionSessionId,
     notifyChatOpened,
+    runAgentByName,
     openReflectionSession,
     handleSelectSession,
     handleNewChat,

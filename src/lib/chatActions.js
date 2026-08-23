@@ -95,7 +95,12 @@ export const DESTRUCTIVE_ACTIONS = new Set([
 // specially by useChatController.js's runUndo() rather than routed through
 // executeAction below — it never appears alongside other actions in a plan
 // (the server prompt requires it to be the only tool call in a turn).
-export const NON_EXECUTABLE_ACTIONS = new Set(["UNDO_LAST_ACTION"]);
+// RUN_AGENT is the same shape of exception: starting an agent run means
+// creating a brand-new chat session and invoking the assistant again inside
+// it (useChatController.js's runAgentTurn), which needs real hook state
+// (createSession/invokeAssistant/applyAssistantReply) this stateless
+// executor doesn't have.
+export const NON_EXECUTABLE_ACTIONS = new Set(["UNDO_LAST_ACTION", "RUN_AGENT"]);
 
 // Vaea Calendar's auto-scheduling helpers (SCHEDULE_CALENDAR_TIME /
 // RESCHEDULE_CALENDAR_CONFLICTS below) — merges busy events across whatever
@@ -925,11 +930,38 @@ export async function executeAction(action, args) {
       return { toolResult: { deleted: args.name } };
     }
 
+    case "UPDATE_AGENT": {
+      const agents = await loadAgents();
+      const target = agents.find((a) => a.name.toLowerCase() === args.name.toLowerCase());
+      if (!target) throw new Error(`No agent named "${args.name}" — check the Agents list for the exact name.`);
+      const next = {
+        ...target,
+        ...(args.new_name !== undefined ? { name: args.new_name } : {}),
+        ...(args.purpose !== undefined ? { purpose: args.purpose } : {}),
+        ...(args.cadence_hours !== undefined ? { cadenceHours: args.cadence_hours || null } : {}),
+      };
+      await saveAgents(agents.map((a) => (a.id === target.id ? next : a)));
+      return { toolResult: { updated: next.name } };
+    }
+
     case "CREATE_PROMPT_TEMPLATE": {
       const templates = await loadPromptTemplates();
       const next = [...templates.filter((t) => t.name !== args.name), { id: crypto.randomUUID(), name: args.name, text: args.text }];
       await savePromptTemplates(next);
       return { toolResult: { template: args.name } };
+    }
+
+    case "UPDATE_PROMPT_TEMPLATE": {
+      const templates = await loadPromptTemplates();
+      const target = templates.find((t) => t.name.toLowerCase() === args.name.toLowerCase());
+      if (!target) throw new Error(`No template named "${args.name}" — check the Prompt Templates list for the exact name.`);
+      const next = {
+        ...target,
+        ...(args.new_name !== undefined ? { name: args.new_name } : {}),
+        ...(args.text !== undefined ? { text: args.text } : {}),
+      };
+      await savePromptTemplates(templates.map((t) => (t.id === target.id ? next : t)));
+      return { toolResult: { updated: next.name } };
     }
 
     case "DELETE_PROMPT_TEMPLATE": {
