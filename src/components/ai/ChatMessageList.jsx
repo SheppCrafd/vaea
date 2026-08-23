@@ -39,6 +39,24 @@ export function detailForLogLine(toolLogDetail, i) {
 
 function makeMarkdownComponents(toolLogDetail, onOpenDetail) {
   return {
+    p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+    ul: ({ children }) => <ul className="mb-2 last:mb-0 pl-5 space-y-1 list-disc">{children}</ul>,
+    ol: ({ children }) => <ol className="mb-2 last:mb-0 pl-5 space-y-1 list-decimal">{children}</ol>,
+    li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+    h1: ({ children }) => <h1 className="mt-3 mb-1.5 first:mt-0 text-base font-semibold">{children}</h1>,
+    h2: ({ children }) => <h2 className="mt-3 mb-1.5 first:mt-0 text-base font-semibold">{children}</h2>,
+    h3: ({ children }) => <h3 className="mt-2.5 mb-1 first:mt-0 text-sm font-semibold">{children}</h3>,
+    strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+    em: ({ children }) => <em className="italic">{children}</em>,
+    blockquote: ({ children }) => (
+      <blockquote className="my-2 pl-3 border-l-2 border-border text-muted-foreground">{children}</blockquote>
+    ),
+    a: ({ children, href }) => (
+      <a href={href} target="_blank" rel="noopener noreferrer" className="underline decoration-dotted underline-offset-2 hover:text-foreground">
+        {children}
+      </a>
+    ),
+    hr: () => <hr className="my-2 border-border" />,
     pre: ({ children }) => <>{children}</>,
     code({ className, children }) {
       if (className === "language-tool-log") {
@@ -66,6 +84,30 @@ function makeMarkdownComponents(toolLogDetail, onOpenDetail) {
     },
   };
 }
+
+// Same block-level styling as makeMarkdownComponents' reply text, minus the
+// tool-log/code handling — the live streaming preview below never contains a
+// ```tool-log block (that's only ever part of a *persisted* message).
+const STREAM_MARKDOWN_COMPONENTS = {
+  p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+  ul: ({ children }) => <ul className="mb-2 last:mb-0 pl-5 space-y-1 list-disc">{children}</ul>,
+  ol: ({ children }) => <ol className="mb-2 last:mb-0 pl-5 space-y-1 list-decimal">{children}</ol>,
+  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+  h1: ({ children }) => <h1 className="mt-3 mb-1.5 first:mt-0 text-base font-semibold">{children}</h1>,
+  h2: ({ children }) => <h2 className="mt-3 mb-1.5 first:mt-0 text-base font-semibold">{children}</h2>,
+  h3: ({ children }) => <h3 className="mt-2.5 mb-1 first:mt-0 text-sm font-semibold">{children}</h3>,
+  strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+  em: ({ children }) => <em className="italic">{children}</em>,
+  blockquote: ({ children }) => (
+    <blockquote className="my-2 pl-3 border-l-2 border-border text-muted-foreground">{children}</blockquote>
+  ),
+  a: ({ children, href }) => (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="underline decoration-dotted underline-offset-2 hover:text-foreground">
+      {children}
+    </a>
+  ),
+  hr: () => <hr className="my-2 border-border" />,
+};
 
 // A persisted message's content is `` ```tool-log\n...\n``` `` + the reply
 // text, when the turn did anything real (see useChatController.js's
@@ -100,10 +142,20 @@ export function splitToolLogPrefix(content) {
 // ever looked at mount-time `enabled` would miss that second render
 // entirely and never animate at all — confirmed live: instrumented both
 // updates and watched them arrive one render apart, every time.
-function useTypewriter(fullText, enabled) {
+// `onFinish` fires exactly once, the real moment this message's own
+// animation completes — the caller (ChatAssistantMessage, then
+// ChatMessageList's own onMessageTyped prop) uses it to tell
+// useChatController.js this id is no longer "new", closing the real bug
+// where a remount (e.g. navigating off /app/chat and back — React Router
+// really does unmount that route) replayed the whole typewriter again,
+// since nothing had ever cleared the id from newMessageIds and this hook's
+// own startedRef/finishedRef are fresh on every mount.
+function useTypewriter(fullText, enabled, onFinish) {
   const [shownLength, setShownLength] = useState(() => (enabled ? 0 : fullText.length));
   const finishedRef = useRef(false);
   const startedRef = useRef(false); // guards against restarting once `enabled` has already kicked it off
+  const onFinishRef = useRef(onFinish);
+  onFinishRef.current = onFinish;
 
   useEffect(() => {
     if (!enabled || startedRef.current) return;
@@ -115,6 +167,7 @@ function useTypewriter(fullText, enabled) {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       setShownLength(fullText.length);
       finishedRef.current = true;
+      onFinishRef.current?.();
       return;
     }
     let raf;
@@ -127,6 +180,7 @@ function useTypewriter(fullText, enabled) {
         raf = requestAnimationFrame(tick);
       } else {
         finishedRef.current = true;
+        onFinishRef.current?.();
       }
     };
     raf = requestAnimationFrame(tick);
@@ -144,10 +198,11 @@ function useTypewriter(fullText, enabled) {
 // component *type* each time — React can't reconcile a changed component
 // type in place, so it unmounted and remounted the whole rendered message
 // instead, replaying the tool-log lines' fade-in every single keystroke.
-function ChatAssistantMessage({ m, onOpenDetail, isNew }) {
+function ChatAssistantMessage({ m, onOpenDetail, isNew, onFinishTyping }) {
   const components = useMemo(() => makeMarkdownComponents(m.tool_log_detail, onOpenDetail), [m.tool_log_detail, onOpenDetail]);
   const { prefix, reply } = useMemo(() => splitToolLogPrefix(m.content), [m.content]);
-  const { shown, isTyping } = useTypewriter(reply, isNew);
+  const handleFinishTyping = () => onFinishTyping?.(m.id);
+  const { shown, isTyping } = useTypewriter(reply, isNew, handleFinishTyping);
   return (
     <div className="text-foreground">
       <ReactMarkdown urlTransform={sanitizeUrl} components={components}>{prefix + shown}</ReactMarkdown>
@@ -205,7 +260,7 @@ function PendingActionCard({ actions, onConfirm, onCancel, resolving }) {
 // register as the marketing site's hero mockup, not a decorative match: it's
 // the one place real assistant output belongs (see --font-terminal in
 // index.css).
-export default function ChatMessageList({ messages, isComputing, isLoading, liveSteps, streamingText, iconChoice, hasMore, onLoadMore, resolvingId, onConfirm, onCancel, newMessageIds }) {
+export default function ChatMessageList({ messages, isComputing, isLoading, liveSteps, streamingText, iconChoice, hasMore, onLoadMore, resolvingId, onConfirm, onCancel, newMessageIds, onMessageTyped }) {
   const containerRef = useRef(null);
   const [openDetail, setOpenDetail] = useState(null);
   // Tracks whether the user was already at (or very near) the bottom right
@@ -279,7 +334,7 @@ export default function ChatMessageList({ messages, isComputing, isLoading, live
               <span className="text-primary">{'>'}</span> {m.content}
             </p>
           ) : (
-            <ChatAssistantMessage m={m} onOpenDetail={setOpenDetail} isNew={newMessageIds?.has(m.id) ?? false} />
+            <ChatAssistantMessage m={m} onOpenDetail={setOpenDetail} isNew={newMessageIds?.has(m.id) ?? false} onFinishTyping={onMessageTyped} />
           )}
           {m.pending_action && (
             <PendingActionCard
@@ -348,12 +403,12 @@ export default function ChatMessageList({ messages, isComputing, isLoading, live
             return (
               <>
                 {past && (
-                  <div className="text-muted-foreground transition-colors duration-500 [&_p]:mb-2 [&_p:last-child]:mb-0 mb-2">
-                    <ReactMarkdown urlTransform={sanitizeUrl}>{past}</ReactMarkdown>
+                  <div className="text-muted-foreground transition-colors duration-500 mb-2">
+                    <ReactMarkdown urlTransform={sanitizeUrl} components={STREAM_MARKDOWN_COMPONENTS}>{past}</ReactMarkdown>
                   </div>
                 )}
-                <div className="text-foreground [&_p]:mb-2 [&_p:last-child]:mb-0">
-                  <ReactMarkdown urlTransform={sanitizeUrl}>{current}</ReactMarkdown>
+                <div className="text-foreground">
+                  <ReactMarkdown urlTransform={sanitizeUrl} components={STREAM_MARKDOWN_COMPONENTS}>{current}</ReactMarkdown>
                 </div>
               </>
             );
