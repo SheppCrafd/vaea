@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Apple, Check, TriangleAlert, Unlink } from "lucide-react";
 import { loadAppleMailConnection, saveAppleMailConnection, clearAppleMailConnection, isAppleMailConnected, DEFAULTS } from "@/lib/appleMailConnection";
+import { SettingsCard } from "@/components/ui/settings-card";
 
 // Apple/iCloud Mail — no OAuth here (Apple doesn't offer one for iCloud
 // Mail); the user generates an app-specific password at
@@ -50,7 +51,7 @@ export default function AppleMailSection() {
   };
 
   return (
-    <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-6">
+    <SettingsCard>
       <div className="flex items-center justify-between mb-1">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Apple Mail</p>
         {connected && (
@@ -105,6 +106,6 @@ export default function AppleMailSection() {
           <Unlink className="w-3.5 h-3.5" /> Disconnect
         </button>
       )}
-    </div>
+    </SettingsCard>
   );
 }

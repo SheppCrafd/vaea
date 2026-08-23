@@ -4,6 +4,7 @@ import { Mail, Check, Loader2, TriangleAlert, Unlink } from "lucide-react";
 import { loadOutlookConnection, saveOutlookConnection, clearOutlookConnection, isOutlookConnected, DEFAULTS } from "@/lib/outlookConnection";
 import { buildAuthorizationUrl } from "@/lib/outlookOAuthPkce";
 import { listMessages } from "@/lib/microsoftGraphApi";
+import { SettingsCard } from "@/components/ui/settings-card";
 
 // Real recent-inbox preview, same pattern as GmailSection's RecentMessages.
 function RecentMessages({ connection, onTokenRefreshed }) {
@@ -109,7 +110,7 @@ export default function OutlookSection() {
   };
 
   return (
-    <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-6">
+    <SettingsCard>
       <div className="flex items-center justify-between mb-1">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Outlook Mail</p>
         {connected && (
@@ -155,6 +156,6 @@ export default function OutlookSection() {
           <RecentMessages connection={connection} onTokenRefreshed={handleTokenRefreshed} />
         </>
       )}
-    </div>
+    </SettingsCard>
   );
 }

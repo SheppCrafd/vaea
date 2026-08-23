@@ -1,6 +1,7 @@
 import { memo, useState, lazy, Suspense } from "react";
 import { Expand, GripVertical, Link2, Plus, X } from "lucide-react";
 import { DeleteButton } from "@/components/ui/delete-button";
+import { Select } from "@/components/ui/select";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { usePositionedMenu } from "@/hooks/usePositionedMenu";
 import PositionedPopover from "@/components/shared/PositionedPopover";
@@ -394,14 +395,13 @@ function ProjectCardFull({ project, stakeholderIds = [] }) {
               className={`text-[10px] bg-transparent text-right ${dateColorClass}`}
             />
           </div>
-          <select
+          <Select
             value={project.due_date_status || "ESTIMATED"}
             onChange={(e) => updateProject.mutate({ id: project.id, data: { due_date_status: e.target.value } })}
             aria-label="Due date status"
-            className="text-[9px] bg-transparent border border-border rounded px-1 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {DUE_DATE_STATUS_OPTIONS.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
-          </select>
+            className="text-[9px] bg-transparent px-1 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            options={DUE_DATE_STATUS_OPTIONS.map((opt) => ({ value: opt, label: opt }))}
+          />
           <StakeholderAssigner
             currentStakeholderIds={project.stakeholder_ids || []}
             allStakeholders={allStakeholders}

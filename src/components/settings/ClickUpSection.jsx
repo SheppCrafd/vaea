@@ -4,6 +4,8 @@ import { CheckSquare, Check, Loader2, TriangleAlert, Unlink } from "lucide-react
 import { loadClickUpConnection, saveClickUpConnection, clearClickUpConnection, isClickUpConnected, DEFAULTS as CLICKUP_DEFAULTS } from "@/lib/clickupConnection";
 import { buildAuthorizationUrl } from "@/lib/clickupOAuth";
 import { listSpaces, listLists } from "@/lib/clickupApi";
+import { SettingsCard } from "@/components/ui/settings-card";
+import { Select } from "@/components/ui/select";
 
 // Picking a default list — unlike Google Calendar's obvious "primary"
 // calendar, ClickUp has a real Space -> Folder -> List hierarchy with no
@@ -68,30 +70,24 @@ function DefaultListPicker({ connection, onSaved }) {
     <div className="grid sm:grid-cols-2 gap-3">
       <div>
         <p className="text-xs font-medium mb-1.5">Space</p>
-        <select
+        <Select
           value={spaceId}
           onChange={(e) => handleSpaceChange(e.target.value)}
-          className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all"
-        >
-          <option value="">Choose a space…</option>
-          {spaces.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
-        </select>
+          className="outline-none focus:ring-1 focus:ring-primary/50 transition-all"
+          placeholder="Choose a space…"
+          options={spaces.map((s) => ({ value: s.id, label: s.name }))}
+        />
       </div>
       <div>
         <p className="text-xs font-medium mb-1.5">Default list</p>
-        <select
+        <Select
           value={listId}
           onChange={(e) => handleListChange(e.target.value)}
           disabled={!lists}
-          className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all disabled:opacity-50"
-        >
-          <option value="">{lists ? "Choose a list…" : "Pick a space first"}</option>
-          {lists?.map((l) => (
-            <option key={l.id} value={l.id}>{l.folder ? `${l.folder} / ${l.name}` : l.name}</option>
-          ))}
-        </select>
+          className="outline-none focus:ring-1 focus:ring-primary/50 transition-all"
+          placeholder={lists ? "Choose a list…" : "Pick a space first"}
+          options={lists?.map((l) => ({ value: l.id, label: l.folder ? `${l.folder} / ${l.name}` : l.name })) || []}
+        />
       </div>
     </div>
   );
@@ -133,7 +129,7 @@ export default function ClickUpSection() {
   };
 
   return (
-    <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-6">
+    <SettingsCard>
       <div className="flex items-center justify-between mb-1">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">ClickUp</p>
         {connected && (
@@ -185,6 +181,6 @@ export default function ClickUpSection() {
           </div>
         </>
       )}
-    </div>
+    </SettingsCard>
   );
 }

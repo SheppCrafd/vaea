@@ -5,6 +5,7 @@ import { useAllTasks } from "@/hooks/useTasks";
 import { getProjectRiskLevel, formatDueDate } from "@/lib/projectUtils";
 import { loadNotificationRules, saveNotificationRules, evaluateRules, RULE_PRESETS } from "@/lib/notificationRules";
 import StandalonePageHeader from "@/components/shared/StandalonePageHeader";
+import { Select } from "@/components/ui/select";
 
 // A real digest built from data the app already has, plus a real (if
 // deliberately simple) rule engine: user-defined threshold/status rules,
@@ -96,9 +97,13 @@ function RulesCard({ rules, setRules, triggered }) {
       {adding && (
         <form onSubmit={addRule} className="flex items-center gap-2 mt-2 pt-2 border-t border-border">
           <span className="text-xs text-muted-foreground">Notify when</span>
-          <select value={metric} onChange={(e) => setMetric(e.target.value)} className="text-xs px-2 py-1 rounded-md border border-input bg-background">
-            {Object.entries(METRIC_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-          </select>
+          <Select
+            value={metric}
+            onChange={(e) => setMetric(e.target.value)}
+            className="text-xs px-2 py-1"
+            aria-label="Metric"
+            options={Object.entries(METRIC_LABELS).map(([key, label]) => ({ value: key, label }))}
+          />
           <span className="text-xs text-muted-foreground">is at least</span>
           <input
             type="number"

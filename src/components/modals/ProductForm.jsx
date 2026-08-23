@@ -5,7 +5,7 @@ import { useAreas } from "@/hooks/useAreas";
 import { useCreateProduct } from "@/hooks/useProducts";
 import { useToast } from "@/components/ui/use-toast";
 import FormField from "@/components/shared/FormField";
-import EntitySelect from "@/components/shared/EntitySelect";
+import { Select } from "@/components/ui/select";
 
 export default function ProductForm({ onDone }) {
   const [title, setTitle] = useState("");
@@ -36,7 +36,7 @@ export default function ProductForm({ onDone }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <FormField label="Area" htmlFor="new-product-area">
-        <EntitySelect
+        <Select
           id="new-product-area"
           value={areaId}
           onChange={(e) => setAreaId(e.target.value)}

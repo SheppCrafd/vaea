@@ -8,7 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
 import QuadrantOptions from "@/components/shared/QuadrantOptions";
 import FormField from "@/components/shared/FormField";
-import EntitySelect from "@/components/shared/EntitySelect";
+import { Select } from "@/components/ui/select";
 
 export default function TaskForm({ onDone }) {
   const [description, setDescription] = useState("");
@@ -41,7 +41,7 @@ export default function TaskForm({ onDone }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <FormField label="Project" htmlFor="task-project">
-        <EntitySelect
+        <Select
           id="task-project"
           value={projectId}
           onChange={(e) => setProjectId(e.target.value)}
@@ -53,9 +53,9 @@ export default function TaskForm({ onDone }) {
         <Input id="task-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. Write API docs" autoFocus />
       </FormField>
       <FormField label="Quadrant (optional)" htmlFor="task-quadrant">
-        <EntitySelect id="task-quadrant" value={quadrant} onChange={(e) => setQuadrant(e.target.value)}>
+        <Select id="task-quadrant" value={quadrant} onChange={(e) => setQuadrant(e.target.value)}>
           <QuadrantOptions />
-        </EntitySelect>
+        </Select>
       </FormField>
       <FormField label="Stakeholders (optional)">
         <StakeholderAssigner

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { BookOpen, ChevronRight } from "lucide-react";
+import { SettingsCard } from "@/components/ui/settings-card";
 
 // A place for links that aren't a Vaea setting to toggle — currently just
 // the Vaea Brain (Obsidian+git notes vault) setup guide, which is
@@ -7,7 +8,7 @@ import { BookOpen, ChevronRight } from "lucide-react";
 // own framing).
 export default function ResourcesSection() {
   return (
-    <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-6">
+    <SettingsCard>
       <p className="text-xs font-medium text-muted-foreground mb-4 uppercase tracking-wider">Resources</p>
       <Link
         to="/app/settings/vault-setup"
@@ -24,6 +25,6 @@ export default function ResourcesSection() {
         </div>
         <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 group-hover:translate-x-0.5 transition-transform" />
       </Link>
-    </div>
+    </SettingsCard>
   );
 }

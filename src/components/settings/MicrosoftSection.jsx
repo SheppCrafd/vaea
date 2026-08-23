@@ -4,6 +4,7 @@ import { Building2, Check, Loader2, TriangleAlert, Unlink } from "lucide-react";
 import { loadMicrosoftConnection, saveMicrosoftConnection, clearMicrosoftConnection, isMicrosoftConnected, DEFAULTS } from "@/lib/microsoftConnection";
 import { buildAuthorizationUrl } from "@/lib/microsoftOAuthPkce";
 import { listEvents } from "@/lib/microsoftGraphApi";
+import { SettingsCard } from "@/components/ui/settings-card";
 
 // Real upcoming-events preview, same on-demand-not-polled discipline as
 // GoogleWorkspaceSection/GmailSection — Graph is also a shared per-app quota
@@ -110,7 +111,7 @@ export default function MicrosoftSection() {
   };
 
   return (
-    <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-6">
+    <SettingsCard>
       <div className="flex items-center justify-between mb-1">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Microsoft 365 Calendar</p>
         {connected && (
@@ -157,6 +158,6 @@ export default function MicrosoftSection() {
           <UpcomingEvents connection={connection} onTokenRefreshed={handleTokenRefreshed} />
         </>
       )}
-    </div>
+    </SettingsCard>
   );
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Inbox, Loader2, TriangleAlert, PenSquare, X, Send } from "lucide-react";
 import StandalonePageHeader from "@/components/shared/StandalonePageHeader";
 import InboxFrame from "@/components/vmail/InboxFrame";
+import { Select } from "@/components/ui/select";
 import { loadGmailConnection, saveGmailConnection, isGmailConnected } from "@/lib/gmailConnection";
 import { listMessages as listGmailMessages, sendMessage as sendGmailMessage, archiveMessage as archiveGmailMessage, trashMessage as trashGmailMessage, untrashMessage as untrashGmailMessage, markSpam as markGmailSpam } from "@/lib/gmailApi";
 import { loadOutlookConnection, saveOutlookConnection, isOutlookConnected } from "@/lib/outlookConnection";
@@ -87,11 +88,12 @@ function ComposeModal({ accounts, onClose, onSent }) {
           {accounts.length > 1 && (
             <label className="flex items-center gap-2 text-sm">
               <span className="text-muted-foreground w-14 shrink-0">From</span>
-              <select value={from} onChange={(e) => setFrom(e.target.value)} className="flex-1 bg-transparent border border-input rounded-md px-2 py-1.5 text-sm">
-                {accounts.map((a) => (
-                  <option key={a.key} value={a.key}>{a.label} — {a.emailAddress || "connected account"}</option>
-                ))}
-              </select>
+              <Select
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+                className="flex-1 bg-transparent"
+                options={accounts.map((a) => ({ value: a.key, label: `${a.label} — ${a.emailAddress || "connected account"}` }))}
+              />
             </label>
           )}
           <input value={to} onChange={(e) => setTo(e.target.value)} type="email" placeholder="To" className="text-sm px-3 py-2 rounded-md border border-input bg-background outline-none" />

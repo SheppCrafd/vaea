@@ -1,5 +1,6 @@
 import { Archive, ArrowDown, ArrowUp } from "lucide-react";
 import { DeleteButton } from "@/components/ui/delete-button";
+import { Select } from "@/components/ui/select";
 import { useAllTasks, useUpdateTask, useToggleTopThree, useDeleteTask } from "@/hooks/useTasks";
 import { useProjects } from "@/hooks/useProjects";
 import { useToast } from "@/components/ui/use-toast";
@@ -67,15 +68,13 @@ export default function FocusFeed() {
   const renderRow = (task, move) => (
     <div key={task.id} className={`flex items-center justify-between gap-1.5 text-xs bg-muted rounded p-2 ${isMatched(task) ? "bg-primary/10" : ""}`}>
       <span className="truncate flex-1" title={task.description}>{task.description}</span>
-      <select
+      <Select
         value={task.status}
         onChange={(e) => updateTask.mutate({ id: task.id, data: { status: e.target.value } })}
-        className="text-[10px] bg-background border border-border rounded px-1 py-0.5 shrink-0"
-      >
-        {STATUS_OPTIONS.map((s) => (
-          <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
-        ))}
-      </select>
+        className="text-[10px] px-1 py-0.5 shrink-0"
+        aria-label={`Status for ${task.description}`}
+        options={STATUS_OPTIONS.map((s) => ({ value: s, label: s.replace(/_/g, " ") }))}
+      />
       <button onClick={() => move.onClick(task)} aria-label={move.label} title={move.label} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors">
         <move.Icon className="w-3.5 h-3.5" />
       </button>
