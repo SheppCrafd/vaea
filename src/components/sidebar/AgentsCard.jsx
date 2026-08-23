@@ -1,10 +1,7 @@
 import { useEffect, useState } from "react";
-import { Bot, Plus, X, TriangleAlert, Pencil, Play, Loader2 } from "lucide-react";
+import { Bot, Plus, X, Pencil, Play, Loader2 } from "lucide-react";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { loadAgents, saveAgents } from "@/lib/agentsStore";
-import { useProjects } from "@/hooks/useProjects";
-import { useAllTasks } from "@/hooks/useTasks";
-import { getProjectRiskLevel } from "@/lib/projectUtils";
 import { useSharedChatController } from "@/lib/ChatControllerContext";
 
 const CADENCE_OPTIONS = [
@@ -18,10 +15,9 @@ const CADENCE_OPTIONS = [
 // define (name + what it's for), edit, run on demand, and optionally give
 // an auto-run cadence (still only ever checked the next time the app is
 // open — see agentRunner.js's getDueAgents, no true background timer
-// exists). "Risk Watcher" is the one built-in agent: real, live data (the
-// same getProjectRiskLevel Notifications' deadline digest uses), not a
-// placeholder — it has no purpose/cadence to edit and isn't runnable here,
-// same as before this card gained real execution.
+// exists). No built-in/default agents — an empty list is the honest
+// starting state; anything here is something the user (or Vaea, via
+// CREATE_AGENT) actually made.
 export default function AgentsCard() {
   const [agents, setAgents] = useState([]);
   const [adding, setAdding] = useState(false);
@@ -31,21 +27,12 @@ export default function AgentsCard() {
   const [cadence, setCadence] = useState("");
   const [runningId, setRunningId] = useState(null);
   const [runError, setRunError] = useState(null);
-  const { data: projects = [] } = useProjects();
-  const { data: tasks = [] } = useAllTasks();
   const chat = useSharedChatController();
 
   const refresh = () => loadAgents().then(setAgents);
   useEffect(() => {
     refresh();
   }, []);
-
-  const atRiskCount = projects.filter((project) => {
-    const projectTasks = tasks.filter((t) => t.project_id === project.id);
-    const allDone = projectTasks.length > 0 && projectTasks.every((t) => t.status === "DONE" || t.status === "DELEGATED_DONE");
-    const risk = getProjectRiskLevel(project, allDone);
-    return risk === "overdue" || risk === "at_risk";
-  }).length;
 
   const resetForm = () => {
     setName("");
@@ -101,11 +88,9 @@ export default function AgentsCard() {
       <AccordionItem value="agents">
         <AccordionTrigger className="text-sm px-1">Agents</AccordionTrigger>
         <AccordionContent className="px-1 pb-2">
-          <div className="flex items-center gap-2 text-xs px-2 py-2 rounded-lg bg-secondary/60 mb-2">
-            <TriangleAlert className={`w-3.5 h-3.5 shrink-0 ${atRiskCount > 0 ? "text-amber-500" : "text-muted-foreground"}`} />
-            <span className="flex-1">Risk Watcher</span>
-            <span className="text-muted-foreground tabular-nums">{atRiskCount}</span>
-          </div>
+          {agents.length === 0 && !adding && (
+            <p className="text-xs text-muted-foreground px-2 py-1.5">No agents yet.</p>
+          )}
 
           {runError && <p className="text-[11px] text-destructive px-2 pb-1.5">{runError}</p>}
 
