@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useCreateProjectNote } from "@/hooks/useProjectNotes";
 import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
+import { Select } from "@/components/ui/select";
 
 const TYPE_LABELS = { RISK: "Risk", QUESTION: "Open Question", NOTE: "Note" };
 
@@ -32,16 +33,13 @@ export default function AddNoteForm({ projectId, allStakeholders = [], defaultTy
     <form onSubmit={handleSubmit} className="flex flex-col gap-2 bg-secondary/20 border border-border rounded-lg p-3 mt-2">
       <div className="flex items-center gap-2">
         {allowedTypes.length > 1 && (
-          <select
+          <Select
             value={type}
             onChange={(e) => setType(e.target.value)}
             aria-label="Note type"
-            className="text-xs bg-background border border-border rounded px-1.5 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {allowedTypes.map((t) => (
-              <option key={t} value={t}>{TYPE_LABELS[t]}</option>
-            ))}
-          </select>
+            className="text-xs px-1.5 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            options={allowedTypes.map((t) => ({ value: t, label: TYPE_LABELS[t] }))}
+          />
         )}
         <input
           value={content}

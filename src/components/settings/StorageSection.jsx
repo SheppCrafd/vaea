@@ -10,6 +10,7 @@ import {
   startFreshManual,
   downloadSnapshotFile,
 } from "@/lib/deviceStorage";
+import { SettingsCard } from "@/components/ui/settings-card";
 import * as cloudStorage from "@/lib/cloudStorage";
 import { copyAllKeys, destinationHasData } from "@/lib/storageMigration";
 import { appParams } from "@/lib/app-params";
@@ -100,7 +101,7 @@ export default function StorageSection() {
   };
 
   return (
-    <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-6">
+    <SettingsCard>
       <div className="flex items-center justify-between mb-1">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Data Storage</p>
         {done && (
@@ -140,6 +141,6 @@ export default function StorageSection() {
       )}
 
       {error && <p className="text-xs text-destructive mt-3">{error}</p>}
-    </div>
+    </SettingsCard>
   );
 }

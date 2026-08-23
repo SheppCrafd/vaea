@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useDroppable } from "@dnd-kit/core";
 import { Star, Plus, Archive, Sparkles } from "lucide-react";
 import { DeleteButton } from "@/components/ui/delete-button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select } from "@/components/ui/select";
 import { useTasks, useCreateTask, useUpdateTask, useToggleTopThree, useDeleteTask } from "@/hooks/useTasks";
 import { useStakeholders } from "@/hooks/useStakeholders";
 import { useToast } from "@/components/ui/use-toast";
@@ -208,10 +210,10 @@ function TaskRow({ task, allStakeholders, isMatched, updateTask, onToggleTopThre
         />
       </td>
       <td className="p-2 text-center">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={!!task.is_weekly_focus}
-          onChange={(e) => updateTask.mutate({ id: task.id, data: { is_weekly_focus: e.target.checked } })}
+          onCheckedChange={(v) => updateTask.mutate({ id: task.id, data: { is_weekly_focus: v } })}
+          aria-label="Weekly focus"
         />
       </td>
       <td className="p-2 text-center">
@@ -475,15 +477,14 @@ export default function TaskTable({ project }) {
               </div>
             </td>
             <td className="p-2">
-              <select
+              <Select
                 value={newStatus}
                 onChange={(e) => setNewStatus(e.target.value)}
-                className="text-[10px] bg-background border border-border rounded px-1 py-0.5"
+                className="text-[10px] px-1 py-0.5"
                 aria-label="Status for new task"
-              >
-                <option value="">—</option>
-                {DEFAULT_STATUSES.map((s) => <option key={s} value={s}>{s.replace(/_/g, " ")}</option>)}
-              </select>
+                placeholder="—"
+                options={DEFAULT_STATUSES.map((s) => ({ value: s, label: s.replace(/_/g, " ") }))}
+              />
             </td>
             <td className="p-2">
               <div className="flex items-center gap-1">
@@ -535,7 +536,7 @@ export default function TaskTable({ project }) {
               />
             </td>
             <td className="p-2 text-center">
-              <input type="checkbox" checked={newWeekly} onChange={(e) => setNewWeekly(e.target.checked)} aria-label="Weekly focus for new task" />
+              <Checkbox checked={newWeekly} onCheckedChange={setNewWeekly} aria-label="Weekly focus for new task" />
             </td>
             <td className="p-2 text-center">
               <button

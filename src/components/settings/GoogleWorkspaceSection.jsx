@@ -9,6 +9,7 @@ import {
 } from "@/lib/googleWorkspaceConnection";
 import { buildAuthorizationUrl } from "@/lib/googleWorkspaceOAuthPkce";
 import { listEvents } from "@/lib/googleCalendarApi";
+import { SettingsCard } from "@/components/ui/settings-card";
 
 // A compact, real preview of what's actually connected — a handful of
 // upcoming events, not a static "Connected" badge. Fetched once on mount
@@ -128,7 +129,7 @@ export default function GoogleWorkspaceSection() {
   if (!connection) return null;
 
   return (
-    <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-6">
+    <SettingsCard>
       <div className="flex items-center justify-between mb-1">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Google Workspace</p>
         {connected && (
@@ -176,6 +177,6 @@ export default function GoogleWorkspaceSection() {
           <UpcomingEvents connection={connection} onTokenRefreshed={handleTokenRefreshed} />
         </>
       )}
-    </div>
+    </SettingsCard>
   );
 }

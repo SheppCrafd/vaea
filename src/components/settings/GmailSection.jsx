@@ -4,6 +4,7 @@ import { Mail, Check, Loader2, TriangleAlert, Unlink } from "lucide-react";
 import { loadGmailConnection, saveGmailConnection, clearGmailConnection, isGmailConnected, DEFAULTS } from "@/lib/gmailConnection";
 import { buildAuthorizationUrl } from "@/lib/gmailOAuthPkce";
 import { listMessages } from "@/lib/gmailApi";
+import { SettingsCard } from "@/components/ui/settings-card";
 
 // Real recent-inbox preview, same on-demand-not-polled discipline as
 // GoogleWorkspaceSection's UpcomingEvents — Gmail's API is also a shared
@@ -109,7 +110,7 @@ export default function GmailSection() {
   };
 
   return (
-    <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-6">
+    <SettingsCard>
       <div className="flex items-center justify-between mb-1">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Gmail</p>
         {connected && (
@@ -154,6 +155,6 @@ export default function GmailSection() {
           <RecentMessages connection={connection} onTokenRefreshed={handleTokenRefreshed} />
         </>
       )}
-    </div>
+    </SettingsCard>
   );
 }

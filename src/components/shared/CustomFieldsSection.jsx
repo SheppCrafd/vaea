@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { X, Plus } from "lucide-react";
 import EditableText from "@/components/shared/EditableText";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select } from "@/components/ui/select";
 import { slugifyFieldKey, getMergedCustomFields, getAreaCustomFields } from "@/lib/customFields";
 
 // Lets a user add an arbitrary field to an entity (Project, Product, or
@@ -105,10 +107,10 @@ export default function CustomFieldsSection({
                 placeholder="—"
                 className="text-xs flex-1"
               />
-              <label className="flex items-center gap-1 text-[10px] text-muted-foreground shrink-0" title="Show on card">
-                <input type="checkbox" checked={displayFields.includes(f.key)} onChange={() => toggleCardDisplay(f.key)} />
-                Card
-              </label>
+              <div className="flex items-center gap-1 text-[10px] text-muted-foreground shrink-0" title="Show on card">
+                <Checkbox checked={displayFields.includes(f.key)} onCheckedChange={() => toggleCardDisplay(f.key)} aria-label="Show on card" />
+                <span className="cursor-pointer" onClick={() => toggleCardDisplay(f.key)}>Card</span>
+              </div>
               <button onClick={() => removeField(f.key)} aria-label="Remove field" className="shrink-0 text-muted-foreground hover:text-destructive">
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -138,19 +140,17 @@ export default function CustomFieldsSection({
           </div>
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-3">
-              <select
+              <Select
                 value={scope}
                 onChange={(e) => setScope(e.target.value)}
                 aria-label="Field scope"
-                className="text-xs bg-background border border-border rounded px-1.5 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <option value="entity">{entityScopeLabel}</option>
-                {area && <option value="area">{areaScopeLabel}</option>}
-              </select>
-              <label className="flex items-center gap-1 text-xs text-muted-foreground">
-                <input type="checkbox" checked={showOnCard} onChange={(e) => setShowOnCard(e.target.checked)} />
-                Show on card
-              </label>
+                className="text-xs px-1.5 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                options={[{ value: "entity", label: entityScopeLabel }, ...(area ? [{ value: "area", label: areaScopeLabel }] : [])]}
+              />
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Checkbox checked={showOnCard} onCheckedChange={setShowOnCard} aria-label="Show on card" />
+                <span className="cursor-pointer" onClick={() => setShowOnCard((v) => !v)}>Show on card</span>
+              </div>
             </div>
             <button type="submit" disabled={!label.trim()} className="text-xs px-3 py-1.5 bg-primary text-primary-foreground border border-border rounded-md disabled:opacity-50">
               Add

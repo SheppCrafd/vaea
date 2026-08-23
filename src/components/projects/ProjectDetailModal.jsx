@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { X, Archive, RotateCcw, ChevronDown, ChevronRight, Sparkles } from "lucide-react";
 import { DeleteButton } from "@/components/ui/delete-button";
+import { Select } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import Modal from "@/components/shared/Modal";
 import { useProjectNotes } from "@/hooks/useProjectNotes";
@@ -87,14 +88,13 @@ export default function ProjectDetailModal({ project, onClose }) {
                     onSave={(val) => updateProject.mutate({ id: project.id, data: { due_date: val } })}
                     aria-label="Due date"
                   />
-                  <select
+                  <Select
                     value={project.due_date_status || "ESTIMATED"}
                     onChange={(e) => updateProject.mutate({ id: project.id, data: { due_date_status: e.target.value } })}
                     aria-label="Due date status"
-                    className="bg-transparent border border-border rounded px-1.5 py-0.5 text-xs ml-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    {DUE_DATE_STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                  </select>
+                    className="bg-transparent px-1.5 py-0.5 text-xs ml-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    options={DUE_DATE_STATUS_OPTIONS.map((opt) => ({ value: opt, label: opt }))}
+                  />
                 </div>
               </div>
             </div>

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Bot, Plus, X, Pencil, Play, Loader2 } from "lucide-react";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { loadAgents, saveAgents } from "@/lib/agentsStore";
+import { Select } from "@/components/ui/select";
 import { useSharedChatController } from "@/lib/ChatControllerContext";
 
 const CADENCE_OPTIONS = [
@@ -110,15 +111,12 @@ export default function AgentsCard() {
                   placeholder="What's it for? (optional)"
                   className="text-xs px-2 py-1.5 rounded-md border border-input bg-background outline-none focus:ring-1 focus:ring-primary/50"
                 />
-                <select
+                <Select
                   value={cadence}
                   onChange={(e) => setCadence(e.target.value)}
-                  className="text-xs px-2 py-1.5 rounded-md border border-input bg-background outline-none focus:ring-1 focus:ring-primary/50"
-                >
-                  {CADENCE_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
+                  className="text-xs px-2 py-1.5 outline-none focus:ring-1 focus:ring-primary/50"
+                  options={CADENCE_OPTIONS}
+                />
                 <div className="flex gap-1.5">
                   <button type="submit" className="text-xs px-2.5 py-1 bg-primary text-primary-foreground rounded-md">Save</button>
                   <button type="button" onClick={resetForm} className="text-xs px-2.5 py-1 text-muted-foreground">Cancel</button>
@@ -176,15 +174,12 @@ export default function AgentsCard() {
                 placeholder="What's it for? (optional)"
                 className="text-xs px-2 py-1.5 rounded-md border border-input bg-background outline-none focus:ring-1 focus:ring-primary/50"
               />
-              <select
+              <Select
                 value={cadence}
                 onChange={(e) => setCadence(e.target.value)}
-                className="text-xs px-2 py-1.5 rounded-md border border-input bg-background outline-none focus:ring-1 focus:ring-primary/50"
-              >
-                {CADENCE_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
+                className="text-xs px-2 py-1.5 outline-none focus:ring-1 focus:ring-primary/50"
+                options={CADENCE_OPTIONS}
+              />
               <div className="flex gap-1.5">
                 <button type="submit" className="text-xs px-2.5 py-1 bg-primary text-primary-foreground rounded-md">Save</button>
                 <button type="button" onClick={resetForm} className="text-xs px-2.5 py-1 text-muted-foreground">Cancel</button>

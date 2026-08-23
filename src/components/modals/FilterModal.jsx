@@ -1,28 +1,11 @@
 import { X } from "lucide-react";
 import Modal from "@/components/shared/Modal";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAreas } from "@/hooks/useAreas";
 import { useProducts } from "@/hooks/useProducts";
 import { useProjects } from "@/hooks/useProjects";
 import { useFilter } from "@/lib/FilterContext";
 import { sortByPosition } from "@/lib/entityUtils";
-
-// Excel-style tri-state checkbox. The indeterminate "grey dash" is a DOM
-// property, not an attribute — it has to be set imperatively via ref on
-// every render.
-function TriCheckbox({ state, onChange, label }) {
-  return (
-    <input
-      type="checkbox"
-      checked={state === "checked"}
-      ref={(el) => {
-        if (el) el.indeterminate = state === "indeterminate";
-      }}
-      onChange={onChange}
-      aria-label={label}
-      aria-checked={state === "indeterminate" ? "mixed" : state === "checked"}
-    />
-  );
-}
 
 // Master predicate filter, restructured as the real Area → Product → Project
 // tree (the flat per-type lists couldn't express parent/child filtering) with
@@ -81,10 +64,10 @@ export default function FilterModal({ onClose }) {
   const allState = allIds.every(included) ? "checked" : allIds.some(included) ? "indeterminate" : "unchecked";
 
   const Row = ({ depth = 0, state, onChange, label }) => (
-    <label className="flex items-center gap-2 text-sm py-0.5 cursor-pointer" style={{ paddingLeft: depth * 18 }}>
-      <TriCheckbox state={state} onChange={onChange} label={label} />
-      <span className="truncate" title={label}>{label}</span>
-    </label>
+    <div className="flex items-center gap-2 text-sm py-0.5" style={{ paddingLeft: depth * 18 }}>
+      <Checkbox checked={state === "checked"} indeterminate={state === "indeterminate"} onCheckedChange={onChange} aria-label={label} />
+      <span className="truncate cursor-pointer" title={label} onClick={onChange}>{label}</span>
+    </div>
   );
 
   return (
