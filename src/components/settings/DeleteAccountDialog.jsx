@@ -2,6 +2,7 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import Modal from "@/components/shared/Modal";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/AuthContext";
 import { base44 } from "@/api/base44Client";
 import { useToast } from "@/components/ui/use-toast";
@@ -55,12 +56,12 @@ export default function DeleteAccountDialog({ onClose }) {
       <label htmlFor="delete-confirm" className="text-xs font-medium block mb-1">
         Type <span className="font-mono font-bold text-foreground">DELETE</span> to confirm
       </label>
-      <input
+      <Input
         id="delete-confirm"
         value={confirmText}
         onChange={(e) => setConfirmText(e.target.value)}
         autoFocus
-        className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md mb-4 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="bg-background mb-4"
       />
 
       <Button variant="destructive" className="w-full" disabled={!canDelete || isDeleting} onClick={handleDelete}>

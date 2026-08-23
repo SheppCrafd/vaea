@@ -9,6 +9,7 @@ import {
   MEMORY_NOTE_PATH, MEMORY_NOTE_TARGET_MAX_CHARS,
 } from "@/lib/githubApi";
 import { SettingsCard } from "@/components/ui/settings-card";
+import { Input } from "@/components/ui/input";
 
 const DEFAULT_CONNECTION = { owner: "", repo: "", branch: "main", token: "" };
 
@@ -290,23 +291,23 @@ export default function ExternalVaultSection() {
         {FIELDS.map(({ key, label, placeholder }) => (
           <div key={key}>
             <p className="text-sm font-medium mb-1.5">{label}</p>
-            <input
+            <Input
               value={connection[key]}
               onChange={(e) => handleChange(key, e.target.value)}
               placeholder={placeholder}
-              className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all"
+              className="bg-background"
             />
           </div>
         ))}
         <div>
           <p className="text-sm font-medium mb-1.5">Personal access token</p>
-          <input
+          <Input
             type="password"
             value={connection.token}
             onChange={(e) => handleChange("token", e.target.value)}
             placeholder="ghp_..."
             autoComplete="off"
-            className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all font-terminal"
+            className="bg-background font-terminal"
           />
           <p className="text-xs text-muted-foreground mt-1.5">
             Needs read/write access to the one repo above (a fine-grained token scoped to just it is safest).
