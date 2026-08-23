@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { base64ToUtf8, utf8ToBase64, testVaultConnection, writeVaultFile, fetchVaultOverview } from "./githubApi.js";
+import { base64ToUtf8, utf8ToBase64, testVaultConnection, writeVaultFile, fetchVaultOverview, auditVaultNotes } from "./githubApi.js";
 
 describe("githubApi: base64 round-trip handles real UTF-8, not just ASCII", () => {
   it("round-trips plain text", () => {
@@ -168,5 +168,47 @@ describe("githubApi: fetchVaultOverview", () => {
     });
     const overview = await fetchVaultOverview({ owner: "me", repo: "vault", branch: "main", token: "t" });
     expect(overview).toEqual({ summary: null, priorityNotes: [], recentNotes: [], selfNote: null, memory: null });
+  });
+});
+
+describe("githubApi: auditVaultNotes suggested_priority", () => {
+  // Five real, resolved incoming links (the PRIORITY_BACKLINK_THRESHOLD) to
+  // both Hub.md and AlreadyMarked.md, from five separate Spoke notes — same
+  // backlink-count-as-importance-proxy heuristic a well-run personal vault's
+  // own nightly maintenance uses instead of real semantic search.
+  const NOTES = {
+    "Hub.md": "# Hub\n",
+    "AlreadyMarked.md": "# Already marked\n**Priority: high**\n",
+    "LowTraffic.md": "# Low traffic\n[[Hub]]\n", // only 1 incoming link — below threshold
+    "Spoke1.md": "[[Hub]]\n[[AlreadyMarked]]\n",
+    "Spoke2.md": "[[Hub]]\n[[AlreadyMarked]]\n",
+    "Spoke3.md": "[[Hub]]\n[[AlreadyMarked]]\n",
+    "Spoke4.md": "[[Hub]]\n[[AlreadyMarked]]\n",
+    "Spoke5.md": "[[Hub]]\n[[AlreadyMarked]]\n",
+  };
+
+  beforeEach(() => {
+    globalThis.fetch = vi.fn(async (url) => {
+      const u = String(url);
+      if (u.includes("/git/trees/")) {
+        return { ok: true, json: async () => ({ tree: Object.keys(NOTES).map((path) => ({ path, type: "blob" })) }) };
+      }
+      const contentsMatch = u.match(/\/contents\/([^?]+)/);
+      if (contentsMatch) {
+        const path = decodeURIComponent(contentsMatch[1]);
+        return { ok: true, json: async () => ({ content: utf8ToBase64(NOTES[path] || "") }) };
+      }
+      return { ok: false, status: 404 };
+    });
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("flags a note with 5+ real incoming links and no Priority marker yet, and excludes one that's already marked or below the threshold", async () => {
+    const result = await auditVaultNotes({ owner: "me", repo: "vault", branch: "main", token: "t" });
+    expect(result.suggested_priority).toEqual(["Hub.md"]);
+    expect(result.suggested_priority).not.toContain("AlreadyMarked.md");
+    expect(result.suggested_priority).not.toContain("LowTraffic.md");
   });
 });
