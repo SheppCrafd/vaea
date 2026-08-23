@@ -1,7 +1,8 @@
 import { useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDroppable } from "@dnd-kit/core";
-import { Star, Trash2, Plus, Archive, Sparkles } from "lucide-react";
+import { Star, Plus, Archive, Sparkles } from "lucide-react";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { useTasks, useCreateTask, useUpdateTask, useToggleTopThree, useDeleteTask } from "@/hooks/useTasks";
 import { useStakeholders } from "@/hooks/useStakeholders";
 import { useToast } from "@/components/ui/use-toast";
@@ -231,9 +232,7 @@ function TaskRow({ task, allStakeholders, isMatched, updateTask, onToggleTopThre
         <button onClick={() => updateTask.mutate({ id: task.id, data: { archived_at: new Date().toISOString() } })} aria-label="Archive task" className="p-1 -m-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
           <Archive className="w-4 h-4" />
         </button>
-        <button onClick={() => onDelete(task)} aria-label="Delete task" className="p-1 -m-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
+        <DeleteButton onClick={() => onDelete(task)} label="Delete task" className="-m-1" />
       </td>
     </tr>
   );

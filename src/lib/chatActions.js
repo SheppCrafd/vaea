@@ -992,7 +992,6 @@ export async function executeAction(action, args) {
       const current = await loadAgentBehavior();
       const next = { ...current };
       if (args.approval_queue_enabled !== undefined) next.approvalQueueEnabled = args.approval_queue_enabled;
-      if (args.multi_model_comparison_enabled !== undefined) next.multiModelComparisonEnabled = args.multi_model_comparison_enabled;
       if (args.auto_scheduling_enabled !== undefined) next.autoSchedulingEnabled = args.auto_scheduling_enabled;
       await saveAgentBehavior(next);
       return { toolResult: { agentBehavior: next } };

@@ -1,5 +1,6 @@
 import { memo, useMemo } from "react";
-import { Trash2, Expand, GripVertical } from "lucide-react";
+import { Expand, GripVertical } from "lucide-react";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { useUpdateArea, useDeleteArea } from "@/hooks/useAreas";
 import { useTasksForProjects } from "@/hooks/useTasks";
@@ -95,14 +96,7 @@ function AreaCard({ area, products = [], orphanProjects = [], onExpand, stakehol
           >
             <Expand className="w-4 h-4" />
           </button>
-          <button
-            onClick={handleDelete}
-            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 p-2 rounded-md transition-colors"
-            title="Delete Area"
-            aria-label="Delete Area"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          <DeleteButton onClick={handleDelete} label="Delete area" size="md" className="p-2 rounded-md" />
         </div>
 
         <EditableTitle

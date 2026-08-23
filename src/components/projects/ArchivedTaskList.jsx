@@ -1,4 +1,5 @@
-import { RotateCcw, Trash2 } from "lucide-react";
+import { RotateCcw } from "lucide-react";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { useArchivedTasks, useUpdateTask, useDeleteTask } from "@/hooks/useTasks";
 import { useStakeholders } from "@/hooks/useStakeholders";
 import { confirmThen } from "@/lib/entityUtils";
@@ -47,13 +48,7 @@ export default function ArchivedTaskList({ projectId }) {
                 <RotateCcw className="w-3 h-3" />
                 Restore
               </button>
-              <button
-                onClick={() => handleDelete(task)}
-                aria-label="Delete task"
-                className="text-muted-foreground hover:text-destructive p-1"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
+              <DeleteButton onClick={() => handleDelete(task)} label="Delete task" />
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">

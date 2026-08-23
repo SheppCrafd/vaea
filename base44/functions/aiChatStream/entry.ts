@@ -914,7 +914,7 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCal
       execute: queue('DELETE_CALENDAR_EVENT'),
     }),
     SCHEDULE_CALENDAR_TIME: tool({
-      description: 'Vaea Calendar — find a genuinely free slot on the connected calendar(s) and book it, for a one-off task, a recurring protected focus block, or a recurring habit. Only works if the user has turned on "Let Vaea Calendar auto-schedule tasks" in Settings -> Agent Behavior — if they haven\'t, tell them that\'s where to enable it rather than guessing why nothing happened. Every block this creates is tagged in its description so RESCHEDULE_CALENDAR_CONFLICTS can find it later.',
+      description: 'Vaea Calendar — find a genuinely free slot on the connected calendar(s) and book it, for a one-off task, a recurring protected focus block, or a recurring habit. Only works if the user has turned on "Let Vaea Calendar auto-schedule tasks" in Settings -> AI Preferences — if they haven\'t, tell them that\'s where to enable it rather than guessing why nothing happened. Every block this creates is tagged in its description so RESCHEDULE_CALENDAR_CONFLICTS can find it later.',
       inputSchema: z.object({
         title: z.string(),
         duration_minutes: z.number(),
@@ -1095,10 +1095,9 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCal
       execute: queue('DELETE_WORKFLOW_CARD'),
     }),
     SET_AGENT_BEHAVIOR: tool({
-      description: 'Turn one or more of Settings -> Agent Behavior\'s three toggles on or off — the same switches the user can flip there themselves. Only pass the ones actually changing.',
+      description: 'Turn one or both of Settings -> AI Preferences\' agent-autonomy toggles on or off — the same switches the user can flip there themselves. Only pass the ones actually changing.',
       inputSchema: z.object({
         approval_queue_enabled: z.boolean().optional().describe('Approve every action, not just destructive ones.'),
-        multi_model_comparison_enabled: z.boolean().optional().describe('Compare answers across connected BYOK providers.'),
         auto_scheduling_enabled: z.boolean().optional().describe('Let Vaea Calendar auto-schedule tasks.'),
       }),
       execute: queue('SET_AGENT_BEHAVIOR'),
@@ -1117,7 +1116,7 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCal
       description: 'Navigate the user\'s own screen to a specific tab — and for Settings, a specific section, or for Mind Map, a specific inner tab — so they can actually see it. Use this whenever someone asks where something lives ("where\'s the Outlook connector", "show me the mind map", "open my workflows", "open notifications") instead of just describing it in words. Also pops the floating chat window open so the user keeps seeing the conversation while looking at the destination, scrolls straight to it, and briefly highlights it. Not destructive — runs immediately, no confirmation needed.',
       inputSchema: z.object({
         tab: z.enum(['dashboard', 'chat', 'calendar', 'vmail', 'meetings', 'notifications', 'mindmap', 'settings']).describe('Which tab to open. Workflows lives inside Mind Map now (mindmap_tab: "workflows") — there\'s no separate "workflows" tab.'),
-        settings_section: z.enum(['account', 'appearance', 'ai', 'ai-model', 'agent-behavior', 'storage', 'backup', 'connector-health', 'brain', 'google-workspace', 'gmail', 'microsoft', 'outlook', 'apple-mail', 'clickup', 'slack', 'resources']).optional().describe('Only used when tab is "settings" — which section to scroll to and highlight.'),
+        settings_section: z.enum(['account', 'appearance', 'ai', 'ai-model', 'storage', 'backup', 'connector-health', 'brain', 'google-workspace', 'gmail', 'microsoft', 'outlook', 'apple-mail', 'clickup', 'slack', 'resources']).optional().describe('Only used when tab is "settings" — which section to scroll to and highlight.'),
         mindmap_tab: z.enum(['vault', 'workflows']).optional().describe('Only used when tab is "mindmap" — which of its two inner tabs to open ("vault" for the note graph, "workflows" for the sketching canvas).'),
       }),
       execute: queue('OPEN_APP_SECTION'),
@@ -2062,7 +2061,7 @@ Tasks (the user's actual Google Tasks, not Vaea's own tasks) — list_google_tas
 Forms — read_google_form/list_google_form_responses are read tools. CREATE_GOOGLE_FORM/ADD_GOOGLE_FORM_QUESTION are staged.
 If any Google Workspace tool returns an "error" field, quote it to the user verbatim, same as a vault_* tool error — don't paraphrase it away.
 
-VAEA CALENDAR: SCHEDULE_CALENDAR_TIME and RESCHEDULE_CALENDAR_CONFLICTS work over whichever of Google Workspace/Microsoft 365 is connected (Google preferred when both are) — no separate connection of their own. SCHEDULE_CALENDAR_TIME only works if the user turned on "Let Vaea Calendar auto-schedule tasks" in Settings -> Agent Behavior; if it errors saying that's off, tell them where to enable it rather than guessing why nothing happened. block_type "task" books one slot; "focus"/"habit" book several recurring occurrences (default 4) — every one of them tagged internally so RESCHEDULE_CALENDAR_CONFLICTS can find and move them later when something real gets booked on top of them. Call RESCHEDULE_CALENDAR_CONFLICTS only when the user actually asks to check for conflicts — it's reactive, not something to run proactively every turn.
+VAEA CALENDAR: SCHEDULE_CALENDAR_TIME and RESCHEDULE_CALENDAR_CONFLICTS work over whichever of Google Workspace/Microsoft 365 is connected (Google preferred when both are) — no separate connection of their own. SCHEDULE_CALENDAR_TIME only works if the user turned on "Let Vaea Calendar auto-schedule tasks" in Settings -> AI Preferences; if it errors saying that's off, tell them where to enable it rather than guessing why nothing happened. block_type "task" books one slot; "focus"/"habit" book several recurring occurrences (default 4) — every one of them tagged internally so RESCHEDULE_CALENDAR_CONFLICTS can find and move them later when something real gets booked on top of them. Call RESCHEDULE_CALENDAR_CONFLICTS only when the user actually asks to check for conflicts — it's reactive, not something to run proactively every turn.
 
 GMAIL: [GMAIL] below says whether the user has connected Gmail. If not connected, and a request needs it (list_gmail_messages/read_gmail_message returns connected: false, or the user asks about their email/inbox), tell them to connect one in Settings -> Gmail rather than guessing. list_gmail_messages/read_gmail_message are read tools, run immediately. SEND_GMAIL_MESSAGE is staged like every other mutation. Get a real message_id from list_gmail_messages before read_gmail_message, never guess one. If a Gmail tool returns an "error" field, quote it to the user verbatim, same as vault_*/calendar tool errors.
 

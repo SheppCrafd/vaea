@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { X, Trash2 } from "lucide-react";
+import { X } from "lucide-react";
+import { DeleteButton } from "@/components/ui/delete-button";
 import Modal from "@/components/shared/Modal";
 import { useStakeholders } from "@/hooks/useStakeholders";
 import { useUpdateProduct, useDeleteProduct } from "@/hooks/useProducts";
@@ -125,7 +126,7 @@ export default function ProductDetailModal({ product, onClose }) {
           </div>
 
           <div className="border-t border-border pt-4">
-            <button
+            <DeleteButton
               onClick={() =>
                 confirmThen(
                   `Delete product "${product.title}"? This will also delete all of its projects and their tasks. This cannot be undone.`,
@@ -135,10 +136,10 @@ export default function ProductDetailModal({ product, onClose }) {
                   }
                 )
               }
-              className="text-xs flex items-center gap-1.5 text-muted-foreground hover:text-destructive px-1 py-1.5 rounded transition-colors"
-            >
-              <Trash2 className="w-4 h-4" /> Delete Product
-            </button>
+              label="Delete product"
+              showLabel
+              size="md"
+            />
           </div>
         </div>
     </Modal>
