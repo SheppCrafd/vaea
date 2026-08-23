@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Network, Loader2, TriangleAlert } from "lucide-react";
+import { Network, Loader2, TriangleAlert, ZoomIn, ZoomOut, Maximize } from "lucide-react";
 import { Link } from "react-router-dom";
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
 import { auditVaultNotes } from "@/lib/githubApi";
 import { loadPhysics, savePhysics } from "@/lib/mindMapPhysics";
+import { useAppStore } from "@/lib/store";
 import MindMapPhysicsSettings from "@/components/mindmap/MindMapPhysicsSettings";
 import NoteContentModal from "@/components/mindmap/NoteContentModal";
 
@@ -18,58 +19,82 @@ import NoteContentModal from "@/components/mindmap/NoteContentModal";
 // demo (src/pages/marketing/MindMapPage.jsx) can render this exact same
 // component — animated/non-interactive there via the `demo` prop — instead
 // of a hand-drawn recreation.
-const MAX_ITERATIONS = 300;
+//
+// A LIVE simulation, not a one-shot layout: `tick()` below runs one physics
+// step and is called every animation frame (stepSimulation, in the
+// component) rather than 300 times synchronously up front. `alpha` is the
+// standard force-layout "heat" — starts hot (1), cools every tick
+// (ALPHA_DECAY) until it's cold enough to stop moving on its own, and gets
+// reheated (resetAlpha) by a drag or a physics-setting change so the graph
+// visibly re-settles instead of jumping to a new position. This is what
+// makes "every other node dynamically react" to a drag true, not just the
+// dragged one.
+const ALPHA_DECAY = 0.985;
+const ALPHA_MIN = 0.001;
+const VELOCITY_DAMPING = 0.85;
 
-// Obsidian-style: nodes settle from repulsion + link springs + a real pull
-// toward the canvas center (previously missing entirely — only a hard
-// boundary clamp kept nodes on-canvas, which reads very differently from a
-// graph that actually centers itself). All four terms are user-tunable via
-// MindMapPhysicsSettings (src/lib/mindMapPhysics.js), not fixed constants.
-function runForceLayout(nodes, edges, width, height, physics) {
-  const { centerGravity, repulsion, linkStrength, linkDistance } = physics;
+function seedPositions(nodes, width, height) {
   const cx = width / 2, cy = height / 2;
-  const positions = new Map(nodes.map((n, i) => {
+  return new Map(nodes.map((n, i) => {
     const angle = (i / nodes.length) * Math.PI * 2;
     const r = Math.min(width, height) / 3;
-    return [n, { x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r, vx: 0, vy: 0 }];
+    return [n, { x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r, vx: 0, vy: 0, fixed: false }];
   }));
-
-  for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
-    for (const a of nodes) {
-      const pa = positions.get(a);
-      let fx = (cx - pa.x) * centerGravity;
-      let fy = (cy - pa.y) * centerGravity;
-      for (const b of nodes) {
-        if (a === b) continue;
-        const pb = positions.get(b);
-        const dx = pa.x - pb.x, dy = pa.y - pb.y;
-        const distSq = Math.max(dx * dx + dy * dy, 1);
-        const force = repulsion / distSq;
-        fx += (dx / Math.sqrt(distSq)) * force;
-        fy += (dy / Math.sqrt(distSq)) * force;
-      }
-      pa.vx = (pa.vx + fx) * 0.85;
-      pa.vy = (pa.vy + fy) * 0.85;
-    }
-    for (const { from, to } of edges) {
-      const pa = positions.get(from), pb = positions.get(to);
-      if (!pa || !pb) continue;
-      const dx = pb.x - pa.x, dy = pb.y - pa.y;
-      const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
-      const force = (dist - linkDistance) * linkStrength;
-      const fx = (dx / dist) * force, fy = (dy / dist) * force;
-      pa.vx += fx; pa.vy += fy;
-      pb.vx -= fx; pb.vy -= fy;
-    }
-    for (const n of nodes) {
-      const p = positions.get(n);
-      p.x += p.vx; p.y += p.vy;
-      p.x = Math.max(30, Math.min(width - 30, p.x));
-      p.y = Math.max(30, Math.min(height - 30, p.y));
-    }
-  }
-  return positions;
 }
+
+// Obsidian-style: nodes settle from repulsion + link springs + a real pull
+// toward the canvas center. All four terms are user-tunable via
+// MindMapPhysicsSettings (src/lib/mindMapPhysics.js), not fixed constants.
+// A `fixed: true` node (currently being dragged) is never moved by the
+// simulation itself — its position is set directly from the pointer instead
+// — but it still exerts repulsion/spring forces on everything else, same as
+// Obsidian's own "drag pins the node you're holding, physics keeps running
+// around it."
+function tick(nodes, positions, edges, width, height, physics, alpha) {
+  const { centerGravity, repulsion, linkStrength, linkDistance } = physics;
+  const cx = width / 2, cy = height / 2;
+  for (const a of nodes) {
+    const pa = positions.get(a);
+    if (pa.fixed) continue;
+    let fx = (cx - pa.x) * centerGravity;
+    let fy = (cy - pa.y) * centerGravity;
+    for (const b of nodes) {
+      if (a === b) continue;
+      const pb = positions.get(b);
+      const dx = pa.x - pb.x, dy = pa.y - pb.y;
+      const distSq = Math.max(dx * dx + dy * dy, 1);
+      const force = repulsion / distSq;
+      fx += (dx / Math.sqrt(distSq)) * force;
+      fy += (dy / Math.sqrt(distSq)) * force;
+    }
+    pa.vx = (pa.vx + fx * alpha) * VELOCITY_DAMPING;
+    pa.vy = (pa.vy + fy * alpha) * VELOCITY_DAMPING;
+  }
+  for (const { from, to } of edges) {
+    const pa = positions.get(from), pb = positions.get(to);
+    if (!pa || !pb) continue;
+    const dx = pb.x - pa.x, dy = pb.y - pa.y;
+    const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
+    const force = (dist - linkDistance) * linkStrength * alpha;
+    const fx = (dx / dist) * force, fy = (dy / dist) * force;
+    if (!pa.fixed) { pa.vx += fx; pa.vy += fy; }
+    if (!pb.fixed) { pb.vx -= fx; pb.vy -= fy; }
+  }
+  let moving = false;
+  for (const n of nodes) {
+    const p = positions.get(n);
+    if (p.fixed) continue;
+    p.x += p.vx; p.y += p.vy;
+    p.x = Math.max(30, Math.min(width - 30, p.x));
+    p.y = Math.max(30, Math.min(height - 30, p.y));
+    if (Math.abs(p.vx) > 0.02 || Math.abs(p.vy) > 0.02) moving = true;
+  }
+  return moving;
+}
+
+const MIN_SCALE = 0.2;
+const MAX_SCALE = 3;
+const DRAG_THRESHOLD_PX = 4;
 
 function titleOf(path) {
   return path.split("/").pop().replace(/\.md$/, "");
@@ -108,13 +133,74 @@ export default function VaultGraph({ demo = false }) {
   const [hovered, setHovered] = useState(null);
   const [openNote, setOpenNote] = useState(null);
   const [physics, setPhysics] = useState(loadPhysics);
+  // Note paths Vaea currently has a pending, not-yet-confirmed
+  // WRITE_VAULT_NOTE proposal for (useChatController.js's
+  // proposeVaultNotesIfAny) — rendered here as "new" nodes even though
+  // they're not real notes yet. demo never has any (nothing to propose in a
+  // fixed sample graph).
+  const proposedPaths = useAppStore((s) => (demo ? [] : s.pendingVaultProposals));
+  // Pan/zoom view state, not physics state — reset (demo excepted) never
+  // resets these, so zooming in to inspect a cluster survives a physics
+  // tweak or a hover redraw. { x, y } is the canvas-space point currently
+  // centered under the container's own center; wheel-zoom keeps whatever
+  // point is under the cursor fixed rather than always zooming toward center.
+  const initialView = { scale: 1, x: 0, y: 0 };
+  const [view, setViewState] = useState(initialView);
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const positionsRef = useRef(null);
+  const nodesRef = useRef([]);
+  const alphaRef = useRef(1);
+  const rafRef = useRef(null);
+  // The current frame's closure, refreshed every effect run — lets pointer
+  // handlers (outside that closure) restart the loop with `requestAnimationFrame(frameRef.current)`
+  // when a drag begins after the graph had already cooled down and the loop
+  // had gone idle (rafRef.current === null), instead of only reacting on
+  // the next unrelated re-render.
+  const frameRef = useRef(() => {});
+  // Pointer interaction state lives in a ref, not React state — every one of
+  // these updates on every mousemove frame, and re-rendering the component
+  // for that would fight the canvas's own rAF loop for no benefit (nothing
+  // here is read by JSX).
+  const dragRef = useRef(null); // { kind: "node" | "pan", node?, startClientX, startClientY, moved }
+  // view/hovered/physics mirrored into refs, read by the animation loop
+  // instead of React state directly — the loop effect below only ever
+  // depends on [graph, demo] (rare changes), NOT on view/hovered/physics
+  // (which change on every pan/hover/wheel frame), so panning never tears
+  // down and rebuilds the whole rAF loop + ResizeObserver on every pixel of
+  // movement. That churn was the actual source of pan/zoom feeling
+  // "snappy"/janky rather than smooth before this — state changes still
+  // schedule React re-renders for the rest of the component (the physics
+  // panel's own sliders, etc.), but the canvas loop itself never restarts
+  // because of them.
+  const viewRef = useRef(initialView);
+  const hoveredRef = useRef(null);
+  const physicsRef = useRef(physics);
+  const proposedRef = useRef(new Set());
+  proposedRef.current = new Set(proposedPaths);
+  const setView = (next) => {
+    const resolved = typeof next === "function" ? next(viewRef.current) : next;
+    viewRef.current = resolved;
+    setViewState(resolved);
+  };
 
   const updatePhysics = (next) => {
+    physicsRef.current = next;
     setPhysics(next);
     savePhysics(next);
+    alphaRef.current = 1; // reheat — a physics change should visibly re-settle, not silently apply
+  };
+
+  // Screen (client) coordinates -> graph-space coordinates, accounting for
+  // the container's own on-page offset plus the current pan/zoom. Every
+  // pointer handler below goes through this instead of raw clientX/Y.
+  const toGraphSpace = (clientX, clientY) => {
+    const rect = containerRef.current.getBoundingClientRect();
+    const { scale, x, y } = viewRef.current;
+    return {
+      x: (clientX - rect.left - rect.width / 2) / scale + x,
+      y: (clientY - rect.top - rect.height / 2) / scale + y,
+    };
   };
 
   useEffect(() => {
@@ -134,39 +220,86 @@ export default function VaultGraph({ demo = false }) {
     })();
   }, [demo]);
 
+  // Seeds nodes/positions once per real graph (not on every hover/physics/
+  // view change) — dragging, panning, and zooming below all mutate this
+  // SAME positions Map in place rather than replacing it, so a drag isn't
+  // undone by the next unrelated re-render.
   useEffect(() => {
-    if (!graph || !canvasRef.current || !containerRef.current) return;
-    const canvas = canvasRef.current;
+    if (!graph || !containerRef.current) return;
     const { width, height } = containerRef.current.getBoundingClientRect();
     if (width === 0 || height === 0) return;
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
-    const ctx = canvas.getContext("2d");
-    ctx.scale(dpr, dpr);
-
     const nodeSet = new Set(Object.keys(graph.tags || {}));
     for (const l of graph.links || []) { nodeSet.add(l.from); nodeSet.add(l.to); }
     for (const l of graph.suggested_links || []) { nodeSet.add(l.a); nodeSet.add(l.b); }
+    for (const p of proposedPaths) nodeSet.add(p);
     const nodes = [...nodeSet];
-    if (nodes.length === 0) return;
+    nodesRef.current = nodes;
+    positionsRef.current = nodes.length ? seedPositions(nodes, width, height) : null;
+    alphaRef.current = 1;
+    setView({ scale: 1, x: width / 2, y: height / 2 });
+  }, [graph, proposedPaths]);
 
-    const positions = runForceLayout(nodes, graph.links || [], width, height, physics);
-    positionsRef.current = positions;
+  // The live loop: one physics tick + one draw per animation frame, applying
+  // the current pan/zoom as a canvas transform. Keeps running while alpha
+  // hasn't cooled down yet OR a node is actively being dragged (dragging
+  // always keeps the rest of the graph reacting live, regardless of alpha),
+  // and goes idle otherwise instead of burning CPU forever on a settled
+  // graph. `demo` still animates (the marketing page wants real motion) but
+  // with no interaction wired in.
+  //
+  // Deliberately depends on [graph, demo] ONLY — view/hovered/physics are
+  // read from their mirror refs every frame instead of closed over as state,
+  // so panning/zooming/hovering/tweaking physics never tears down and
+  // rebuilds this effect (and its ResizeObserver) on every single frame of
+  // interaction. That churn was the real source of pan/zoom feeling
+  // "snappy"/janky rather than smooth.
+  useEffect(() => {
+    if (!positionsRef.current || !canvasRef.current || !containerRef.current) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    let cancelled = false;
 
-    const draw = () => {
-      ctx.clearRect(0, 0, width, height);
+    const resize = () => {
+      const { width, height } = containerRef.current.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    resize();
+    const resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(containerRef.current);
+
+    const frame = () => {
+      if (cancelled) return;
+      const nodes = nodesRef.current;
+      const positions = positionsRef.current;
+      const currentView = viewRef.current;
+      const currentPhysics = physicsRef.current;
+      const { width, height } = containerRef.current.getBoundingClientRect();
+      const dragging = dragRef.current?.kind === "node";
+      if (alphaRef.current > ALPHA_MIN) {
+        tick(nodes, positions, graph?.links || [], width, height, currentPhysics, alphaRef.current);
+        alphaRef.current *= ALPHA_DECAY;
+      }
+
       const style = getComputedStyle(document.documentElement);
       const border = `hsl(${style.getPropertyValue("--border")})`;
       const teal = `hsl(${style.getPropertyValue("--primary")})`;
       const fg = `hsl(${style.getPropertyValue("--foreground")})`;
 
+      ctx.save();
+      ctx.clearRect(0, 0, width, height);
+      ctx.translate(width / 2, height / 2);
+      ctx.scale(currentView.scale, currentView.scale);
+      ctx.translate(-currentView.x, -currentView.y);
+
       ctx.strokeStyle = border;
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1 / currentView.scale;
       ctx.setLineDash([]);
-      for (const { from, to } of graph.links || []) {
+      for (const { from, to } of graph?.links || []) {
         const a = positions.get(from), b = positions.get(to);
         if (!a || !b) continue;
         ctx.beginPath();
@@ -175,8 +308,8 @@ export default function VaultGraph({ demo = false }) {
         ctx.stroke();
       }
       ctx.strokeStyle = teal;
-      ctx.setLineDash([4, 4]);
-      for (const { a: fromPath, b: toPath } of graph.suggested_links || []) {
+      ctx.setLineDash([4 / currentView.scale, 4 / currentView.scale]);
+      for (const { a: fromPath, b: toPath } of graph?.suggested_links || []) {
         const a = positions.get(fromPath), b = positions.get(toPath);
         if (!a || !b) continue;
         ctx.beginPath();
@@ -188,45 +321,134 @@ export default function VaultGraph({ demo = false }) {
 
       for (const n of nodes) {
         const p = positions.get(n);
-        const tag = physics.groupByTag ? (graph.tags?.[n] || [])[0] : null;
-        const nodeColor = hovered === n ? teal : tag ? `hsl(${tagHue(tag)}, 55%, 55%)` : fg;
+        const isProposed = proposedRef.current.has(n);
+        // Inverted from the link convention on purpose (per design): a
+        // proposed LINK is accent/dashed and an existing link is grey, but a
+        // proposed NODE is grey (nothing there yet) and an existing node is
+        // accent — so accent always means "already real" and the visual
+        // language stays consistent between links and nodes even though the
+        // colors swap which state they attach to.
+        const tag = !isProposed && currentPhysics.groupByTag ? (graph?.tags?.[n] || [])[0] : null;
+        const isHot = hoveredRef.current === n || (dragging && dragRef.current.node === n);
+        const nodeColor = isProposed ? border : tag ? `hsl(${tagHue(tag)}, 55%, 55%)` : teal;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, hovered === n ? 6 : 4, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, isHot ? 6 : 4, 0, Math.PI * 2);
         ctx.fillStyle = nodeColor;
         ctx.fill();
-        ctx.font = "11px Inter, sans-serif";
+        ctx.font = `${11 / currentView.scale}px Inter, sans-serif`;
         ctx.fillStyle = fg;
         ctx.textAlign = "center";
-        ctx.fillText(titleOf(n), p.x, p.y - 10);
+        ctx.fillText(titleOf(n), p.x, p.y - 10 / currentView.scale);
       }
-    };
-    draw();
-  }, [graph, hovered, physics]);
+      ctx.restore();
 
-  const nodeAt = (e) => {
-    if (!positionsRef.current || !canvasRef.current) return null;
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left, y = e.clientY - rect.top;
-    let closest = null, closestDist = 14;
+      if (demo || alphaRef.current > ALPHA_MIN || dragging) rafRef.current = requestAnimationFrame(frame);
+      else rafRef.current = null;
+    };
+    frameRef.current = frame;
+    if (!rafRef.current) rafRef.current = requestAnimationFrame(frame);
+
+    return () => {
+      cancelled = true;
+      resizeObserver.disconnect();
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    };
+  }, [graph, demo]);
+
+  const nodeAt = (graphX, graphY) => {
+    if (!positionsRef.current) return null;
+    let closest = null, closestDist = 14 / viewRef.current.scale;
     for (const [n, p] of positionsRef.current) {
-      const dist = Math.hypot(p.x - x, p.y - y);
+      const dist = Math.hypot(p.x - graphX, p.y - graphY);
       if (dist < closestDist) { closest = n; closestDist = dist; }
     }
     return closest;
   };
 
-  const handleMouseMove = (e) => {
+  const handlePointerDown = (e) => {
     if (demo) return;
-    setHovered(nodeAt(e));
+    const { x, y } = toGraphSpace(e.clientX, e.clientY);
+    const node = nodeAt(x, y);
+    dragRef.current = node
+      ? { kind: "node", node, moved: false, startClientX: e.clientX, startClientY: e.clientY }
+      : { kind: "pan", moved: false, startClientX: e.clientX, startClientY: e.clientY, startView: viewRef.current };
+    if (node) {
+      const p = positionsRef.current.get(node);
+      p.fixed = true;
+      alphaRef.current = 1;
+      if (!rafRef.current) rafRef.current = requestAnimationFrame(frameRef.current);
+    }
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e) => {
+    if (demo) return;
+    const drag = dragRef.current;
+    if (!drag) {
+      const { x, y } = toGraphSpace(e.clientX, e.clientY);
+      const node = nodeAt(x, y);
+      if (node !== hoveredRef.current) {
+        hoveredRef.current = node;
+        setHovered(node); // only for the JSX cursor style below — the loop itself reads hoveredRef
+        if (!rafRef.current) rafRef.current = requestAnimationFrame(frameRef.current); // repaint the new hover state even on a cold/settled graph
+      }
+      return;
+    }
+    const dxClient = e.clientX - drag.startClientX, dyClient = e.clientY - drag.startClientY;
+    if (!drag.moved && Math.hypot(dxClient, dyClient) > DRAG_THRESHOLD_PX) drag.moved = true;
+    if (drag.kind === "node") {
+      const p = positionsRef.current.get(drag.node);
+      const { x, y } = toGraphSpace(e.clientX, e.clientY);
+      p.x = x; p.y = y; p.vx = 0; p.vy = 0;
+    } else if (drag.moved) {
+      setView((v) => ({ ...v, x: drag.startView.x - dxClient / v.scale, y: drag.startView.y - dyClient / v.scale }));
+      if (!rafRef.current) rafRef.current = requestAnimationFrame(frameRef.current); // repaint the new pan offset even on a cold/settled graph
+    }
   };
 
   // Demo mode never opens a note — nothing real to read for an invented
   // sample graph, same "hover/persistence disabled" boundary the rest of
-  // this component already draws for marketing use.
-  const handleClick = (e) => {
+  // this component already draws for marketing use. A drag that actually
+  // moved never opens the note either — only a genuine click (pointerdown +
+  // pointerup with no real movement) does, same click-vs-drag distinction
+  // WorkflowCanvas.jsx doesn't need (its cards have no separate "open" action).
+  const handlePointerUp = () => {
     if (demo) return;
-    const node = nodeAt(e);
-    if (node) setOpenNote(node);
+    const drag = dragRef.current;
+    if (drag?.kind === "node") {
+      positionsRef.current.get(drag.node).fixed = false;
+      if (!drag.moved) setOpenNote(drag.node);
+    }
+    dragRef.current = null;
+  };
+
+  const handleWheel = (e) => {
+    if (demo) return;
+    e.preventDefault();
+    const rect = containerRef.current.getBoundingClientRect();
+    const cursorGraph = toGraphSpace(e.clientX, e.clientY);
+    const nextScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, viewRef.current.scale * (1 - e.deltaY * 0.001)));
+    // Keep the point under the cursor fixed in place while zooming, not the
+    // canvas center — the standard "zoom toward cursor" feel, same as
+    // Obsidian's own graph and every map/diagram app.
+    const cx = e.clientX - rect.left - rect.width / 2, cy = e.clientY - rect.top - rect.height / 2;
+    setView({ scale: nextScale, x: cursorGraph.x - cx / nextScale, y: cursorGraph.y - cy / nextScale });
+    if (!rafRef.current) rafRef.current = requestAnimationFrame(frameRef.current); // repaint the new zoom level even on a cold/settled graph
+  };
+
+  // Same "toward center" zoom the buttons below use — cursor position isn't
+  // meaningful for a button click, unlike the wheel handler above.
+  const zoomByFactor = (factor) => {
+    const nextScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, viewRef.current.scale * factor));
+    setView((v) => ({ ...v, scale: nextScale }));
+    if (!rafRef.current) rafRef.current = requestAnimationFrame(frameRef.current);
+  };
+  const resetView = () => {
+    if (!containerRef.current) return;
+    const { width, height } = containerRef.current.getBoundingClientRect();
+    setView({ scale: 1, x: width / 2, y: height / 2 });
+    if (!rafRef.current) rafRef.current = requestAnimationFrame(frameRef.current);
   };
 
   return (
@@ -270,11 +492,47 @@ export default function VaultGraph({ demo = false }) {
       ) : (
         <canvas
           ref={canvasRef}
-          onMouseMove={handleMouseMove}
-          onClick={handleClick}
-          className={`w-full h-full ${!demo && hovered ? "cursor-pointer" : "cursor-default"}`}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerUp}
+          onWheel={handleWheel}
+          className={`w-full h-full touch-none ${demo ? "" : hovered ? "cursor-grab active:cursor-grabbing" : "cursor-default active:cursor-grabbing"}`}
         />
       )}
+
+      {!demo && graph && (graph.links?.length || graph.suggested_links?.length) ? (
+        <div className="absolute bottom-2 right-2 z-10 flex items-center gap-0.5 rounded-md bg-card/90 border border-border shadow-sm backdrop-blur-sm p-0.5">
+          <button
+            type="button"
+            onClick={() => zoomByFactor(1 / 1.3)}
+            aria-label="Zoom out"
+            title="Zoom out"
+            className="w-6 h-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          >
+            <ZoomOut className="w-3.5 h-3.5" />
+          </button>
+          <span className="text-[10px] tabular-nums text-muted-foreground w-9 text-center select-none">{Math.round(view.scale * 100)}%</span>
+          <button
+            type="button"
+            onClick={() => zoomByFactor(1.3)}
+            aria-label="Zoom in"
+            title="Zoom in"
+            className="w-6 h-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          >
+            <ZoomIn className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={resetView}
+            aria-label="Reset view"
+            title="Reset view"
+            className="w-6 h-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          >
+            <Maximize className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      ) : null}
 
       {openNote && connection && (
         <NoteContentModal path={openNote} connection={connection} onClose={() => setOpenNote(null)} />

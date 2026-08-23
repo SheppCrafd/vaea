@@ -1353,6 +1353,27 @@ export const TOOL_CATALOG = [
     parameters: { type: "object", properties: { name: { type: "string" } }, required: ["name"] },
   },
   {
+    name: "UPDATE_AGENT",
+    staged: true,
+    description: "Edit an existing agent's name, purpose, and/or auto-run cadence. Only pass the fields actually changing. Find it by its current exact name.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "The agent's current exact name." },
+        new_name: { type: "string" },
+        purpose: { type: "string" },
+        cadence_hours: { type: "number", description: "Hours between auto-runs, checked the next time the app is open (never a true background timer) — 6, 24, etc. Pass 0 or omit-then-null to turn auto-run off and leave it manual-only." },
+      },
+      required: ["name"],
+    },
+  },
+  {
+    name: "RUN_AGENT",
+    staged: true,
+    description: "Start a real run of a named agent right now, in a brand-new chat session — the same thing the user can do with the Agents card's \"Run\" button. The run acts on the agent's purpose using the normal tool pipeline (destructive actions still need the user's confirm click there, same as any turn); this turn's own reply just confirms it started. Must be the ONLY tool you call this turn if used.",
+    parameters: { type: "object", properties: { name: { type: "string" } }, required: ["name"] },
+  },
+  {
     name: "CREATE_PROMPT_TEMPLATE",
     staged: true,
     description: "Save a reusable prompt template to the chat sidebar's Prompt Templates card — the same thing the user can do there with \"New template\". Clicking it later drops the text into the composer.",
@@ -1360,6 +1381,20 @@ export const TOOL_CATALOG = [
       type: "object",
       properties: { name: { type: "string" }, text: { type: "string" } },
       required: ["name", "text"],
+    },
+  },
+  {
+    name: "UPDATE_PROMPT_TEMPLATE",
+    staged: true,
+    description: "Edit an existing prompt template's name and/or text. Only pass the fields actually changing. Find it by its current exact name.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "The template's current exact name." },
+        new_name: { type: "string" },
+        text: { type: "string" },
+      },
+      required: ["name"],
     },
   },
   {

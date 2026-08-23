@@ -21,6 +21,8 @@ async function loadTriggerWith(prefs) {
 }
 
 const hoursAgo = (h) => new Date(Date.now() - h * 60 * 60 * 1000).toISOString();
+const vaultConnected = () => true;
+const vaultNotConnected = () => false;
 
 // A baseline where none of the three cadences are due — tests override just
 // the one(s) they care about, so "not due" never accidentally means
@@ -35,50 +37,65 @@ describe("runReflectionIfDue", () => {
   it("does not run when consent isn't true", async () => {
     const { runReflectionIfDue } = await loadTriggerWith({ consent: false, ...NOT_DUE, lastDreamAt: hoursAgo(30) });
     const runReflectionTurn = vi.fn();
-    await runReflectionIfDue({ runReflectionTurn });
+    await runReflectionIfDue({ runReflectionTurn, checkVaultConnected: vaultConnected });
     expect(runReflectionTurn).not.toHaveBeenCalled();
   });
 
   it("runs when the base reflection cadence is due, even if vault-tidy and dream aren't", async () => {
     const { runReflectionIfDue } = await loadTriggerWith({ consent: true, ...NOT_DUE, lastReflectionAt: hoursAgo(4) });
     const runReflectionTurn = vi.fn().mockResolvedValue(undefined);
-    await runReflectionIfDue({ runReflectionTurn });
+    await runReflectionIfDue({ runReflectionTurn, checkVaultConnected: vaultNotConnected });
     expect(runReflectionTurn).toHaveBeenCalledTimes(1);
   });
 
-  it("runs when dream is due, even if the base 3-hour reflection cadence isn't — the actual bug this covers", async () => {
+  it("runs when dream is due and the vault is connected, even if the base 3-hour reflection cadence isn't", async () => {
     const { runReflectionIfDue } = await loadTriggerWith({ consent: true, ...NOT_DUE, lastDreamAt: hoursAgo(30) });
     const runReflectionTurn = vi.fn().mockResolvedValue(undefined);
-    await runReflectionIfDue({ runReflectionTurn });
+    await runReflectionIfDue({ runReflectionTurn, checkVaultConnected: vaultConnected });
     expect(runReflectionTurn).toHaveBeenCalledTimes(1);
   });
 
-  it("runs when vault-tidy is due, even if the base 3-hour reflection cadence isn't — same bug, same fix", async () => {
+  it("runs when vault-tidy is due and the vault is connected, even if the base 3-hour reflection cadence isn't", async () => {
     const { runReflectionIfDue } = await loadTriggerWith({ consent: true, ...NOT_DUE, lastVaultTidyAt: hoursAgo(25) });
     const runReflectionTurn = vi.fn().mockResolvedValue(undefined);
-    await runReflectionIfDue({ runReflectionTurn });
+    await runReflectionIfDue({ runReflectionTurn, checkVaultConnected: vaultConnected });
     expect(runReflectionTurn).toHaveBeenCalledTimes(1);
   });
 
   it("does not run when none of the three cadences are due", async () => {
     const { runReflectionIfDue } = await loadTriggerWith({ consent: true, ...NOT_DUE });
     const runReflectionTurn = vi.fn();
-    await runReflectionIfDue({ runReflectionTurn });
+    await runReflectionIfDue({ runReflectionTurn, checkVaultConnected: vaultConnected });
     expect(runReflectionTurn).not.toHaveBeenCalled();
   });
 
-  it("treats a never-set lastDreamAt as due", async () => {
+  it("treats a never-set lastDreamAt as due when the vault is connected", async () => {
     const { runReflectionIfDue } = await loadTriggerWith({ consent: true, ...NOT_DUE, lastDreamAt: null });
     const runReflectionTurn = vi.fn().mockResolvedValue(undefined);
-    await runReflectionIfDue({ runReflectionTurn });
+    await runReflectionIfDue({ runReflectionTurn, checkVaultConnected: vaultConnected });
     expect(runReflectionTurn).toHaveBeenCalledTimes(1);
+  });
+
+  // The actual bug this covers: runReflectionTurn only ever stamps
+  // lastVaultTidyAt/lastDreamAt inside its own `if (vaultConnected)` branch,
+  // so for a user who's never connected a vault those two fields stay
+  // `null` forever. Without gating vaultTidyDue/dreamDue on the vault
+  // actually being connected, a never-set field reads as "always due" and
+  // this function stops respecting reflectionDue's 3-hour gate entirely —
+  // it fires (and resets lastReflectionAt) on every single chat open, so
+  // real check-ins never accumulate anything to say.
+  it("does NOT treat never-set lastVaultTidyAt/lastDreamAt as due when the vault isn't connected", async () => {
+    const { runReflectionIfDue } = await loadTriggerWith({ consent: true, ...NOT_DUE, lastVaultTidyAt: null, lastDreamAt: null });
+    const runReflectionTurn = vi.fn();
+    await runReflectionIfDue({ runReflectionTurn, checkVaultConnected: vaultNotConnected });
+    expect(runReflectionTurn).not.toHaveBeenCalled();
   });
 
   it("only ever claims once per page load, regardless of which cadence is due", async () => {
     const { runReflectionIfDue } = await loadTriggerWith({ consent: true, lastReflectionAt: hoursAgo(30), lastVaultTidyAt: hoursAgo(30), lastDreamAt: hoursAgo(30) });
     const runReflectionTurn = vi.fn().mockResolvedValue(undefined);
-    await runReflectionIfDue({ runReflectionTurn });
-    await runReflectionIfDue({ runReflectionTurn });
+    await runReflectionIfDue({ runReflectionTurn, checkVaultConnected: vaultConnected });
+    await runReflectionIfDue({ runReflectionTurn, checkVaultConnected: vaultConnected });
     expect(runReflectionTurn).toHaveBeenCalledTimes(1);
   });
 });
