@@ -5,6 +5,7 @@ import { loadAiProviderConfig, saveAiProviderConfig, DEFAULTS as PROVIDER_DEFAUL
 import { PROVIDERS, PROVIDER_LIST } from "@/lib/llm/providers";
 import { SettingsCard } from "@/components/ui/settings-card";
 import { Select } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import {
   supportsFileSystemAccess as bridgeSupported,
   getBridgeStatus,
@@ -94,14 +95,14 @@ export default function AiModelSection() {
             {needsBaseUrl && (
               <div>
                 <label htmlFor="ai-model-base-url" className="text-sm font-medium mb-1.5 block">Server URL</label>
-                <input
+                <Input
                   id="ai-model-base-url"
                   type="text"
                   value={config.baseUrl}
                   onChange={(e) => handleBaseUrlChange(e.target.value)}
                   placeholder="http://localhost:11434/v1"
                   autoComplete="off"
-                  className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all font-terminal"
+                  className="bg-background font-terminal"
                 />
                 <p className="text-xs text-muted-foreground mt-1.5">
                   Ollama's OpenAI-compatible endpoint is <span className="font-terminal">http://localhost:11434/v1</span> by
@@ -121,14 +122,14 @@ export default function AiModelSection() {
                   options={provider.models.map((m) => ({ value: m.id, label: m.label }))}
                 />
               ) : (
-                <input
+                <Input
                   id="ai-model-model"
                   type="text"
                   value={config.model}
                   onChange={(e) => handleModelChange(e.target.value)}
                   placeholder="the model name your server is serving, e.g. llama3.2"
                   autoComplete="off"
-                  className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all font-terminal"
+                  className="bg-background font-terminal"
                 />
               )}
             </div>
@@ -138,14 +139,14 @@ export default function AiModelSection() {
                 {provider.label} API key{keyOptional ? " (optional)" : ""}
               </label>
               <div className="relative">
-                <input
+                <Input
                   id="ai-model-api-key"
                   type={showKey ? "text" : "password"}
                   value={config.apiKey}
                   onChange={(e) => handleKeyChange(e.target.value)}
                   placeholder={provider.keyPlaceholder}
                   autoComplete="off"
-                  className="w-full text-sm pl-3 pr-9 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all font-terminal"
+                  className="pr-9 bg-background font-terminal"
                 />
                 <button
                   type="button"
@@ -351,13 +352,13 @@ function LocalModeConnect({ localConnector, localModel, localUrl, onLocalConfigC
             />
 
             {activeConnector.needsModel && (
-              <input
+              <Input
                 type="text"
                 value={localModel}
                 onChange={(e) => onLocalConfigChange({ localModel: e.target.value })}
                 placeholder={activeConnector.modelPlaceholder}
                 autoComplete="off"
-                className="w-full text-xs px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all font-terminal mb-1.5"
+                className="text-xs bg-background font-terminal mb-1.5"
               />
             )}
 
@@ -382,13 +383,13 @@ function LocalModeConnect({ localConnector, localModel, localUrl, onLocalConfigC
             )}
 
             {localConnector === "custom" && (
-              <input
+              <Input
                 type="text"
                 value={localUrl}
                 onChange={(e) => onLocalConfigChange({ localUrl: e.target.value })}
                 placeholder="http://localhost:PORT/endpoint — already speaking Vaea's own request shape"
                 autoComplete="off"
-                className="w-full text-xs px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all font-terminal mb-1.5"
+                className="text-xs bg-background font-terminal mb-1.5"
               />
             )}
 
