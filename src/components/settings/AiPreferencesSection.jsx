@@ -6,6 +6,8 @@ import { useAiIdentity, useSaveAiIdentity } from "@/hooks/useAiIdentity";
 import { useReflectionPreferences, useSaveReflectionPreferences } from "@/hooks/useReflectionPreferences";
 import { useVaultConnected } from "@/hooks/useVaultConnected";
 import { syncIdentityToSelfNote } from "@/lib/selfNote";
+import { loadAgentBehavior, saveAgentBehavior } from "@/lib/agentBehaviorSettings";
+import { Switch } from "@/components/ui/switch";
 import IdentityField, { FIELDS } from "@/components/settings/IdentityField";
 
 // The in-app analog of a personal identity.md/soul.md/user.md set — three
@@ -53,6 +55,22 @@ export default function AiPreferencesSection() {
   const toggleUserAnalysis = () => {
     if (!reflectionPrefs) return;
     saveReflectionPrefs.mutate({ ...reflectionPrefs, userAnalysisConsent: !userAnalysisEnabled });
+  };
+
+  // The two real agent-autonomy toggles (see agentBehaviorSettings.js) —
+  // folded in here rather than kept as their own "Agent Behavior" settings
+  // section so there's one toggle-bearing surface, not two. Plain local
+  // state + deviceStorage, same as the section this replaced; no react-query
+  // cache for this one since nothing else in the app reads it live the way
+  // identity/reflection prefs are.
+  const [agentBehavior, setAgentBehavior] = useState(null);
+  useEffect(() => {
+    loadAgentBehavior().then(setAgentBehavior);
+  }, []);
+  const updateAgentBehavior = async (patch) => {
+    const next = { ...agentBehavior, ...patch };
+    setAgentBehavior(next);
+    await saveAgentBehavior(next);
   };
 
   useEffect(() => {
@@ -178,19 +196,13 @@ export default function AiPreferencesSection() {
             toggle below is on.
           </p>
         </div>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={reflectionEnabled}
+        <Switch
+          className="mt-0.5"
+          checked={reflectionEnabled}
           aria-labelledby="proactive-checkins-label"
-          onClick={toggleReflection}
+          onCheckedChange={toggleReflection}
           disabled={!reflectionPrefs}
-          className={`shrink-0 mt-0.5 relative w-9 h-5 rounded-full transition-colors disabled:opacity-50 ${reflectionEnabled ? "bg-primary" : "bg-muted"}`}
-        >
-          <span
-            className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-background shadow-sm transition-transform ${reflectionEnabled ? "translate-x-4" : ""}`}
-          />
-        </button>
+        />
       </div>
       {reflectionEnabled && (
         <div className="flex items-start justify-between gap-4 mt-4 pt-4 border-t border-border">
@@ -201,19 +213,47 @@ export default function AiPreferencesSection() {
               replies. Off by default — nothing about you is analyzed unless this is on.
             </p>
           </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={userAnalysisEnabled}
+          <Switch
+            className="mt-0.5"
+            checked={userAnalysisEnabled}
             aria-labelledby="notice-patterns-label"
-            onClick={toggleUserAnalysis}
-            className={`shrink-0 mt-0.5 relative w-9 h-5 rounded-full transition-colors ${userAnalysisEnabled ? "bg-primary" : "bg-muted"}`}
-          >
-            <span
-              className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-background shadow-sm transition-transform ${userAnalysisEnabled ? "translate-x-4" : ""}`}
-            />
-          </button>
+            onCheckedChange={toggleUserAnalysis}
+          />
         </div>
+      )}
+      {agentBehavior && (
+        <>
+          <div className="flex items-start justify-between gap-4 mt-4 pt-4 border-t border-border">
+            <div>
+              <p id="approval-queue-label" className="text-sm font-medium">Approve every action, not just destructive ones</p>
+              <p className="text-xs text-muted-foreground mt-0.5 max-w-md">
+                Normally only deletes and other destructive changes need a confirm click. Turn this on and
+                everything the assistant wants to do waits for your Yes first.
+              </p>
+            </div>
+            <Switch
+              className="mt-0.5"
+              checked={agentBehavior.approvalQueueEnabled}
+              aria-labelledby="approval-queue-label"
+              onCheckedChange={(v) => updateAgentBehavior({ approvalQueueEnabled: v })}
+            />
+          </div>
+          <div className="flex items-start justify-between gap-4 mt-4 pt-4 border-t border-border">
+            <div>
+              <p id="auto-scheduling-label" className="text-sm font-medium">Let Vaea Calendar auto-schedule tasks</p>
+              <p className="text-xs text-muted-foreground mt-0.5 max-w-md">
+                Give a task a duration and Vaea Calendar finds and blocks real time for it on its own. Off by
+                default — your calendar only changes when you ask.
+              </p>
+            </div>
+            <Switch
+              className="mt-0.5"
+              checked={agentBehavior.autoSchedulingEnabled}
+              aria-labelledby="auto-scheduling-label"
+              onCheckedChange={(v) => updateAgentBehavior({ autoSchedulingEnabled: v })}
+            />
+          </div>
+        </>
       )}
     </div>
   );

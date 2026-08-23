@@ -616,7 +616,7 @@ export const TOOL_CATALOG = [
   {
     name: "SCHEDULE_CALENDAR_TIME",
     staged: true,
-    description: "Vaea Calendar — find a genuinely free slot on the connected calendar(s) and book it, for a one-off task, a recurring protected focus block, or a recurring habit. Only works if the user has turned on \"Let Vaea Calendar auto-schedule tasks\" in Settings -> Agent Behavior — if they haven't, tell them that's where to enable it rather than guessing why nothing happened. Every block this creates is tagged in its description so RESCHEDULE_CALENDAR_CONFLICTS can find it later.",
+    description: "Vaea Calendar — find a genuinely free slot on the connected calendar(s) and book it, for a one-off task, a recurring protected focus block, or a recurring habit. Only works if the user has turned on \"Let Vaea Calendar auto-schedule tasks\" in Settings -> AI Preferences — if they haven't, tell them that's where to enable it rather than guessing why nothing happened. Every block this creates is tagged in its description so RESCHEDULE_CALENDAR_CONFLICTS can find it later.",
     parameters: {
       type: "object",
       properties: {
@@ -1312,7 +1312,7 @@ export const TOOL_CATALOG = [
   // --- Full UI parity: every one of these mirrors an action a real user can
   // already take by hand in the app's own UI (Notifications' rule builder,
   // the chat sidebar's Agents/Prompt Templates cards, the Workflow Canvas,
-  // Settings -> Agent Behavior, Settings -> Backup & Restore) — so asking
+  // Settings -> AI Preferences, Settings -> Backup & Restore) — so asking
   // the assistant to do it is never a dead end just because that surface
   // happens to be a newer part of the app. ---
 
@@ -1430,12 +1430,11 @@ export const TOOL_CATALOG = [
   {
     name: "SET_AGENT_BEHAVIOR",
     staged: true,
-    description: "Turn one or more of Settings -> Agent Behavior's three toggles on or off — the same switches the user can flip there themselves. Only pass the ones actually changing.",
+    description: "Turn one or both of Settings -> AI Preferences' agent-autonomy toggles on or off — the same switches the user can flip there themselves. Only pass the ones actually changing.",
     parameters: {
       type: "object",
       properties: {
         approval_queue_enabled: { type: "boolean", description: "Approve every action, not just destructive ones." },
-        multi_model_comparison_enabled: { type: "boolean", description: "Compare answers across connected BYOK providers." },
         auto_scheduling_enabled: { type: "boolean", description: "Let Vaea Calendar auto-schedule tasks." },
       },
       required: [],
@@ -1469,7 +1468,7 @@ export const TOOL_CATALOG = [
         tab: { type: "string", enum: ["dashboard", "chat", "calendar", "vmail", "meetings", "notifications", "mindmap", "settings"], description: "Which tab to open. Workflows lives inside Mind Map now (mindmap_tab: \"workflows\") — there's no separate \"workflows\" tab." },
         settings_section: {
           type: "string",
-          enum: ["account", "appearance", "ai", "ai-model", "agent-behavior", "storage", "backup", "connector-health", "brain", "google-workspace", "gmail", "microsoft", "outlook", "apple-mail", "clickup", "slack", "resources"],
+          enum: ["account", "appearance", "ai", "ai-model", "storage", "backup", "connector-health", "brain", "google-workspace", "gmail", "microsoft", "outlook", "apple-mail", "clickup", "slack", "resources"],
           description: "Only used when tab is \"settings\" — which section to scroll to and highlight (e.g. \"outlook\" for the Outlook connector, \"apple-mail\" for Apple Mail).",
         },
         mindmap_tab: {

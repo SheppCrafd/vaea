@@ -1,6 +1,7 @@
 import { memo, useState, lazy, Suspense } from "react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
-import { Expand, Trash2, GripVertical } from "lucide-react";
+import { Expand, GripVertical } from "lucide-react";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { useFilter } from "@/lib/FilterContext";
 import { useProjects } from "@/hooks/useProjects";
 import { useTasksForProjects } from "@/hooks/useTasks";
@@ -101,14 +102,7 @@ function ProductCard({ product, forceFullProjects = false }) {
         >
           <Expand className="w-4 h-4" />
         </button>
-        <button
-          onClick={handleDelete}
-          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 p-1.5 rounded-md transition-colors"
-          title="Delete Product"
-          aria-label="Delete product"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+        <DeleteButton onClick={handleDelete} label="Delete product" size="md" className="p-1.5 rounded-md" />
       </div>
 
       <div className="relative z-[1] min-w-0 pr-12 pl-6">

@@ -1,5 +1,6 @@
 import { memo, useState, lazy, Suspense } from "react";
-import { Expand, GripVertical, Trash2 } from "lucide-react";
+import { Expand, GripVertical } from "lucide-react";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { useTasks } from "@/hooks/useTasks";
 import { useProjectNotes } from "@/hooks/useProjectNotes";
@@ -118,14 +119,7 @@ function ProjectCard({ project, stakeholderIds = [] }) {
           >
             <Expand className="w-3 h-3" />
           </button>
-          <button
-            onClick={handleDelete}
-            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 p-0.5 rounded transition-colors"
-            title="Delete Project"
-            aria-label="Delete project"
-          >
-            <Trash2 className="w-3 h-3" />
-          </button>
+          <DeleteButton onClick={handleDelete} label="Delete project" />
         </div>
       </div>
 

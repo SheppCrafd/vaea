@@ -1,5 +1,6 @@
 import { memo, useState, lazy, Suspense } from "react";
-import { Expand, GripVertical, Link2, Plus, Trash2, X } from "lucide-react";
+import { Expand, GripVertical, Link2, Plus, X } from "lucide-react";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { usePositionedMenu } from "@/hooks/usePositionedMenu";
 import PositionedPopover from "@/components/shared/PositionedPopover";
@@ -271,14 +272,7 @@ function ProjectCardFull({ project, stakeholderIds = [] }) {
         >
           <Expand className="w-3.5 h-3.5" />
         </button>
-        <button
-          onClick={handleDelete}
-          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 p-1.5 rounded transition-colors"
-          title="Delete Project"
-          aria-label="Delete project"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
+        <DeleteButton onClick={handleDelete} label="Delete project" className="p-1.5 rounded" />
       </div>
 
       {/* Card header: Title and Objective (and the Problem Statement moved up

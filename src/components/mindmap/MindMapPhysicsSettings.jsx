@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { SlidersHorizontal, RotateCcw } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { FOCUSABLE_SELECTOR } from "@/hooks/useDialogA11y";
 import { PHYSICS_FIELDS, DEFAULT_PHYSICS } from "@/lib/mindMapPhysics";
 
@@ -74,18 +75,14 @@ export default function MindMapPhysicsSettings({ physics, onChange }) {
               </label>
             ))}
 
-            <label className="flex items-center justify-between pt-1">
+            <div className="flex items-center justify-between pt-1">
               <span className="text-[11px] text-muted-foreground">Group by tag</span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={physics.groupByTag}
-                onClick={() => onChange({ ...physics, groupByTag: !physics.groupByTag })}
-                className={`relative w-8 h-4.5 rounded-full transition-colors ${physics.groupByTag ? "bg-primary" : "bg-muted"}`}
-              >
-                <span className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-background shadow-sm transition-transform ${physics.groupByTag ? "translate-x-3.5" : ""}`} />
-              </button>
-            </label>
+              <Switch
+                size="sm"
+                checked={physics.groupByTag}
+                onCheckedChange={(v) => onChange({ ...physics, groupByTag: v })}
+              />
+            </div>
           </div>
         </div>
       )}
