@@ -51,7 +51,10 @@ export default function SignUpScreen() {
   const handleProvider = (provider) => {
     setError("");
     try {
-      base44.auth.loginWithProvider(provider, returnTo);
+      // See LoginScreen.jsx's own comment — carries which provider was
+      // actually used through to ConnectorSuggestionBanner.
+      const withProvider = `${returnTo}${returnTo.includes("?") ? "&" : "?"}signin_provider=${provider}`;
+      base44.auth.loginWithProvider(provider, withProvider);
     } catch {
       setError("Couldn't start sign-up — try again in a moment.");
     }

@@ -555,6 +555,12 @@ export default function VaultGraph({ demo = false }) {
 
   const handleWheel = (e) => {
     if (demo) return;
+    // Only actually prevents the page from scrolling under the canvas when
+    // this handler is attached as a real, non-passive DOM listener (see the
+    // useEffect below) — React's own onWheel prop attaches passively by
+    // default, where preventDefault() is silently ignored (a real, console-
+    // warned bug this used to have: zooming the graph also scrolled the
+    // page behind it).
     e.preventDefault();
     const rect = containerRef.current.getBoundingClientRect();
     const cursorGraph = toGraphSpace(e.clientX, e.clientY);
@@ -566,6 +572,24 @@ export default function VaultGraph({ demo = false }) {
     setView({ scale: nextScale, x: cursorGraph.x - cx / nextScale, y: cursorGraph.y - cy / nextScale });
     if (!rafRef.current) rafRef.current = requestAnimationFrame(frameRef.current); // repaint the new zoom level even on a cold/settled graph
   };
+  // React's onWheel prop attaches as a passive listener, where
+  // preventDefault() is silently ignored — a real bug this used to have
+  // (confirmed via a real browser pass: "Unable to preventDefault inside
+  // passive event listener invocation" in the console, and the page
+  // genuinely scrolling underneath the graph while zooming). Attaching
+  // wheel natively with { passive: false } is the only way to actually
+  // stop that. wheelHandlerRef holds the latest closure so this effect
+  // only needs to attach the listener once per canvas element, not
+  // re-attach on every render.
+  const wheelHandlerRef = useRef(handleWheel);
+  wheelHandlerRef.current = handleWheel;
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const listener = (e) => wheelHandlerRef.current(e);
+    canvas.addEventListener("wheel", listener, { passive: false });
+    return () => canvas.removeEventListener("wheel", listener);
+  }, [graph]); // canvasRef.current only exists once the canvas branch renders, gated on `graph`
 
   // Same "toward center" zoom the buttons below use — cursor position isn't
   // meaningful for a button click, unlike the wheel handler above.
@@ -634,7 +658,6 @@ export default function VaultGraph({ demo = false }) {
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onPointerLeave={handlePointerUp}
-            onWheel={handleWheel}
             onDoubleClick={handleDoubleClick}
             className={`w-full h-full touch-none ${demo ? "" : hovered ? "cursor-grab active:cursor-grabbing" : "cursor-default active:cursor-grabbing"}`}
           />
@@ -642,7 +665,7 @@ export default function VaultGraph({ demo = false }) {
       )}
 
       {!demo && graph ? (
-        <div className="absolute bottom-2 right-2 z-10 flex items-center gap-0.5 rounded-md bg-card/90 border border-border shadow-sm backdrop-blur-sm p-0.5">
+        <div className="absolute bottom-2 left-2 z-10 flex items-center gap-0.5 rounded-md bg-card/90 border border-border shadow-sm backdrop-blur-sm p-0.5">
           <button
             type="button"
             onClick={() => zoomByFactor(1 / 1.3)}

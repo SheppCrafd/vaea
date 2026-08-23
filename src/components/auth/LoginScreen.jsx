@@ -47,7 +47,14 @@ export default function LoginScreen() {
   const handleProvider = (provider) => {
     setError("");
     try {
-      base44.auth.loginWithProvider(provider, returnTo);
+      // Carries which provider was actually used through the whole OAuth
+      // redirect round-trip (same way `from` already does) — read back
+      // once by ConnectorSuggestionBanner so "you signed in with Google"
+      // can suggest Gmail/Workspace specifically, rather than guessing
+      // from the signed-in email's domain, which doesn't work at all for
+      // Apple (no recognizable domain, sometimes a hidden relay address).
+      const withProvider = `${returnTo}${returnTo.includes("?") ? "&" : "?"}signin_provider=${provider}`;
+      base44.auth.loginWithProvider(provider, withProvider);
     } catch {
       setError("Couldn't start sign-in — try again in a moment.");
     }
