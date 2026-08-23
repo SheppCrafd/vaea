@@ -55,6 +55,7 @@ export function usePositionedMenu({ closeOnScroll = false } = {}) {
   useEffect(() => {
     if (!isOpen) return;
     const id = idRef.current;
+    const triggerEl = triggerRef.current;
     pushOverlay(id);
     const handleKeyDown = (e) => {
       if (e.key === "Escape") {
@@ -67,7 +68,7 @@ export function usePositionedMenu({ closeOnScroll = false } = {}) {
     return () => {
       popOverlay(id);
       document.removeEventListener("keydown", handleKeyDown);
-      triggerRef.current?.focus?.();
+      triggerEl?.focus?.();
     };
   }, [isOpen]);
 
