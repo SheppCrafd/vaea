@@ -63,7 +63,11 @@ const COMPARE_PAGE_SCHEMA = {
 };
 
 export default function ComparePage() {
-  useDocumentMeta("Vaea vs. the typical task manager | Vaea", "/compare");
+  useDocumentMeta(
+    "Vaea vs. the typical task manager | Vaea",
+    "/compare",
+    COMPARE_PAGE_SCHEMA.description
+  );
   usePageSchema(COMPARE_PAGE_SCHEMA);
 
   return (

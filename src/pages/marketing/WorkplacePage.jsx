@@ -224,7 +224,7 @@ const WORKPLACE_FAQ_SCHEMA = {
 };
 
 export default function WorkplacePage() {
-  useDocumentMeta("Vaea Workplace — calendar, inbox, and meetings, merged", "/workplace");
+  useDocumentMeta("Vaea Workplace — calendar, inbox, and meetings, merged", "/workplace", WORKPLACE_PAGE_SCHEMA.description);
   usePageSchema(WORKPLACE_PAGE_SCHEMA);
   usePageSchema(WORKPLACE_FAQ_SCHEMA);
 

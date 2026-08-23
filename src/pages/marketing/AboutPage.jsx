@@ -10,7 +10,11 @@ const CONTACT_LINKS = [
 ];
 
 export default function AboutPage() {
-  useDocumentMeta("About | Vaea", "/about");
+  useDocumentMeta(
+    "About | Vaea",
+    "/about",
+    "Vaea is built and maintained solo — who's behind it, and how to get in touch with questions, bugs, or feedback."
+  );
 
   return (
     <MarketingLayout>

@@ -321,7 +321,7 @@ const VAULT_FAQ_SCHEMA = {
 // ─── page ────────────────────────────────────────────────────────────────────
 
 export default function VaultPage() {
-  useDocumentMeta("Vaea Brain — AI that reads and writes your personal notes", "/brain");
+  useDocumentMeta("Vaea Brain — AI that reads and writes your personal notes", "/brain", VAULT_PAGE_SCHEMA.description);
   usePageSchema(VAULT_PAGE_SCHEMA);
   usePageSchema(VAULT_FAQ_SCHEMA);
 

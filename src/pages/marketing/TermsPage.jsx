@@ -145,7 +145,11 @@ const SECTIONS = [
 ];
 
 export default function TermsPage() {
-  useDocumentMeta("Terms of Service | Vaea", "/terms");
+  useDocumentMeta(
+    "Terms of Service | Vaea",
+    "/terms",
+    "Terms for using Vaea: a free personal project and task manager with an optional AI assistant and notes vault integration. No paid tiers, no usage limits."
+  );
 
   return (
     <MarketingLayout>
