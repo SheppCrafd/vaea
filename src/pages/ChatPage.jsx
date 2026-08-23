@@ -97,7 +97,7 @@ export default function ChatPage() {
   useEffect(() => {
     const msg = location.state?.initialMessage;
     if (msg && !chat.input) chat.setInput(msg);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   // Same reasoning as AppShell.jsx's mobile drawers: below md the aside

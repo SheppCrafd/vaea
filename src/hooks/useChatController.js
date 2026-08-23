@@ -278,7 +278,7 @@ export function useChatController({ activeProjectId } = {}) {
       cancelled = true;
       unsubscribe();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   const invalidateAppQueries = async () => {

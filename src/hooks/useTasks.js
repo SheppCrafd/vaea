@@ -89,7 +89,7 @@ export function useTasksForProjects(projectIds = []) {
   const idsKey = projectIds.join(",");
   const tasks = useMemo(
     () => allTasks.filter((t) => projectIds.includes(t.project_id)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- idsKey is projectIds' stable identity
+     
     [allTasks, idsKey]
   );
   return { ...rest, data: tasks };

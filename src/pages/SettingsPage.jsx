@@ -144,7 +144,7 @@ export default function SettingsPage() {
       clearTimeout(stopPulse);
       clearTimeout(clear);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [pendingHighlightId]);
 
   // Same reasoning as AppShell.jsx's mobile drawers and ChatPage.jsx's own

@@ -71,7 +71,7 @@ export default function WorkflowCanvas({ addTrigger, demo = false }) {
   // reach into whichever tab is actually active right now.
   useEffect(() => {
     if (!demo && addTrigger > 0) addCard();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [addTrigger]);
 
   const updateCard = (id, patch) => setCards((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));

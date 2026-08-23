@@ -17,7 +17,7 @@ function ChannelPip({ unread }) {
   return <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: ACCENT }} />;
 }
 
-function ChannelList({ connection, onTokenRefreshed }) {
+function ChannelList({ connection }) {
   const [channels, setChannels] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -37,7 +37,7 @@ function ChannelList({ connection, onTokenRefreshed }) {
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   return (
@@ -163,7 +163,7 @@ export default function SlackSection() {
           >
             <Unlink className="w-3.5 h-3.5" /> Disconnect
           </button>
-          <ChannelList connection={connection} onTokenRefreshed={() => {}} />
+          <ChannelList connection={connection} />
         </>
       )}
     </div>
