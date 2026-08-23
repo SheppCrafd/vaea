@@ -160,6 +160,7 @@ export async function auditVaultNotes({ owner, repo, branch, token }) {
   const outgoing = new Map(); // path -> Set(linked titles, lowercased)
   const wordSets = new Map(); // path -> Set(words) — reused for suggested_links and possible_duplicates below
   const tags = {}; // path -> string[]
+  const hasPriorityMarker = new Map(); // path -> boolean, for suggested_priority below
   const linkRegex = /\[\[([^\]|#]+)/g;
   for (const path of scanned) {
     const content = await readVaultNoteContent({ owner, repo, branch, token, path });
@@ -169,16 +170,19 @@ export async function auditVaultNotes({ owner, repo, branch, token }) {
     outgoing.set(path, links);
     wordSets.set(path, new Set(extractWords(content)));
     tags[path] = extractTags(titleByPath.get(path), content);
+    hasPriorityMarker.set(path, /\*\*Priority:\s*high\*\*/i.test(content));
   }
 
   const broken_links = [];
   const links = []; // {from, to} — every wikilink that resolved to a real note, the Mind Map page's edge list
   const hasIncoming = new Set();
+  const incomingCount = new Map(); // path -> number of real, resolved incoming links — feeds suggested_priority below
   for (const [path, linkTitles] of outgoing) {
     for (const linkedTitle of linkTitles) {
       const target = pathByTitle.get(linkedTitle);
       if (target) {
         hasIncoming.add(target);
+        incomingCount.set(target, (incomingCount.get(target) || 0) + 1);
         links.push({ from: path, to: target });
       } else {
         broken_links.push({ from: path, broken_link: linkedTitle });
@@ -186,6 +190,17 @@ export async function auditVaultNotes({ owner, repo, branch, token }) {
     }
   }
   const isolated_notes = scanned.filter((p) => outgoing.get(p).size === 0 && !hasIncoming.has(p));
+  // A note real other notes link to a lot is a real "this matters" signal —
+  // same proxy-for-importance heuristic a well-run personal vault's own
+  // nightly maintenance uses (backlink count, not manual tagging) instead of
+  // real semantic search, which would be overkill at this scale. Vaea has no
+  // server-side cron to run that automatically (see reflectionTrigger.js's
+  // own honesty note on the same limitation) — this only ever surfaces as a
+  // real, user-confirmable /vault-tidy proposal, never a silent auto-tag.
+  const PRIORITY_BACKLINK_THRESHOLD = 5;
+  const suggested_priority = scanned.filter(
+    (p) => (incomingCount.get(p) || 0) >= PRIORITY_BACKLINK_THRESHOLD && !hasPriorityMarker.get(p)
+  );
 
   // Auto-linking suggestions and duplicate detection share one O(n^2) pass
   // over the scanned set (bounded by MAX_AUDIT_NOTES, so at most ~3,200
@@ -221,6 +236,7 @@ export async function auditVaultNotes({ owner, repo, branch, token }) {
     links,
     isolated_notes,
     tags,
+    suggested_priority,
     suggested_links: suggested_links.slice(0, 20),
     possible_duplicates: possible_duplicates.slice(0, 20),
   };

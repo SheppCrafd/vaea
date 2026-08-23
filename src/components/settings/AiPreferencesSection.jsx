@@ -152,7 +152,7 @@ export default function AiPreferencesSection() {
 
       <div className="flex items-start justify-between gap-4 mt-6 pt-6 border-t border-border">
         <div>
-          <p className="text-sm font-medium">Proactive check-ins</p>
+          <p id="proactive-checkins-label" className="text-sm font-medium">Proactive check-ins</p>
           <p className="text-xs text-muted-foreground mt-0.5 max-w-md">
             If you're away 3+ hours, opening Vaea Chat may show a message it started on its own — based on a
             read-only look at your own tasks and projects.{" "}
@@ -182,6 +182,7 @@ export default function AiPreferencesSection() {
           type="button"
           role="switch"
           aria-checked={reflectionEnabled}
+          aria-labelledby="proactive-checkins-label"
           onClick={toggleReflection}
           disabled={!reflectionPrefs}
           className={`shrink-0 mt-0.5 relative w-9 h-5 rounded-full transition-colors disabled:opacity-50 ${reflectionEnabled ? "bg-primary" : "bg-muted"}`}
@@ -194,7 +195,7 @@ export default function AiPreferencesSection() {
       {reflectionEnabled && (
         <div className="flex items-start justify-between gap-4 mt-4 pt-4 border-t border-border">
           <div>
-            <p className="text-sm font-medium">Notice patterns in how I communicate</p>
+            <p id="notice-patterns-label" className="text-sm font-medium">Notice patterns in how I communicate</p>
             <p className="text-xs text-muted-foreground mt-0.5 max-w-md">
               Its daily look-back can also save what it notices about how you write and work, not just its own
               replies. Off by default — nothing about you is analyzed unless this is on.
@@ -204,6 +205,7 @@ export default function AiPreferencesSection() {
             type="button"
             role="switch"
             aria-checked={userAnalysisEnabled}
+            aria-labelledby="notice-patterns-label"
             onClick={toggleUserAnalysis}
             className={`shrink-0 mt-0.5 relative w-9 h-5 rounded-full transition-colors ${userAnalysisEnabled ? "bg-primary" : "bg-muted"}`}
           >
