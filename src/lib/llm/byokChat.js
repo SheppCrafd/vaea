@@ -168,7 +168,7 @@ export async function runByokChat({ providerConfig, contextArgs, onEvent }) {
 // sitting in whatever prompt file this is resuming from, never re-sent.
 // Returns null (nothing to show) when the request turns out to have already
 // fully resolved rather than actually being orphaned.
-export async function resumeOrphanedLocalModeRequest({ requestId, contextArgs, onEvent }) {
+export async function resumeOrphanedLocalModeRequest({ requestId, contextArgs }) {
   const plan = [];
   const liveTrace = [];
   const dataset = {

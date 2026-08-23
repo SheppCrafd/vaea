@@ -66,7 +66,7 @@ export default function ComparePage() {
   useDocumentMeta(
     "Vaea vs. the typical task manager | Vaea",
     "/compare",
-    "How Vaea compares to a typical task manager: local-first data, an AI that acts on your work instead of describing it, bring-your-own-key support, and no pricing tiers."
+    "How Vaea compares to a typical task manager: local-first data, an AI that acts on your work instead of describing it, and no pricing tiers."
   );
   usePageSchema(COMPARE_PAGE_SCHEMA);
 

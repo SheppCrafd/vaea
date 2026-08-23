@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { CHAT_COMMANDS } from "@/lib/chatCommands";
 
-// Matches only while the whole input is "/" plus letters — the instant a
-// space, comma, or any other non-letter character is typed, this stops
-// matching and the caller's `isOpen` goes false on its own. Slash commands
-// are single words and only recognized at the very start of the message.
-const COMMAND_PATTERN = /^\/([a-zA-Z]*)$/;
+// Matches a trailing "/" + letters token — at the very start of the input,
+// or anywhere else as long as it's preceded by whitespace (so "please /log"
+// while still typing the command word matches, but a bare "/" inside a word
+// like "and/or" never does). The instant a space, comma, or any other
+// non-letter character is typed after the slash, this stops matching and
+// the caller's `isOpen` goes false on its own — commands are still single
+// words, just no longer required to be the very first thing in the box.
+const COMMAND_PATTERN = /(?:^|\s)\/([a-zA-Z]*)$/;
 
 // Drives the "/" command autocomplete in the chat composer. Unmatched
 // commands (e.g. "/notacommand") are never surfaced here — they're simply
@@ -16,7 +19,11 @@ export function useSlashCommand(input, setInput) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [dismissed, setDismissed] = useState(false);
 
-  const query = COMMAND_PATTERN.exec(input)?.[1] ?? null;
+  const match = COMMAND_PATTERN.exec(input);
+  // Index of the "/" itself, so applyCommand can replace just the trailing
+  // token below rather than clobbering whatever text came before it.
+  const slashIndex = match ? match.index + match[0].indexOf("/") : -1;
+  const query = match?.[1] ?? null;
   const matches = useMemo(
     () => (query === null ? [] : CHAT_COMMANDS.filter((c) => c.name.startsWith(query.toLowerCase()))),
     [query]
@@ -29,7 +36,8 @@ export function useSlashCommand(input, setInput) {
   }, [query]);
 
   const applyCommand = (name) => {
-    setInput(`/${name} `);
+    if (slashIndex === -1) return;
+    setInput(`${input.slice(0, slashIndex)}/${name} `);
   };
 
   const handleKeyDown = (e) => {

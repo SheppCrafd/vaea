@@ -34,7 +34,7 @@ export function hasReflectionConsentBeenDismissedThisPageLoad() {
 // since actually running a turn needs real hook state this module doesn't
 // have. Failures are swallowed here, not surfaced — a reflection is a
 // bonus, never something that should visibly break the chat experience.
-export async function runReflectionIfDue({ runReflectionTurn }) {
+export async function runReflectionIfDue({ runReflectionTurn, checkVaultConnected }) {
   if (claimedThisPageLoad) return;
   const prefs = await loadReflectionPreferences();
   if (claimedThisPageLoad) return; // re-check after the await — single-threaded JS makes this race-free
@@ -51,8 +51,20 @@ export async function runReflectionIfDue({ runReflectionTurn }) {
   // that 3-hour window. Whether a due cycle actually finds anything to do
   // (vault connected, real messages/notes since last time) is still decided
   // inside runReflectionTurn — this is only "is it time to even look."
-  const vaultTidyDue = !prefs.lastVaultTidyAt || Date.now() - new Date(prefs.lastVaultTidyAt).getTime() >= VAULT_TIDY_INTERVAL_MS;
-  const dreamDue = !prefs.lastDreamAt || Date.now() - new Date(prefs.lastDreamAt).getTime() >= DREAM_INTERVAL_MS;
+  //
+  // Both gated on the vault actually being connected: runReflectionTurn
+  // only ever stamps lastVaultTidyAt/lastDreamAt inside its own
+  // `if (vaultConnected)` block, so for a user who's never connected a
+  // vault those two fields stay `null` forever — read the old, unguarded
+  // way (`!prefs.lastVaultTidyAt || ...`), that null reads as "always due"
+  // and this whole function stops respecting reflectionDue's 3-hour gate:
+  // it fires (and resets lastReflectionAt to "now") on every single chat
+  // open, so the delta since last time is always ~0 and no check-in ever
+  // has anything to say. The real bug behind "check-ins are broken" for
+  // anyone without Vaea Brain connected.
+  const vaultConnected = await checkVaultConnected();
+  const vaultTidyDue = vaultConnected && (!prefs.lastVaultTidyAt || Date.now() - new Date(prefs.lastVaultTidyAt).getTime() >= VAULT_TIDY_INTERVAL_MS);
+  const dreamDue = vaultConnected && (!prefs.lastDreamAt || Date.now() - new Date(prefs.lastDreamAt).getTime() >= DREAM_INTERVAL_MS);
   if (!reflectionDue && !vaultTidyDue && !dreamDue) return;
 
   claimedThisPageLoad = true;

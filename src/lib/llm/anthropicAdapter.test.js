@@ -160,7 +160,7 @@ describe("anthropicAdapter: tool-call loop (streamed)", () => {
   });
 
   it("keeps the FINAL round's own text whole, even with multiple paragraphs, once a real tool-call round preceded it", async () => {
-    const fetchMock = vi.fn(async (url, init) => {
+    const fetchMock = vi.fn(async () => {
       const calls = fetchMock.mock.calls.length;
       if (calls === 1) {
         return streamResponse(roundEvents([

@@ -183,12 +183,6 @@ async function clearStoredHandle() {
   }
 }
 
-async function hasPermission(handle) {
-  const opts = { mode: "readwrite" };
-  if ((await handle.queryPermission(opts)) === "granted") return true;
-  return false;
-}
-
 // Must be called from a user-gesture handler (click) — the permission
 // prompt this can trigger is spec'd to require one.
 async function ensurePermission(handle) {

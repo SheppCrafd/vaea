@@ -34,4 +34,5 @@ export const CHAT_COMMANDS = [
   { name: "action-items", description: "Extract action items from any text in this conversation" },
   { name: "help", description: "List all available slash commands" },
   { name: "snippet", description: "Save or reuse a text snippet — /snippet save <name>: <text>, or /snippet <name> to insert it" },
+  { name: "workflow", description: "Run through your Workflow Canvas cards as one ordered plan" },
 ];

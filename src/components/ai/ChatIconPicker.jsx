@@ -16,7 +16,7 @@ export default function ChatIconPicker({ iconPicker, iconChoice, chooseIcon }) {
           <button
             key={key}
             onClick={() => chooseIcon({ key })}
-            className={`p-1.5 rounded-md hover:bg-secondary ${iconChoice.key === key && !iconChoice.emoji ? "bg-secondary" : ""}`}
+            className={`p-1.5 rounded-md hover:bg-secondary ${iconChoice.key === key && !iconChoice.emoji ? "bg-secondary" : ""} transition-colors`}
             aria-label={key}
           >
             <Icon className="w-4 h-4" />

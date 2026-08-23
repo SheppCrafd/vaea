@@ -147,4 +147,15 @@ export const useAppStore = create((set) => ({
   })),
   consumePendingRoute: () => set({ pendingRoute: null }),
   clearHighlight: () => set({ pendingHighlightId: null }),
+
+  // Vault note paths Vaea is CURRENTLY proposing to write (a pending
+  // WRITE_VAULT_NOTE the user hasn't confirmed/cancelled yet) — set by
+  // useChatController.js whenever such a pending_action appears, read by
+  // VaultGraph.jsx to render those as "new" nodes (grey — the opposite of
+  // the existing-node accent color) even before the note is real, and
+  // cleared the moment the user confirms or cancels. Global store, not
+  // per-session chat state, since the whole point is the Mind Map page
+  // (which has no chat context of its own) can react to it.
+  pendingVaultProposals: [],
+  setPendingVaultProposals: (paths) => set({ pendingVaultProposals: paths || [] }),
 }));

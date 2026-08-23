@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, Check, LayoutGrid, Loader2, TriangleAlert, Unlink, Video } from "lucide-react";
+import { Building2, Check, Loader2, TriangleAlert, Unlink } from "lucide-react";
 import { loadMicrosoftConnection, saveMicrosoftConnection, clearMicrosoftConnection, isMicrosoftConnected, DEFAULTS } from "@/lib/microsoftConnection";
 import { buildAuthorizationUrl } from "@/lib/microsoftOAuthPkce";
 import { listEvents } from "@/lib/microsoftGraphApi";
@@ -29,7 +29,6 @@ function UpcomingEvents({ connection, onTokenRefreshed }) {
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -61,11 +60,7 @@ function UpcomingEvents({ connection, onTokenRefreshed }) {
             <li key={event.id} className="flex items-baseline gap-2.5 text-sm">
               <span className="text-xs text-muted-foreground font-terminal shrink-0 w-32 truncate">{event.start}</span>
               <span className="truncate">{event.subject || "(no title)"}</span>
-              {event.isOnlineMeeting && (
-                <span className="flex items-center gap-1 text-[10px] text-primary border border-primary/30 rounded px-1 py-0.5 shrink-0">
-                  <Video className="w-2.5 h-2.5" /> Teams
-                </span>
-              )}
+              {event.isOnlineMeeting && <span className="text-[10px] text-primary shrink-0">Teams</span>}
             </li>
           ))}
         </ul>
@@ -132,11 +127,6 @@ export default function MicrosoftSection() {
         this account sits on Vaea's servers: the connection lives on this device, sent along transiently only for
         the moment a request actually needs it.
       </p>
-      <div className="flex items-center gap-3 text-[11px] text-muted-foreground mb-4">
-        <span className="flex items-center gap-1"><CalendarDays className="w-3 h-3" /> Calendar</span>
-        <span className="text-border">·</span>
-        <span className="flex items-center gap-1"><Video className="w-3 h-3" /> Teams</span>
-      </div>
 
       {!connected ? (
         <>
@@ -146,7 +136,7 @@ export default function MicrosoftSection() {
             disabled={connecting}
             className="flex items-center gap-1.5 text-sm px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md transition-colors shadow-sm disabled:opacity-50"
           >
-            {connecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LayoutGrid className="w-3.5 h-3.5" />}
+            {connecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Building2 className="w-3.5 h-3.5" />}
             {connecting ? "Redirecting to Microsoft…" : "Connect Microsoft"}
           </button>
           {error && (

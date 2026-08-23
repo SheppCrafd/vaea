@@ -30,7 +30,7 @@ export default function TaskAttachments({ attachments = [], onSave }) {
         type="button"
         onClick={toggle}
         aria-label="Task attachments"
-        className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
+        className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
       >
         <Paperclip className="w-3.5 h-3.5" />
         {attachments.length > 0 && attachments.length}
@@ -46,17 +46,17 @@ export default function TaskAttachments({ attachments = [], onSave }) {
         {attachments.length === 0 && <p className="text-xs text-muted-foreground px-1 py-1">No attachments yet.</p>}
         <div className="flex flex-col gap-1 mb-1">
           {attachments.map((a, i) => (
-            <div key={i} className="flex items-center justify-between gap-1 text-xs px-1 py-1 hover:bg-secondary rounded-sm">
-              <a href={sanitizeHttpUrl(a.url) || "#"} target="_blank" rel="noreferrer" title={a.name} className="truncate text-primary hover:underline min-w-0">
+            <div key={i} className="flex items-center justify-between gap-1 text-xs px-1 py-1 hover:bg-secondary rounded-sm transition-colors">
+              <a href={sanitizeHttpUrl(a.url) || "#"} target="_blank" rel="noreferrer" title={a.name} className="truncate text-primary hover:underline min-w-0 transition-colors">
                 {a.name}
               </a>
-              <button onClick={() => removeAttachment(i)} aria-label="Remove attachment" className="shrink-0 text-muted-foreground hover:text-destructive">
+              <button onClick={() => removeAttachment(i)} aria-label="Remove attachment" className="shrink-0 text-muted-foreground hover:text-destructive transition-colors">
                 <X className="w-3 h-3" />
               </button>
             </div>
           ))}
         </div>
-        <label className="flex items-center justify-center gap-1.5 text-xs px-2 py-1.5 bg-secondary text-secondary-foreground border border-border rounded cursor-pointer hover:opacity-80">
+        <label className="flex items-center justify-center gap-1.5 text-xs px-2 py-1.5 bg-secondary text-secondary-foreground border border-border rounded cursor-pointer hover:opacity-80 transition-colors">
           <Upload className="w-3 h-3" />
           {isUploading ? "Uploading..." : "Add file"}
           <input type="file" onChange={handleFileChange} disabled={isUploading} className="hidden" />

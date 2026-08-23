@@ -39,7 +39,7 @@ const METRIC_LABELS = {
   not_started_tasks: "not-started tasks",
 };
 
-function RulesCard({ rules, setRules, metrics, triggered }) {
+function RulesCard({ rules, setRules, triggered }) {
   const [adding, setAdding] = useState(false);
   const [metric, setMetric] = useState("overdue_projects");
   const [threshold, setThreshold] = useState(5);
@@ -230,7 +230,7 @@ export default function NotificationsPage() {
               )}
             </div>
           )}
-          {!loading && <RulesCard rules={rules} setRules={setRules} metrics={metrics} triggered={triggered} />}
+          {!loading && <RulesCard rules={rules} setRules={setRules} triggered={triggered} />}
           {!loading && (
             <p className="text-[11px] text-muted-foreground mt-4 flex items-center gap-1.5">
               <Archive className="w-3 h-3" /> Auto-archive suggestions and stakeholder follow-up reminders land here in a later pass.

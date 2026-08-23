@@ -34,7 +34,7 @@ export default function ColumnFilterMenu({
           toggle();
         }}
         aria-label="Filter column"
-        className={`inline-flex items-center shrink-0 ${isActive ? "text-primary" : "text-muted-foreground/40 hover:text-muted-foreground"}`}
+        className={`inline-flex items-center shrink-0 ${isActive ? "text-primary" : "text-muted-foreground/40 hover:text-muted-foreground"} transition-colors`}
       >
         <Filter className="w-2.5 h-2.5" fill={isActive ? "currentColor" : "none"} />
       </button>
@@ -61,7 +61,7 @@ export default function ColumnFilterMenu({
                 key={v}
                 type="button"
                 onClick={() => onTriStateChange(v)}
-                className={`text-left text-xs px-2 py-1.5 rounded-sm hover:bg-secondary capitalize ${triState === v ? "bg-secondary font-medium" : ""}`}
+                className={`text-left text-xs px-2 py-1.5 rounded-sm hover:bg-secondary capitalize ${triState === v ? "bg-secondary font-medium" : ""} transition-colors`}
               >
                 {v}
               </button>
@@ -72,13 +72,13 @@ export default function ColumnFilterMenu({
           <div className="flex flex-col gap-0.5">
             {options.length === 0 && <p className="text-xs text-muted-foreground px-2 py-1">No values</p>}
             {options.map((opt) => (
-              <label key={opt.value} className="flex items-center gap-1.5 text-xs px-2 py-1 hover:bg-secondary rounded-sm cursor-pointer">
+              <label key={opt.value} className="flex items-center gap-1.5 text-xs px-2 py-1 hover:bg-secondary rounded-sm cursor-pointer transition-colors">
                 <input type="checkbox" checked={selected.includes(opt.value)} onChange={() => onToggleOption(opt.value)} />
                 {opt.label}
               </label>
             ))}
             {selected.length > 0 && (
-              <button type="button" onClick={onClearOptions} className="text-[10px] text-muted-foreground hover:text-foreground text-left px-2 pt-1">
+              <button type="button" onClick={onClearOptions} className="text-[10px] text-muted-foreground hover:text-foreground text-left px-2 pt-1 transition-colors">
                 Clear
               </button>
             )}

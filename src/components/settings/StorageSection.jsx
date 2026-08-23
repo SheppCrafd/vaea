@@ -21,7 +21,10 @@ import { confirmThen } from "@/lib/entityUtils";
 // same "don't lose what's already there" care the legacy-localStorage
 // migration takes.
 export default function StorageSection() {
-  const [mode, setMode] = useState(getStorageMode());
+  // A successful switch always reloads the page (see switchToCloud/
+  // switchToDevice below), so this only ever needs to reflect the mode at
+  // mount — no setter needed, the reload is what keeps it honest.
+  const [mode] = useState(getStorageMode());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
