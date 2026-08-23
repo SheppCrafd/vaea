@@ -209,7 +209,7 @@ const MINDMAP_FAQS = [
   },
   {
     q: "Is the Vault graph editable?",
-    a: "Not directly — it's a read view of your real link structure. Adding a [[wikilink]] in Obsidian (or asking Vaea Chat to write one) is what changes what shows up here. The Workflows tab, by contrast, is fully editable — drag, add, and delete cards freely.",
+    a: "Yes — double-click empty space to create a new note, or shift-drag from one note to another to draw a real [[wikilink]] between them, both written straight to your vault. Dragging a note without shift just repositions it on the canvas. You can also ask Vaea Chat to write a link, or add one yourself in Obsidian.",
   },
   {
     q: "Does Workflows automate anything yet?",

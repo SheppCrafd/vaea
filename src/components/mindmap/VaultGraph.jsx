@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Network, Loader2, TriangleAlert, ZoomIn, ZoomOut, Maximize } from "lucide-react";
+import { Network, Loader2, TriangleAlert, ZoomIn, ZoomOut, Maximize, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
-import { auditVaultNotes } from "@/lib/githubApi";
+import { auditVaultNotes, writeVaultFile, readVaultNoteContent } from "@/lib/githubApi";
 import { loadPhysics, savePhysics } from "@/lib/mindMapPhysics";
 import { useAppStore } from "@/lib/store";
 import MindMapPhysicsSettings from "@/components/mindmap/MindMapPhysicsSettings";
@@ -133,6 +133,16 @@ export default function VaultGraph({ demo = false }) {
   const [hovered, setHovered] = useState(null);
   const [openNote, setOpenNote] = useState(null);
   const [physics, setPhysics] = useState(loadPhysics);
+  // The graph stopped being a pure read view with this feature: a real new
+  // note can be created directly on the canvas (double-click empty space),
+  // and a real [[wikilink]] can be drawn directly between two existing
+  // notes (shift-drag from one node to another). Both write straight to the
+  // vault via githubApi.js, same as any other vault write — just triggered
+  // from the graph instead of from chat.
+  const [newNoteDraft, setNewNoteDraft] = useState(null); // { x, y, screenX, screenY, title } | null
+  const [linkFrom, setLinkFrom] = useState(null); // node path currently being linked from, for the toolbar hint
+  const [saving, setSaving] = useState(false);
+  const [actionError, setActionError] = useState("");
   // Note paths Vaea currently has a pending, not-yet-confirmed
   // WRITE_VAULT_NOTE proposal for (useChatController.js's
   // proposeVaultNotesIfAny) — rendered here as "new" nodes even though
@@ -177,6 +187,7 @@ export default function VaultGraph({ demo = false }) {
   const hoveredRef = useRef(null);
   const physicsRef = useRef(physics);
   const proposedRef = useRef(new Set());
+  const linkCursorRef = useRef(null); // graph-space point the in-progress shift-drag link line follows
   proposedRef.current = new Set(proposedPaths);
   const setView = (next) => {
     const resolved = typeof next === "function" ? next(viewRef.current) : next;
@@ -203,6 +214,23 @@ export default function VaultGraph({ demo = false }) {
     };
   };
 
+  // Re-fetches the real graph from GitHub — the initial load below, and
+  // also called directly after a graph-driven write (new note, new link)
+  // instead of trying to hand-patch links/tags/positions locally, since
+  // auditVaultNotes' resolution logic (broken links, suggested_links,
+  // duplicates) isn't something worth re-implementing here just to avoid
+  // one extra real fetch.
+  const refreshGraph = async (conn) => {
+    try {
+      const result = await auditVaultNotes(conn);
+      setGraph(result);
+      return result;
+    } catch (err) {
+      setError(err.message);
+      return null;
+    }
+  };
+
   useEffect(() => {
     if (demo) return;
     (async () => {
@@ -211,12 +239,7 @@ export default function VaultGraph({ demo = false }) {
       setConnected(isConnected);
       if (!isConnected) return;
       setConnection(conn);
-      try {
-        const result = await auditVaultNotes(conn);
-        setGraph(result);
-      } catch (err) {
-        setError(err.message);
-      }
+      await refreshGraph(conn);
     })();
   }, [demo]);
 
@@ -319,6 +342,23 @@ export default function VaultGraph({ demo = false }) {
       }
       ctx.setLineDash([]);
 
+      // The in-progress shift-drag link — a live preview of the real
+      // [[wikilink]] that lands on release, so dragging toward empty space
+      // (which cancels) looks visibly different from dragging toward a
+      // real target the moment it's under the cursor.
+      if (dragRef.current?.kind === "link" && linkCursorRef.current) {
+        const from = positions.get(dragRef.current.node);
+        const targetNode = nodeAt(linkCursorRef.current.x, linkCursorRef.current.y);
+        ctx.strokeStyle = teal;
+        ctx.lineWidth = (targetNode ? 2 : 1) / currentView.scale;
+        ctx.setLineDash(targetNode ? [] : [4 / currentView.scale, 4 / currentView.scale]);
+        ctx.beginPath();
+        ctx.moveTo(from.x, from.y);
+        ctx.lineTo(linkCursorRef.current.x, linkCursorRef.current.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
       for (const n of nodes) {
         const p = positions.get(n);
         const isProposed = proposedRef.current.has(n);
@@ -370,15 +410,25 @@ export default function VaultGraph({ demo = false }) {
     if (demo) return;
     const { x, y } = toGraphSpace(e.clientX, e.clientY);
     const node = nodeAt(x, y);
-    dragRef.current = node
-      ? { kind: "node", node, moved: false, startClientX: e.clientX, startClientY: e.clientY }
-      : { kind: "pan", moved: false, startClientX: e.clientX, startClientY: e.clientY, startView: viewRef.current };
-    if (node) {
-      const p = positionsRef.current.get(node);
-      p.fixed = true;
-      alphaRef.current = 1;
-      if (!rafRef.current) rafRef.current = requestAnimationFrame(frameRef.current);
+    // Shift-drag from a node draws a real [[wikilink]] instead of moving
+    // it — the graph's own "create a connection" gesture, same modifier
+    // convention as most diagram tools use to distinguish "move" from
+    // "connect."
+    if (node && e.shiftKey) {
+      dragRef.current = { kind: "link", node, moved: false, startClientX: e.clientX, startClientY: e.clientY };
+      linkCursorRef.current = { x, y };
+      setLinkFrom(node);
+    } else {
+      dragRef.current = node
+        ? { kind: "node", node, moved: false, startClientX: e.clientX, startClientY: e.clientY }
+        : { kind: "pan", moved: false, startClientX: e.clientX, startClientY: e.clientY, startView: viewRef.current };
+      if (node) {
+        const p = positionsRef.current.get(node);
+        p.fixed = true;
+        alphaRef.current = 1;
+      }
     }
+    if (!rafRef.current) rafRef.current = requestAnimationFrame(frameRef.current);
     e.currentTarget.setPointerCapture(e.pointerId);
   };
 
@@ -401,6 +451,9 @@ export default function VaultGraph({ demo = false }) {
       const p = positionsRef.current.get(drag.node);
       const { x, y } = toGraphSpace(e.clientX, e.clientY);
       p.x = x; p.y = y; p.vx = 0; p.vy = 0;
+    } else if (drag.kind === "link") {
+      linkCursorRef.current = toGraphSpace(e.clientX, e.clientY);
+      if (!rafRef.current) rafRef.current = requestAnimationFrame(frameRef.current);
     } else if (drag.moved) {
       setView((v) => ({ ...v, x: drag.startView.x - dxClient / v.scale, y: drag.startView.y - dyClient / v.scale }));
       if (!rafRef.current) rafRef.current = requestAnimationFrame(frameRef.current); // repaint the new pan offset even on a cold/settled graph
@@ -419,8 +472,85 @@ export default function VaultGraph({ demo = false }) {
     if (drag?.kind === "node") {
       positionsRef.current.get(drag.node).fixed = false;
       if (!drag.moved) setOpenNote(drag.node);
+    } else if (drag?.kind === "link" && linkCursorRef.current) {
+      const target = nodeAt(linkCursorRef.current.x, linkCursorRef.current.y);
+      if (target && target !== drag.node) createLinkBetween(drag.node, target);
     }
     dragRef.current = null;
+    linkCursorRef.current = null;
+    setLinkFrom(null);
+  };
+
+  // Double-click on the open background creates a real new note — the
+  // graph's own "add a node" gesture. Double-clicking a node instead just
+  // does nothing extra here (a plain click already opens it); this only
+  // fires when nodeAt comes back empty.
+  const handleDoubleClick = (e) => {
+    if (demo) return;
+    const { x, y } = toGraphSpace(e.clientX, e.clientY);
+    if (nodeAt(x, y)) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    setNewNoteDraft({ x, y, screenX: e.clientX - rect.left, screenY: e.clientY - rect.top, title: "" });
+  };
+
+  // Shift-drag-to-link and double-click-to-create both write straight to
+  // GitHub via githubApi.js — no confirm step, unlike the same actions
+  // proposed through chat (WRITE_VAULT_NOTE), because this IS the direct
+  // manipulation surface already: dragging a card in Workflows or typing in
+  // a note's own editor doesn't ask for confirmation either. Errors surface
+  // inline (actionError) rather than as a thrown exception with nowhere to
+  // land.
+  const createLinkBetween = async (fromPath, toPath) => {
+    if (!connection) return;
+    setSaving(true);
+    setActionError("");
+    try {
+      const content = await readVaultNoteContent({ ...connection, branch: connection.branch || "main", path: fromPath });
+      const linkLine = `[[${titleOf(toPath)}]]`;
+      const nextContent = content.includes(linkLine) ? content : `${content.replace(/\s+$/, "")}\n\n${linkLine}\n`;
+      await writeVaultFile({
+        ...connection,
+        branch: connection.branch || "main",
+        path: fromPath,
+        content: nextContent,
+        commitMessage: `Link ${titleOf(fromPath)} -> ${titleOf(toPath)} via Vaea Mind Map`,
+      });
+      await refreshGraph(connection);
+    } catch (err) {
+      setActionError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const createNoteFromDraft = async () => {
+    if (!connection || !newNoteDraft?.title.trim()) return;
+    const title = newNoteDraft.title.trim();
+    setSaving(true);
+    setActionError("");
+    try {
+      await writeVaultFile({
+        ...connection,
+        branch: connection.branch || "main",
+        path: `${title}.md`,
+        content: `# ${title}\n`,
+        commitMessage: `Create ${title}.md via Vaea Mind Map`,
+      });
+      const fresh = await refreshGraph(connection);
+      // Seed the brand-new note near where it was created rather than
+      // wherever the next full re-seed's default layout would place it —
+      // only matters if the seeding effect's own re-seed (keyed on `graph`
+      // identity) hasn't already run by the time this resolves; harmless
+      // no-op otherwise since that effect will just overwrite it.
+      if (fresh && positionsRef.current && !positionsRef.current.has(`${title}.md`)) {
+        positionsRef.current.set(`${title}.md`, { x: newNoteDraft.x, y: newNoteDraft.y, vx: 0, vy: 0, fixed: false });
+      }
+      setNewNoteDraft(null);
+    } catch (err) {
+      setActionError(err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleWheel = (e) => {
@@ -451,9 +581,18 @@ export default function VaultGraph({ demo = false }) {
     if (!rafRef.current) rafRef.current = requestAnimationFrame(frameRef.current);
   };
 
+  const nodeCount = graph
+    ? new Set([
+        ...(graph.links || []).flatMap((l) => [l.from, l.to]),
+        ...(graph.suggested_links || []).flatMap((l) => [l.a, l.b]),
+        ...Object.keys(graph.tags || {}),
+        ...proposedPaths,
+      ]).size
+    : 0;
+
   return (
     <div className="flex-1 min-h-0 overflow-hidden relative" ref={containerRef}>
-      {!demo && graph && (graph.links?.length || graph.suggested_links?.length) ? (
+      {!demo && graph && nodeCount > 0 ? (
         <MindMapPhysicsSettings physics={physics} onChange={updatePhysics} />
       ) : null}
       {connected === false ? (
@@ -480,28 +619,29 @@ export default function VaultGraph({ demo = false }) {
         <div className="flex items-center gap-1.5 text-sm text-muted-foreground py-6 max-w-2xl mx-auto">
           <Loader2 className="w-4 h-4 animate-spin" /> Reading your vault…
         </div>
-      ) : (graph.links || []).length === 0 && (graph.suggested_links || []).length === 0 ? (
-        <div className="max-w-2xl mx-auto pt-4">
-          <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-8 text-center">
-            <p className="text-sm font-medium">No connections yet</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Add some [[wikilinks]] between your notes and this page fills in automatically.
-            </p>
-          </div>
-        </div>
       ) : (
-        <canvas
-          ref={canvasRef}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerLeave={handlePointerUp}
-          onWheel={handleWheel}
-          className={`w-full h-full touch-none ${demo ? "" : hovered ? "cursor-grab active:cursor-grabbing" : "cursor-default active:cursor-grabbing"}`}
-        />
+        <>
+          {nodeCount === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              <p className="text-sm text-muted-foreground text-center max-w-xs">
+                {demo ? "No connections yet." : "Double-click anywhere to create your first note."}
+              </p>
+            </div>
+          )}
+          <canvas
+            ref={canvasRef}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerLeave={handlePointerUp}
+            onWheel={handleWheel}
+            onDoubleClick={handleDoubleClick}
+            className={`w-full h-full touch-none ${demo ? "" : hovered ? "cursor-grab active:cursor-grabbing" : "cursor-default active:cursor-grabbing"}`}
+          />
+        </>
       )}
 
-      {!demo && graph && (graph.links?.length || graph.suggested_links?.length) ? (
+      {!demo && graph ? (
         <div className="absolute bottom-2 right-2 z-10 flex items-center gap-0.5 rounded-md bg-card/90 border border-border shadow-sm backdrop-blur-sm p-0.5">
           <button
             type="button"
@@ -533,6 +673,42 @@ export default function VaultGraph({ demo = false }) {
           </button>
         </div>
       ) : null}
+
+      {!demo && newNoteDraft && (
+        <form
+          onSubmit={(e) => { e.preventDefault(); createNoteFromDraft(); }}
+          style={{ left: newNoteDraft.screenX, top: newNoteDraft.screenY }}
+          className="absolute z-20 -translate-x-1/2 -translate-y-1/2 flex items-center gap-1.5 bg-card border border-border rounded-lg shadow-lg p-1.5"
+        >
+          <input
+            autoFocus
+            value={newNoteDraft.title}
+            onChange={(e) => setNewNoteDraft((d) => ({ ...d, title: e.target.value }))}
+            onKeyDown={(e) => { if (e.key === "Escape") setNewNoteDraft(null); }}
+            placeholder="New note title"
+            disabled={saving}
+            className="text-xs px-2 py-1 rounded-md border border-input bg-background outline-none focus:ring-1 focus:ring-primary/50 w-40"
+          />
+          <button type="submit" disabled={saving || !newNoteDraft.title.trim()} className="text-xs px-2 py-1 bg-primary text-primary-foreground rounded-md disabled:opacity-50">
+            {saving ? "..." : "Create"}
+          </button>
+          <button type="button" onClick={() => setNewNoteDraft(null)} className="text-xs px-1.5 text-muted-foreground hover:text-foreground transition-colors">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </form>
+      )}
+
+      {!demo && linkFrom && (
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 text-[11px] text-muted-foreground bg-card/90 border border-border rounded-md px-2.5 py-1 shadow-sm backdrop-blur-sm">
+          Drop on a note to link "{titleOf(linkFrom)}" to it — drop on empty space to cancel
+        </div>
+      )}
+
+      {!demo && actionError && (
+        <p className="absolute bottom-2 left-2 z-10 max-w-xs flex items-start gap-1.5 text-[11px] text-destructive bg-card/90 border border-destructive/30 rounded-md px-2 py-1.5 shadow-sm backdrop-blur-sm">
+          <TriangleAlert className="w-3 h-3 shrink-0 mt-0.5" /> {actionError}
+        </p>
+      )}
 
       {openNote && connection && (
         <NoteContentModal path={openNote} connection={connection} onClose={() => setOpenNote(null)} />
