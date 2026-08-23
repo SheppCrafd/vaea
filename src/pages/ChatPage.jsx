@@ -18,6 +18,7 @@ import ChatReflectionConsent from "@/components/ai/ChatReflectionConsent";
 import MobileSidebarDrawer from "@/components/shared/MobileSidebarDrawer";
 import AgentsCard from "@/components/sidebar/AgentsCard";
 import PromptTemplatesCard from "@/components/sidebar/PromptTemplatesCard";
+
 // The session list's own content (New chat button + the list itself), plus
 // the Agents and Prompt Templates cards below it — factored out so the
 // desktop docked <aside> and the mobile MobileSidebarDrawer can both render
@@ -58,6 +59,7 @@ function ChatHistoryPanelContent({ chat, sessions }) {
     </>
   );
 }
+
 // Full-page chat — a dedicated /chat route (outside the dashboard's AppShell
 // chrome entirely) laid out like a standalone chat app: a persistent session
 // sidebar on the left (always visible, not a popup, unlike the floating
@@ -87,6 +89,7 @@ export default function ChatPage() {
   const slashCommand = useSlashCommand(chat.input, chat.setInput);
   const inputHistory = useChatInputHistory({ messages: chat.chatState.messages, input: chat.input, setInput: chat.setInput });
   const location = useLocation();
+
   // Pre-fill the input when navigated here with location.state.initialMessage
   // (e.g. from ProjectDetailModal's "Brief me on this project" button). Only
   // runs once on mount — intentionally doesn't reset if the location changes
@@ -95,6 +98,7 @@ export default function ChatPage() {
     const msg = location.state?.initialMessage;
     if (msg && !chat.input) chat.setInput(msg);
   }, []);
+
   // Same reasoning as AppShell.jsx's mobile drawers: below md the aside
   // never docks (a 256px sidebar squeezes the thread into an unusable
   // sliver on a phone), and the drawer's own open state is page-local and
@@ -103,11 +107,13 @@ export default function ChatPage() {
   // open.
   const isMobile = useIsMobile();
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+
   // The page itself IS "opened" — no isChatOpen-style toggle here the way
   // ChatBox has one, so this just fires once per real navigation to /chat.
   useEffect(() => {
     chat.notifyChatOpened();
   }, []);
+
   return (
     <div className="h-full flex overflow-hidden gap-3 px-3 pb-3">
       {!isMobile && isSidebarOpen && (
@@ -125,6 +131,7 @@ export default function ChatPage() {
           <ChatHistoryPanelContent chat={chat} sessions={sessions} />
         </aside>
       )}
+
       {isMobile && (
         <MobileSidebarDrawer
           isOpen={isMobileDrawerOpen}
@@ -135,6 +142,7 @@ export default function ChatPage() {
           <ChatHistoryPanelContent chat={chat} sessions={sessions} />
         </MobileSidebarDrawer>
       )}
+
       <div className="flex-1 min-w-0 flex flex-col">
         <div className="h-14 shrink-0 flex items-center gap-3 px-4">
           {(isMobile || !isSidebarOpen) && (
@@ -170,8 +178,10 @@ export default function ChatPage() {
             <Settings className="w-4 h-4" />
           </button>
         </div>
+
         <div className="flex-1 min-h-0 flex flex-col max-w-3xl w-full mx-auto">
           <ChatReflectionConsent />
+
           {chat.reflectionSessionId && chat.reflectionSessionId !== chat.activeSessionId && (
             <button
               onClick={chat.openReflectionSession}
@@ -180,6 +190,7 @@ export default function ChatPage() {
               Vaea started a new conversation — view it
             </button>
           )}
+
           <ChatMessageList
             messages={chat.chatState.messages}
             isComputing={chat.isComputing}
@@ -193,6 +204,7 @@ export default function ChatPage() {
             onCancel={chat.handleCancel}
             newMessageIds={chat.newMessageIds}
           />
+
           {chat.attachedFile && (
             <div className="px-3 pt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
               <Paperclip className="w-3.5 h-3.5" />
@@ -200,6 +212,7 @@ export default function ChatPage() {
               <button onClick={() => chat.setAttachedFile(null)} className="text-destructive/80 hover:text-destructive">×</button>
             </div>
           )}
+
           {chat.authPromptVisible ? (
             <div className="p-4">
               <ChatAuthPrompt onSignIn={chat.signInForChat} onDismiss={chat.dismissAuthPrompt} />
@@ -254,7 +267,9 @@ export default function ChatPage() {
           )}
         </div>
       </div>
+
       <ChatIconPicker iconPicker={chat.iconPicker} iconChoice={chat.iconChoice} chooseIcon={chat.chooseIcon} />
+
       {isSettingsOpen && <ChatSettingsModal onClose={() => setIsSettingsOpen(false)} />}
     </div>
   );

@@ -4,6 +4,7 @@ import { CheckSquare, Check, Loader2, TriangleAlert, Unlink } from "lucide-react
 import { loadClickUpConnection, saveClickUpConnection, clearClickUpConnection, isClickUpConnected, DEFAULTS as CLICKUP_DEFAULTS } from "@/lib/clickupConnection";
 import { buildAuthorizationUrl } from "@/lib/clickupOAuth";
 import { listSpaces, listLists } from "@/lib/clickupApi";
+
 // Picking a default list — unlike Google Calendar's obvious "primary"
 // calendar, ClickUp has a real Space -> Folder -> List hierarchy with no
 // single default. Two dropdowns (space, then list within it), same
@@ -15,6 +16,7 @@ function DefaultListPicker({ connection, onSaved }) {
   const [listId, setListId] = useState(connection.defaultListId || "");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
   useEffect(() => {
     listSpaces(connection)
       .then((s) => {
@@ -26,6 +28,7 @@ function DefaultListPicker({ connection, onSaved }) {
         setLoading(false);
       });
   }, []);
+
   const handleSpaceChange = async (id) => {
     setSpaceId(id);
     setLists(null);
@@ -36,6 +39,7 @@ function DefaultListPicker({ connection, onSaved }) {
       setError(err.message);
     }
   };
+
   const handleListChange = async (id) => {
     setListId(id);
     const list = lists?.find((l) => l.id === id);
@@ -43,6 +47,7 @@ function DefaultListPicker({ connection, onSaved }) {
     await saveClickUpConnection(updated);
     onSaved(updated);
   };
+
   if (loading) {
     return (
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground py-2">
@@ -50,6 +55,7 @@ function DefaultListPicker({ connection, onSaved }) {
       </div>
     );
   }
+
   if (error) {
     return (
       <p className="flex items-start gap-1.5 text-xs text-destructive">
@@ -57,6 +63,7 @@ function DefaultListPicker({ connection, onSaved }) {
       </p>
     );
   }
+
   return (
     <div className="grid sm:grid-cols-2 gap-3">
       <div>
@@ -89,6 +96,7 @@ function DefaultListPicker({ connection, onSaved }) {
     </div>
   );
 }
+
 // ClickUp — connects tasks/projects and ClickUp's own team Chat. Same
 // one-click OAuth shape as Google Calendar (see clickupOAuth.js for why the
 // code exchange itself needs one server round-trip, unlike Calendar's fully
@@ -100,10 +108,13 @@ export default function ClickUpSection() {
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
+
   useEffect(() => {
     loadClickUpConnection().then(setConnection);
   }, []);
+
   const connected = isClickUpConnected(connection);
+
   const handleConnect = () => {
     setConnecting(true);
     setError("");
@@ -114,11 +125,13 @@ export default function ClickUpSection() {
       setConnecting(false);
     }
   };
+
   const handleDisconnect = async () => {
     await clearClickUpConnection();
     setConnection(CLICKUP_DEFAULTS);
     queryClient.invalidateQueries({ queryKey: ["clickupConnected"] });
   };
+
   return (
     <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-6">
       <div className="flex items-center justify-between mb-1">
@@ -136,6 +149,7 @@ export default function ClickUpSection() {
         that has to pass through Vaea's backend (ClickUp requires a real client secret to complete it, unlike Google
         Calendar's fully local flow) — nothing about your workspace itself is stored there afterward.
       </p>
+
       {!connected ? (
         <>
           <button

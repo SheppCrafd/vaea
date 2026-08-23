@@ -69,6 +69,7 @@ import { createTask, updateTask, deleteTask, toggleTopThree } from "@/hooks/useT
 import { createStakeholder, updateStakeholder, deleteStakeholder } from "@/hooks/useStakeholders";
 import { createDepartment, renameDepartment, deleteDepartment } from "@/hooks/useDepartments";
 import { createProjectNote, updateProjectNote, deleteProjectNote } from "@/hooks/useProjectNotes";
+
 export const DESTRUCTIVE_ACTIONS = new Set([
   "DELETE_AREA",
   "DELETE_PRODUCT",
@@ -89,6 +90,7 @@ export const DESTRUCTIVE_ACTIONS = new Set([
   "DELETE_GMAIL_MESSAGE",
   "DELETE_OUTLOOK_MESSAGE",
 ]);
+
 // UNDO_LAST_ACTION is a real tool the assistant can call, but it's handled
 // specially by useChatController.js's runUndo() rather than routed through
 // executeAction below — it never appears alongside other actions in a plan
@@ -99,6 +101,7 @@ export const DESTRUCTIVE_ACTIONS = new Set([
 // (createSession/invokeAssistant/applyAssistantReply) this stateless
 // executor doesn't have.
 export const NON_EXECUTABLE_ACTIONS = new Set(["UNDO_LAST_ACTION", "RUN_AGENT"]);
+
 // Vaea Calendar's auto-scheduling helpers (SCHEDULE_CALENDAR_TIME /
 // RESCHEDULE_CALENDAR_CONFLICTS below) — merges busy events across whatever
 // of Google Workspace/Microsoft 365 is connected, and picks which one to
@@ -124,6 +127,7 @@ async function gatherBusyEvents({ earliest, latest }) {
     ...outlookEvents.map((e) => ({ ...e, _provider: "microsoft", start: { dateTime: stripTz(e.start) }, end: { dateTime: stripTz(e.end) } })),
   ];
 }
+
 async function primaryCalendarConnection() {
   const google = await loadCalendarConnection();
   if (isCalendarConnected(google)) return { provider: "google", connection: google };
@@ -131,6 +135,7 @@ async function primaryCalendarConnection() {
   if (isMicrosoftConnected(microsoft)) return { provider: "microsoft", connection: microsoft };
   return null;
 }
+
 async function createVaeaEvent(primary, { title, start, end, tag }) {
   if (primary.provider === "google") {
     const { event, connection } = await createEvent(primary.connection, {
@@ -151,6 +156,7 @@ async function createVaeaEvent(primary, { title, start, end, tag }) {
   await saveMicrosoftConnection(connection);
   return event;
 }
+
 // A reflection turn (see reflectionTrigger.js) runs with nobody having asked
 // anything this turn, so the normal trust model — DESTRUCTIVE_ACTIONS need a
 // confirm click, everything else (SET_AI_IDENTITY, WRITE_VAULT_NOTE,
@@ -190,6 +196,7 @@ function isReflectionAutoExecutable(action) {
   if (path === SELF_NOTE_PATH) return (action.args?.content?.length ?? 0) <= SELF_NOTE_HARD_CAP_CHARS;
   return path === `Daily/${new Date().toISOString().slice(0, 10)}.md`;
 }
+
 export function filterReflectionActions(actions) {
   const usable = (actions || []).filter((a) => !NON_EXECUTABLE_ACTIONS.has(a.action));
   return {
@@ -197,6 +204,7 @@ export function filterReflectionActions(actions) {
     pending: usable.filter((a) => !isReflectionAutoExecutable(a)),
   };
 }
+
 // A model asked for a huge single BULK_CREATE/BULK_DELETE (e.g. 60 tasks in
 // one call) has, in practice, sometimes given up partway through generating
 // that one giant tool-call argument and printed the rest as plain text
@@ -209,6 +217,7 @@ export function filterReflectionActions(actions) {
 // cap also keeps a single step's persisted tool_log_detail (useChatController.js)
 // bounded, instead of one bulk step embedding dozens of full entity records.
 const MAX_BULK_ITEMS_PER_CALL = 5;
+
 const BULK_CREATE_ACTION_BY_TYPE = {
   area: "CREATE_AREA",
   product: "CREATE_PRODUCT",
@@ -218,6 +227,7 @@ const BULK_CREATE_ACTION_BY_TYPE = {
   stakeholder: "CREATE_STAKEHOLDER",
   department: "CREATE_DEPARTMENT",
 };
+
 const BULK_DELETE_ACTION_AND_ID_KEY_BY_TYPE = {
   area: ["DELETE_AREA", "area_id"],
   product: ["DELETE_PRODUCT", "product_id"],
@@ -227,6 +237,7 @@ const BULK_DELETE_ACTION_AND_ID_KEY_BY_TYPE = {
   stakeholder: ["DELETE_STAKEHOLDER", "stakeholder_id"],
   department: ["DELETE_DEPARTMENT", "department_id"],
 };
+
 // localDb.create() never checks that a parent id (parent_area_id,
 // parent_product_id, or a task/note's project_id) actually points at a real
 // record — it just stores whatever it's given. Without this guard, a model
@@ -245,6 +256,7 @@ const BULK_DELETE_ACTION_AND_ID_KEY_BY_TYPE = {
 // used directly by the plain UI mutation hooks now, not just here) — kept
 // under this name locally since every call site below already uses it.
 const assertParentExists = assertLiveParent;
+
 // Same guard, applied to every id in an array field (stakeholder_ids,
 // related_product_ids) — a model-issued plan can tag these with unresolved
 // "$temp_id" placeholders (resolvePlaceholders leaves an unresolved one as
@@ -254,6 +266,7 @@ const assertParentExists = assertLiveParent;
 async function assertLiveIds(collection, ids, label) {
   for (const id of ids || []) await assertParentExists(collection, id, label);
 }
+
 export async function executeAction(action, args) {
   switch (action) {
     case "CREATE_AREA": {
@@ -268,6 +281,7 @@ export async function executeAction(action, args) {
       const area = await deleteArea(args.area_id);
       return { toolResult: { area } };
     }
+
     case "CREATE_PRODUCT": {
       await assertParentExists(localDb.areas, args.parent_area_id, "Area");
       await assertLiveIds(localDb.stakeholders, args.stakeholder_ids, "Stakeholder");
@@ -289,6 +303,7 @@ export async function executeAction(action, args) {
       const product = await deleteProduct(args.product_id);
       return { toolResult: { product } };
     }
+
     case "CREATE_PROJECT": {
       await assertParentExists(localDb.areas, args.parent_area_id, "Area");
       if (args.parent_product_id) await assertParentExists(localDb.products, args.parent_product_id, "Product");
@@ -341,6 +356,7 @@ export async function executeAction(action, args) {
       const project = await deleteProject(args.project_id);
       return { toolResult: { project } };
     }
+
     case "CREATE_NOTE": {
       await assertParentExists(localDb.projects, args.project_id, "Project");
       await assertLiveIds(localDb.stakeholders, args.stakeholder_ids, "Stakeholder");
@@ -361,6 +377,7 @@ export async function executeAction(action, args) {
       await deleteProjectNote(args.note_id);
       return { toolResult: {} };
     }
+
     case "CREATE_TASK": {
       await assertParentExists(localDb.projects, args.project_id, "Project");
       await assertLiveIds(localDb.stakeholders, args.stakeholder_ids, "Stakeholder");
@@ -424,6 +441,7 @@ export async function executeAction(action, args) {
       const task = await deleteTask(args.task_id);
       return { toolResult: { task } };
     }
+
     case "CREATE_STAKEHOLDER": {
       const stakeholder = await createStakeholder({ name: args.name, department: args.department, avatar_url: args.avatar_url });
       return { toolResult: { stakeholder } };
@@ -437,6 +455,7 @@ export async function executeAction(action, args) {
       const stakeholder = await deleteStakeholder(args.stakeholder_id);
       return { toolResult: { stakeholder } };
     }
+
     case "CREATE_DEPARTMENT": {
       const department = await createDepartment({ name: args.name });
       return { toolResult: { department } };
@@ -449,6 +468,7 @@ export async function executeAction(action, args) {
       const department = await deleteDepartment(args.department_id);
       return { toolResult: { department } };
     }
+
     case "SET_CUSTOM_FIELD": {
       const collectionMap = { project: localDb.projects, product: localDb.products, area: localDb.areas };
       const collection = collectionMap[args.entity_type];
@@ -461,6 +481,7 @@ export async function executeAction(action, args) {
         ? [...new Set([...(entity.display_on_card_fields || []), key])]
         : entity.display_on_card_fields || [];
       const updated = await collection.update(args.entity_id, { custom_data, display_on_card_fields });
+
       if (args.area_wide && args.entity_type !== "area" && entity.parent_area_id) {
         const area = await localDb.areas.get(entity.parent_area_id);
         if (area) {
@@ -473,8 +494,10 @@ export async function executeAction(action, args) {
           }
         }
       }
+
       return { toolResult: { entity: updated } };
     }
+
     case "DELETE_CUSTOM_FIELD": {
       // The UI has a real "remove field" button (CustomFieldsSection.jsx)
       // with no chat equivalent until now — SET_CUSTOM_FIELD only ever
@@ -493,6 +516,7 @@ export async function executeAction(action, args) {
       const updated = await collection.update(args.entity_id, { custom_data, display_on_card_fields });
       return { toolResult: { entity: updated } };
     }
+
     case "REORDER_ENTITY": {
       // The UI's drag-to-reorder (useGlobalDragEnd.js) for Areas/Products/
       // Projects had no chat equivalent at all — "move X above Y" was
@@ -520,6 +544,7 @@ export async function executeAction(action, args) {
       const updated = await collection.get(entity_id);
       return { toolResult: { entity: updated, entity_type } };
     }
+
     case "MOVE_PRODUCT": {
       // MOVE_PROJECT's own equivalent for Products — the UI lets a user
       // drag a Product onto a different Area to reparent it; chat had no
@@ -529,6 +554,7 @@ export async function executeAction(action, args) {
       const product = await updateProduct({ id: args.product_id, data: { parent_area_id: args.parent_area_id } });
       return { toolResult: { product } };
     }
+
     case "SET_APPEARANCE": {
       // Same event-bridge pattern as SET_CARD_VIEW below — theme mode and
       // accent color both live behind real React hooks (next-themes'
@@ -542,6 +568,7 @@ export async function executeAction(action, args) {
       window.dispatchEvent(new CustomEvent(APPEARANCE_CHANGE_EVENT, { detail: { mode: theme, accent } }));
       return { toolResult: { theme, accent } };
     }
+
     case "BULK_CREATE": {
       const { entity_type, items } = args;
       const createAction = BULK_CREATE_ACTION_BY_TYPE[entity_type];
@@ -570,6 +597,7 @@ export async function executeAction(action, args) {
       for (const id of ids) await executeAction(deleteAction, { [idKey]: id });
       return { toolResult: { entity_type, count: ids.length } };
     }
+
     case "EXPORT_CSV": {
       // Active records only — an export represents the current workspace,
       // so soft-deleted rows (every type) and archived projects/tasks stay
@@ -589,6 +617,7 @@ export async function executeAction(action, args) {
       downloadCsv(args.entity_type, records);
       return { toolResult: { entity_type: args.entity_type, count: records.length } };
     }
+
     case "SET_AI_IDENTITY": {
       // Locked (unlike every other case here) because this is a real
       // read-modify-write cycle over a single shared key, the same race
@@ -610,6 +639,7 @@ export async function executeAction(action, args) {
       await syncIdentityToSelfNote(updated);
       return { toolResult: { identity: updated } };
     }
+
     case "WRITE_VAULT_NOTE": {
       const connection = await loadVaultConnection();
       if (!isVaultConnected(connection)) throw new Error("No Vaea Brain connected — set one up in Settings.");
@@ -624,6 +654,7 @@ export async function executeAction(action, args) {
       });
       return { toolResult: { vaultNote: result } };
     }
+
     case "CREATE_CALENDAR_EVENT": {
       const connection = await loadCalendarConnection();
       if (!isCalendarConnected(connection)) throw new Error("No Google Calendar connected — connect one in Settings.");
@@ -643,6 +674,7 @@ export async function executeAction(action, args) {
       await saveCalendarConnection(refreshed);
       return { toolResult: { calendarEvent: { ...created, meetLink: created.hangoutLink } } };
     }
+
     case "UPDATE_CALENDAR_EVENT": {
       const connection = await loadCalendarConnection();
       if (!isCalendarConnected(connection)) throw new Error("No Google Calendar connected — connect one in Settings.");
@@ -656,6 +688,7 @@ export async function executeAction(action, args) {
       await saveCalendarConnection(refreshed);
       return { toolResult: { calendarEvent: updated } };
     }
+
     case "DELETE_CALENDAR_EVENT": {
       const connection = await loadCalendarConnection();
       if (!isCalendarConnected(connection)) throw new Error("No Google Calendar connected — connect one in Settings.");
@@ -663,6 +696,7 @@ export async function executeAction(action, args) {
       await saveCalendarConnection(refreshed);
       return { toolResult: { deleted: args.event_id } };
     }
+
     case "CREATE_DRIVE_FILE": {
       const connection = await loadCalendarConnection();
       if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
@@ -670,6 +704,7 @@ export async function executeAction(action, args) {
       await saveCalendarConnection(refreshed);
       return { toolResult: { driveFile: file } };
     }
+
     case "DELETE_DRIVE_FILE": {
       const connection = await loadCalendarConnection();
       if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
@@ -677,6 +712,7 @@ export async function executeAction(action, args) {
       await saveCalendarConnection(refreshed);
       return { toolResult: { deleted: args.file_id } };
     }
+
     case "CREATE_GOOGLE_DOC": {
       const connection = await loadCalendarConnection();
       if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
@@ -684,6 +720,7 @@ export async function executeAction(action, args) {
       await saveCalendarConnection(refreshed);
       return { toolResult: { document: doc } };
     }
+
     case "APPEND_GOOGLE_DOC_TEXT": {
       const connection = await loadCalendarConnection();
       if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
@@ -691,6 +728,7 @@ export async function executeAction(action, args) {
       await saveCalendarConnection(refreshed);
       return { toolResult: { appended: args.document_id } };
     }
+
     case "REPLACE_GOOGLE_DOC_TEXT": {
       const connection = await loadCalendarConnection();
       if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
@@ -698,6 +736,7 @@ export async function executeAction(action, args) {
       await saveCalendarConnection(refreshed);
       return { toolResult: { occurrencesChanged } };
     }
+
     case "CREATE_GOOGLE_SHEET": {
       const connection = await loadCalendarConnection();
       if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
@@ -705,6 +744,7 @@ export async function executeAction(action, args) {
       await saveCalendarConnection(refreshed);
       return { toolResult: { spreadsheet } };
     }
+
     case "UPDATE_GOOGLE_SHEET_VALUES": {
       const connection = await loadCalendarConnection();
       if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
@@ -712,6 +752,7 @@ export async function executeAction(action, args) {
       await saveCalendarConnection(refreshed);
       return { toolResult: { updated: args.range } };
     }
+
     case "APPEND_GOOGLE_SHEET_VALUES": {
       const connection = await loadCalendarConnection();
       if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
@@ -719,6 +760,7 @@ export async function executeAction(action, args) {
       await saveCalendarConnection(refreshed);
       return { toolResult: { appended: args.range } };
     }
+
     case "CREATE_GOOGLE_SLIDES": {
       const connection = await loadCalendarConnection();
       if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
@@ -726,6 +768,7 @@ export async function executeAction(action, args) {
       await saveCalendarConnection(refreshed);
       return { toolResult: { presentation } };
     }
+
     case "ADD_GOOGLE_SLIDE": {
       const connection = await loadCalendarConnection();
       if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
@@ -733,6 +776,7 @@ export async function executeAction(action, args) {
       await saveCalendarConnection(refreshed);
       return { toolResult: { slideId } };
     }
+
     case "CREATE_GOOGLE_TASK": {
       const connection = await loadCalendarConnection();
       if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
@@ -740,6 +784,7 @@ export async function executeAction(action, args) {
       await saveCalendarConnection(refreshed);
       return { toolResult: { task } };
     }
+
     case "UPDATE_GOOGLE_TASK": {
       const connection = await loadCalendarConnection();
       if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
@@ -752,6 +797,7 @@ export async function executeAction(action, args) {
       await saveCalendarConnection(refreshed);
       return { toolResult: { task } };
     }
+
     case "DELETE_GOOGLE_TASK": {
       const connection = await loadCalendarConnection();
       if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
@@ -759,6 +805,7 @@ export async function executeAction(action, args) {
       await saveCalendarConnection(refreshed);
       return { toolResult: { deleted: args.task_id } };
     }
+
     case "CREATE_GOOGLE_FORM": {
       const connection = await loadCalendarConnection();
       if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
@@ -766,6 +813,7 @@ export async function executeAction(action, args) {
       await saveCalendarConnection(refreshed);
       return { toolResult: { form } };
     }
+
     case "ADD_GOOGLE_FORM_QUESTION": {
       const connection = await loadCalendarConnection();
       if (!isCalendarConnected(connection)) throw new Error("No Google Workspace connected — connect one in Settings.");
@@ -773,6 +821,7 @@ export async function executeAction(action, args) {
       await saveCalendarConnection(refreshed);
       return { toolResult: { added: args.title } };
     }
+
     case "SCHEDULE_CALENDAR_TIME": {
       const behavior = await loadAgentBehavior();
       if (!behavior.autoSchedulingEnabled) {
@@ -786,12 +835,14 @@ export async function executeAction(action, args) {
         earliest: args.earliest || new Date().toISOString(),
         latest: args.latest || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
       });
+
       if (args.block_type === "task") {
         const slot = findFreeSlot(busy, { durationMinutes, earliest: args.earliest, latest: args.latest });
         if (!slot) throw new Error("Couldn't find a free slot in the next 14 days — try widening the range or shortening the duration.");
         const event = await createVaeaEvent(primary, { title: args.title, start: slot.start, end: slot.end, tag });
         return { toolResult: { scheduled: [{ title: args.title, start: slot.start.toISOString(), end: slot.end.toISOString() }], event } };
       }
+
       const slots = findRecurringSlots(busy, {
         durationMinutes,
         occurrences: args.occurrences || 4,
@@ -806,6 +857,7 @@ export async function executeAction(action, args) {
       }
       return { toolResult: { scheduled: created.map(({ title, start, end }) => ({ title, start, end })), count: created.length } };
     }
+
     case "RESCHEDULE_CALENDAR_CONFLICTS": {
       const primary = await primaryCalendarConnection();
       if (!primary) throw new Error("No Google Workspace or Microsoft 365 calendar connected — connect one in Settings.");
@@ -818,6 +870,7 @@ export async function executeAction(action, args) {
       // until that gap closes.
       const conflicts = findConflicts(busy);
       if (!conflicts.length) return { toolResult: { moved: [], message: "No conflicts found." } };
+
       const moved = [];
       for (const { event } of conflicts) {
         const durationMinutes = (new Date(event.end.dateTime) - new Date(event.start.dateTime)) / 60000;
@@ -841,27 +894,32 @@ export async function executeAction(action, args) {
       }
       return { toolResult: { moved } };
     }
+
     // --- Full UI parity: notification rules, agents, prompt templates,
     // workflow canvas cards, agent-behavior toggles, and manual backups —
     // every one of these mirrors a button the user already has on the
     // matching page. See toolCatalog.js's own comment above these entries.
+
     case "CREATE_NOTIFICATION_RULE": {
       const rules = await loadNotificationRules();
       const next = [...rules.filter((r) => r.name !== args.name), { name: args.name, metric: args.metric, comparator: "gte", threshold: args.threshold }];
       await saveNotificationRules(next);
       return { toolResult: { rule: args.name } };
     }
+
     case "DELETE_NOTIFICATION_RULE": {
       const rules = await loadNotificationRules();
       await saveNotificationRules(rules.filter((r) => r.name !== args.name));
       return { toolResult: { deleted: args.name } };
     }
+
     case "CREATE_AGENT": {
       const agents = await loadAgents();
       const next = [...agents, { id: crypto.randomUUID(), name: args.name, purpose: args.purpose || "" }];
       await saveAgents(next);
       return { toolResult: { agent: args.name } };
     }
+
     case "DELETE_AGENT": {
       const agents = await loadAgents();
       const target = agents.find((a) => a.name.toLowerCase() === args.name.toLowerCase());
@@ -869,6 +927,7 @@ export async function executeAction(action, args) {
       await saveAgents(agents.filter((a) => a.id !== target.id));
       return { toolResult: { deleted: args.name } };
     }
+
     case "UPDATE_AGENT": {
       const agents = await loadAgents();
       const target = agents.find((a) => a.name.toLowerCase() === args.name.toLowerCase());
@@ -882,12 +941,14 @@ export async function executeAction(action, args) {
       await saveAgents(agents.map((a) => (a.id === target.id ? next : a)));
       return { toolResult: { updated: next.name } };
     }
+
     case "CREATE_PROMPT_TEMPLATE": {
       const templates = await loadPromptTemplates();
       const next = [...templates.filter((t) => t.name !== args.name), { id: crypto.randomUUID(), name: args.name, text: args.text }];
       await savePromptTemplates(next);
       return { toolResult: { template: args.name } };
     }
+
     case "UPDATE_PROMPT_TEMPLATE": {
       const templates = await loadPromptTemplates();
       const target = templates.find((t) => t.name.toLowerCase() === args.name.toLowerCase());
@@ -900,28 +961,33 @@ export async function executeAction(action, args) {
       await savePromptTemplates(templates.map((t) => (t.id === target.id ? next : t)));
       return { toolResult: { updated: next.name } };
     }
+
     case "DELETE_PROMPT_TEMPLATE": {
       const templates = await loadPromptTemplates();
       await savePromptTemplates(templates.filter((t) => t.name !== args.name));
       return { toolResult: { deleted: args.name } };
     }
+
     case "CREATE_WORKFLOW_CARD": {
       const cards = await loadWorkflowCards();
       const card = { id: crypto.randomUUID(), text: args.text, x: 40 + Math.random() * 80, y: 60 + Math.random() * 80 };
       await saveWorkflowCards([...cards, card]);
       return { toolResult: { card } };
     }
+
     case "UPDATE_WORKFLOW_CARD": {
       const cards = await loadWorkflowCards();
       if (!cards.some((c) => c.id === args.card_id)) throw new Error("No card with that id — call list_workflow_cards first.");
       await saveWorkflowCards(cards.map((c) => (c.id === args.card_id ? { ...c, text: args.text } : c)));
       return { toolResult: { updated: args.card_id } };
     }
+
     case "DELETE_WORKFLOW_CARD": {
       const cards = await loadWorkflowCards();
       await saveWorkflowCards(cards.filter((c) => c.id !== args.card_id));
       return { toolResult: { deleted: args.card_id } };
     }
+
     case "SET_AGENT_BEHAVIOR": {
       const current = await loadAgentBehavior();
       const next = { ...current };
@@ -931,14 +997,17 @@ export async function executeAction(action, args) {
       await saveAgentBehavior(next);
       return { toolResult: { agentBehavior: next } };
     }
+
     case "CREATE_BACKUP": {
       const snapshot = await createSnapshot(args.label || "Manual backup (via chat)");
       return { toolResult: { snapshot } };
     }
+
     case "RESTORE_BACKUP": {
       await restoreSnapshot(args.snapshot_id);
       return { toolResult: { restored: args.snapshot_id } };
     }
+
     case "OPEN_APP_SECTION": {
       const tabEntry = TABS.find((t) => t.key === args.tab);
       if (!tabEntry) throw new Error(`Unknown tab "${args.tab}". Valid tabs: ${TABS.map((t) => t.key).join(", ")}.`);
@@ -949,6 +1018,7 @@ export async function executeAction(action, args) {
       useAppStore.getState().openAppSection(tabEntry.to, highlightId);
       return { toolResult: { opened: args.tab, section: args.settings_section || args.mindmap_tab || null } };
     }
+
     case "CREATE_OUTLOOK_EVENT": {
       const connection = await loadMicrosoftConnection();
       if (!isMicrosoftConnected(connection)) throw new Error("No Microsoft account connected — connect one in Settings.");
@@ -968,6 +1038,7 @@ export async function executeAction(action, args) {
       await saveMicrosoftConnection(refreshed);
       return { toolResult: { outlookEvent: created } };
     }
+
     case "UPDATE_OUTLOOK_EVENT": {
       const connection = await loadMicrosoftConnection();
       if (!isMicrosoftConnected(connection)) throw new Error("No Microsoft account connected — connect one in Settings.");
@@ -981,6 +1052,7 @@ export async function executeAction(action, args) {
       await saveMicrosoftConnection(refreshed);
       return { toolResult: { outlookEvent: updated } };
     }
+
     case "DELETE_OUTLOOK_EVENT": {
       const connection = await loadMicrosoftConnection();
       if (!isMicrosoftConnected(connection)) throw new Error("No Microsoft account connected — connect one in Settings.");
@@ -988,6 +1060,7 @@ export async function executeAction(action, args) {
       await saveMicrosoftConnection(refreshed);
       return { toolResult: { deleted: args.event_id } };
     }
+
     case "SEND_OUTLOOK_MESSAGE": {
       const connection = await loadOutlookConnection();
       if (!isOutlookConnected(connection)) throw new Error("No Outlook account connected — connect one in Settings (feeds the Vmail tab).");
@@ -995,6 +1068,7 @@ export async function executeAction(action, args) {
       await saveOutlookConnection(refreshed);
       return { toolResult: { sent: true } };
     }
+
     case "SEND_GMAIL_MESSAGE": {
       const connection = await loadGmailConnection();
       if (!isGmailConnected(connection)) throw new Error("No Gmail account connected — connect one in Settings.");
@@ -1002,6 +1076,7 @@ export async function executeAction(action, args) {
       await saveGmailConnection(refreshed);
       return { toolResult: { sent: id } };
     }
+
     case "ARCHIVE_GMAIL_MESSAGE": {
       const connection = await loadGmailConnection();
       if (!isGmailConnected(connection)) throw new Error("No Gmail account connected — connect one in Settings.");
@@ -1009,6 +1084,7 @@ export async function executeAction(action, args) {
       await saveGmailConnection(refreshed);
       return { toolResult: { archived: args.message_id } };
     }
+
     case "DELETE_GMAIL_MESSAGE": {
       const connection = await loadGmailConnection();
       if (!isGmailConnected(connection)) throw new Error("No Gmail account connected — connect one in Settings.");
@@ -1016,6 +1092,7 @@ export async function executeAction(action, args) {
       await saveGmailConnection(refreshed);
       return { toolResult: { deleted: args.message_id } };
     }
+
     case "REPORT_GMAIL_SPAM": {
       const connection = await loadGmailConnection();
       if (!isGmailConnected(connection)) throw new Error("No Gmail account connected — connect one in Settings.");
@@ -1023,6 +1100,7 @@ export async function executeAction(action, args) {
       await saveGmailConnection(refreshed);
       return { toolResult: { reportedSpam: args.message_id } };
     }
+
     case "DRAFT_GMAIL_REPLY": {
       const connection = await loadGmailConnection();
       if (!isGmailConnected(connection)) throw new Error("No Gmail account connected — connect one in Settings.");
@@ -1030,6 +1108,7 @@ export async function executeAction(action, args) {
       await saveGmailConnection(refreshed);
       return { toolResult: { draft: draftId } };
     }
+
     case "ARCHIVE_OUTLOOK_MESSAGE": {
       const connection = await loadOutlookConnection();
       if (!isOutlookConnected(connection)) throw new Error("No Outlook account connected — connect one in Settings (feeds the Vmail tab).");
@@ -1037,6 +1116,7 @@ export async function executeAction(action, args) {
       await saveOutlookConnection(refreshed);
       return { toolResult: { archived: args.message_id } };
     }
+
     case "DELETE_OUTLOOK_MESSAGE": {
       const connection = await loadOutlookConnection();
       if (!isOutlookConnected(connection)) throw new Error("No Outlook account connected — connect one in Settings (feeds the Vmail tab).");
@@ -1044,6 +1124,7 @@ export async function executeAction(action, args) {
       await saveOutlookConnection(refreshed);
       return { toolResult: { deleted: args.message_id } };
     }
+
     case "REPORT_OUTLOOK_SPAM": {
       const connection = await loadOutlookConnection();
       if (!isOutlookConnected(connection)) throw new Error("No Outlook account connected — connect one in Settings (feeds the Vmail tab).");
@@ -1051,6 +1132,7 @@ export async function executeAction(action, args) {
       await saveOutlookConnection(refreshed);
       return { toolResult: { reportedSpam: args.message_id } };
     }
+
     case "DRAFT_OUTLOOK_REPLY": {
       const connection = await loadOutlookConnection();
       if (!isOutlookConnected(connection)) throw new Error("No Outlook account connected — connect one in Settings (feeds the Vmail tab).");
@@ -1058,12 +1140,14 @@ export async function executeAction(action, args) {
       await saveOutlookConnection(refreshed);
       return { toolResult: { draft: draftId } };
     }
+
     case "SEND_SLACK_MESSAGE": {
       const connection = await loadSlackConnection();
       if (!isSlackConnected(connection)) throw new Error("No Slack workspace connected — connect one in Settings.");
       const { ts } = await sendSlackMessage(connection, args.channel_id, args.text);
       return { toolResult: { sent: ts } };
     }
+
     case "CREATE_CLICKUP_TASK": {
       const connection = await loadClickUpConnection();
       if (!isClickUpConnected(connection)) throw new Error("No ClickUp workspace connected — connect one in Settings.");
@@ -1072,24 +1156,28 @@ export async function executeAction(action, args) {
       const task = await createClickUpTask(connection, listId, args);
       return { toolResult: { clickupTask: task } };
     }
+
     case "UPDATE_CLICKUP_TASK": {
       const connection = await loadClickUpConnection();
       if (!isClickUpConnected(connection)) throw new Error("No ClickUp workspace connected — connect one in Settings.");
       const task = await updateClickUpTask(connection, args.task_id, args);
       return { toolResult: { clickupTask: task } };
     }
+
     case "DELETE_CLICKUP_TASK": {
       const connection = await loadClickUpConnection();
       if (!isClickUpConnected(connection)) throw new Error("No ClickUp workspace connected — connect one in Settings.");
       await deleteClickUpTask(connection, args.task_id);
       return { toolResult: { deleted: args.task_id } };
     }
+
     case "SEND_CLICKUP_MESSAGE": {
       const connection = await loadClickUpConnection();
       if (!isClickUpConnected(connection)) throw new Error("No ClickUp workspace connected — connect one in Settings.");
       const message = await sendClickUpMessage(connection, args.channel_id, args.content);
       return { toolResult: { clickupMessage: message } };
     }
+
     case "SET_CARD_VIEW": {
       const { view } = args;
       if (view !== "mini" && view !== "full") throw new Error('view must be "mini" or "full"');
@@ -1101,10 +1189,12 @@ export async function executeAction(action, args) {
       window.dispatchEvent(new CustomEvent(CARD_VIEW_CHANGE_EVENT, { detail: view }));
       return { toolResult: { view } };
     }
+
     default:
       throw new Error(`Unknown action "${action}"`);
   }
 }
+
 // Serializes records to CSV and triggers a browser download — no server
 // round-trip, matching every other chat action's local-only execution.
 function downloadCsv(entityType, records) {
@@ -1120,6 +1210,7 @@ function downloadCsv(entityType, records) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 // Resolves "$temp_id" placeholders against ids captured from earlier steps in
 // the same plan. Walks arrays and plain objects recursively so a placeholder
 // can appear anywhere in an action's args.
@@ -1134,6 +1225,7 @@ function resolvePlaceholders(value, tempIdMap) {
   }
   return value;
 }
+
 // A plan risky enough to snapshot before running: more than one step (a
 // multi-step AI plan or a CSV bulk-import — both go through this same
 // function), or any single step that creates/deletes in bulk. A lone
@@ -1142,6 +1234,7 @@ function resolvePlaceholders(value, tempIdMap) {
 function planNeedsSnapshot(actions) {
   return actions.length > 1 || actions.some((a) => a.action === "BULK_CREATE" || DESTRUCTIVE_ACTIONS.has(a.action));
 }
+
 // Which key of a step's toolResult holds the entity to label a tool-log
 // line with (e.g. ARCHIVE_PROJECT's result is `{ project }` — label the
 // line with that project's own title, not its id).
@@ -1158,9 +1251,11 @@ const TOOL_LOG_RESULT_KEY = {
   CREATE_NOTE: "note", UPDATE_NOTE: "note",
   SET_CUSTOM_FIELD: "entity", DELETE_CUSTOM_FIELD: "entity", REORDER_ENTITY: "entity",
 };
+
 function labelOf(entity) {
   return entity?.title || entity?.name || entity?.description || "";
 }
+
 // Turns one executed step into the same "tool call · fn(...)" shape the
 // marketing site's hero mockup shows — built from the step's *real*
 // toolResult (a project's actual title, a bulk action's actual count), not
@@ -1177,6 +1272,7 @@ export function describeToolCall({ action, toolResult }) {
   }
   return `${fn}()`;
 }
+
 // Same entity-type grouping as TOOL_LOG_RESULT_KEY, but read from a step's
 // own args — used for the "plan · ..." line, shown before any step has run
 // (so there's no toolResult yet to read a type from).
@@ -1187,6 +1283,7 @@ function entityTypeOfStep({ action, args }) {
   if (action === "BULK_CREATE" || action === "BULK_DELETE" || action === "EXPORT_CSV") return args?.entity_type || "item";
   return null;
 }
+
 // How many real entities a single step actually represents — 1 for every
 // ordinary CREATE_*/UPDATE_*/etc. call, but a BULK_CREATE/BULK_DELETE step
 // is one tool call standing in for however many items/ids are actually
@@ -1200,6 +1297,7 @@ function entityCountOfStep({ action, args }) {
   if (action === "BULK_DELETE") return Array.isArray(args?.ids) ? args.ids.length : 1;
   return 1;
 }
+
 // The "plan · ..." line shown before a plan's steps run — tallies the real
 // entity types the plan's own actions touch (2 projects, 1 stakeholder),
 // not a canned summary, so it stays true even though nothing has executed yet.
@@ -1216,6 +1314,7 @@ export function describePlan(actions) {
     ? `plan · ${actions.length} ${stepWord} across ${parts.join(", ")}`
     : `plan · ${actions.length} ${stepWord}`;
 }
+
 // The inverse of the ```tool-log fence describePlan/describeToolCall build —
 // used by useChatController.js when folding past messages into
 // conversationHistory sent back to the model. A persisted assistant message
@@ -1234,6 +1333,7 @@ const TOOL_LOG_FENCE = /^```tool-log\n[\s\S]*?\n```\n\n/;
 export function stripToolLog(content) {
   return content.replace(TOOL_LOG_FENCE, "").trim();
 }
+
 // Runs a plan's actions in order (not in parallel — later steps may depend
 // on ids captured from earlier ones via temp_id/$placeholder). `onStep`,
 // if given, is awaited after each step actually finishes — this is what
@@ -1243,6 +1343,7 @@ export async function executeActionSequence(actions, { onStep } = {}) {
   if (planNeedsSnapshot(actions)) {
     await createSnapshot(`Before ${actions.length > 1 ? `${actions.length}-step plan` : actions[0].action}`);
   }
+
   const tempIdMap = {};
   const steps = [];
   for (const step of actions) {

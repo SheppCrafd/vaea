@@ -33,7 +33,9 @@ import { buildAgentInstruction, getDueAgents } from "@/lib/agentRunner";
 import { ICON_STORAGE_KEY, loadIconChoice } from "@/lib/chatIcon";
 import { getNowContext } from "@/lib/nowContext";
 import { useAppStore } from "@/lib/store";
+
 const SESSION_STORAGE_KEY = "vaea_chat_active_session";
+
 // Whenever a turn's pending (not-yet-confirmed) actions include a proposal
 // to write a vault note, surface it visually instead of leaving it buried
 // in a chat bubble: record the path(s) in the store (VaultGraph.jsx renders
@@ -48,6 +50,7 @@ function proposeVaultNotesIfAny(pendingActions) {
   useAppStore.getState().setPendingVaultProposals(paths);
   useAppStore.getState().openAppSection("/app/mindmap");
 }
+
 // Query keys that can change as a result of an AI-driven mutation — kept
 // broad and invalidated in bulk after any successful action, since chat
 // mutations bypass the individual entity hooks and their per-key
@@ -56,6 +59,7 @@ const APP_QUERY_KEYS = [
   "areas", "products", "projects", "tasks", "allTasks", "archivedTasks",
   "stakeholders", "departments", "projectNotes", "allProjectNotes", "archivedProjects", "project",
 ];
+
 // localStorage can throw on read or write (private-browsing storage
 // restrictions, quota errors, storage disabled/blocked in an embedded
 // iframe, etc.) — real conditions, not just theoretical. This hook's state
@@ -74,6 +78,7 @@ function readStorage(key) {
     return null;
   }
 }
+
 function writeStorage(key, value) {
   try {
     localStorage.setItem(key, value);
@@ -81,6 +86,7 @@ function writeStorage(key, value) {
     // best-effort — the choice just won't survive a reload
   }
 }
+
 function removeStorage(key) {
   try {
     localStorage.removeItem(key);
@@ -88,6 +94,7 @@ function removeStorage(key) {
     // best-effort
   }
 }
+
 // A short, deliberate pause between revealing each live step — local
 // execution against localDb finishes in well under a frame, too fast to
 // read as "happening" at all without this. Only applied up to a handful of
@@ -96,6 +103,7 @@ function removeStorage(key) {
 const STEP_REVEAL_DELAY_MS = 150;
 const MAX_PACED_STEPS = 6;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 // `lines` (live tool calls, the plan tally, each executed step) lead, in
 // the same order they actually happened and the same order their own live
 // reveal (liveSteps) already showed them — the reply follows as the
@@ -104,6 +112,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 function buildLoggedContent(reply, lines) {
   return lines.length ? `\`\`\`tool-log\n${lines.join("\n")}\n\`\`\`\n\n${reply}` : reply;
 }
+
 // Shared brains for the chat experience — session management, sending and
 // confirming/undoing assistant actions, icon persistence, attachments. Both
 // the floating chat widget (ChatBox) and the full-page chat (ChatPage) use
@@ -155,6 +164,7 @@ export function useChatController({ activeProjectId } = {}) {
   // host (ChatBox/ChatPage) shows a small badge, and switching to it is a
   // real click via handleSelectSession, same as any other session.
   const [reflectionSessionId, setReflectionSessionId] = useState(null);
+
   const fileInputRef = useRef(null);
   const queryClient = useQueryClient();
   // Force-loaded vault context (vault.md-style summary, priority-marked
@@ -182,11 +192,13 @@ export function useChatController({ activeProjectId } = {}) {
   // keep in sync.
   const vaultLogTimerRef = useRef(null);
   useEffect(() => () => clearTimeout(vaultLogTimerRef.current), []);
+
   const iconPicker = usePositionedMenu();
   const createSession = useCreateChatSession();
   const chatState = useChatMessages(activeSessionId);
   const createMessage = useCreateChatMessage();
   const updateMessage = useUpdateChatMessage();
+
   // A real customer's Local Mode reply went permanently missing: they
   // navigated away while a human was still relaying the answer, and the
   // requestId that would have claimed the eventually-written response only
@@ -203,12 +215,14 @@ export function useChatController({ activeProjectId } = {}) {
   const resumingLocalModeRef = useRef(false);
   useEffect(() => {
     let cancelled = false;
+
     const attemptResume = async () => {
       if (cancelled || resumingLocalModeRef.current) return;
       const status = await getBridgeStatus();
       if (status !== "connected") return;
       const pending = await getPendingLocalModeRequest();
       if (!pending?.requestId || !pending?.sessionId) return;
+
       resumingLocalModeRef.current = true;
       try {
         // Only what byokChat.js's own `dataset` shape actually uses for a
@@ -257,6 +271,7 @@ export function useChatController({ activeProjectId } = {}) {
         resumingLocalModeRef.current = false;
       }
     };
+
     attemptResume();
     const unsubscribe = subscribeStatus(attemptResume);
     return () => {
@@ -264,6 +279,7 @@ export function useChatController({ activeProjectId } = {}) {
       unsubscribe();
     };
   }, []);
+
   const invalidateAppQueries = async () => {
     APP_QUERY_KEYS.forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
     // SET_AI_IDENTITY writes straight through deviceStorage (chatActions.js),
@@ -272,11 +288,13 @@ export function useChatController({ activeProjectId } = {}) {
     // just on next reload.
     queryClient.invalidateQueries({ queryKey: ["aiIdentity"] });
   };
+
   const chooseIcon = (choice) => {
     setIconChoice(choice);
     writeStorage(ICON_STORAGE_KEY, JSON.stringify(choice));
     iconPicker.close();
   };
+
   const ensureSession = async () => {
     if (activeSessionId) return activeSessionId;
     const session = await createSession.mutateAsync({ title: input.trim().slice(0, 40) || "New chat" });
@@ -284,10 +302,12 @@ export function useChatController({ activeProjectId } = {}) {
     writeStorage(SESSION_STORAGE_KEY, session.id);
     return session.id;
   };
+
   const handleSelectSession = (id) => {
     setActiveSessionId(id);
     writeStorage(SESSION_STORAGE_KEY, id);
   };
+
   // The reflection badge's click handler — switches into it like any other
   // session AND clears the badge, in one step, so it doesn't linger pointing
   // at a session the user is now already looking at.
@@ -296,10 +316,12 @@ export function useChatController({ activeProjectId } = {}) {
     handleSelectSession(reflectionSessionId);
     setReflectionSessionId(null);
   };
+
   const handleNewChat = () => {
     setActiveSessionId(null);
     removeStorage(SESSION_STORAGE_KEY);
   };
+
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -312,6 +334,7 @@ export function useChatController({ activeProjectId } = {}) {
       e.target.value = "";
     }
   };
+
   // aiChatStream only ever decides a plan now — it never touches your data.
   // Your current local dataset is sent along with the message so the LLM
   // can see it, and the returned actions are executed here, against
@@ -335,6 +358,7 @@ export function useChatController({ activeProjectId } = {}) {
     const archivedProjects = projects.filter((p) => p.is_archived && !p.deleted_at);
     const tasks = allTasks.filter((t) => !t.archived_at && !t.deleted_at);
     const archivedTasks = allTasks.filter((t) => t.archived_at && !t.deleted_at);
+
     // Vault connection + force-loaded overview — the Vaea analog of a Claude
     // Code CLI's own SessionStart hook (see [[Claude Code Vault System]] in
     // the connected vault itself, if this is that vault): fetched once per
@@ -355,6 +379,7 @@ export function useChatController({ activeProjectId } = {}) {
         vaultOverviewCacheRef.current = { sessionId: payload.sessionId, overview: vaultOverview };
       }
     }
+
     // Same "sent transiently, per-request" trust model as externalVault
     // above — see calendarConnection.js. entry.ts refreshes the access
     // token server-side, per-request, from the refresh token if needed,
@@ -371,6 +396,7 @@ export function useChatController({ activeProjectId } = {}) {
     // clickupConnection.js) — nothing to refresh-and-persist here, just a
     // plain read.
     const clickup = await loadClickUpConnection();
+
     // Settings -> AI Model: if the user brought their own provider key, the
     // plan is decided entirely client-side (src/lib/llm/byokChat.js) —
     // straight from this browser to that provider's own API, never through
@@ -409,6 +435,7 @@ export function useChatController({ activeProjectId } = {}) {
         },
       });
     }
+
     // base44.functions.invoke() runs on its own axios client (interceptResponses:
     // false — see @base44/sdk/dist/client.js), buffered end-to-end: it can't
     // hand back anything before the whole response body exists, which is
@@ -454,6 +481,7 @@ export function useChatController({ activeProjectId } = {}) {
         notes,
       }),
     });
+
     if (!response.ok) {
       // A pre-flight failure (401 unauthenticated, 400 no message) is still
       // a normal JSON body, same shape as before streaming — entry.ts only
@@ -461,6 +489,7 @@ export function useChatController({ activeProjectId } = {}) {
       const body = await response.json().catch(() => ({}));
       throw new Error(body.error || `Request failed (${response.status}).`);
     }
+
     let finalPayload = null;
     let streamError = null;
     await readNdjson(response, (event) => {
@@ -476,6 +505,7 @@ export function useChatController({ activeProjectId } = {}) {
     if (!finalPayload) throw new Error("The assistant's response ended unexpectedly.");
     return { reply: finalPayload.reply, reasoning: finalPayload.reasoning, actions: finalPayload.actions, liveTrace: finalPayload.liveTrace };
   };
+
   // A reflection-initiated turn: the assistant, not the user, opens a brand
   // new conversation with an opening message grounded in real deltas since
   // `sinceIso` (computeWorkspaceDelta — code-computed, never asked of the
@@ -493,8 +523,10 @@ export function useChatController({ activeProjectId } = {}) {
   // perspective.
   const runReflectionTurn = async (sinceIso) => {
     const delta = await computeWorkspaceDelta(sinceIso);
+
     const externalVault = await loadVaultConnection();
     const vaultConnected = isVaultConnected(externalVault);
+
     // Vault-tidy's own, much longer cooldown (see reflectionPreferences.js) —
     // checked and (if used) advanced independently of the base reflection
     // cadence, since it's a genuinely separate, expensive-to-run-often thing
@@ -511,6 +543,7 @@ export function useChatController({ activeProjectId } = {}) {
       dreamDue = !reflectionPrefs.lastDreamAt
         || Date.now() - new Date(reflectionPrefs.lastDreamAt).getTime() >= DREAM_INTERVAL_MS;
     }
+
     // Dream reads real conversation content, not tiny fact strings — fetched
     // only when actually due, and doesn't depend on the reflection session
     // itself, so this can resolve before deciding whether a check-in is even
@@ -519,8 +552,11 @@ export function useChatController({ activeProjectId } = {}) {
     // transcript to "review."
     const dreamResult = dreamDue ? await gatherDreamTranscript(reflectionPrefs.lastDreamAt || sinceIso).catch(() => null) : null;
     const includeDream = dreamDue && !!dreamResult?.hasMessages;
+
     if (!delta.hasChanges && !includeDream) return; // nothing to say — a "nothing happened!" check-in erodes trust in the feature fast
+
     const session = await createSession.mutateAsync({ title: "Check-in" });
+
     // Fetched here (once) rather than left to invokeAssistant's own internal
     // fetch, for two reasons: the self-note's current length needs to be
     // known before buildReflectionInstruction runs, and priming
@@ -532,6 +568,7 @@ export function useChatController({ activeProjectId } = {}) {
       vaultOverview = await fetchVaultOverview(externalVault).catch(() => null);
       vaultOverviewCacheRef.current = { sessionId: session.id, overview: vaultOverview };
     }
+
     const instruction = buildReflectionInstruction(delta.facts, {
       vaultConnected,
       selfNoteLength: vaultOverview?.selfNote?.length || 0,
@@ -563,9 +600,11 @@ export function useChatController({ activeProjectId } = {}) {
       // kind of turn.
       isReflectionTurn: true,
     });
+
     const reply = data.reply || "Hey — just checking in on a few things.";
     const liveTrace = data.liveTrace || [];
     const { autoExecute, pending } = filterReflectionActions(data.actions || []);
+
     // Structural backstop behind userAnalysisConsent, not just the prompt
     // instruction telling the model not to write it (see dreamSummary.js's
     // buildDreamInstruction): WRITE_VAULT_NOTE always sends the whole file
@@ -581,6 +620,7 @@ export function useChatController({ activeProjectId } = {}) {
             ? { ...a, args: { ...a.args, content: stripUserNotesSection(a.args.content) } }
             : a
         );
+
     // Only ever WRITE_VAULT_NOTE calls to the two allowlisted paths reach
     // here — same execution primitive a normal turn's own auto-executing
     // plan already uses (handleSend, below), not a new write path.
@@ -589,6 +629,7 @@ export function useChatController({ activeProjectId } = {}) {
       : [];
     const toolLog = [...liveTrace.map((l) => l.label), ...autoResults.map(describeToolCall)];
     proposeVaultNotesIfAny(pending);
+
     const created = await createMessage.mutateAsync({
       session_id: session.id,
       role: "assistant",
@@ -599,6 +640,7 @@ export function useChatController({ activeProjectId } = {}) {
     markMessageNew(created.id);
     setReflectionSessionId(session.id);
   };
+
   // Foreground, on-demand run of a named agent (agentsStore.js) — a real
   // chat turn in a brand-new session, scoped to the agent's purpose, using
   // the SAME action pipeline as a normal user turn (applyAssistantReply,
@@ -627,6 +669,7 @@ export function useChatController({ activeProjectId } = {}) {
     const agents = await loadAgents();
     await saveAgents(agents.map((a) => (a.id === agent.id ? { ...a, lastRunAt: new Date().toISOString() } : a)));
   };
+
   // Same "only when the app actually happens to be open" honesty as
   // reflection's own cadence (see reflectionTrigger.js) — no background
   // worker exists to check this while the tab is closed. Runs due agents
@@ -636,12 +679,14 @@ export function useChatController({ activeProjectId } = {}) {
     const due = getDueAgents(await loadAgents());
     for (const agent of due) await runAgentTurn(agent).catch(() => {});
   };
+
   const runAgentByName = async (name) => {
     const agents = await loadAgents();
     const target = agents.find((a) => a.name.toLowerCase() === name.toLowerCase());
     if (!target) throw new Error(`No agent named "${name}" — check the Agents list for the exact name.`);
     await runAgentTurn(target);
   };
+
   // Call from the actual moment Vaea Chat is opened (ChatBox's isChatOpen
   // becoming true; ChatPage mounting) — not from this hook's own bare
   // mount, which happens on every dashboard load even while the floating
@@ -654,6 +699,7 @@ export function useChatController({ activeProjectId } = {}) {
     });
     runDueAgents();
   };
+
   // Arms (or re-arms) the "auto /vault-log after an hour of silence in this
   // chat" timer (runIdleVaultLog, below). Called from handleSend right after
   // a real user message lands in `sessionId` — every new message pushes the
@@ -670,6 +716,7 @@ export function useChatController({ activeProjectId } = {}) {
       runIdleVaultLog(sessionId);
     }, VAULT_LOG_IDLE_MS);
   };
+
   // Fires once, an hour after the user's last message in `sessionId`, with
   // no further message sent in the meantime — the exact same "/vault-log"
   // a user could type themselves (see systemPrompt.js's slash-command
@@ -689,6 +736,7 @@ export function useChatController({ activeProjectId } = {}) {
       if (prefs.consent !== true) return;
       const externalVault = await loadVaultConnection();
       if (!isVaultConnected(externalVault)) return;
+
       // "-created_date" + reverse, same convention useChatMessages.js's own
       // "recent" page uses — this is a standalone fetch (the session may no
       // longer be the active one by the time this fires, so chatState's own
@@ -709,6 +757,7 @@ export function useChatController({ activeProjectId } = {}) {
       const conversationHistory = messages
         .map((m) => `${m.role.toUpperCase()}: ${stripToolLog(m.content)}`)
         .join("\n");
+
       const data = await invokeAssistant({
         message: "/vault-log",
         conversationHistory,
@@ -716,10 +765,12 @@ export function useChatController({ activeProjectId } = {}) {
         sessionId,
         protocolReminderRequested: false,
       });
+
       const reply = data.reply || "";
       const liveTrace = data.liveTrace || [];
       const actions = data.actions || [];
       const executable = actions.filter((a) => !NON_EXECUTABLE_ACTIONS.has(a.action));
+
       if (!executable.length) {
         if (!reply) return; // nothing written and nothing to say — stay silent rather than post an empty aside
         const created = await createMessage.mutateAsync({
@@ -731,6 +782,7 @@ export function useChatController({ activeProjectId } = {}) {
         if (sessionId !== activeSessionIdRef.current) setReflectionSessionId(sessionId);
         return;
       }
+
       // "/vault-log" only ever proposes WRITE_VAULT_NOTE (see
       // systemPrompt.js), never anything in DESTRUCTIVE_ACTIONS — but this
       // still routes through the same pending_action fallback handleSend
@@ -754,6 +806,7 @@ export function useChatController({ activeProjectId } = {}) {
       // best-effort — a failed idle log just means it didn't happen this hour
     }
   };
+
   // Returns { hadAction, ok, error? } instead of swallowing a failure
   // silently — this used to pop the entry off actionHistory BEFORE
   // attempting it and empty-catch any error with a comment claiming it was
@@ -777,6 +830,7 @@ export function useChatController({ activeProjectId } = {}) {
       return { hadAction: true, ok: false, error };
     }
   };
+
   // The part of a successful assistant turn that turns {reply, reasoning,
   // actions, liveTrace} into real chat messages/mutations — extracted out
   // of handleSend so the exact same logic also drives a RESUMED Local
@@ -790,6 +844,7 @@ export function useChatController({ activeProjectId } = {}) {
     const reasoning = data.reasoning || reply;
     const actions = data.actions || [];
     const liveTrace = data.liveTrace || [];
+
     if (actions.length === 0 || actions.every((a) => NON_EXECUTABLE_ACTIONS.has(a.action))) {
       let replyText = reply;
       if (actions[0]?.action === "UNDO_LAST_ACTION") {
@@ -814,7 +869,9 @@ export function useChatController({ activeProjectId } = {}) {
       );
       return;
     }
+
     const executable = actions.filter((a) => !NON_EXECUTABLE_ACTIONS.has(a.action));
+
     // "Approve every action, not just destructive ones" (Settings -> Agent
     // Behavior, off by default) widens this same confirm gate to every
     // staged action, not a separate approval queue — see chatActions.js's
@@ -835,6 +892,7 @@ export function useChatController({ activeProjectId } = {}) {
       );
       return;
     }
+
     setLiveSteps((prev) => [...prev, describePlan(executable)]);
     const paceReveal = executable.length <= MAX_PACED_STEPS;
     const results = await executeActionSequence(executable, {
@@ -847,6 +905,7 @@ export function useChatController({ activeProjectId } = {}) {
     if (undos.length) {
       setActionHistory((prev) => [...prev, ...undos]);
     }
+
     const toolLog = [...liveTrace.map((l) => l.label), describePlan(executable), ...results.map(describeToolCall)];
     const content = buildLoggedContent(reply, toolLog);
     setLiveSteps([]);
@@ -859,9 +918,11 @@ export function useChatController({ activeProjectId } = {}) {
     );
     await invalidateAppQueries();
   };
+
   const handleSend = async (e) => {
     e.preventDefault();
     if (!input.trim() && !attachedFile) return;
+
     // /snippet is the one slash command handled entirely client-side, never
     // sent to the model — saving/recalling a block of text needs no AI
     // reasoning, so round-tripping it through a tool call would just be
@@ -881,6 +942,7 @@ export function useChatController({ activeProjectId } = {}) {
       setInput(snippet ? snippet.text : input);
       return;
     }
+
     // ensureSession()/the user-message create both hit Base44's hosted
     // ChatSession/ChatMessage entities, which RLS denies for an anonymous
     // visitor (this app runs with requiresAuth: false so the dashboard
@@ -907,10 +969,12 @@ export function useChatController({ activeProjectId } = {}) {
       return;
     }
     setIsComputing(true);
+
     try {
       const conversationHistory = (chatState.messages || [])
         .map((m) => `${m.role.toUpperCase()}: ${stripToolLog(m.content)}`)
         .join("\n");
+
       // Clean slate BEFORE invokeAssistant starts, not after — onEvent below
       // fires live, DURING that call, so liveSteps/streamingText need to
       // already be empty by the time the first event can possibly arrive,
@@ -941,6 +1005,7 @@ export function useChatController({ activeProjectId } = {}) {
           setStreamingText((prev) => prev + ROUND_BOUNDARY_MARKER);
         }
       };
+
       const data = await invokeAssistant({
         message: userText, conversationHistory, activeProjectId, sessionId,
         protocolReminderRequested: matchesProtocolTrigger(userText),
@@ -987,6 +1052,7 @@ export function useChatController({ activeProjectId } = {}) {
       setStreamingText("");
     }
   };
+
   const handleConfirm = async (message) => {
     const { actions } = message.pending_action;
     setResolvingId(message.id);
@@ -1054,6 +1120,7 @@ export function useChatController({ activeProjectId } = {}) {
       setLiveSteps([]);
     }
   };
+
   const handleCancel = async (message) => {
     setResolvingId(message.id);
     useAppStore.getState().setPendingVaultProposals([]);
@@ -1067,6 +1134,7 @@ export function useChatController({ activeProjectId } = {}) {
       setResolvingId(null);
     }
   };
+
   const dismissAuthPrompt = () => setAuthPromptVisible(false);
   // redirectToLogin() targets Base44's hosted /login page route, which
   // doesn't work for this app's deployment (see LoginScreen.jsx) —
@@ -1074,6 +1142,7 @@ export function useChatController({ activeProjectId } = {}) {
   // default, since this is a small inline recovery prompt, not the full
   // provider/email picker LoginScreen shows for the main auth gate.
   const signInForChat = () => base44.auth.loginWithProvider('google', window.location.pathname + window.location.search);
+
   return {
     input, setInput,
     isComputing,
