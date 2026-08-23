@@ -20,7 +20,6 @@ import ResourcesSection from "@/components/settings/ResourcesSection";
 import { useAppStore } from "@/lib/store";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import MobileSidebarDrawer from "@/components/shared/MobileSidebarDrawer";
-
 const SECTIONS = [
   { key: "account", label: "Account", Component: AccountSection },
   { key: "appearance", label: "Appearance", Component: AppearanceSection },
@@ -40,7 +39,6 @@ const SECTIONS = [
   { key: "slack", label: "Slack", Component: SlackSection },
   { key: "resources", label: "Resources", Component: ResourcesSection },
 ];
-
 // The section-nav list's own content — factored out so the desktop docked
 // <aside> and the mobile MobileSidebarDrawer can both render it without
 // duplicating the JSX.
@@ -60,7 +58,6 @@ function SectionNavContent({ activeSection, onSelect }) {
     </nav>
   );
 }
-
 // A standalone /settings route (outside AppShell's three-column dashboard
 // chrome, same treatment ChatPage gets) — a persistent section-nav sidebar
 // on the left, following Chat's original header pattern: the sidebar's own
@@ -80,7 +77,6 @@ export default function SettingsPage() {
   const [pulseKey, setPulseKey] = useState(null);
   const sectionRefs = useRef({});
   const scrollContainerRef = useRef(null);
-
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
@@ -107,11 +103,9 @@ export default function SettingsPage() {
     Object.values(sectionRefs.current).forEach((el) => el && observer.observe(el));
     return () => observer.disconnect();
   }, []);
-
   const scrollToSection = (key) => {
     sectionRefs.current[key]?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
-
   // OPEN_APP_SECTION (chatActions.js) — "where's the Outlook connector"
   // style requests land here as a "settings:<key>" pendingHighlightId.
   // Every section already renders unconditionally on this one scrollable
@@ -129,20 +123,16 @@ export default function SettingsPage() {
       clearTimeout(stopPulse);
       clearTimeout(clear);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingHighlightId]);
-
   // Same reasoning as AppShell.jsx's mobile drawers and ChatPage.jsx's own
   // copy of this pattern: below md the aside never docks, and the drawer's
   // open state is page-local/non-persisted rather than reusing isSidebarOpen.
   const isMobile = useIsMobile();
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
-
   const selectSectionMobile = (key) => {
     scrollToSection(key);
     setIsMobileDrawerOpen(false);
   };
-
   return (
     <div className="h-full flex overflow-hidden gap-3 px-3 pb-3">
       {!isMobile && isSidebarOpen && (
@@ -160,7 +150,6 @@ export default function SettingsPage() {
           <SectionNavContent activeSection={activeSection} onSelect={scrollToSection} />
         </aside>
       )}
-
       {isMobile && (
         <MobileSidebarDrawer
           isOpen={isMobileDrawerOpen}
@@ -171,7 +160,6 @@ export default function SettingsPage() {
           <SectionNavContent activeSection={activeSection} onSelect={selectSectionMobile} />
         </MobileSidebarDrawer>
       )}
-
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         <div className="h-14 shrink-0 flex items-center gap-3 px-4">
           {(isMobile || !isSidebarOpen) && (
@@ -185,7 +173,6 @@ export default function SettingsPage() {
           )}
           <p className="font-heading text-sm font-semibold">Settings</p>
         </div>
-
         <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto">
           {/* pb-[60vh], not a plain py-8 — without real room to scroll past
               it, the last section (Resources, sometimes the one before it

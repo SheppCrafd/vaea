@@ -53,7 +53,6 @@ export default function DateField({ value, onSave, className = "", unstyled = fa
 
   useEffect(() => {
     if (open) setViewDate(selected || new Date());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   useEffect(() => {

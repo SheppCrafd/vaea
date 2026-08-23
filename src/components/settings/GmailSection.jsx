@@ -4,7 +4,6 @@ import { Mail, Check, Loader2, TriangleAlert, Unlink } from "lucide-react";
 import { loadGmailConnection, saveGmailConnection, clearGmailConnection, isGmailConnected, DEFAULTS } from "@/lib/gmailConnection";
 import { buildAuthorizationUrl } from "@/lib/gmailOAuthPkce";
 import { listMessages } from "@/lib/gmailApi";
-
 // Real recent-inbox preview, same on-demand-not-polled discipline as
 // GoogleWorkspaceSection's UpcomingEvents — Gmail's API is also a shared
 // per-project daily quota across every Vaea user.
@@ -12,7 +11,6 @@ function RecentMessages({ connection, onTokenRefreshed }) {
   const [messages, setMessages] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
   const load = async () => {
     setLoading(true);
     setError("");
@@ -26,12 +24,9 @@ function RecentMessages({ connection, onTokenRefreshed }) {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
   return (
     <div className="mt-6 pt-6 border-t border-border">
       <div className="flex items-center justify-between mb-3">
@@ -71,7 +66,6 @@ function RecentMessages({ connection, onTokenRefreshed }) {
     </div>
   );
 }
-
 // Gmail — same PKCE-against-a-shared-public-client flow as Calendar (see
 // gmailOAuthPkce.js), kept as its own independent connection so a user can
 // grant calendar access without also granting inbox read/send access.
@@ -80,13 +74,10 @@ export default function GmailSection() {
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
-
   useEffect(() => {
     loadGmailConnection().then(setConnection);
   }, []);
-
   const connected = isGmailConnected(connection);
-
   const handleConnect = async () => {
     setConnecting(true);
     setError("");
@@ -97,18 +88,15 @@ export default function GmailSection() {
       setConnecting(false);
     }
   };
-
   const handleDisconnect = async () => {
     await clearGmailConnection();
     setConnection(DEFAULTS);
     queryClient.invalidateQueries({ queryKey: ["gmailConnected"] });
   };
-
   const handleTokenRefreshed = async (refreshed) => {
     setConnection(refreshed);
     await saveGmailConnection(refreshed);
   };
-
   return (
     <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-6">
       <div className="flex items-center justify-between mb-1">
@@ -125,7 +113,6 @@ export default function GmailSection() {
         on Vaea's servers: the connection lives on this device, sent along transiently only for the moment a
         request actually needs it.
       </p>
-
       {!connected ? (
         <>
           <button

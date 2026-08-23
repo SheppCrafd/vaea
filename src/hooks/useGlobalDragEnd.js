@@ -21,7 +21,12 @@ function withStakeholder(currentIds, stakeholderId) {
 // have to know about each other.
 export function useGlobalDragEnd() {
   const queryClient = useQueryClient();
-  const { data: areas = [] } = useAreas();
+  // Called for the subscription/cache-priming side effect only, unlike
+  // useProjects/useProducts/useAllTasks below (whose returned data IS read
+  // directly) — the area-reorder drop handler further down always re-reads
+  // live via localDb.areas.list() instead of trusting a closure-captured
+  // value (see its own comment there).
+  useAreas();
   const { data: projects = [] } = useProjects();
   const { data: products = [] } = useProducts();
   const { data: tasks = [] } = useAllTasks();

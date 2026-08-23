@@ -68,7 +68,6 @@ function clearAllLegacyData() {
 export default function DeviceStorageGate({ children }) {
   const [phase, setPhase] = useState("checking");
   const [folderName, setFolderName] = useState(null);
-  const [legacyData, setLegacyData] = useState(null);
   const [error, setError] = useState(null);
   const fileInputRef = useRef(null);
 
@@ -177,7 +176,6 @@ export default function DeviceStorageGate({ children }) {
       } else {
         // Only in memory so far — hold the gate open until the user saves
         // it to a real file, so it's never lost.
-        setLegacyData(legacy);
         setPhase("manual-legacy-found");
       }
       return;

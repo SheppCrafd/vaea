@@ -640,6 +640,16 @@ export async function runLocalTool(name, args, { dataset, externalVault } = {}) 
       return listSlackChannelsTool();
     case "list_slack_messages":
       return listSlackMessagesTool(args);
+    case "list_clickup_spaces":
+      return listClickUpSpacesTool();
+    case "list_clickup_lists":
+      return listClickUpListsTool(args);
+    case "list_clickup_tasks":
+      return listClickUpTasksTool(args);
+    case "list_clickup_channels":
+      return listClickUpChannelsTool();
+    case "list_clickup_messages":
+      return listClickUpMessagesTool(args);
     case "read_project_link":
       return readProjectLinkTool(args.url, args.focus);
     case "analyze_attachment":

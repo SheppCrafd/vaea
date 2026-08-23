@@ -4,7 +4,6 @@ import { Building2, Check, Loader2, TriangleAlert, Unlink } from "lucide-react";
 import { loadMicrosoftConnection, saveMicrosoftConnection, clearMicrosoftConnection, isMicrosoftConnected, DEFAULTS } from "@/lib/microsoftConnection";
 import { buildAuthorizationUrl } from "@/lib/microsoftOAuthPkce";
 import { listEvents } from "@/lib/microsoftGraphApi";
-
 // Real upcoming-events preview, same on-demand-not-polled discipline as
 // GoogleWorkspaceSection/GmailSection — Graph is also a shared per-app quota
 // across every Vaea user.
@@ -12,7 +11,6 @@ function UpcomingEvents({ connection, onTokenRefreshed }) {
   const [events, setEvents] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
   const load = async () => {
     setLoading(true);
     setError("");
@@ -26,12 +24,9 @@ function UpcomingEvents({ connection, onTokenRefreshed }) {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
   return (
     <div className="mt-6 pt-6 border-t border-border">
       <div className="flex items-center justify-between mb-3">
@@ -69,7 +64,6 @@ function UpcomingEvents({ connection, onTokenRefreshed }) {
     </div>
   );
 }
-
 // Microsoft 365 / Outlook Calendar — Calendar + Teams meeting links only
 // (the assistant can add a real Teams join link to any event it creates).
 // Outlook/Exchange mail is a separate connector (OutlookSection.jsx, feeds
@@ -81,13 +75,10 @@ export default function MicrosoftSection() {
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
-
   useEffect(() => {
     loadMicrosoftConnection().then(setConnection);
   }, []);
-
   const connected = isMicrosoftConnected(connection);
-
   const handleConnect = async () => {
     setConnecting(true);
     setError("");
@@ -98,18 +89,15 @@ export default function MicrosoftSection() {
       setConnecting(false);
     }
   };
-
   const handleDisconnect = async () => {
     await clearMicrosoftConnection();
     setConnection(DEFAULTS);
     queryClient.invalidateQueries({ queryKey: ["microsoftConnected"] });
   };
-
   const handleTokenRefreshed = async (refreshed) => {
     setConnection(refreshed);
     await saveMicrosoftConnection(refreshed);
   };
-
   return (
     <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-6">
       <div className="flex items-center justify-between mb-1">
@@ -128,7 +116,6 @@ export default function MicrosoftSection() {
         this account sits on Vaea's servers: the connection lives on this device, sent along transiently only for
         the moment a request actually needs it.
       </p>
-
       {!connected ? (
         <>
           <button
