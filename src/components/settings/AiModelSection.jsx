@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { Check, Eye, EyeOff, FolderCog, Loader2, RefreshCw, TriangleAlert, Unlink, ChevronRight } from "lucide-react";
 import { loadAiProviderConfig, saveAiProviderConfig, DEFAULTS as PROVIDER_DEFAULTS } from "@/lib/aiProviderConfig";
 import { PROVIDERS, PROVIDER_LIST } from "@/lib/llm/providers";
+import { SettingsCard } from "@/components/ui/settings-card";
+import { Select } from "@/components/ui/select";
 import {
   supportsFileSystemAccess as bridgeSupported,
   getBridgeStatus,
@@ -57,7 +59,7 @@ export default function AiModelSection() {
   const handleBaseUrlChange = (baseUrl) => persist({ ...config, baseUrl });
 
   return (
-    <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-6">
+    <SettingsCard>
       <div className="flex items-center justify-between mb-1">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">AI Model</p>
         {justSaved && (
@@ -78,18 +80,13 @@ export default function AiModelSection() {
       <div className="flex flex-col gap-3">
         <div>
           <label htmlFor="ai-model-provider" className="text-sm font-medium mb-1.5 block">Provider</label>
-          <select
+          <Select
             id="ai-model-provider"
             value={provider.id}
             onChange={(e) => handleProviderChange(e.target.value)}
-            className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all"
-          >
-            {PROVIDER_LIST.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.label}{p.description ? ` — ${p.description}` : ""}
-              </option>
-            ))}
-          </select>
+            className="outline-none focus:ring-1 focus:ring-primary/50 transition-all"
+            options={PROVIDER_LIST.map((p) => ({ value: p.id, label: p.label + (p.description ? ` — ${p.description}` : "") }))}
+          />
         </div>
 
         {isKeyBased && (
@@ -116,16 +113,13 @@ export default function AiModelSection() {
             <div>
               <label htmlFor="ai-model-model" className="text-sm font-medium mb-1.5 block">Model</label>
               {provider.models.length > 0 ? (
-                <select
+                <Select
                   id="ai-model-model"
                   value={config.model}
                   onChange={(e) => handleModelChange(e.target.value)}
-                  className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all"
-                >
-                  {provider.models.map((m) => (
-                    <option key={m.id} value={m.id}>{m.label}</option>
-                  ))}
-                </select>
+                  className="outline-none focus:ring-1 focus:ring-primary/50 transition-all"
+                  options={provider.models.map((m) => ({ value: m.id, label: m.label }))}
+                />
               ) : (
                 <input
                   id="ai-model-model"
@@ -193,7 +187,7 @@ export default function AiModelSection() {
           </p>
         )}
       </div>
-    </div>
+    </SettingsCard>
   );
 }
 
@@ -348,16 +342,13 @@ function LocalModeConnect({ localConnector, localModel, localUrl, onLocalConfigC
 
           <div className="mb-3">
             <label htmlFor="local-mode-connector" className="text-xs font-medium mb-1 block">Local model</label>
-            <select
+            <Select
               id="local-mode-connector"
               value={localConnector}
               onChange={(e) => onLocalConfigChange({ localConnector: e.target.value })}
-              className="w-full text-xs px-3 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary/50 transition-all mb-2"
-            >
-              {LOCAL_CONNECTORS.map((c) => (
-                <option key={c.id} value={c.id}>{c.label}</option>
-              ))}
-            </select>
+              className="text-xs outline-none focus:ring-1 focus:ring-primary/50 transition-all mb-2"
+              options={LOCAL_CONNECTORS.map((c) => ({ value: c.id, label: c.label }))}
+            />
 
             {activeConnector.needsModel && (
               <input

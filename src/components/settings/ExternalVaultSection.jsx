@@ -8,6 +8,7 @@ import {
   SELF_NOTE_PATH, SELF_NOTE_TARGET_MAX_CHARS,
   MEMORY_NOTE_PATH, MEMORY_NOTE_TARGET_MAX_CHARS,
 } from "@/lib/githubApi";
+import { SettingsCard } from "@/components/ui/settings-card";
 
 const DEFAULT_CONNECTION = { owner: "", repo: "", branch: "main", token: "" };
 
@@ -265,7 +266,7 @@ export default function ExternalVaultSection() {
   const connected = isVaultConnected(connection) && (status === "ok" || status === "saved");
 
   return (
-    <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-6">
+    <SettingsCard>
       <div className="flex items-center justify-between mb-1">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Vaea Brain</p>
         {connected && (
@@ -365,6 +366,6 @@ export default function ExternalVaultSection() {
           <VaultSearchBar connection={connection} />
         </>
       )}
-    </div>
+    </SettingsCard>
   );
 }

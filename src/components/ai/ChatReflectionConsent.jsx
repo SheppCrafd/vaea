@@ -4,6 +4,7 @@ import { Sparkles } from "lucide-react";
 import { useReflectionPreferences, useSaveReflectionPreferences } from "@/hooks/useReflectionPreferences";
 import { useVaultConnected } from "@/hooks/useVaultConnected";
 import { dismissReflectionConsentThisPageLoad, hasReflectionConsentBeenDismissedThisPageLoad } from "@/lib/reflectionTrigger";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // One-time, explicit opt-in — shown only while consent is still `null`
 // (never asked). Modeled on ChatAuthPrompt.jsx's compact bordered banner,
@@ -85,15 +86,12 @@ export default function ChatReflectionConsent() {
         facts — to notice what worked and what didn't, and get better at responding. That's always about its own
         replies, not you: it still never analyzes your tone, habits, or personality unless you check the box below.
       </p>
-      <label className="flex items-start gap-2 pl-6 text-[11px] text-muted-foreground/80">
-        <input
-          type="checkbox"
-          checked={userAnalysisOptIn}
-          onChange={(e) => setUserAnalysisOptIn(e.target.checked)}
-          className="mt-0.5 shrink-0"
-        />
-        <span>Also let it notice patterns in how I communicate or work, and save what it learns.</span>
-      </label>
+      <div className="flex items-start gap-2 pl-6 text-[11px] text-muted-foreground/80">
+        <Checkbox checked={userAnalysisOptIn} onCheckedChange={setUserAnalysisOptIn} aria-label="Also notice patterns in how I communicate or work" className="mt-0.5" />
+        <span className="cursor-pointer" onClick={() => setUserAnalysisOptIn((v) => !v)}>
+          Also let it notice patterns in how I communicate or work, and save what it learns.
+        </span>
+      </div>
       <div className="flex items-center justify-between gap-2 pl-6">
         <p className="text-[11px] text-muted-foreground/80">Turn this on or off anytime in Settings → AI Preferences.</p>
         <div className="flex items-center gap-2 shrink-0">

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { LogOut, LogIn, AlertTriangle, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
+import { SettingsCard } from "@/components/ui/settings-card";
 import Avatar from "@/components/shared/Avatar";
 import DeleteAccountDialog from "@/components/settings/DeleteAccountDialog";
 
@@ -24,7 +25,7 @@ export default function AccountSection() {
   // that had nothing real to act on. Only chat actually needs sign-in.
   if (!isAuthenticated) {
     return (
-      <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-6">
+      <SettingsCard>
         <p className="text-xs font-medium text-muted-foreground mb-4 uppercase tracking-wider">Account</p>
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -36,14 +37,14 @@ export default function AccountSection() {
             Sign in
           </Button>
         </div>
-      </div>
+      </SettingsCard>
     );
   }
 
   const displayName = user?.full_name || user?.email || "Unnamed user";
 
   return (
-    <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-6">
+    <SettingsCard>
       <p className="text-xs font-medium text-muted-foreground mb-4 uppercase tracking-wider">Account</p>
 
       <div className="flex items-center justify-between gap-3 pb-6 mb-6 border-b border-border">
@@ -74,6 +75,6 @@ export default function AccountSection() {
       </div>
 
       {isDeleteOpen && <DeleteAccountDialog onClose={() => setIsDeleteOpen(false)} />}
-    </div>
+    </SettingsCard>
   );
 }

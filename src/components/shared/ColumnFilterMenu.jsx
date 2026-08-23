@@ -1,6 +1,7 @@
 import { Filter } from "lucide-react";
 import { usePositionedMenu } from "@/hooks/usePositionedMenu";
 import PositionedPopover from "@/components/shared/PositionedPopover";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Per-column filter popover for data tables — a small funnel trigger next to
 // a column header that opens a Portal-rendered menu, mirroring the
@@ -72,10 +73,10 @@ export default function ColumnFilterMenu({
           <div className="flex flex-col gap-0.5">
             {options.length === 0 && <p className="text-xs text-muted-foreground px-2 py-1">No values</p>}
             {options.map((opt) => (
-              <label key={opt.value} className="flex items-center gap-1.5 text-xs px-2 py-1 hover:bg-secondary rounded-sm cursor-pointer transition-colors">
-                <input type="checkbox" checked={selected.includes(opt.value)} onChange={() => onToggleOption(opt.value)} />
-                {opt.label}
-              </label>
+              <div key={opt.value} className="flex items-center gap-1.5 text-xs px-2 py-1 hover:bg-secondary rounded-sm transition-colors">
+                <Checkbox checked={selected.includes(opt.value)} onCheckedChange={() => onToggleOption(opt.value)} aria-label={opt.label} />
+                <span className="cursor-pointer" onClick={() => onToggleOption(opt.value)}>{opt.label}</span>
+              </div>
             ))}
             {selected.length > 0 && (
               <button type="button" onClick={onClearOptions} className="text-[10px] text-muted-foreground hover:text-foreground text-left px-2 pt-1 transition-colors">

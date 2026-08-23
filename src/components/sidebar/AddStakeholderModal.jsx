@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import Modal from "@/components/shared/Modal";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { useCreateStakeholder } from "@/hooks/useStakeholders";
 import { useDepartments, useCreateDepartment } from "@/hooks/useDepartments";
 import { useFileUpload } from "@/hooks/useFileUpload";
@@ -63,18 +64,13 @@ export default function AddStakeholderModal({ onClose }) {
         </div>
         <div>
           <label htmlFor="stakeholder-department" className="text-sm font-medium block mb-1">Department</label>
-          <select
+          <Select
             id="stakeholder-department"
             value={department}
             onChange={(e) => setDepartment(e.target.value)}
-            className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md"
-          >
-            <option value="">Select a department...</option>
-            {departments.map((d) => (
-              <option key={d.id} value={d.name}>{d.name}</option>
-            ))}
-            <option value={NEW_DEPARTMENT}>+ New department...</option>
-          </select>
+            placeholder="Select a department..."
+            options={[...departments.map((d) => ({ value: d.name, label: d.name })), { value: NEW_DEPARTMENT, label: "+ New department..." }]}
+          />
           {isCreatingDepartment && (
             <Input
               value={newDepartmentName}

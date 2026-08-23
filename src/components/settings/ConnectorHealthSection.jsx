@@ -8,6 +8,7 @@ import { loadAppleMailConnection, isAppleMailConnected } from "@/lib/appleMailCo
 import { loadClickUpConnection, isClickUpConnected } from "@/lib/clickupConnection";
 import { loadSlackConnection, isSlackConnected } from "@/lib/slackConnection";
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
+import { SettingsCard } from "@/components/ui/settings-card";
 
 const CONNECTORS = [
   { label: "Google Workspace", load: loadGoogleWorkspaceConnection, isConnected: isGoogleWorkspaceConnected, section: "google-workspace" },
@@ -38,7 +39,7 @@ export default function ConnectorHealthSection() {
   }, []);
 
   return (
-    <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-6">
+    <SettingsCard>
       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Connector Health</p>
       <p className="text-xs text-muted-foreground mb-4">Every connector's real status, at a glance.</p>
       {!statuses ? (
@@ -61,6 +62,6 @@ export default function ConnectorHealthSection() {
           ))}
         </div>
       )}
-    </div>
+    </SettingsCard>
   );
 }

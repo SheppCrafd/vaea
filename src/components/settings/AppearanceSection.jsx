@@ -1,6 +1,7 @@
 import { useTheme } from "next-themes";
 import { Check, Monitor, Moon, Sun } from "lucide-react";
 import { useAccentTheme, ACCENT_THEMES } from "@/hooks/useAccentTheme";
+import { SettingsCard } from "@/components/ui/settings-card";
 
 const MODE_OPTIONS = [
   { key: "light", label: "Light", Icon: Sun },
@@ -17,7 +18,7 @@ export default function AppearanceSection() {
   const { accent, setAccent } = useAccentTheme();
 
   return (
-    <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-6">
+    <SettingsCard>
       <p className="text-xs font-medium text-muted-foreground mb-4 uppercase tracking-wider">Appearance</p>
 
       <div className="mb-6">
@@ -54,6 +55,6 @@ export default function AppearanceSection() {
           ))}
         </div>
       </div>
-    </div>
+    </SettingsCard>
   );
 }

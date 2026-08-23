@@ -9,7 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
 import DateField from "@/components/shared/DateField";
 import FormField from "@/components/shared/FormField";
-import EntitySelect from "@/components/shared/EntitySelect";
+import { Select } from "@/components/ui/select";
 import { useLastUsedValue } from "@/hooks/useLastUsedValue";
 
 export default function ProjectForm({ onDone }) {
@@ -56,7 +56,7 @@ export default function ProjectForm({ onDone }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <FormField label="Area" htmlFor="project-area">
-        <EntitySelect
+        <Select
           id="project-area"
           value={areaId}
           onChange={(e) => { setAreaId(e.target.value); setProductId(""); }}
@@ -65,7 +65,7 @@ export default function ProjectForm({ onDone }) {
         />
       </FormField>
       <FormField label="Product (optional — leave blank for standalone)" htmlFor="project-product">
-        <EntitySelect
+        <Select
           id="project-product"
           value={productId}
           onChange={(e) => setProductId(e.target.value)}
