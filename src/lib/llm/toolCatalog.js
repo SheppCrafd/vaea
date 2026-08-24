@@ -1428,19 +1428,6 @@ export const TOOL_CATALOG = [
     parameters: { type: "object", properties: {}, required: [] },
   },
   {
-    name: "SET_AGENT_BEHAVIOR",
-    staged: true,
-    description: "Turn one or both of Settings -> AI Preferences' agent-autonomy toggles on or off — the same switches the user can flip there themselves. Only pass the ones actually changing.",
-    parameters: {
-      type: "object",
-      properties: {
-        approval_queue_enabled: { type: "boolean", description: "Approve every action, not just destructive ones." },
-        auto_scheduling_enabled: { type: "boolean", description: "Let Vaea Calendar auto-schedule tasks." },
-      },
-      required: [],
-    },
-  },
-  {
     name: "CREATE_BACKUP",
     staged: true,
     description: "Create a manual backup snapshot of the whole workspace — the same thing the user can do in Settings -> Backup & Restore. A snapshot is also always taken automatically before any risky multi-step plan, so this is for an on-demand extra one.",

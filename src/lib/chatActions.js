@@ -32,7 +32,7 @@ import {
   isGoogleWorkspaceConnected as isCalendarConnected,
 } from "@/lib/googleWorkspaceConnection";
 import { listEvents as listGoogleCalendarEvents, createEvent, updateEvent, deleteEvent } from "@/lib/googleCalendarApi";
-import { loadAgentBehavior, saveAgentBehavior } from "@/lib/agentBehaviorSettings";
+import { loadAgentBehavior } from "@/lib/agentBehaviorSettings";
 import { findFreeSlot, findRecurringSlots, findConflicts, VAEA_TAG } from "@/lib/vaeaCalendarScheduling";
 import { createTextFile as createDriveFile, deleteFile as deleteDriveFile } from "@/lib/googleDriveApi";
 import { createDocument as createGoogleDoc, appendText as appendGoogleDocText, replaceText as replaceGoogleDocText } from "@/lib/googleDocsApi";
@@ -986,15 +986,6 @@ export async function executeAction(action, args) {
       const cards = await loadWorkflowCards();
       await saveWorkflowCards(cards.filter((c) => c.id !== args.card_id));
       return { toolResult: { deleted: args.card_id } };
-    }
-
-    case "SET_AGENT_BEHAVIOR": {
-      const current = await loadAgentBehavior();
-      const next = { ...current };
-      if (args.approval_queue_enabled !== undefined) next.approvalQueueEnabled = args.approval_queue_enabled;
-      if (args.auto_scheduling_enabled !== undefined) next.autoSchedulingEnabled = args.auto_scheduling_enabled;
-      await saveAgentBehavior(next);
-      return { toolResult: { agentBehavior: next } };
     }
 
     case "CREATE_BACKUP": {
