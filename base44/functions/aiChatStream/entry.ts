@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { ToolLoopAgent, tool, stepCountIs } from 'npm:ai';
+import { ToolLoopAgent, tool, stepCountIs, generateText } from 'npm:ai';
 import { createOpenAICompatible } from 'npm:@ai-sdk/openai-compatible';
 import { z } from 'npm:zod';
 
@@ -2025,9 +2025,9 @@ The tools below WRITE_VAULT_NOTE in the list (web_search, analyze_attachment, re
 
 NEVER ASK FOR VERBAL PERMISSION TO PROCEED — EVER: an actionable request ends this SAME turn one of exactly two ways — you queue a real plan (which either runs automatically or shows real "Yes, do it"/"Cancel" buttons, per the rule right above), or you ask ONE narrow question about a genuine blocker you truly cannot resolve yourself (e.g. two different real projects share the exact name you were given and you can't tell which one; a status value that matches nothing in the real enum). There is no third option where you describe what you'd do and wait for a plain "yes"/"go ahead" before actually queuing anything — that is never correct, for any request, "/tidy" very much included. Banned, verbatim and in spirit: "Would you like me to proceed with this?", "Should I go ahead?", "Do you want me to continue?", "Let me know if you'd like me to clean this up." This happened for real and must not happen again: a user typed "/tidy", got asked "Would you like to proceed with this cleanup?", typed "yea", and only THEN got an actual plan — that whole extra round trip should never have existed. If a plan turns out destructive, the Confirm/Cancel buttons the user sees ARE the one and only permission gate — asking about it yourself first is a redundant second gate that only wastes the user's time typing "yes" to a question that changes nothing.
 
-THINK OUT LOUD AS YOU GO: every round of this conversation — not just your final reply — is captured as your own real thinking. Only your LAST round's own text becomes your visible chat reply; every round's own text (this one included) is preserved as the full reasoning trail behind your plan, shown separately if the user chooses to inspect it. That reasoning trail is only ever as real as what you actually write here — if you stay silent through every round and only speak once at the end, there IS no separate reasoning to show, just your final reply repeated with nothing behind it. So: for ANY plan with more than one tool call (almost every CREATE/UPDATE/DELETE-driven request, very much including a routine multi-record populate/seed/fill request — "modest" or "a couple of areas" is not the same as "simple enough to stay silent") narrate at least once per meaningfully different step or decision, not only in a closing summary — what you're about to do and why, specific to this actual request (e.g. "I'll check what's already in the workspace before adding anything new." then, once a search comes back, "That found two related areas — I'll add the new project under the existing one instead of creating a duplicate." then, once you've decided the shape of a multi-part plan, "Now I'll create each area individually so I can attach its own products afterward."). Keep each round's own narration short — one or two real sentences, not a wall of text — and never generic filler ("Let me help you with that!"). Don't narrate the mechanics already covered above (don't say "queued"/"staged"/anything about confirmation) — this is about *why*, not about the plumbing. Reserve total silence for a genuinely single, obvious, one-tool-call turn (e.g. "mark this task done") where there is truly nothing to explain.
+RESPONSE FORMAT — exactly three things ever come out of you in a turn, nothing else: a tool call, an automatically-generated \`<plan>\` block (see below — you never write this one yourself), and your own \`<response>...</response>\` block. Any round that ends up making a tool call writes NOTHING else that round — no narration, no "I'll check the workspace first," nothing; go straight to the call. Only your genuinely final round (the one with no more tool calls left to make) writes anything in words, and every single word of it — however many paragraphs, however short or long — goes inside one \`<response>...</response>\` block. Nothing you write outside a tool call or that block is ever shown to the user; text left outside it is simply dropped, so don't leave anything important out there by mistake.
 
-PLAN TAG — for any turn whose plan ends up with MORE THAN 5 total actions: wrap your step-by-step deliberation in a single \`<plan>...</plan>\` block (plain text/markdown inside, no nested tags) — this is what actually populates the separate "plan" detail the user can click to inspect, instead of your reply text being reused for both. Put the \`<plan>\` block in whichever round(s) contain that narration (it can span multiple rounds the same as any other narration would); anything you write outside \`<plan>...</plan>\`, in any round, is still a completely normal chat reply — write it in whatever shape actually fits the question (one sentence, several paragraphs, a list — never force it down to one line just because a plan exists alongside it). Below the 5-action threshold, keep narrating exactly as THINK OUT LOUD AS YOU GO already describes and skip the tag entirely — most turns don't need it.
+PLAN BLOCK — you never write a \`<plan>\` tag yourself, and never see one in your own output. Any turn whose finalized plan ends up queuing MORE than 2 tool calls automatically gets a real \`<plan>\` block generated afterward, from the exact steps you decided, by a separate process outside this conversation — not from anything you narrate. This means the old habit of thinking out loud round to round is gone: don't do it, it would just be silently dropped per RESPONSE FORMAT above.
 
 CRITICAL MAPPING RULE: when a tool needs an id, look it up from [DATABASE STATE] by the name/title the user gave. Never invent an id or pass a name where an id is expected.
 
@@ -2157,19 +2157,58 @@ function truncateMemory(text) {
   return `${text.slice(0, MEMORY_NOTE_MAX_CHARS)}\n[...truncated — the full note is longer than fits here...]`;
 }
 
-// Local twin of src/lib/llm/streamUtils.js's extractPlan — this function is
-// its own deployment unit (a Deno isolate, not this app's own bundle), so it
-// can't import across that boundary; kept in exact behavioral sync by hand.
-// See the PLAN TAG instruction above and that file's own comment for why
-// this exists: a dedicated <plan>...</plan> block, not a guess stitched
-// from whichever step happened to have text.
-function extractPlanTag(text) {
-  const match = (text || '').match(/<plan>([\s\S]*?)<\/plan>/i);
-  if (!match) return { text: text || '', plan: null };
-  return {
-    text: (text.slice(0, match.index) + text.slice(match.index + match[0].length)).replace(/\n{3,}/g, '\n\n').trim(),
-    plan: match[1].trim(),
-  };
+// Local twin of src/lib/llm/streamUtils.js's extractResponse — this
+// function is its own deployment unit (a Deno isolate, not this app's own
+// bundle), so it can't import across that boundary; kept in exact
+// behavioral sync by hand. See the RESPONSE FORMAT instruction above and
+// that file's own comment: falls back to the raw trimmed text when the tag
+// is missing entirely (a model formatting slip) rather than showing a blank
+// reply.
+function extractResponseTag(text) {
+  const match = (text || '').match(/<response>([\s\S]*?)<\/response>/i);
+  if (match) return match[1].trim();
+  return (text || '').trim();
+}
+
+// Local twin of src/lib/llm/planMicroAgents.js — see that file's own module
+// comment for the full design. Two real, separate, toolless generateText
+// calls on the SAME base44 AI Gateway model this turn already used (no
+// separate fast-model catalog exists server-side, unlike the BYOK client
+// twin's per-provider FAST_MODEL table), budgeted the same way. Returns the
+// plan paragraph, or null if either call errored or missed budget.
+const MICRO_AGENT_BUDGET_MS = 3000;
+// Local twin of src/lib/llm/byokChat.js's PLAN_TOOL_CALL_THRESHOLD.
+const PLAN_TOOL_CALL_THRESHOLD = 2;
+const PROPOSE_SYSTEM_PROMPT =
+  "You write ONE short first-person planning paragraph (3-5 sentences) explaining a plan that's already been decided for someone else — you're not deciding anything, only narrating the reasoning behind steps you're given. Plain and direct, no headers, no bullet lists, no restating the raw tool syntax. Do not add or omit steps; explain only the ones given. Output the paragraph and nothing else.";
+const RECONSIDER_SYSTEM_PROMPT =
+  "You review a colleague's just-written planning paragraph against the same already-decided steps you're also given. If it's already clear and correct, return it unchanged. If a genuinely better second thought exists — a real reconsideration, not a rewrite for its own sake, e.g. \"wait, that depends on X existing first\" — revise it to include that. Keep it 3-6 sentences, plain first-person, no headers or lists. Output ONLY the final paragraph, nothing else.";
+
+function withTimeout(promise, ms) {
+  return Promise.race([promise, new Promise((resolve) => setTimeout(() => resolve(null), ms))]);
+}
+
+function describeToolCalls(actions) {
+  return (actions || []).map((a, i) => `${i + 1}. ${a.type}(${JSON.stringify(a.args || {})})`).join('\n');
+}
+
+async function runPlanMicroAgents({ model, userMessage, actions }) {
+  const toolSummary = describeToolCalls(actions);
+  const budgetStart = Date.now();
+  const callFast = (system, prompt) =>
+    generateText({ model, system, prompt }).then((r) => r.text?.trim() || null).catch(() => null);
+
+  const draft = await withTimeout(
+    callFast(PROPOSE_SYSTEM_PROMPT, `User asked: "${userMessage}"\n\nSteps about to run:\n${toolSummary}`),
+    MICRO_AGENT_BUDGET_MS * 0.6,
+  );
+  if (!draft) return null;
+
+  const remaining = MICRO_AGENT_BUDGET_MS - (Date.now() - budgetStart);
+  if (remaining < 300) return draft;
+
+  const revised = await withTimeout(callFast(RECONSIDER_SYSTEM_PROMPT, `Steps:\n${toolSummary}\n\nDraft:\n${draft}`), remaining);
+  return revised || draft;
 }
 
 function renderVaultOverview(vaultOverview) {
@@ -2349,70 +2388,38 @@ Deno.serve(async (req) => {
           // byokChat.js's simulateLiveReveal) for the identical underlying
           // reason: the transport under this path can't actually stream.
           const result = await agent.generate({ prompt: contextPrompt });
-          // Each step's own text can carry a <plan>...</plan> block (see the
-          // PLAN TAG instruction above) — stripped out here before anything
-          // downstream (reply, reasoning fallback, the live paced replay)
-          // ever sees it, and collected separately as `planParts`.
-          const planParts = [];
-          const stepTexts = result.steps
-            .map((step) => step.text?.trim())
-            .filter(Boolean)
-            .map((raw) => {
-              const { text, plan } = extractPlanTag(raw);
-              if (plan) planParts.push(plan);
-              return text;
-            })
-            .filter(Boolean);
-          // `reasoning` is the model's own dedicated <plan> narration when it
-          // wrote one; otherwise every step's own text, in order — "I'll
-          // check the workspace first...", then "Found two matches, now
-          // creating the plan...", genuine deliberation including any real
-          // self-correction, not just the destination.
-          const reasoning = planParts.length ? planParts.join('\n\n') : stepTexts.join('\n\n');
-          // `reply` is ONLY the LAST step's own text, taken WHOLE — no
-          // further splitting inside it. This used to instead take only the
-          // final blank-line-separated paragraph of the full `reasoning`
-          // string, on the theory that a model often writes its build-up
-          // narration and its actual conclusion in the very same step (it
-          // doesn't need to see a tool's result before deciding to create
-          // three sibling areas, so it just calls all three at once, with
-          // all its reasoning in that same one completion) — which made
-          // "steps[steps.length-1]" identical to the whole thing whenever
-          // that happened. That paragraph-split "fix" then quietly broke a
-          // different, more common case: a genuinely multi-paragraph
-          // conversational answer (an explanation, a comparison of two
-          // approaches) with no plan attached at all, silently truncated to
-          // its last paragraph on persist — the two situations are the same
-          // text shape and can't be told apart by paragraph count alone. The
-          // real, unambiguous signal is the step boundary itself: every step
-          // BEFORE the last one made at least one tool call (that's the only
-          // reason the loop continued — see agent.generate's own stepCountIs
-          // loop above), so it was narration, not the final answer; once
-          // inside the truly last step, everything it wrote belongs to the
-          // reply, however many paragraphs that takes. The 'round-boundary'
-          // events emitted below (between steps, during the paced replay)
-          // let the client draw this same line live — see
-          // ChatMessageList.jsx.
-          const reply = stepTexts[stepTexts.length - 1] || "I couldn't come up with a reply — could you rephrase?";
+          // Per RESPONSE FORMAT above: every step before the last one made a
+          // tool call (that's the only reason agent.generate's own
+          // stepCountIs loop continued), so its own text — if the model
+          // wrote any despite being told not to — is discarded, not
+          // narration to preserve. Only the truly last step's text counts,
+          // and it must be wrapped in <response>...</response>; extractResponseTag
+          // falls back to the raw trimmed text if the model forgot the tag,
+          // same defensive behavior as the client-side twin.
+          const rawReply = result.steps.map((step) => step.text?.trim()).filter(Boolean).pop() || '';
+          const reply = extractResponseTag(rawReply) || "I couldn't come up with a reply — could you rephrase?";
 
-          // Word-sized paced chunks of every step's own text, one step at a
-          // time with a real 'round-boundary' event between them — this is
-          // what streams live, the same "watch it think" experience real
-          // streaming gives base44-hosted when the gateway does support it.
-          // Duration capped the same way ChatMessageList.jsx's own
-          // useTypewriter caps itself, so a long reply doesn't turn into a
-          // multi-second wait — see byokChat.js's simulateLiveReveal for the
-          // client-side twin of this same pacing formula.
-          const liveSteps = stepTexts.length ? stepTexts : [reply];
-          for (let i = 0; i < liveSteps.length; i++) {
-            const stepText = liveSteps[i];
-            const words = stepText.match(/\S+\s*/g) || [stepText];
-            const perWordDelayMs = Math.min(1800, Math.max(300, stepText.length * 8)) / words.length;
+          // The <plan> block's real content — see runPlanMicroAgents above.
+          // Only attempted once the real tool-call plan is known and exceeds
+          // the threshold; null just means this turn has no plan detail.
+          const reasoning = plan.length > PLAN_TOOL_CALL_THRESHOLD
+            ? await runPlanMicroAgents({ model: models('automatic'), userMessage: message, actions: plan })
+            : null;
+
+          // Word-sized paced reveal of the final reply — the same "watch it
+          // think" treatment Local Mode gets (see byokChat.js's
+          // simulateLiveReveal), now just one pass over the reply itself
+          // (never intermediate narration, which no longer exists under
+          // RESPONSE FORMAT above) since the gateway behind agent.generate
+          // can't actually stream. Duration capped the same way
+          // ChatMessageList.jsx's own useTypewriter caps itself.
+          {
+            const words = reply.match(/\S+\s*/g) || [reply];
+            const perWordDelayMs = Math.min(1800, Math.max(300, reply.length * 8)) / words.length;
             for (const word of words) {
               emit({ type: 'thinking-delta', text: word });
               await new Promise((resolve) => setTimeout(resolve, perWordDelayMs));
             }
-            if (i < liveSteps.length - 1) emit({ type: 'round-boundary' });
           }
 
           // liveTrace ({label, detail}[]) used to be baked into `reply` as

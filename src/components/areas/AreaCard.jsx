@@ -74,7 +74,7 @@ function AreaCard({ area, products = [], orphanProjects = [], onExpand, stakehol
     <article
       ref={setCardRefs}
       style={{ opacity: isDragging ? 0.4 : 1 }}
-      className={`card-enter relative z-10 bg-card border rounded-2xl shadow-md p-5 break-inside-avoid flex flex-col gap-4 transition-colors duration-[var(--motion-fast)] ${isCardOver ? "ring-2 ring-primary ring-offset-1 border-primary" : "border-foreground/[0.04]"}`}
+      className={`card-enter relative z-10 bg-card border rounded-2xl shadow-md p-5 break-inside-avoid flex flex-col gap-4 transition-colors duration-[time:var(--motion-fast)] ${isCardOver ? "ring-2 ring-primary ring-offset-1 border-primary" : "border-foreground/[0.04]"}`}
     >
 
       <div className="relative">

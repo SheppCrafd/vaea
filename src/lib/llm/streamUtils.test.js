@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readNdjson, readSse, extractPlan } from "./streamUtils.js";
+import { readNdjson, readSse, extractResponse, stripLiveResponsePreview } from "./streamUtils.js";
 
 function streamFromChunks(chunks) {
   const encoder = new TextEncoder();
@@ -78,27 +78,37 @@ describe("readSse", () => {
   });
 });
 
-describe("extractPlan", () => {
-  it("returns the text unchanged with a null plan when there's no <plan> tag", () => {
-    expect(extractPlan("Just a normal reply.")).toEqual({ text: "Just a normal reply.", plan: null });
-  });
-
-  it("pulls the plan block out and trims the surrounding text", () => {
-    const result = extractPlan("Before.\n\n<plan>Step one. Step two.</plan>\n\nAfter.");
-    expect(result).toEqual({ text: "Before.\n\nAfter.", plan: "Step one. Step two." });
+describe("extractResponse", () => {
+  it("pulls the response block's content out and trims it", () => {
+    expect(extractResponse("<response>Here's the answer.</response>")).toBe("Here's the answer.");
   });
 
   it("is case-insensitive and matches across newlines", () => {
-    const result = extractPlan("<PLAN>\nline one\nline two\n</PLAN>\nreply text");
-    expect(result).toEqual({ text: "reply text", plan: "line one\nline two" });
+    expect(extractResponse("<RESPONSE>\nline one\nline two\n</RESPONSE>")).toBe("line one\nline two");
   });
 
-  it("collapses to an empty string when the whole message is the plan tag", () => {
-    expect(extractPlan("<plan>only a plan</plan>")).toEqual({ text: "", plan: "only a plan" });
+  it("falls back to the raw trimmed text when the tag is missing entirely", () => {
+    expect(extractResponse("Just a normal reply, no tag.")).toBe("Just a normal reply, no tag.");
   });
 
   it("handles null/undefined input the same as empty text", () => {
-    expect(extractPlan(null)).toEqual({ text: "", plan: null });
-    expect(extractPlan(undefined)).toEqual({ text: "", plan: null });
+    expect(extractResponse(null)).toBe("");
+    expect(extractResponse(undefined)).toBe("");
+  });
+});
+
+describe("stripLiveResponsePreview", () => {
+  it("strips the tag markup while keeping the content, closed or not", () => {
+    expect(stripLiveResponsePreview("<response>Here's the ans")).toBe("Here's the ans");
+    expect(stripLiveResponsePreview("<response>Here's the answer.</response>")).toBe("Here's the answer.");
+  });
+
+  it("leaves untagged text untouched", () => {
+    expect(stripLiveResponsePreview("Still typing")).toBe("Still typing");
+  });
+
+  it("handles null/undefined input the same as empty text", () => {
+    expect(stripLiveResponsePreview(null)).toBe("");
+    expect(stripLiveResponsePreview(undefined)).toBe("");
   });
 });

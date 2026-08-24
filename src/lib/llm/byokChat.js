@@ -7,6 +7,12 @@ import { callOpenAiCompatible } from "@/lib/llm/openaiCompatibleAdapter";
 import { callLocalBridge, resumeLocalBridgeRequest } from "@/lib/llm/localBridgeAdapter";
 import { getBridgeStatus, writeWorkspaceDataFile } from "@/lib/llm/localBridgeStorage";
 import { buildWorkspaceDataSnapshot } from "@/lib/llm/systemPrompt";
+import { runPlanMicroAgents } from "@/lib/llm/planMicroAgents";
+
+// Any turn queuing MORE than this many tool calls gets a real <plan> block
+// — see RESPONSE FORMAT in systemPrompt.js/entry.ts and planMicroAgents.js's
+// own module comment for how that block is actually generated.
+const PLAN_TOOL_CALL_THRESHOLD = 2;
 
 // A short pause between each simulated "live" chunk shown for Local
 // Mode — its file-polling transport can't stream mid-generation (see
@@ -137,7 +143,7 @@ export async function runByokChat({ providerConfig, contextArgs, onEvent }) {
   // only anthropic/openai-compatible get the filtered set.
   const connections = getConnectionFlags(contextArgs);
 
-  const { reply, reasoning, thinking } = provider.adapter === "anthropic"
+  const { reply, thinking } = provider.adapter === "anthropic"
     ? await callAnthropic({
         apiKey: providerConfig.apiKey, model: providerConfig.model, systemPrompt, contextPrompt,
         tools: toAnthropicTools(connections), runTool, onEvent,
@@ -152,6 +158,14 @@ export async function runByokChat({ providerConfig, contextArgs, onEvent }) {
   if (isLocalBridge && onEvent) {
     await simulateLiveReveal({ liveTrace, thinking, onEvent });
   }
+
+  // The <plan> block's real content — see planMicroAgents.js's own module
+  // comment. Only ever attempted once the real tool-call plan is known and
+  // exceeds the threshold; `null` (no fast-call path, budget missed, or a
+  // turn that never needed one) just means this turn has no plan detail.
+  const reasoning = plan.length > PLAN_TOOL_CALL_THRESHOLD
+    ? await runPlanMicroAgents({ providerConfig, userMessage: contextArgs.userText, actions: plan })
+    : null;
 
   return { reply, reasoning, actions: plan, liveTrace };
 }
@@ -186,5 +200,7 @@ export async function resumeOrphanedLocalModeRequest({ requestId, contextArgs })
   const result = await resumeLocalBridgeRequest({ requestId, runTool });
   if (!result) return null;
 
-  return { reply: result.reply, reasoning: result.reasoning, actions: plan, liveTrace };
+  // No plan-detail here — see planMicroAgents.js's own module comment on why
+  // Local Mode never gets one.
+  return { reply: result.reply, reasoning: null, actions: plan, liveTrace };
 }

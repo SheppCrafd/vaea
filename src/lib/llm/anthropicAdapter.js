@@ -6,7 +6,7 @@
 // is generally unsafe — but that's exactly the trade a BYOK local-first
 // tool like this one is making deliberately, same as this app's local-only
 // GitHub vault token).
-import { readSse, extractPlan } from "@/lib/llm/streamUtils";
+import { readSse, extractResponse } from "@/lib/llm/streamUtils";
 
 const MAX_TOOL_ROUNDS = 15;
 
@@ -103,68 +103,28 @@ async function streamOnce({ apiKey, model, systemPrompt, messages, tools, onEven
   };
 }
 
-// Runs the full plan-then-tools loop for one turn and returns
-// {reply, reasoning} — `runTool` (toolRunner.js) is what actually
-// stages/executes each call.
+// Runs the full plan-then-tools loop for one turn and returns {reply} —
+// `runTool` (toolRunner.js) is what actually stages/executes each call. Per
+// the RESPONSE FORMAT contract (systemPrompt.js/entry.ts): the model writes
+// nothing outside a tool call except its own final `<response>...</response>`
+// block, so every round BEFORE the last one (by definition, every round that
+// made at least one tool call — see the loop below) is silent narration-wise
+// and its text is discarded, not collected. `<plan>` is never written by the
+// model at all anymore — see byokChat.js's post-loop call to
+// planMicroAgents.js, which generates that separately, for real, from the
+// finalized tool-call list once this loop is done.
 export async function callAnthropic({ apiKey, model, systemPrompt, contextPrompt, tools, runTool, onEvent }) {
   const messages = [{ role: "user", content: contextPrompt }];
-  // Every round's own text — not just the final round's — is real thinking
-  // the model produced as it worked through the request (see THINK OUT LOUD
-  // AS YOU GO in systemPrompt.js): "I'll check the workspace first...",
-  // then after results come back, "Found two matches, now creating the
-  // plan...". Streamed live via onEvent as each round's text actually
-  // arrives; also collected here as `thinking` so the caller gets both the
-  // full multi-round narrative (`reasoning` — real deliberation, including
-  // any self-correction) AND just the last round's own text (`reply` — the
-  // actual conversational answer). These used to be collapsed into one
-  // string returned as the reply, which is what a real user was pointing at
-  // saying "the plan is VERBATIM the text in chat" — the chat bubble and
-  // the plan-detail modal literally showed the identical string, since both
-  // read from the same joined blob.
-  //
-  // `reply` is the LAST round's own text, taken whole — no further
-  // paragraph-splitting inside it. An earlier version tried to guess "the
-  // real answer" by taking only the final blank-line-separated paragraph of
-  // the full multi-round narrative, on the theory that a model often writes
-  // build-up narration and its actual conclusion in the very same round with
-  // no tool call forcing them apart. That heuristic can't tell a throwaway
-  // build-up sentence from a genuine multi-paragraph answer — they're the
-  // same shape — so it kept silently truncating real multi-paragraph replies
-  // (a bug/architecture explanation, a comparison of two approaches) down to
-  // their last paragraph. The fix is a real, unambiguous signal instead of a
-  // guess: only the LAST round is ever "the reply" (every earlier round, by
-  // definition, made at least one tool call — see the loop below — so it was
-  // narration, not the final answer), and once inside that last round, ALL
-  // of its text belongs to the reply, however many paragraphs it takes.
-  // onEvent's "round-boundary" event (fired below, right before a new round
-  // starts) is what lets the client draw the same line live while streaming
-  // — see ChatMessageList.jsx.
-  const thinking = [];
-  // Any round can wrap part of its own text in <plan>...</plan> (see the
-  // PLAN TAG instruction in systemPrompt.js/entry.ts, required once a turn
-  // has more than 5 actions) — collected across every round the same way
-  // `thinking` is, and preferred over it wholesale as the plan-detail
-  // modal's content when present, since it's the model's own deliberate
-  // "this is the plan" framing rather than a guess stitched from whichever
-  // rounds happened to have text. `<plan>` itself is always stripped from
-  // what actually reaches `thinking`/`reply` — it's never meant to be seen
-  // in the chat bubble.
-  const planParts = [];
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     const response = await streamOnce({ apiKey, model, systemPrompt, messages, tools, onEvent });
     const content = response.content || [];
     const toolUseBlocks = content.filter((block) => block.type === "tool_use");
     const rawRoundText = content.filter((block) => block.type === "text").map((block) => block.text).join("\n").trim();
-    const { text: roundText, plan } = extractPlan(rawRoundText);
-    if (plan) planParts.push(plan);
-    if (roundText) thinking.push(roundText);
 
     if (toolUseBlocks.length === 0) {
-      return {
-        reply: roundText || "I couldn't come up with a reply — could you rephrase?",
-        reasoning: planParts.length ? planParts.join("\n\n") : thinking.join("\n\n"),
-      };
+      const reply = extractResponse(rawRoundText);
+      return { reply: reply || "I couldn't come up with a reply — could you rephrase?" };
     }
 
     onEvent?.({ type: "round-boundary" });

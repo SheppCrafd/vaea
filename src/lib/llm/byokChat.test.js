@@ -179,14 +179,43 @@ describe("runByokChat: end-to-end against a mocked provider response", () => {
     expect(events.some((e) => e.type === "tool-call" && e.label.startsWith('search_workspace("growth")'))).toBe(true);
     expect(events).toContainEqual({ type: "thinking-delta", text: "Found one match." });
 
-    // reply (chat-facing) is ONLY the final round's own text; reasoning
-    // (the plan modal's own detail) is every round's own text, including
-    // the earlier "Let me check." deliberation — these must NOT be the
-    // same string, or the modal is just a pointless echo of the chat
-    // bubble, which is exactly what a real user caught.
+    // reply (chat-facing) is ONLY the final round's own text — the earlier
+    // "Let me check." round made a tool call, so its own text is discarded
+    // per RESPONSE FORMAT, never surfaced as reply or reasoning. reasoning
+    // (the plan modal's own detail) only exists once a turn's plan exceeds
+    // PLAN_TOOL_CALL_THRESHOLD (see planMicroAgents.js) — this turn queues
+    // just one tool call, well under that, so there's no plan detail at all.
     expect(result.reply).toBe("Found one match.");
-    expect(result.reasoning).toBe("Let me check.\n\nFound one match.");
-    expect(result.reasoning).not.toBe(result.reply);
+    expect(result.reasoning).toBeNull();
+  });
+
+  it("generates a real <plan> block via two extra hidden calls once a turn's plan exceeds PLAN_TOOL_CALL_THRESHOLD", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (_url, init) => {
+      const body = JSON.parse(init.body);
+      // The real main-turn system prompt (buildInstructions' own opening line).
+      if (body.system?.includes("admin routing engine")) {
+        if (body.messages.length === 1) {
+          return anthropicStream([
+            { type: "tool_use", id: "t1", name: "ARCHIVE_PROJECT", input: { project_id: "p1" } },
+            { type: "tool_use", id: "t2", name: "ARCHIVE_PROJECT", input: { project_id: "p2" } },
+            { type: "tool_use", id: "t3", name: "ARCHIVE_PROJECT", input: { project_id: "p3" } },
+          ]);
+        }
+        return anthropicStream([{ type: "text", text: "<response>Archived all three.</response>" }]);
+      }
+      // A planMicroAgents.js call (propose or reconsider) — plain text back,
+      // no <response> tag needed (extractResponse falls back to raw text).
+      return anthropicStream([{ type: "text", text: "I'll archive the three requested projects." }]);
+    }));
+
+    const result = await runByokChat({
+      providerConfig: { provider: "anthropic", model: "claude-sonnet-5", apiKey: "sk-ant-test" },
+      contextArgs: { ...baseContextArgs, userText: "archive p1, p2, and p3" },
+    });
+
+    expect(result.actions).toHaveLength(3);
+    expect(result.reply).toBe("Archived all three.");
+    expect(result.reasoning).toBe("I'll archive the three requested projects.");
   });
 });
 
@@ -274,9 +303,15 @@ describe("runByokChat: local-bridge (Local Mode) dispatch", () => {
     const thinkingEvents = events.filter((e) => e.type === "thinking-delta");
     expect(toolCallEvents).toHaveLength(1);
     expect(toolCallEvents[0].label).toMatch(/^search_workspace\("growth"\)/);
-    // Tool-call reveal happens entirely before any reasoning text starts.
+    // Tool-call reveal happens entirely before the paced-replayed reply text.
     expect(events.indexOf(toolCallEvents[0])).toBeLessThan(events.indexOf(thinkingEvents[0]));
-    expect(thinkingEvents.map((e) => e.text).join("")).toBe(result.reasoning);
+    // Local Mode's simulateLiveReveal paces `thinking` (see
+    // localBridgeAdapter.js: [reply], a single-entry array now — never a
+    // real multi-round narrative) — this turn's one tool call is also well
+    // under PLAN_TOOL_CALL_THRESHOLD, so there's no plan detail to compare
+    // against either.
+    expect(thinkingEvents.map((e) => e.text).join("")).toBe(result.reply);
+    expect(result.reasoning).toBeNull();
   });
 
   it("without onEvent: resolves exactly as before, no pacing delay incurred", async () => {
@@ -287,7 +322,7 @@ describe("runByokChat: local-bridge (Local Mode) dispatch", () => {
     expect(result.reply).toBe("Here's what I found.");
   });
 
-  it("keeps reply (last round only) and reasoning (every round, deliberation included) as two different strings, same as every other provider", async () => {
+  it("discards an earlier round's own text — only the last round's own <response> content is ever the reply", async () => {
     getBridgeStatus.mockResolvedValueOnce("connected");
     pollForResponseFile
       .mockResolvedValueOnce({
@@ -304,6 +339,26 @@ describe("runByokChat: local-bridge (Local Mode) dispatch", () => {
     });
 
     expect(result.reply).toBe("Found one match.");
-    expect(result.reasoning).toBe("Let me check.\n\nFound one match.");
+  });
+
+  it("never generates a plan block for local-bridge, even once a turn's plan exceeds the threshold — no fast-call path exists for it", async () => {
+    getBridgeStatus.mockResolvedValueOnce("connected");
+    pollForResponseFile
+      .mockResolvedValueOnce({
+        content: [
+          { type: "tool_use", id: "t1", name: "CREATE_AREA", input: { title: "A" } },
+          { type: "tool_use", id: "t2", name: "CREATE_AREA", input: { title: "B" } },
+          { type: "tool_use", id: "t3", name: "CREATE_AREA", input: { title: "C" } },
+        ],
+      })
+      .mockResolvedValueOnce({ content: [{ type: "text", text: "Created three areas." }] });
+
+    const result = await runByokChat({
+      providerConfig: { provider: "local-bridge" },
+      contextArgs: { ...baseContextArgs, userText: "add three areas" },
+    });
+
+    expect(result.actions).toHaveLength(3);
+    expect(result.reasoning).toBeNull();
   });
 });
