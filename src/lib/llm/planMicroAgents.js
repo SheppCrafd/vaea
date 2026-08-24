@@ -25,13 +25,20 @@
 // duller/faster turn beats a slow one. Not offered for local-bridge (Local
 // Mode): its own transport is file-polling with no fast-call path — see the
 // module comment in localBridgeAdapter.js.
+//
+// 20s (the user's own chosen cap, after an original 3s budget turned out to
+// make the plan silently miss on virtually every real turn — see entry.ts's
+// matching comment for the live report that caught it). BYOK's own direct
+// provider calls are typically faster than base44's own AI Gateway, but kept
+// in sync with the same cap rather than a separate, smaller one, since a
+// genuinely slow BYOK provider/network hop deserves the same real headroom.
 import { PROVIDERS } from "@/lib/llm/providers";
 import { toAnthropicTools, toOpenAiCompatibleTools } from "@/lib/llm/toolCatalog";
 import { makeToolRunner } from "@/lib/llm/toolRunner";
 import { callAnthropic } from "@/lib/llm/anthropicAdapter";
 import { callOpenAiCompatible } from "@/lib/llm/openaiCompatibleAdapter";
 
-const MICRO_AGENT_BUDGET_MS = 3000;
+const MICRO_AGENT_BUDGET_MS = 20000;
 
 // The fastest model each provider currently offers — see providers.js's own
 // model catalog. Not user-configurable: this is pure background plumbing,
