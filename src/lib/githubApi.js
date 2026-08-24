@@ -339,7 +339,6 @@ export const SELF_NOTE_HARD_CAP_CHARS = 20000; // well past "the model is misbeh
 // GitHub repo, so it already follows the user everywhere Vaea Brain does.
 export const MEMORY_NOTE_PATH = "Vaea Memory.md";
 export const MEMORY_NOTE_TARGET_MAX_CHARS = 6000;
-export const MEMORY_NOTE_HARD_CAP_CHARS = 20000;
 
 export async function fetchVaultOverview({ owner, repo, branch, token }) {
   const [summary, priorityNotes, recentNotes, selfNote, memory] = await Promise.all([

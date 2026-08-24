@@ -16,9 +16,7 @@
 // Calendar; they'll see a reconnect prompt the first time a Drive/Docs/
 // Sheets/Slides/Tasks/Forms tool runs, since the old grant's scope doesn't
 // cover the new products yet.
-import { readKey, writeKey, removeKey } from "@/lib/deviceStorage";
-
-export const GOOGLE_WORKSPACE_CONNECTION_KEY = "vaea_google_calendar";
+import { createDeviceKeyStore } from "@/lib/deviceKeyStore";
 
 const DEFAULTS = {
   accessToken: "",
@@ -28,30 +26,13 @@ const DEFAULTS = {
   email: "",
 };
 
-export async function loadGoogleWorkspaceConnection() {
-  try {
-    const stored = await readKey(GOOGLE_WORKSPACE_CONNECTION_KEY);
-    return { ...DEFAULTS, ...(stored || {}) };
-  } catch {
-    return { ...DEFAULTS };
-  }
-}
+// Deliberately still the Calendar-era key, so an already-connected user's
+// tokens keep working (see the note above).
+const store = createDeviceKeyStore("vaea_google_calendar", DEFAULTS);
 
-export async function saveGoogleWorkspaceConnection(connection) {
-  try {
-    await writeKey(GOOGLE_WORKSPACE_CONNECTION_KEY, { ...DEFAULTS, ...connection });
-  } catch {
-    // best-effort — the connection just won't survive a reload
-  }
-}
-
-export async function clearGoogleWorkspaceConnection() {
-  try {
-    await removeKey(GOOGLE_WORKSPACE_CONNECTION_KEY);
-  } catch {
-    // best-effort
-  }
-}
+export const loadGoogleWorkspaceConnection = store.load;
+export const saveGoogleWorkspaceConnection = store.save;
+export const clearGoogleWorkspaceConnection = store.clear;
 
 export function isGoogleWorkspaceConnected(connection) {
   return !!(connection?.accessToken && connection?.refreshToken);

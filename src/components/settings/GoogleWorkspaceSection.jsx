@@ -10,59 +10,23 @@ import {
 import { buildAuthorizationUrl } from "@/lib/googleWorkspaceOAuthPkce";
 import { listEvents } from "@/lib/googleCalendarApi";
 import { SettingsCard } from "@/components/ui/settings-card";
+import ConnectorPreview from "@/components/settings/ConnectorPreview";
 
-// A compact, real preview of what's actually connected — a handful of
-// upcoming events, not a static "Connected" badge. Fetched once on mount
-// and again after a manual refresh click, never polled — Google's free-tier
-// quotas are per-project, shared across every Vaea user, so this stays
-// on-demand rather than firing on every render/navigation.
 function UpcomingEvents({ connection, onTokenRefreshed }) {
-  const [events, setEvents] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
   const load = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const { events: fetched, connection: refreshed } = await listEvents(connection, { maxResults: 4, timeMin: new Date().toISOString() });
-      setEvents(fetched);
-      if (refreshed.accessToken !== connection.accessToken) onTokenRefreshed(refreshed);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    const { events, connection: refreshed } = await listEvents(connection, { maxResults: 4, timeMin: new Date().toISOString() });
+    if (refreshed.accessToken !== connection.accessToken) onTokenRefreshed(refreshed);
+    return events;
   };
 
-  useEffect(() => {
-    load();
-  }, []);
-
   return (
-    <div className="mt-6 pt-6 border-t border-border">
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-sm font-medium">What's next on your calendar</p>
-        <button
-          type="button"
-          onClick={load}
-          disabled={loading}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-        >
-          {loading ? "Refreshing…" : "Refresh"}
-        </button>
-      </div>
-      {loading && !events ? (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground py-2">
-          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading your calendar…
-        </div>
-      ) : error ? (
-        <p className="flex items-start gap-1.5 text-xs text-destructive">
-          <TriangleAlert className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {error}
-        </p>
-      ) : events.length === 0 ? (
-        <p className="text-xs text-muted-foreground">Nothing coming up.</p>
-      ) : (
+    <ConnectorPreview
+      title="What's next on your calendar"
+      loadingLabel="Loading your calendar…"
+      emptyLabel="Nothing coming up."
+      load={load}
+    >
+      {(events) => (
         <ul className="flex flex-col gap-2">
           {events.map((event) => {
             const start = event.start?.dateTime || event.start?.date;
@@ -79,11 +43,11 @@ function UpcomingEvents({ connection, onTokenRefreshed }) {
           })}
         </ul>
       )}
-    </div>
+    </ConnectorPreview>
   );
 }
 
-const INCLUDED_PRODUCTS = ["Calendar", "Drive", "Docs", "Sheets", "Slides", "Tasks", "Forms"];
+const INCLUDED_PRODUCTS =["Calendar", "Drive", "Docs", "Sheets", "Slides", "Tasks", "Forms"];
 
 // Google Workspace — a single one-click OAuth connection (PKCE against a
 // public "Desktop app" client Vaea itself owns, so no per-user setup is

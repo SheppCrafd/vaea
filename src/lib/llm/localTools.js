@@ -181,7 +181,7 @@ function searchRecords(query, records, type, fields, titleField) {
   return matches;
 }
 
-export function searchWorkspace(dataset, query) {
+function searchWorkspace(dataset, query) {
   const matches = [
     ...searchRecords(query, dataset.areas, "area", ["title", "description"], "title"),
     ...searchRecords(query, dataset.products, "product", ["title", "description"], "title"),
@@ -195,7 +195,7 @@ export function searchWorkspace(dataset, query) {
   return { count: matches.length, matches: matches.slice(0, 25) };
 }
 
-export function auditWorkspace(dataset) {
+function auditWorkspace(dataset) {
   const findings = {};
 
   findings.projects_missing_owner_or_due_date = dataset.projects

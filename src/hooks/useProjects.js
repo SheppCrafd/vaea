@@ -160,14 +160,6 @@ export async function restoreProject(id) {
   return project;
 }
 
-export function useMoveProject() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: moveProject,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["projects"] }),
-  });
-}
-
 export function useUpdateProject() {
   const queryClient = useQueryClient();
   return useMutation({

@@ -4,39 +4,18 @@
 // generates themselves at appleid.apple.com, not a redirect-based consent
 // screen. Same local-only storage discipline as every other connection
 // here (deviceStorage, never sent to Vaea's servers at rest).
-import { readKey, writeKey, removeKey } from "@/lib/deviceStorage";
-
-export const APPLE_MAIL_CONNECTION_KEY = "vaea_apple_mail";
+import { createDeviceKeyStore } from "@/lib/deviceKeyStore";
 
 export const DEFAULTS = {
   emailAddress: "",
   appSpecificPassword: "",
 };
 
-export async function loadAppleMailConnection() {
-  try {
-    const stored = await readKey(APPLE_MAIL_CONNECTION_KEY);
-    return { ...DEFAULTS, ...(stored || {}) };
-  } catch {
-    return { ...DEFAULTS };
-  }
-}
+const store = createDeviceKeyStore("vaea_apple_mail", DEFAULTS);
 
-export async function saveAppleMailConnection(connection) {
-  try {
-    await writeKey(APPLE_MAIL_CONNECTION_KEY, { ...DEFAULTS, ...connection });
-  } catch {
-    // best-effort — the connection just won't survive a reload
-  }
-}
-
-export async function clearAppleMailConnection() {
-  try {
-    await removeKey(APPLE_MAIL_CONNECTION_KEY);
-  } catch {
-    // best-effort
-  }
-}
+export const loadAppleMailConnection = store.load;
+export const saveAppleMailConnection = store.save;
+export const clearAppleMailConnection = store.clear;
 
 export function isAppleMailConnected(connection) {
   return !!(connection?.emailAddress && connection?.appSpecificPassword);
