@@ -870,7 +870,19 @@ export function useChatController({ activeProjectId } = {}) {
   // nothing streamed live for it.
   const applyAssistantReply = async (sessionId, data, messageOptions = {}) => {
     const reply = data.reply || "Done.";
-    const reasoning = data.reasoning || reply;
+    // Genuinely null/undefined for any turn that never queued more than
+    // PLAN_TOOL_CALL_THRESHOLD tool calls (see planMicroAgents.js) — NOT
+    // backfilled with `reply` here. That fallback used to exist from an
+    // older design where `reasoning` was always "every round's own text
+    // joined," defaulting to `reply` for a single-round turn with nothing
+    // else to show; under the current design it silently turned a real "no
+    // plan for this turn" into the exact "plan modal just echoes the chat
+    // bubble" bug this whole subsystem has been fixed for, more than once,
+    // before (see ChatToolLogDetail.jsx's PlanReasoning — a real user
+    // caught it as "the plan is VERBATIM the text in chat"). PlanReasoning
+    // already handles a missing reasoning correctly (falls back to a
+    // structured action list), so there's nothing to backfill here.
+    const reasoning = data.reasoning;
     const actions = data.actions || [];
     const liveTrace = data.liveTrace || [];
 
