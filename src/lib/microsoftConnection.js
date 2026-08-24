@@ -5,9 +5,7 @@
 // no reason to make the user connect three separate things). Same trust
 // model as calendarConnection.js/gmailConnection.js: local-only, sent to
 // aiChatStream transiently per-request, never stored server-side.
-import { readKey, writeKey, removeKey } from "@/lib/deviceStorage";
-
-export const MICROSOFT_CONNECTION_KEY = "vaea_microsoft";
+import { createDeviceKeyStore } from "@/lib/deviceKeyStore";
 
 export const DEFAULTS = {
   accessToken: "",
@@ -16,30 +14,11 @@ export const DEFAULTS = {
   emailAddress: "",
 };
 
-export async function loadMicrosoftConnection() {
-  try {
-    const stored = await readKey(MICROSOFT_CONNECTION_KEY);
-    return { ...DEFAULTS, ...(stored || {}) };
-  } catch {
-    return { ...DEFAULTS };
-  }
-}
+const store = createDeviceKeyStore("vaea_microsoft", DEFAULTS);
 
-export async function saveMicrosoftConnection(connection) {
-  try {
-    await writeKey(MICROSOFT_CONNECTION_KEY, { ...DEFAULTS, ...connection });
-  } catch {
-    // best-effort — the connection just won't survive a reload
-  }
-}
-
-export async function clearMicrosoftConnection() {
-  try {
-    await removeKey(MICROSOFT_CONNECTION_KEY);
-  } catch {
-    // best-effort
-  }
-}
+export const loadMicrosoftConnection = store.load;
+export const saveMicrosoftConnection = store.save;
+export const clearMicrosoftConnection = store.clear;
 
 export function isMicrosoftConnected(connection) {
   return !!(connection?.accessToken && connection?.refreshToken);

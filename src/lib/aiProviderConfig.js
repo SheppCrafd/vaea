@@ -5,10 +5,10 @@
 // otherwise), never localStorage, never sent to Vaea's own backend — a BYOK
 // key is only ever read client-side, to call that provider's API directly
 // (see src/lib/llm/byokChat.js).
-import { readKey, writeKey, removeKey } from "@/lib/deviceStorage";
+import { readKey, writeKey } from "@/lib/deviceStorage";
 import { PROVIDERS } from "@/lib/llm/providers";
 
-export const AI_PROVIDER_CONFIG_KEY = "vaea_llm_provider_config";
+const AI_PROVIDER_CONFIG_KEY = "vaea_llm_provider_config";
 
 export const DEFAULTS = {
   provider: "base44",
@@ -63,14 +63,6 @@ export async function saveAiProviderConfig(config) {
     await writeKey(AI_PROVIDER_CONFIG_KEY, { ...DEFAULTS, ...config });
   } catch {
     // best-effort — the choice just won't survive a reload
-  }
-}
-
-export async function clearAiProviderConfig() {
-  try {
-    await removeKey(AI_PROVIDER_CONFIG_KEY);
-  } catch {
-    // best-effort
   }
 }
 

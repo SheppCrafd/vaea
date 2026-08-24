@@ -19,10 +19,6 @@ export function getProjectDueStatus(project) {
   return project.due_date_status || "ESTIMATED";
 }
 
-export function getProjectArchiveStatus(project) {
-  return !!project.is_archived;
-}
-
 const AT_RISK_WINDOW_DAYS = 7;
 
 // Single source of truth for "is this project in trouble" — used by the

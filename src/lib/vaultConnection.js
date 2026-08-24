@@ -8,7 +8,8 @@
 // ExternalVaultSection.jsx for the disclosure shown where this is set.
 // Backed by deviceStorage (real files in FSA mode, in-memory + manual
 // export otherwise) — this token never sits in localStorage/IndexedDB.
-import { readKey, writeKey, removeKey } from "@/lib/deviceStorage";
+import { writeKey } from "@/lib/deviceStorage";
+import { createDeviceKeyStore } from "@/lib/deviceKeyStore";
 
 export const VAULT_CONNECTION_KEY = "vaea_external_vault";
 
@@ -19,30 +20,11 @@ const DEFAULTS = {
   token: "",
 };
 
-export async function loadVaultConnection() {
-  try {
-    const stored = await readKey(VAULT_CONNECTION_KEY);
-    return { ...DEFAULTS, ...(stored || {}) };
-  } catch {
-    return { ...DEFAULTS };
-  }
-}
+const store = createDeviceKeyStore(VAULT_CONNECTION_KEY, DEFAULTS);
 
-export async function saveVaultConnection(connection) {
-  try {
-    await writeKey(VAULT_CONNECTION_KEY, { ...DEFAULTS, ...connection });
-  } catch {
-    // best-effort — the connection just won't survive a reload
-  }
-}
-
-export async function clearVaultConnection() {
-  try {
-    await removeKey(VAULT_CONNECTION_KEY);
-  } catch {
-    // best-effort
-  }
-}
+export const loadVaultConnection = store.load;
+export const saveVaultConnection = store.save;
+export const clearVaultConnection = store.clear;
 
 export function isVaultConnected(connection) {
   return !!(connection?.owner && connection?.repo && connection?.token);

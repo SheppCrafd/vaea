@@ -5,57 +5,23 @@ import { loadGmailConnection, saveGmailConnection, clearGmailConnection, isGmail
 import { buildAuthorizationUrl } from "@/lib/gmailOAuthPkce";
 import { listMessages } from "@/lib/gmailApi";
 import { SettingsCard } from "@/components/ui/settings-card";
+import ConnectorPreview from "@/components/settings/ConnectorPreview";
 
-// Real recent-inbox preview, same on-demand-not-polled discipline as
-// GoogleWorkspaceSection's UpcomingEvents — Gmail's API is also a shared
-// per-project daily quota across every Vaea user.
 function RecentMessages({ connection, onTokenRefreshed }) {
-  const [messages, setMessages] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
   const load = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const { messages: fetched, connection: refreshed } = await listMessages(connection, { query: "in:inbox", maxResults: 5 });
-      setMessages(fetched);
-      if (refreshed.accessToken !== connection.accessToken) onTokenRefreshed(refreshed);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    const { messages, connection: refreshed } = await listMessages(connection, { query: "in:inbox", maxResults: 5 });
+    if (refreshed.accessToken !== connection.accessToken) onTokenRefreshed(refreshed);
+    return messages;
   };
 
-  useEffect(() => {
-    load();
-  }, []);
-
   return (
-    <div className="mt-6 pt-6 border-t border-border">
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-sm font-medium">Recent inbox</p>
-        <button
-          type="button"
-          onClick={load}
-          disabled={loading}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-        >
-          {loading ? "Refreshing…" : "Refresh"}
-        </button>
-      </div>
-      {loading && !messages ? (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground py-2">
-          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading your inbox…
-        </div>
-      ) : error ? (
-        <p className="flex items-start gap-1.5 text-xs text-destructive">
-          <TriangleAlert className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {error}
-        </p>
-      ) : messages.length === 0 ? (
-        <p className="text-xs text-muted-foreground">Nothing in the inbox.</p>
-      ) : (
+    <ConnectorPreview
+      title="Recent inbox"
+      loadingLabel="Loading your inbox…"
+      emptyLabel="Nothing in the inbox."
+      load={load}
+    >
+      {(messages) => (
         <ul className="flex flex-col gap-2">
           {messages.map((message) => (
             <li key={message.id} className="flex items-baseline gap-2.5 text-sm">
@@ -68,7 +34,7 @@ function RecentMessages({ connection, onTokenRefreshed }) {
           ))}
         </ul>
       )}
-    </div>
+    </ConnectorPreview>
   );
 }
 

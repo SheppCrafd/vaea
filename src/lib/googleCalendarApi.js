@@ -14,58 +14,14 @@
 // but the refresh token + the public client ID, and returns the
 // (possibly refreshed) connection alongside the result so the caller can
 // persist it via saveCalendarConnection.
-const TOKEN_URL = "https://oauth2.googleapis.com/token";
+// The token refresh and request headers this used to carry its own copy of
+// now come from googleWorkspaceApiBase.js, shared with every other Workspace
+// product module.
+import { jsonHeaders, ensureFreshToken, refreshAccessToken } from "@/lib/googleWorkspaceApiBase";
+
 const API_BASE = "https://www.googleapis.com/calendar/v3";
-const CLIENT_ID = import.meta.env.VITE_GOOGLE_CALENDAR_CLIENT_ID;
 
-// A little slack before the real expiry so a token doesn't die mid-request.
-const EXPIRY_SKEW_MS = 60 * 1000;
-
-function headers(accessToken) {
-  return {
-    Authorization: `Bearer ${accessToken}`,
-    "Content-Type": "application/json",
-  };
-}
-
-function isExpired(connection) {
-  return !connection.expiresAt || Date.now() >= connection.expiresAt - EXPIRY_SKEW_MS;
-}
-
-// Exchanges a refresh token for a new access token. Public client — no
-// client_secret parameter, matching the Desktop-app credential type this
-// whole connector is built around (see the plan's "skip the server
-// entirely" rationale).
-export async function refreshAccessToken(refreshToken) {
-  const res = await fetch(TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: CLIENT_ID,
-      refresh_token: refreshToken,
-      grant_type: "refresh_token",
-    }),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error_description || `Google rejected the refresh (${res.status}).`);
-  }
-  const data = await res.json();
-  return {
-    accessToken: data.access_token,
-    expiresAt: Date.now() + data.expires_in * 1000,
-  };
-}
-
-// Called at the top of every real API call below — refreshes only when
-// actually needed, and hands back the connection object the caller should
-// persist (unchanged if no refresh was needed, so this is always safe to
-// await and re-save without a redundant write).
-async function ensureFreshToken(connection) {
-  if (!isExpired(connection)) return connection;
-  const refreshed = await refreshAccessToken(connection.refreshToken);
-  return { ...connection, ...refreshed };
-}
+export { refreshAccessToken };
 
 function calendarErrorMessage(status) {
   if (status === 401) return "Google rejected that token — try reconnecting your calendar.";
@@ -85,7 +41,7 @@ export async function listEvents(connection, { timeMin, timeMax, maxResults = 20
   });
   const res = await fetch(
     `${API_BASE}/calendars/${encodeURIComponent(fresh.calendarId)}/events?${params}`,
-    { headers: headers(fresh.accessToken) }
+    { headers: jsonHeaders(fresh.accessToken) }
   );
   if (!res.ok) throw Object.assign(new Error(calendarErrorMessage(res.status)), { connection: fresh });
   const data = await res.json();
@@ -100,7 +56,7 @@ export async function createEvent(connection, event) {
   const fresh = await ensureFreshToken(connection);
   const res = await fetch(
     `${API_BASE}/calendars/${encodeURIComponent(fresh.calendarId)}/events?conferenceDataVersion=1`,
-    { method: "POST", headers: headers(fresh.accessToken), body: JSON.stringify(event) }
+    { method: "POST", headers: jsonHeaders(fresh.accessToken), body: JSON.stringify(event) }
   );
   if (!res.ok) throw Object.assign(new Error(calendarErrorMessage(res.status)), { connection: fresh });
   const created = await res.json();
@@ -111,7 +67,7 @@ export async function updateEvent(connection, eventId, patch) {
   const fresh = await ensureFreshToken(connection);
   const res = await fetch(
     `${API_BASE}/calendars/${encodeURIComponent(fresh.calendarId)}/events/${encodeURIComponent(eventId)}?conferenceDataVersion=1`,
-    { method: "PATCH", headers: headers(fresh.accessToken), body: JSON.stringify(patch) }
+    { method: "PATCH", headers: jsonHeaders(fresh.accessToken), body: JSON.stringify(patch) }
   );
   if (!res.ok) throw Object.assign(new Error(calendarErrorMessage(res.status)), { connection: fresh });
   const updated = await res.json();
@@ -122,7 +78,7 @@ export async function deleteEvent(connection, eventId) {
   const fresh = await ensureFreshToken(connection);
   const res = await fetch(
     `${API_BASE}/calendars/${encodeURIComponent(fresh.calendarId)}/events/${encodeURIComponent(eventId)}`,
-    { method: "DELETE", headers: headers(fresh.accessToken) }
+    { method: "DELETE", headers: jsonHeaders(fresh.accessToken) }
   );
   if (!res.ok && res.status !== 410) throw Object.assign(new Error(calendarErrorMessage(res.status)), { connection: fresh });
   return { connection: fresh };
@@ -135,7 +91,7 @@ export async function testCalendarConnection(connection) {
   const fresh = await ensureFreshToken(connection);
   const res = await fetch(
     `${API_BASE}/calendars/${encodeURIComponent(fresh.calendarId)}`,
-    { headers: headers(fresh.accessToken) }
+    { headers: jsonHeaders(fresh.accessToken) }
   );
   if (!res.ok) throw Object.assign(new Error(calendarErrorMessage(res.status)), { connection: fresh });
   const data = await res.json();

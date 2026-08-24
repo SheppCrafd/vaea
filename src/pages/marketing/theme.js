@@ -17,8 +17,6 @@
 export const darkSectionBg =
   "bg-[linear-gradient(180deg,hsl(var(--band-1))_0%,hsl(var(--band-2))_38%,hsl(var(--band-3))_72%,hsl(var(--band-4))_100%)]";
 export const darkText = "text-foreground";
-export const darkSubtext = "text-muted-foreground";
-export const darkHairline = "border-foreground/10";
 
 // The seam between a band and whatever sits above it — a single bright
 // hairline, the way light catches the top edge of a glass panel.
@@ -93,7 +91,7 @@ export const glowTop =
 // not because they still differ.
 export const pillOnDark =
   "inline-flex items-center gap-1.5 text-sm px-6 py-3 bg-foreground hover:bg-foreground/90 text-background font-medium rounded-full transition-all hover:-translate-y-0.5 shadow-[0_8px_24px_-8px_hsl(var(--foreground)/0.4)] outline-none focus-visible:ring-2 focus-visible:ring-[#46BAD1] focus-visible:ring-offset-2 focus-visible:ring-offset-background";
-export const pillOnLight =
+const pillOnLight =
   "inline-flex items-center gap-1.5 text-sm px-6 py-3 bg-foreground hover:bg-foreground/90 text-background font-medium rounded-full transition-all hover:-translate-y-0.5 outline-none focus-visible:ring-2 focus-visible:ring-[#46BAD1] focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 export const linkOnDark =

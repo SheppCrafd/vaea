@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 // presentational — takes already-computed `groups` (day-key -> items[],
 // same shape groupByDay() in VaeaCalendarPage.jsx produces), no data
 // fetching of its own.
-export function WeekView({ groups }) {
+function WeekView({ groups }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const days = Array.from({ length: 7 }, (_, i) => {

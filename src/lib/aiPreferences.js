@@ -7,7 +7,7 @@
 // chat message's context in useChatController.js. Backed by deviceStorage
 // (real files in FSA mode, in-memory + manual export otherwise) — same as
 // localDb.js's entity data, never localStorage.
-import { readKey, writeKey } from "@/lib/deviceStorage";
+import { createDeviceKeyStore } from "@/lib/deviceKeyStore";
 
 export const AI_IDENTITY_KEY = "vaea_ai_identity";
 
@@ -18,22 +18,10 @@ export const DEFAULTS = {
   userProfile: "",
 };
 
-export async function loadAiIdentity() {
-  try {
-    const stored = await readKey(AI_IDENTITY_KEY);
-    return { ...DEFAULTS, ...(stored || {}) };
-  } catch {
-    return { ...DEFAULTS };
-  }
-}
+const store = createDeviceKeyStore(AI_IDENTITY_KEY, DEFAULTS);
 
-export async function saveAiIdentity(identity) {
-  try {
-    await writeKey(AI_IDENTITY_KEY, { ...DEFAULTS, ...identity });
-  } catch {
-    // best-effort — the identity just won't survive a reload
-  }
-}
+export const loadAiIdentity = store.load;
+export const saveAiIdentity = store.save;
 
 // Pre-existing browser-storage copy from before device storage existed —
 // read once so a returning user doesn't lose it. Cleared by

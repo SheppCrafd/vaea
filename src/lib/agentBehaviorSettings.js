@@ -7,28 +7,14 @@
 // toggle, multiModelComparisonEnabled, used to live here too — removed, it
 // was pure UI with nothing anywhere actually reading it to compare BYOK
 // providers side by side.
-import { readKey, writeKey } from "@/lib/deviceStorage";
-
-export const AGENT_BEHAVIOR_KEY = "vaea_agent_behavior";
+import { createDeviceKeyStore } from "@/lib/deviceKeyStore";
 
 export const DEFAULTS = {
   approvalQueueEnabled: false,
   autoSchedulingEnabled: false,
 };
 
-export async function loadAgentBehavior() {
-  try {
-    const stored = await readKey(AGENT_BEHAVIOR_KEY);
-    return { ...DEFAULTS, ...(stored || {}) };
-  } catch {
-    return { ...DEFAULTS };
-  }
-}
+const store = createDeviceKeyStore("vaea_agent_behavior", DEFAULTS);
 
-export async function saveAgentBehavior(settings) {
-  try {
-    await writeKey(AGENT_BEHAVIOR_KEY, { ...DEFAULTS, ...settings });
-  } catch {
-    // best-effort — the setting just won't survive a reload
-  }
-}
+export const loadAgentBehavior = store.load;
+export const saveAgentBehavior = store.save;

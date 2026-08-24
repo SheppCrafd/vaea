@@ -13,7 +13,7 @@ function prefersReducedMotion() {
 // `once: false` keeps reporting as the element leaves and re-enters — the
 // demo films use that to pause off-screen and restart from the top when you
 // scroll back, rather than running invisibly forever.
-export function useInView({ threshold = 0.15, once = true } = {}) {
+function useInView({ threshold = 0.15, once = true } = {}) {
   const ref = useRef(null);
   const [inView, setInView] = useState(false);
 

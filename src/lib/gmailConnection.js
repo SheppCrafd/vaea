@@ -8,9 +8,7 @@
 // without the other — Gmail read/send access is a materially bigger ask
 // than calendar access and shouldn't be bundled into the same consent
 // screen by default.
-import { readKey, writeKey, removeKey } from "@/lib/deviceStorage";
-
-export const GMAIL_CONNECTION_KEY = "vaea_gmail";
+import { createDeviceKeyStore } from "@/lib/deviceKeyStore";
 
 export const DEFAULTS = {
   accessToken: "",
@@ -19,30 +17,11 @@ export const DEFAULTS = {
   emailAddress: "",
 };
 
-export async function loadGmailConnection() {
-  try {
-    const stored = await readKey(GMAIL_CONNECTION_KEY);
-    return { ...DEFAULTS, ...(stored || {}) };
-  } catch {
-    return { ...DEFAULTS };
-  }
-}
+const store = createDeviceKeyStore("vaea_gmail", DEFAULTS);
 
-export async function saveGmailConnection(connection) {
-  try {
-    await writeKey(GMAIL_CONNECTION_KEY, { ...DEFAULTS, ...connection });
-  } catch {
-    // best-effort — the connection just won't survive a reload
-  }
-}
-
-export async function clearGmailConnection() {
-  try {
-    await removeKey(GMAIL_CONNECTION_KEY);
-  } catch {
-    // best-effort
-  }
-}
+export const loadGmailConnection = store.load;
+export const saveGmailConnection = store.save;
+export const clearGmailConnection = store.clear;
 
 export function isGmailConnected(connection) {
   return !!(connection?.accessToken && connection?.refreshToken);
