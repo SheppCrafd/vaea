@@ -28,6 +28,34 @@ export function humanizeKey(key) {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+// Same block-level styling as ChatMessageList.jsx's own makeMarkdownComponents/
+// STREAM_MARKDOWN_COMPONENTS (duplicated the same way those two already
+// duplicate each other, rather than shared) — without these, react-markdown's
+// default <ul>/<ol>/<h1>-<h3>/etc. render with zero visual distinction once
+// Tailwind's preflight reset strips their browser-default list-style/margins,
+// which is exactly what made a real planning narrative's markdown (headings,
+// lists, bold) come through as flat, unstyled text in this modal.
+const PLAN_MARKDOWN_COMPONENTS = {
+  p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+  ul: ({ children }) => <ul className="mb-2 last:mb-0 pl-5 space-y-1 list-disc">{children}</ul>,
+  ol: ({ children }) => <ol className="mb-2 last:mb-0 pl-5 space-y-1 list-decimal">{children}</ol>,
+  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+  h1: ({ children }) => <h1 className="mt-3 mb-1.5 first:mt-0 text-base font-semibold">{children}</h1>,
+  h2: ({ children }) => <h2 className="mt-3 mb-1.5 first:mt-0 text-base font-semibold">{children}</h2>,
+  h3: ({ children }) => <h3 className="mt-2.5 mb-1 first:mt-0 text-sm font-semibold">{children}</h3>,
+  strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+  em: ({ children }) => <em className="italic">{children}</em>,
+  blockquote: ({ children }) => (
+    <blockquote className="my-2 pl-3 border-l-2 border-border text-muted-foreground">{children}</blockquote>
+  ),
+  a: ({ children, href }) => (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="underline decoration-dotted underline-offset-2 hover:text-foreground">
+      {children}
+    </a>
+  ),
+  hr: () => <hr className="my-2 border-border" />,
+};
+
 // Pulls a real, human name out of a step's toolResult (the entity it
 // actually created/updated) to show alongside the action — same convention
 // describeToolCall (chatActions.js) already renders in the transcript line.
@@ -118,8 +146,8 @@ function PlanReasoning({ reasoning, actions }) {
     );
   }
   return (
-    <div className="space-y-2 [&_p]:mb-2 [&_p:last-child]:mb-0">
-      <ReactMarkdown urlTransform={sanitizeUrl}>{reasoning}</ReactMarkdown>
+    <div className="space-y-2">
+      <ReactMarkdown urlTransform={sanitizeUrl} components={PLAN_MARKDOWN_COMPONENTS}>{reasoning}</ReactMarkdown>
     </div>
   );
 }
