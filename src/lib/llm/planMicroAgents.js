@@ -1,27 +1,33 @@
-// Two real, separate, hidden model calls that generate the <plan> block's
-// genuine deliberation for any turn whose finalized plan queues MORE THAN 2
-// tool calls (see RESPONSE FORMAT in systemPrompt.js/entry.ts). By the time
-// this runs, the main model has already decided the real tool calls — these
-// two agents never see or change them, they only explain them, given the
-// user's own message and the exact steps about to run:
-//   Agent A (propose) drafts a plain first-person planning paragraph from
+// Two real, separate, hidden model calls that plan a turn BEFORE the real
+// model call ever happens — not a narration of a plan already decided. Both
+// agents get the exact same systemPrompt + contextPrompt the main call is
+// about to receive (the same [DATABASE STATE], conversation history, and
+// latest user message), with one real difference: they're offered only a
+// READ-ONLY tool set (search/audit/read/list calls, web search, fetching a
+// URL — see toolCatalog.js's `readOnly` filter and toolRunner.js's
+// STAGED_TOOL_NAMES) and a short prompt override telling them this is a
+// planning pass, not the final response. They can genuinely use those
+// read-only tools to check something for real before committing to a plan;
+// they can never call a mutating one, because none is ever offered.
+//   Agent A (propose) drafts a plain first-person planning narrative from
 //   scratch.
-//   Agent B (reconsider) reads that draft back against the same steps and
-//   either leaves it or revises it with a genuine second thought — the "but
-//   wait, that depends on X" a person re-reading their own plan would catch.
-// Neither call ever executes a tool itself; both are plain, toolless
-// completions on the SAME provider/model config as the main turn (no
-// separate key to manage), pinned to that provider's fastest model since
-// latency here is pure overhead the user is waiting through.
+//   Agent B (reconsider) reads that draft back against the same context and
+//   either leaves it or revises it with a genuine second thought.
+// The resulting narrative is then handed to the REAL main call as part of
+// its own contextPrompt (see byokChat.js), framed as the model's own
+// reasoning to execute — never something it should reference in its reply.
 //
-// Budgeted at MICRO_AGENT_BUDGET_MS total across both calls. Either one
-// missing its share of the budget degrades to skipping the <plan> block
-// entirely (byokChat.js just omits `reasoning`) rather than blocking the
-// reply on it — a turn with no reasoning trail beats a slow one. Not
-// offered for local-bridge (Local Mode): its own transport is file-polling
-// with no fast-call path, so a plan block just doesn't exist for turns
-// answered that way — see the module comment in localBridgeAdapter.js.
+// Runs on the SAME provider/key config as the main turn, pinned to that
+// provider's fastest model since latency here is pure overhead the user is
+// waiting through. Budgeted at MICRO_AGENT_BUDGET_MS total across both
+// calls (each may itself spend part of its own share on a real tool round);
+// missing that budget just means this turn gets no plan at all — a
+// duller/faster turn beats a slow one. Not offered for local-bridge (Local
+// Mode): its own transport is file-polling with no fast-call path — see the
+// module comment in localBridgeAdapter.js.
 import { PROVIDERS } from "@/lib/llm/providers";
+import { toAnthropicTools, toOpenAiCompatibleTools } from "@/lib/llm/toolCatalog";
+import { makeToolRunner } from "@/lib/llm/toolRunner";
 import { callAnthropic } from "@/lib/llm/anthropicAdapter";
 import { callOpenAiCompatible } from "@/lib/llm/openaiCompatibleAdapter";
 
@@ -37,59 +43,85 @@ const FAST_MODEL = {
   xai: "grok-4-fast",
 };
 
-const PROPOSE_SYSTEM_PROMPT =
-  "You write ONE short first-person planning paragraph (3-5 sentences) explaining a plan that's already been decided for someone else — you're not deciding anything, only narrating the reasoning behind steps you're given. Plain and direct, no headers, no bullet lists, no restating the raw tool syntax. Do not add or omit steps; explain only the ones given. Output the paragraph and nothing else.";
+const PLANNING_OVERRIDE = `
 
-const RECONSIDER_SYSTEM_PROMPT =
-  "You review a colleague's just-written planning paragraph against the same already-decided steps you're also given. If it's already clear and correct, return it unchanged. If a genuinely better second thought exists — a real reconsideration, not a rewrite for its own sake, e.g. \"wait, that depends on X existing first\" — revise it to include that. Keep it 3-6 sentences, plain first-person, no headers or lists. Output ONLY the final paragraph, nothing else.";
+[PLANNING PASS — overrides RESPONSE FORMAT above for this call only]
+This is a hidden planning pass that runs BEFORE the real response — you are not answering the user yet, and nothing you write here is ever shown to them directly. Read everything above as full real context for what's being asked and what's already true in the workspace right now.
 
-function describeToolCalls(actions) {
-  return (actions || []).map((a, i) => `${i + 1}. ${a.type}(${JSON.stringify(a.args || {})})`).join("\n");
-}
+Write ONE genuine planning narrative in plain first-person prose — real deliberation, including real second-guessing where it's actually warranted ("I should... but wait, that depends on... so instead I'll..."), not a final answer, not a list, not addressed to the user. You may call a read-only tool (search/audit/read/list, web search, fetching a URL) if checking something for real would change your plan — no mutating tool is offered to you in this pass, so don't attempt one. Describe, in plain language, any create/update/delete-type step you'd actually take ("I'll archive the two stale projects and create one new one for...") without literally calling it — that's the real plan those words describe, even though you can't execute it here.
+
+Do not wrap your output in <response> or <plan> tags. Do not mention that this is a "planning pass" or refer to yourself as a separate agent — just write the plan itself.`;
+
+const reconsiderOverride = (draft) => `
+
+[REVIEW PASS — overrides RESPONSE FORMAT above for this call only]
+You're reviewing a colleague's draft plan below, written from the exact same real context above.
+
+Draft:
+${draft}
+
+If it's already clear and correct, output it back unchanged. If a genuinely better second thought exists — a real reconsideration ("wait, that depends on X existing first"), not a rewrite for its own sake — revise it to include that. Same rules as the draft: plain first-person prose, no <response>/<plan> tags, never addressed to the user, nothing about being a "review pass." Output ONLY the final planning narrative.`;
 
 function withTimeout(promise, ms) {
   return Promise.race([promise, new Promise((resolve) => setTimeout(() => resolve(null), ms))]);
 }
 
-// One toolless completion — no tool catalog offered, so `runTool` is never
-// actually invoked; it's a required param on both adapters, not an optional
-// hook, so a no-op stub is passed through rather than making either adapter
-// tolerate a missing one.
-async function callFast({ provider, apiKey, baseUrl, model, systemPrompt, userText }) {
-  const runTool = async () => ({});
-  if (provider.adapter === "anthropic") {
-    const { reply } = await callAnthropic({ apiKey, model, systemPrompt, contextPrompt: userText, tools: [], runTool });
+// One real planning pass — a genuine (possibly multi-round) tool-call loop,
+// same as the main turn gets, just with a read-only-filtered catalog and no
+// mutation possible. Its own plan/liveTrace are scratch: real read-tool
+// calls it makes along the way are never merged into the turn's actual
+// plan or shown as live tool-call rows — this is the planning agent's own
+// scratch work, not something that happened.
+async function runOnePlanningPass({ provider, providerConfig, fastModel, connections, dataset, externalVault, systemPrompt, contextPrompt }) {
+  const runTool = makeToolRunner({ plan: [], liveTrace: [], dataset, externalVault, onEvent: undefined });
+  try {
+    if (provider.adapter === "anthropic") {
+      const { reply } = await callAnthropic({
+        apiKey: providerConfig.apiKey, model: fastModel, systemPrompt, contextPrompt,
+        tools: toAnthropicTools(connections, { readOnly: true }), runTool,
+      });
+      return reply;
+    }
+    const { reply } = await callOpenAiCompatible({
+      baseUrl: provider.baseUrl || providerConfig.baseUrl, apiKey: providerConfig.apiKey, model: fastModel, systemPrompt, contextPrompt,
+      tools: toOpenAiCompatibleTools(connections, { readOnly: true }), runTool, providerId: provider.id,
+    });
     return reply;
+  } catch {
+    return null;
   }
-  const { reply } = await callOpenAiCompatible({ baseUrl, apiKey, model, systemPrompt, contextPrompt: userText, tools: [], runTool, providerId: provider.id });
-  return reply;
 }
 
-// userMessage: the latest real user message this turn is answering.
-// actions: the finalized plan array (chatActions.js shape: [{type, args}]).
-// Returns the plan paragraph, or null if this provider has no fast-call
-// path, both agents missed their budget, or either call errored.
-export async function runPlanMicroAgents({ providerConfig, userMessage, actions }) {
+// systemPrompt/contextPrompt: the exact same strings byokChat.js is about to
+// send the real main call. connections/dataset/externalVault: the same
+// values already built for the real tool runner, reused here so the
+// planning agents can genuinely search/read for real. onEvent (optional):
+// fires {type:"planning-start"} right before the first call and
+// {type:"planning-end"} once both are done (success, timeout, or error) —
+// this is what lets the UI show a "(planning...)" line before the real
+// response starts streaming. Returns the plan narrative, or null if this
+// provider has no fast-call path or both calls missed budget/errored.
+export async function runPlanMicroAgents({ providerConfig, systemPrompt, contextPrompt, connections, dataset, externalVault, onEvent }) {
   const provider = PROVIDERS[providerConfig?.provider];
   if (!provider?.adapter || provider.adapter === "local-bridge") return null;
   if (provider.keyRequired !== false && !providerConfig?.apiKey) return null;
 
-  const fastModel = FAST_MODEL[provider.id] || providerConfig.model;
-  const call = (systemPrompt, userText) =>
-    callFast({ provider, apiKey: providerConfig.apiKey, baseUrl: provider.baseUrl || providerConfig.baseUrl, model: fastModel, systemPrompt, userText }).catch(() => null);
+  onEvent?.({ type: "planning-start" });
+  try {
+    const fastModel = FAST_MODEL[provider.id] || providerConfig.model;
+    const runPass = (system) =>
+      runOnePlanningPass({ provider, providerConfig, fastModel, connections, dataset, externalVault, systemPrompt: system, contextPrompt });
 
-  const toolSummary = describeToolCalls(actions);
-  const budgetStart = Date.now();
+    const budgetStart = Date.now();
+    const draft = await withTimeout(runPass(systemPrompt + PLANNING_OVERRIDE), MICRO_AGENT_BUDGET_MS * 0.6);
+    if (!draft) return null;
 
-  const draft = await withTimeout(
-    call(PROPOSE_SYSTEM_PROMPT, `User asked: "${userMessage}"\n\nSteps about to run:\n${toolSummary}`),
-    MICRO_AGENT_BUDGET_MS * 0.6,
-  );
-  if (!draft) return null;
+    const remaining = MICRO_AGENT_BUDGET_MS - (Date.now() - budgetStart);
+    if (remaining < 300) return draft.trim();
 
-  const remaining = MICRO_AGENT_BUDGET_MS - (Date.now() - budgetStart);
-  if (remaining < 300) return draft.trim();
-
-  const revised = await withTimeout(call(RECONSIDER_SYSTEM_PROMPT, `Steps:\n${toolSummary}\n\nDraft:\n${draft}`), remaining);
-  return (revised || draft).trim();
+    const revised = await withTimeout(runPass(systemPrompt + reconsiderOverride(draft)), remaining);
+    return (revised || draft).trim();
+  } finally {
+    onEvent?.({ type: "planning-end" });
+  }
 }

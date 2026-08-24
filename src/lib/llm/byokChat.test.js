@@ -189,33 +189,78 @@ describe("runByokChat: end-to-end against a mocked provider response", () => {
     expect(result.reasoning).toBeNull();
   });
 
-  it("generates a real <plan> block via two extra hidden calls once a turn's plan exceeds PLAN_TOOL_CALL_THRESHOLD", async () => {
+  it("plans BEFORE the main call via two extra hidden calls, then feeds that plan into the real turn — <plan> is only shown once the real tool-call count exceeds the threshold", async () => {
+    const seenSystems = [];
     vi.stubGlobal("fetch", vi.fn(async (_url, init) => {
       const body = JSON.parse(init.body);
-      // The real main-turn system prompt (buildInstructions' own opening line).
-      if (body.system?.includes("admin routing engine")) {
-        if (body.messages.length === 1) {
-          return anthropicStream([
-            { type: "tool_use", id: "t1", name: "ARCHIVE_PROJECT", input: { project_id: "p1" } },
-            { type: "tool_use", id: "t2", name: "ARCHIVE_PROJECT", input: { project_id: "p2" } },
-            { type: "tool_use", id: "t3", name: "ARCHIVE_PROJECT", input: { project_id: "p3" } },
-          ]);
-        }
-        return anthropicStream([{ type: "text", text: "<response>Archived all three.</response>" }]);
+      seenSystems.push(body.system);
+      // planMicroAgents.js appends a distinct override marker to the exact
+      // same base systemPrompt for each of its two calls — that's how a real
+      // request is told apart from the main turn's own (unmodified) one.
+      if (body.system?.includes("[PLANNING PASS")) {
+        return anthropicStream([{ type: "text", text: "I'll archive the three requested projects." }]);
       }
-      // A planMicroAgents.js call (propose or reconsider) — plain text back,
-      // no <response> tag needed (extractResponse falls back to raw text).
-      return anthropicStream([{ type: "text", text: "I'll archive the three requested projects." }]);
+      if (body.system?.includes("[REVIEW PASS")) {
+        return anthropicStream([{ type: "text", text: "I'll archive the three requested projects." }]);
+      }
+      // The main turn's own unmodified systemPrompt.
+      if (body.messages.length === 1) {
+        return anthropicStream([
+          { type: "tool_use", id: "t1", name: "ARCHIVE_PROJECT", input: { project_id: "p1" } },
+          { type: "tool_use", id: "t2", name: "ARCHIVE_PROJECT", input: { project_id: "p2" } },
+          { type: "tool_use", id: "t3", name: "ARCHIVE_PROJECT", input: { project_id: "p3" } },
+        ]);
+      }
+      // The plan text landed in the main call's own contextPrompt (round 0's
+      // user message), never in its systemPrompt.
+      expect(body.messages[0].content).toContain("YOUR OWN PLANNING");
+      return anthropicStream([{ type: "text", text: "<response>Archived all three.</response>" }]);
     }));
 
+    const events = [];
     const result = await runByokChat({
       providerConfig: { provider: "anthropic", model: "claude-sonnet-5", apiKey: "sk-ant-test" },
       contextArgs: { ...baseContextArgs, userText: "archive p1, p2, and p3" },
+      onEvent: (e) => events.push(e),
     });
+
+    // The two planning calls happened before any of the main turn's own
+    // (unmodified-system) calls.
+    const firstMainCallIndex = seenSystems.findIndex((s) => !s.includes("[PLANNING PASS") && !s.includes("[REVIEW PASS"));
+    expect(firstMainCallIndex).toBe(2);
+    expect(events).toContainEqual({ type: "planning-start" });
+    expect(events).toContainEqual({ type: "planning-end" });
+    // The planning pair happens entirely before the main turn's own live
+    // events start arriving — ARCHIVE_PROJECT is staged (mutating), so no
+    // "tool-call" event fires for it (see toolRunner.js); the final round's
+    // own thinking-delta is the first real signal the main call started.
+    expect(events.indexOf(events.find((e) => e.type === "planning-end"))).toBeLessThan(events.indexOf(events.find((e) => e.type === "thinking-delta")));
 
     expect(result.actions).toHaveLength(3);
     expect(result.reply).toBe("Archived all three.");
     expect(result.reasoning).toBe("I'll archive the three requested projects.");
+  });
+
+  it("still plans first even when the turn ends up at or under the threshold, but doesn't expose it as a plan detail", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (_url, init) => {
+      const body = JSON.parse(init.body);
+      if (body.system?.includes("[PLANNING PASS") || body.system?.includes("[REVIEW PASS")) {
+        return anthropicStream([{ type: "text", text: "I'll just archive the one project." }]);
+      }
+      if (body.messages.length === 1) {
+        return anthropicStream([{ type: "tool_use", id: "t1", name: "ARCHIVE_PROJECT", input: { project_id: "p1" } }]);
+      }
+      return anthropicStream([{ type: "text", text: "<response>Archived it.</response>" }]);
+    }));
+
+    const result = await runByokChat({
+      providerConfig: { provider: "anthropic", model: "claude-sonnet-5", apiKey: "sk-ant-test" },
+      contextArgs: { ...baseContextArgs, userText: "archive p1" },
+    });
+
+    expect(result.actions).toHaveLength(1);
+    expect(result.reply).toBe("Archived it.");
+    expect(result.reasoning).toBeNull();
   });
 });
 

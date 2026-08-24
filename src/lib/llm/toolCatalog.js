@@ -1547,21 +1547,27 @@ function toolConnectorGroup(name) {
 // `connections` is optional so every existing call site (tests, anything
 // not yet passing it) keeps working unfiltered — pass real connection
 // booleans to actually get the savings. Keys match toolConnectorGroup's
-// return values.
-function filterByConnections(catalog, connections) {
-  if (!connections) return catalog;
+// return values. `readOnly` is planMicroAgents.js/entry.ts's own real
+// safety mechanism, not a prompt instruction the model could ignore: a
+// planning agent is offered ONLY `staged: false` tools (the ones that
+// already run for real/read-only — search_workspace, audit_workspace,
+// vault reads, read_project_link, analyze_attachment, list_*/read_* across
+// every connector) and literally cannot be handed a `staged: true`
+// (mutating) one to call, since it was never in the list it saw.
+function filterByConnections(catalog, connections, readOnly) {
   return catalog.filter((t) => {
+    if (readOnly && t.staged) return false;
     const group = toolConnectorGroup(t.name);
-    return !group || connections[group];
+    return !group || !connections || connections[group];
   });
 }
 
 // Anthropic's Messages API wants { name, description, input_schema }.
-export function toAnthropicTools(connections) {
-  return filterByConnections(TOOL_CATALOG, connections).map(({ name, description, parameters }) => ({ name, description, input_schema: parameters }));
+export function toAnthropicTools(connections, { readOnly = false } = {}) {
+  return filterByConnections(TOOL_CATALOG, connections, readOnly).map(({ name, description, parameters }) => ({ name, description, input_schema: parameters }));
 }
 
 // OpenAI-compatible chat-completions wants { type: "function", function: { name, description, parameters } }.
-export function toOpenAiCompatibleTools(connections) {
-  return filterByConnections(TOOL_CATALOG, connections).map(({ name, description, parameters }) => ({ type: "function", function: { name, description, parameters } }));
+export function toOpenAiCompatibleTools(connections, { readOnly = false } = {}) {
+  return filterByConnections(TOOL_CATALOG, connections, readOnly).map(({ name, description, parameters }) => ({ type: "function", function: { name, description, parameters } }));
 }

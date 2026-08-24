@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { ToolLoopAgent, tool, stepCountIs, generateText } from 'npm:ai';
+import { ToolLoopAgent, tool, stepCountIs } from 'npm:ai';
 import { createOpenAICompatible } from 'npm:@ai-sdk/openai-compatible';
 import { z } from 'npm:zod';
 
@@ -485,6 +485,14 @@ function filterToolsByConnections(tools, connections) {
   return filtered;
 }
 
+// The subset of an already-built (and already connection-filtered) tool set
+// safe to hand a planning agent — real reads only (search_workspace,
+// audit_workspace, vault reads, web-capable calls, etc.), never anything
+// queue() above tagged __staged. See runPlanMicroAgents below.
+function readOnlyTools(tools) {
+  return Object.fromEntries(Object.entries(tools).filter(([, t]) => !t.execute?.__staged));
+}
+
 function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCalendar, gmail, microsoft, outlook, slack, clickup, workflowCards, backupSnapshots, emit, now }) {
   // Every live (already-executed) tool call gets pushed here as {label,
   // detail} — same shape a client-side executed mutation step gets from
@@ -504,7 +512,7 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCal
   }
 
   function queue(action) {
-    return async (args) => {
+    const fn = async (args) => {
       if (plan.length >= MAX_ACTIONS_PER_REQUEST) {
         return { queued: false, error: `Plan already has ${MAX_ACTIONS_PER_REQUEST} actions queued (the max allowed in one request) — stop adding more and wrap up your reply.` };
       }
@@ -533,6 +541,11 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCal
         ...(temp_id ? { temp_id_registered: temp_id, hint: `Reference this record later as "$${temp_id}" wherever an id is needed for it.` } : {}),
       };
     };
+    // Marks this executor as mutating — readOnlyTools() below filters on
+    // this instead of hand-maintaining a duplicate action-name list that
+    // would silently drift from this one.
+    fn.__staged = true;
+    return fn;
   }
 
   const tempIdField = z.string().optional().describe('Tag this not-yet-real record with a short label (e.g. "area1") ONLY if a later tool call in this same turn needs to reference its id before it has ever been created. Omit otherwise.');
@@ -2171,44 +2184,80 @@ function extractResponseTag(text) {
 }
 
 // Local twin of src/lib/llm/planMicroAgents.js — see that file's own module
-// comment for the full design. Two real, separate, toolless generateText
-// calls on the SAME base44 AI Gateway model this turn already used (no
+// comment for the full design: two real, separate model calls that PLAN a
+// turn BEFORE the real main call happens, not a narration of a plan already
+// decided. Both get the exact same instructions + contextPrompt the main
+// call is about to receive, offered only a read-only tool set (readOnlyTools
+// above) via a real (bounded) ToolLoopAgent — same as the main call gets,
+// just unable to mutate anything since no mutating tool is ever in its own
+// `tools` — plus a short prompt override marking this as a planning pass.
+// Runs on the SAME base44 AI Gateway model this turn already used (no
 // separate fast-model catalog exists server-side, unlike the BYOK client
 // twin's per-provider FAST_MODEL table), budgeted the same way. Returns the
-// plan paragraph, or null if either call errored or missed budget.
+// plan narrative, or null if either call errored or missed budget.
 const MICRO_AGENT_BUDGET_MS = 3000;
 // Local twin of src/lib/llm/byokChat.js's PLAN_TOOL_CALL_THRESHOLD.
 const PLAN_TOOL_CALL_THRESHOLD = 2;
-const PROPOSE_SYSTEM_PROMPT =
-  "You write ONE short first-person planning paragraph (3-5 sentences) explaining a plan that's already been decided for someone else — you're not deciding anything, only narrating the reasoning behind steps you're given. Plain and direct, no headers, no bullet lists, no restating the raw tool syntax. Do not add or omit steps; explain only the ones given. Output the paragraph and nothing else.";
-const RECONSIDER_SYSTEM_PROMPT =
-  "You review a colleague's just-written planning paragraph against the same already-decided steps you're also given. If it's already clear and correct, return it unchanged. If a genuinely better second thought exists — a real reconsideration, not a rewrite for its own sake, e.g. \"wait, that depends on X existing first\" — revise it to include that. Keep it 3-6 sentences, plain first-person, no headers or lists. Output ONLY the final paragraph, nothing else.";
+const PLANNING_OVERRIDE = `
+
+[PLANNING PASS — overrides RESPONSE FORMAT above for this call only]
+This is a hidden planning pass that runs BEFORE the real response — you are not answering the user yet, and nothing you write here is ever shown to them directly. Read everything above as full real context for what's being asked and what's already true in the workspace right now.
+
+Write ONE genuine planning narrative in plain first-person prose — real deliberation, including real second-guessing where it's actually warranted ("I should... but wait, that depends on... so instead I'll..."), not a final answer, not a list, not addressed to the user. You may call a read-only tool (search/audit/read/list, web search, fetching a URL) if checking something for real would change your plan — no mutating tool is offered to you in this pass, so don't attempt one. Describe, in plain language, any create/update/delete-type step you'd actually take ("I'll archive the two stale projects and create one new one for...") without literally calling it — that's the real plan those words describe, even though you can't execute it here.
+
+Do not wrap your output in <response> or <plan> tags. Do not mention that this is a "planning pass" or refer to yourself as a separate agent — just write the plan itself.`;
+
+function reconsiderOverride(draft) {
+  return `
+
+[REVIEW PASS — overrides RESPONSE FORMAT above for this call only]
+You're reviewing a colleague's draft plan below, written from the exact same real context above.
+
+Draft:
+${draft}
+
+If it's already clear and correct, output it back unchanged. If a genuinely better second thought exists — a real reconsideration ("wait, that depends on X existing first"), not a rewrite for its own sake — revise it to include that. Same rules as the draft: plain first-person prose, no <response>/<plan> tags, never addressed to the user, nothing about being a "review pass." Output ONLY the final planning narrative.`;
+}
 
 function withTimeout(promise, ms) {
   return Promise.race([promise, new Promise((resolve) => setTimeout(() => resolve(null), ms))]);
 }
 
-function describeToolCalls(actions) {
-  return (actions || []).map((a, i) => `${i + 1}. ${a.type}(${JSON.stringify(a.args || {})})`).join('\n');
+// One real planning pass — a genuine (possibly multi-step) tool-call loop,
+// same shape as the main turn gets, just with `planningTools` (read-only)
+// and a small step cap, since it's scratch work, not the real turn.
+async function runOnePlanningPass({ model, planningTools, instructions, contextPrompt }) {
+  try {
+    const agent = new ToolLoopAgent({ model, instructions, tools: planningTools, stopWhen: stepCountIs(6) });
+    const result = await agent.generate({ prompt: contextPrompt });
+    const rawText = result.steps.map((step) => step.text?.trim()).filter(Boolean).pop() || '';
+    return extractResponseTag(rawText) || null;
+  } catch {
+    return null;
+  }
 }
 
-async function runPlanMicroAgents({ model, userMessage, actions }) {
-  const toolSummary = describeToolCalls(actions);
-  const budgetStart = Date.now();
-  const callFast = (system, prompt) =>
-    generateText({ model, system, prompt }).then((r) => r.text?.trim() || null).catch(() => null);
+async function runPlanMicroAgents({ model, planningTools, baseInstructions, contextPrompt, emit }) {
+  emit?.({ type: 'planning-start' });
+  try {
+    const budgetStart = Date.now();
+    const draft = await withTimeout(
+      runOnePlanningPass({ model, planningTools, instructions: baseInstructions + PLANNING_OVERRIDE, contextPrompt }),
+      MICRO_AGENT_BUDGET_MS * 0.6,
+    );
+    if (!draft) return null;
 
-  const draft = await withTimeout(
-    callFast(PROPOSE_SYSTEM_PROMPT, `User asked: "${userMessage}"\n\nSteps about to run:\n${toolSummary}`),
-    MICRO_AGENT_BUDGET_MS * 0.6,
-  );
-  if (!draft) return null;
+    const remaining = MICRO_AGENT_BUDGET_MS - (Date.now() - budgetStart);
+    if (remaining < 300) return draft;
 
-  const remaining = MICRO_AGENT_BUDGET_MS - (Date.now() - budgetStart);
-  if (remaining < 300) return draft;
-
-  const revised = await withTimeout(callFast(RECONSIDER_SYSTEM_PROMPT, `Steps:\n${toolSummary}\n\nDraft:\n${draft}`), remaining);
-  return revised || draft;
+    const revised = await withTimeout(
+      runOnePlanningPass({ model, planningTools, instructions: baseInstructions + reconsiderOverride(draft), contextPrompt }),
+      remaining,
+    );
+    return revised || draft;
+  } finally {
+    emit?.({ type: 'planning-end' });
+  }
 }
 
 function renderVaultOverview(vaultOverview) {
@@ -2353,21 +2402,46 @@ Deno.serve(async (req) => {
           controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'));
         }
         try {
+          const model = models('automatic');
+          const instructions = buildInstructions();
+          const connectionFlags = {
+            vault: !!(externalVault?.owner && externalVault?.repo && externalVault?.token),
+            google_workspace: !!(googleCalendar?.accessToken && googleCalendar?.refreshToken),
+            gmail: !!(gmail?.accessToken && gmail?.refreshToken),
+            microsoft: !!(microsoft?.accessToken && microsoft?.refreshToken),
+            outlook: !!(outlook?.accessToken && outlook?.refreshToken),
+            clickup: !!(clickup?.accessToken && clickup?.workspaceId),
+            slack: !!(slack?.accessToken && slack?.workspaceId),
+          };
+          const filteredTools = filterToolsByConnections(
+            buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCalendar, gmail, microsoft, outlook, slack, clickup, emit, now }),
+            connectionFlags
+          );
+
+          // A real planning pass, BEFORE the main call — see
+          // runPlanMicroAgents above. Its own tool set is built from a
+          // SEPARATE buildTools() call with scratch plan/liveTrace and no
+          // emit, not readOnlyTools(filteredTools) — trace()'s closures
+          // above are bound to the real plan/liveTrace/emit, and a planning
+          // agent's own read-tool calls are scratch work, never something
+          // that happened this turn or belongs in the real live tool-call
+          // feed. null just means this turn proceeds on its own
+          // contextPrompt unchanged (budget missed or an error).
+          const planningTools = readOnlyTools(filterToolsByConnections(
+            buildTools({ base44, plan: [], liveTrace: [], dataset, externalVault, googleCalendar, gmail, microsoft, outlook, slack, clickup, emit: undefined, now }),
+            connectionFlags
+          ));
+          const planText = await runPlanMicroAgents({
+            model, planningTools, baseInstructions: instructions, contextPrompt, emit,
+          });
+          const mainContextPrompt = planText
+            ? `${contextPrompt}\n\n[YOUR OWN PLANNING — already done, before this turn began]\n${planText}\n\nThis is genuinely your own reasoning, already worked through — proceed to execute it for real now via the tools above, and answer the user normally. Never mention "the plan," "as I planned," "per my planning," or refer to this section at all in your reply — just act and respond the way you would if you'd reasoned this through in the same breath as answering.`
+            : contextPrompt;
+
           const agent = new ToolLoopAgent({
-            model: models('automatic'),
-            instructions: buildInstructions(),
-            tools: filterToolsByConnections(
-              buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCalendar, gmail, microsoft, outlook, slack, clickup, emit, now }),
-              {
-                vault: !!(externalVault?.owner && externalVault?.repo && externalVault?.token),
-                google_workspace: !!(googleCalendar?.accessToken && googleCalendar?.refreshToken),
-                gmail: !!(gmail?.accessToken && gmail?.refreshToken),
-                microsoft: !!(microsoft?.accessToken && microsoft?.refreshToken),
-                outlook: !!(outlook?.accessToken && outlook?.refreshToken),
-                clickup: !!(clickup?.accessToken && clickup?.workspaceId),
-                slack: !!(slack?.accessToken && slack?.workspaceId),
-              }
-            ),
+            model,
+            instructions,
+            tools: filteredTools,
             stopWhen: stepCountIs(40),
           });
 
@@ -2387,7 +2461,7 @@ Deno.serve(async (req) => {
           // same honest "not real-time" treatment Local Mode gets (see
           // byokChat.js's simulateLiveReveal) for the identical underlying
           // reason: the transport under this path can't actually stream.
-          const result = await agent.generate({ prompt: contextPrompt });
+          const result = await agent.generate({ prompt: mainContextPrompt });
           // Per RESPONSE FORMAT above: every step before the last one made a
           // tool call (that's the only reason agent.generate's own
           // stepCountIs loop continued), so its own text — if the model
@@ -2399,12 +2473,12 @@ Deno.serve(async (req) => {
           const rawReply = result.steps.map((step) => step.text?.trim()).filter(Boolean).pop() || '';
           const reply = extractResponseTag(rawReply) || "I couldn't come up with a reply — could you rephrase?";
 
-          // The <plan> block's real content — see runPlanMicroAgents above.
-          // Only attempted once the real tool-call plan is known and exceeds
-          // the threshold; null just means this turn has no plan detail.
-          const reasoning = plan.length > PLAN_TOOL_CALL_THRESHOLD
-            ? await runPlanMicroAgents({ model: models('automatic'), userMessage: message, actions: plan })
-            : null;
+          // The <plan> detail is only ever SHOWN once the real, now-known
+          // tool-call count exceeds the threshold — the planning pass above
+          // already ran (when it could), but a turn that only needed a
+          // couple of tool calls doesn't get a plan detail cluttering it
+          // just because one exists.
+          const reasoning = plan.length > PLAN_TOOL_CALL_THRESHOLD ? planText : null;
 
           // Word-sized paced reveal of the final reply — the same "watch it
           // think" treatment Local Mode gets (see byokChat.js's

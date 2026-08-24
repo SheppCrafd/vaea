@@ -143,15 +143,28 @@ export async function runByokChat({ providerConfig, contextArgs, onEvent }) {
   // only anthropic/openai-compatible get the filtered set.
   const connections = getConnectionFlags(contextArgs);
 
+  // A real planning pass, BEFORE the main call — see planMicroAgents.js's
+  // own module comment. Returns null (no fast-call path, budget missed, or
+  // an error) for local-bridge or any turn that just didn't finish in time;
+  // either way the main call below proceeds on its own contextPrompt
+  // unchanged.
+  const planText = await runPlanMicroAgents({
+    providerConfig, systemPrompt, contextPrompt, connections, dataset,
+    externalVault: contextArgs.externalVault, onEvent,
+  });
+  const mainContextPrompt = planText
+    ? `${contextPrompt}\n\n[YOUR OWN PLANNING — already done, before this turn began]\n${planText}\n\nThis is genuinely your own reasoning, already worked through — proceed to execute it for real now via the tools above, and answer the user normally. Never mention "the plan," "as I planned," "per my planning," or refer to this section at all in your reply — just act and respond the way you would if you'd reasoned this through in the same breath as answering.`
+    : contextPrompt;
+
   const { reply, thinking } = provider.adapter === "anthropic"
     ? await callAnthropic({
-        apiKey: providerConfig.apiKey, model: providerConfig.model, systemPrompt, contextPrompt,
+        apiKey: providerConfig.apiKey, model: providerConfig.model, systemPrompt, contextPrompt: mainContextPrompt,
         tools: toAnthropicTools(connections), runTool, onEvent,
       })
     : isLocalBridge
-    ? await callLocalBridge({ contextPrompt, runTool, sessionId: contextArgs.sessionId })
+    ? await callLocalBridge({ contextPrompt: mainContextPrompt, runTool, sessionId: contextArgs.sessionId })
     : await callOpenAiCompatible({
-        baseUrl: provider.baseUrl || providerConfig.baseUrl, apiKey: providerConfig.apiKey, model: providerConfig.model, systemPrompt, contextPrompt,
+        baseUrl: provider.baseUrl || providerConfig.baseUrl, apiKey: providerConfig.apiKey, model: providerConfig.model, systemPrompt, contextPrompt: mainContextPrompt,
         tools: toOpenAiCompatibleTools(connections), runTool, onEvent, providerId: provider.id,
       });
 
@@ -159,13 +172,11 @@ export async function runByokChat({ providerConfig, contextArgs, onEvent }) {
     await simulateLiveReveal({ liveTrace, thinking, onEvent });
   }
 
-  // The <plan> block's real content — see planMicroAgents.js's own module
-  // comment. Only ever attempted once the real tool-call plan is known and
-  // exceeds the threshold; `null` (no fast-call path, budget missed, or a
-  // turn that never needed one) just means this turn has no plan detail.
-  const reasoning = plan.length > PLAN_TOOL_CALL_THRESHOLD
-    ? await runPlanMicroAgents({ providerConfig, userMessage: contextArgs.userText, actions: plan })
-    : null;
+  // The <plan> detail is only ever SHOWN once the real, now-known tool-call
+  // count exceeds the threshold — the planning pass above always runs (when
+  // a fast-call path exists), but a turn that only needed a couple of tool
+  // calls doesn't get a plan detail cluttering it just because one exists.
+  const reasoning = plan.length > PLAN_TOOL_CALL_THRESHOLD ? planText : null;
 
   return { reply, reasoning, actions: plan, liveTrace };
 }

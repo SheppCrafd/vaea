@@ -260,7 +260,7 @@ function PendingActionCard({ actions, onConfirm, onCancel, resolving }) {
 // register as the marketing site's hero mockup, not a decorative match: it's
 // the one place real assistant output belongs (see --font-terminal in
 // index.css).
-export default function ChatMessageList({ messages, isComputing, isLoading, liveSteps, streamingText, iconChoice, hasMore, onLoadMore, resolvingId, onConfirm, onCancel, newMessageIds, onMessageTyped }) {
+export default function ChatMessageList({ messages, isComputing, isLoading, isPlanning, liveSteps, streamingText, iconChoice, hasMore, onLoadMore, resolvingId, onConfirm, onCancel, newMessageIds, onMessageTyped }) {
   const containerRef = useRef(null);
   const [openDetail, setOpenDetail] = useState(null);
   // Tracks whether the user was already at (or very near) the bottom right
@@ -416,7 +416,17 @@ export default function ChatMessageList({ messages, isComputing, isLoading, live
           })()}
           <p className="flex items-center gap-1.5">
             <ChatIcon iconChoice={iconChoice} className="w-3.5 h-3.5 text-primary chat-icon-computing" />
-            <span className="inline-block w-[7px] h-[13px] bg-primary/70 chat-cursor-blink" />
+            {/* Shown only during the hidden planning pass that now runs
+                BEFORE the real model call (planMicroAgents.js/entry.ts's own
+                twin) — useChatController.js flips isPlanning off the moment
+                real streaming/tool-call events for this turn start
+                arriving, so this never lingers once there's real content to
+                show instead. */}
+            {isPlanning && !streamingText && !(liveSteps || []).length ? (
+              <span className="text-muted-foreground text-xs italic">(planning...)</span>
+            ) : (
+              <span className="inline-block w-[7px] h-[13px] bg-primary/70 chat-cursor-blink" />
+            )}
           </p>
         </div>
       )}
