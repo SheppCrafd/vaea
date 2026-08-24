@@ -55,7 +55,7 @@ afterEach(() => {
 });
 
 describe("anthropicAdapter: tool-call loop (streamed)", () => {
-  it("feeds a tool_use block's result back and returns the model's final text", async () => {
+  it("feeds a tool_use block's result back and returns the model's final text, discarding an earlier round's own text", async () => {
     const calls = [];
     const fetchMock = vi.fn(async (url, init) => {
       calls.push({ url, body: JSON.parse(init.body) });
@@ -65,13 +65,13 @@ describe("anthropicAdapter: tool-call loop (streamed)", () => {
           { type: "tool_use", id: "toolu_1", name: "search_workspace", input: { query: "growth" } },
         ]));
       }
-      return streamResponse(roundEvents([{ type: "text", text: "Found it — Growth already exists." }]));
+      return streamResponse(roundEvents([{ type: "text", text: "<response>Found it — Growth already exists.</response>" }]));
     });
     vi.stubGlobal("fetch", fetchMock);
 
     const runTool = vi.fn(() => ({ count: 1, matches: [{ id: "a1", title: "Growth" }] }));
 
-    const { reply, reasoning } = await callAnthropic({
+    const { reply } = await callAnthropic({
       apiKey: "sk-ant-test",
       model: "claude-sonnet-5",
       systemPrompt: "system",
@@ -80,14 +80,11 @@ describe("anthropicAdapter: tool-call loop (streamed)", () => {
       runTool,
     });
 
-    // `reply` is only the LAST round's own text — the actual conversational
-    // answer. `reasoning` is every round's own text joined — "Let me check
-    // that." was real thinking the model produced before calling the tool,
-    // not just filler to discard (see THINK OUT LOUD AS YOU GO) — but it
-    // belongs in the plan detail's own natural-language view, not doubled
-    // into the chat-facing reply too.
+    // `reply` is only the LAST round's own <response> content — per RESPONSE
+    // FORMAT, an earlier round's text ("Let me check that.") made a tool
+    // call, so it's narration the model was told not to write and is simply
+    // discarded here, never surfaced.
     expect(reply).toBe("Found it — Growth already exists.");
-    expect(reasoning).toBe("Let me check that.\n\nFound it — Growth already exists.");
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(runTool).toHaveBeenCalledWith("search_workspace", { query: "growth" });
 
@@ -105,61 +102,36 @@ describe("anthropicAdapter: tool-call loop (streamed)", () => {
     });
   });
 
-  it("prefers a <plan> block's content over the joined round text for `reasoning`, and strips it out of `reply`", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () =>
-      streamResponse(roundEvents([{ type: "text", text: "<plan>I'll create three areas, one per region.</plan>\n\nDone — created three areas." }]))
-    ));
+  it("falls back to the raw trimmed text for `reply` when the model forgot the <response> tag", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => streamResponse(roundEvents([{ type: "text", text: "Just a reply, no tag." }]))));
 
-    const { reply, reasoning } = await callAnthropic({ apiKey: "k", model: "m", systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn() });
+    const { reply } = await callAnthropic({ apiKey: "k", model: "m", systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn() });
 
-    expect(reply).toBe("Done — created three areas.");
-    expect(reasoning).toBe("I'll create three areas, one per region.");
-  });
-
-  it("falls back to the joined round text for `reasoning` when no round wrote a <plan> block", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => streamResponse(roundEvents([{ type: "text", text: "Just a reply, no plan tag." }]))));
-
-    const { reply, reasoning } = await callAnthropic({ apiKey: "k", model: "m", systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn() });
-
-    expect(reply).toBe("Just a reply, no plan tag.");
-    expect(reasoning).toBe("Just a reply, no plan tag.");
+    expect(reply).toBe("Just a reply, no tag.");
   });
 
   it("fires onEvent with each text_delta live, as it streams in — not just the final joined text", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => streamResponse(roundEvents([{ type: "text", text: "Just a reply." }]))));
+    vi.stubGlobal("fetch", vi.fn(async () => streamResponse(roundEvents([{ type: "text", text: "<response>Just a reply.</response>" }]))));
     const events = [];
-    const { reply, reasoning } = await callAnthropic({
+    const { reply } = await callAnthropic({
       apiKey: "k", model: "m", systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn(),
       onEvent: (e) => events.push(e),
     });
     expect(reply).toBe("Just a reply.");
-    expect(reasoning).toBe("Just a reply.");
-    expect(events).toEqual([{ type: "thinking-delta", text: "Just a reply." }]);
-  });
-
-  it("returns the same text for both reply and reasoning when there's only one round (nothing to separate out)", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => streamResponse(roundEvents([{ type: "text", text: "Just a reply." }]))));
-    const { reply, reasoning } = await callAnthropic({ apiKey: "k", model: "m", systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn() });
-    expect(reply).toBe("Just a reply.");
-    expect(reasoning).toBe("Just a reply.");
+    expect(events).toEqual([{ type: "thinking-delta", text: "<response>Just a reply.</response>" }]);
   });
 
   it("keeps a genuinely multi-paragraph reply intact when it's the ONLY round (no tool calls at all this turn) — paragraph breaks are not round boundaries", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => streamResponse(roundEvents([
-      { type: "text", text: "Here's the first thing to know.\n\nAnd here's the second, equally real, paragraph." },
+      { type: "text", text: "<response>Here's the first thing to know.\n\nAnd here's the second, equally real, paragraph.</response>" },
     ]))));
-    const { reply, reasoning } = await callAnthropic({ apiKey: "k", model: "m", systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn() });
+    const { reply } = await callAnthropic({ apiKey: "k", model: "m", systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn() });
     // A single round with zero tool calls has nothing to separate out — the
-    // whole thing, both paragraphs, is the real reply. An earlier version of
-    // this code took only the last blank-line-separated paragraph here,
-    // assuming multi-paragraph text within one round always meant
-    // "build-up + terse conclusion" — which silently truncated a genuine
-    // multi-paragraph answer (the bug this test now guards against).
-    expect(reasoning).toBe("Here's the first thing to know.\n\nAnd here's the second, equally real, paragraph.");
-    expect(reply).toBe(reasoning);
+    // whole thing, both paragraphs, is the real reply.
+    expect(reply).toBe("Here's the first thing to know.\n\nAnd here's the second, equally real, paragraph.");
   });
 
-  it("keeps the FINAL round's own text whole, even with multiple paragraphs, once a real tool-call round preceded it", async () => {
+  it("keeps the FINAL round's own text whole, even with multiple paragraphs, once a real tool-call round preceded it — the earlier round's own narration is discarded", async () => {
     const fetchMock = vi.fn(async () => {
       const calls = fetchMock.mock.calls.length;
       if (calls === 1) {
@@ -169,21 +141,19 @@ describe("anthropicAdapter: tool-call loop (streamed)", () => {
         ]));
       }
       return streamResponse(roundEvents([
-        { type: "text", text: "Done — created the area.\n\nHere's a quick summary of what's in it now." },
+        { type: "text", text: "<response>Done — created the area.\n\nHere's a quick summary of what's in it now.</response>" },
       ]));
     });
     vi.stubGlobal("fetch", fetchMock);
     const events = [];
-    const { reply, reasoning } = await callAnthropic({
+    const { reply } = await callAnthropic({
       apiKey: "k", model: "m", systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn(),
       onEvent: (e) => events.push(e),
     });
-    expect(reasoning).toBe("I'll create three areas.\n\nDone — created the area.\n\nHere's a quick summary of what's in it now.");
-    // The first round's own build-up narration is excluded (it's real
-    // deliberation, kept in `reasoning`, but it made a tool call — see the
-    // loop in callAnthropic — so by definition it isn't the final answer);
-    // the final round's own text is kept WHOLE, both its paragraphs, not
-    // trimmed to just the last one.
+    // The first round's own build-up narration ("I'll create three areas.")
+    // is discarded entirely — per RESPONSE FORMAT, a round that makes a tool
+    // call writes nothing else; the final round's own <response> content is
+    // kept WHOLE, both its paragraphs, not trimmed to just the last one.
     expect(reply).toBe("Done — created the area.\n\nHere's a quick summary of what's in it now.");
     // A real "round-boundary" event fires once, between the two rounds, so
     // the client can draw the same "past round vs. current round" line live
@@ -247,12 +217,12 @@ describe("anthropicAdapter: tool-call loop (streamed)", () => {
       { type: "message_stop" },
     ];
     vi.stubGlobal("fetch", vi.fn(async () => streamResponse(events)));
-    const { reply, reasoning } = await callAnthropic({ apiKey: "k", model: "m", systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn() });
+    const { reply } = await callAnthropic({ apiKey: "k", model: "m", systemPrompt: "s", contextPrompt: "c", tools: [], runTool: vi.fn() });
     // The server_tool_use/web_search_tool_result blocks never reach runTool
     // (Anthropic already executed the search itself) and never pollute the
-    // narrated text — only the two real text blocks do.
-    expect(reasoning).toBe("Let me check the latest news.\nFound it — here's what I found.");
-    expect(reply).toBe(reasoning);
+    // reply text — only the two real text blocks do, joined and (with no
+    // <response> tag present) taken as-is via extractResponse's fallback.
+    expect(reply).toBe("Let me check the latest news.\nFound it — here's what I found.");
   });
 
   it("surfaces the provider's own error message on a non-2xx response", async () => {
