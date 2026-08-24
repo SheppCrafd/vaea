@@ -2193,9 +2193,21 @@ function extractResponseTag(text) {
 // `tools` — plus a short prompt override marking this as a planning pass.
 // Runs on the SAME base44 AI Gateway model this turn already used (no
 // separate fast-model catalog exists server-side, unlike the BYOK client
-// twin's per-provider FAST_MODEL table), budgeted the same way. Returns the
-// plan narrative, or null if either call errored or missed budget.
-const MICRO_AGENT_BUDGET_MS = 3000;
+// twin's per-provider FAST_MODEL table). Returns the plan narrative, or null
+// if either call errored or missed budget.
+//
+// Budgeted far looser than the original 3s target: the AI Gateway behind
+// `models('automatic')` doesn't support streaming at all (see the comment on
+// `agent.generate()` below, in the request handler) — even the single MAIN
+// call routinely takes several real seconds, which is exactly why this
+// endpoint paces a fake word-by-word reveal over an already-complete string
+// rather than truly streaming. 3000ms split across TWO sequential blocking
+// calls through that same gateway was almost certainly timing out on every
+// real turn, always falling back to no plan at all — confirmed by a live
+// report where a 5-tool-call turn still showed the plain action-list
+// fallback instead of a real plan. 20s (the user's own chosen cap) leaves
+// real headroom for two sequential real completions plus network latency.
+const MICRO_AGENT_BUDGET_MS = 20000;
 // Local twin of src/lib/llm/byokChat.js's PLAN_TOOL_CALL_THRESHOLD.
 const PLAN_TOOL_CALL_THRESHOLD = 2;
 const PLANNING_OVERRIDE = `
