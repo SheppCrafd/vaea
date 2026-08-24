@@ -4,7 +4,7 @@ import { TriangleAlert } from "lucide-react";
 import ChatIcon from "@/components/ai/ChatIcon";
 import ChatToolLogDetail, { humanizeAction } from "@/components/ai/ChatToolLogDetail";
 import { sanitizeUrl } from "@/lib/sanitizeUrl";
-import { ROUND_BOUNDARY_MARKER, stripLivePlanPreview } from "@/lib/llm/streamUtils";
+import { ROUND_BOUNDARY_MARKER, stripLiveResponsePreview } from "@/lib/llm/streamUtils";
 
 // Fenced ```tool-log blocks are how useChatController.js encodes everything
 // real the assistant actually did this turn — every live (already-executed)
@@ -260,7 +260,7 @@ function PendingActionCard({ actions, onConfirm, onCancel, resolving }) {
 // register as the marketing site's hero mockup, not a decorative match: it's
 // the one place real assistant output belongs (see --font-terminal in
 // index.css).
-export default function ChatMessageList({ messages, isComputing, isLoading, liveSteps, streamingText, iconChoice, hasMore, onLoadMore, resolvingId, onConfirm, onCancel, newMessageIds, onMessageTyped }) {
+export default function ChatMessageList({ messages, isComputing, isLoading, isPlanning, liveSteps, streamingText, iconChoice, hasMore, onLoadMore, resolvingId, onConfirm, onCancel, newMessageIds, onMessageTyped }) {
   const containerRef = useRef(null);
   const [openDetail, setOpenDetail] = useState(null);
   // Tracks whether the user was already at (or very near) the bottom right
@@ -392,14 +392,15 @@ export default function ChatMessageList({ messages, isComputing, isLoading, live
               at full contrast together, since it's all one real reply. */}
           {streamingText && (() => {
             const rounds = streamingText.split(ROUND_BOUNDARY_MARKER).filter(Boolean);
-            // stripLivePlanPreview keeps a <plan>...</plan> block (see the
-            // PLAN TAG instruction in systemPrompt.js) out of this live
-            // preview the same way splitToolLogPrefix/detailForLogLine keep
-            // it out of the persisted message — it's meant for the
-            // plan-detail modal, not a second copy of it flashing through
-            // the chat bubble while it streams.
-            const current = stripLivePlanPreview(rounds.length ? rounds[rounds.length - 1] : streamingText);
-            const past = stripLivePlanPreview(rounds.slice(0, -1).join("\n\n"));
+            // stripLiveResponsePreview strips the <response>/</response> tag
+            // markup itself (see RESPONSE FORMAT in systemPrompt.js) out of
+            // this live preview, without hiding the content between them —
+            // that content IS the reply, unlike the old <plan> block which
+            // never streamed live at all (see planMicroAgents.js: a <plan>
+            // block is generated after the fact, never something the model
+            // streams).
+            const current = stripLiveResponsePreview(rounds.length ? rounds[rounds.length - 1] : streamingText);
+            const past = stripLiveResponsePreview(rounds.slice(0, -1).join("\n\n"));
             return (
               <>
                 {past && (
@@ -415,7 +416,17 @@ export default function ChatMessageList({ messages, isComputing, isLoading, live
           })()}
           <p className="flex items-center gap-1.5">
             <ChatIcon iconChoice={iconChoice} className="w-3.5 h-3.5 text-primary chat-icon-computing" />
-            <span className="inline-block w-[7px] h-[13px] bg-primary/70 chat-cursor-blink" />
+            {/* Shown only during the hidden planning pass that now runs
+                BEFORE the real model call (planMicroAgents.js/entry.ts's own
+                twin) — useChatController.js flips isPlanning off the moment
+                real streaming/tool-call events for this turn start
+                arriving, so this never lingers once there's real content to
+                show instead. */}
+            {isPlanning && !streamingText && !(liveSteps || []).length ? (
+              <span className="text-muted-foreground text-xs italic">(planning...)</span>
+            ) : (
+              <span className="inline-block w-[7px] h-[13px] bg-primary/70 chat-cursor-blink" />
+            )}
           </p>
         </div>
       )}

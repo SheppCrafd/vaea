@@ -7,6 +7,12 @@ import { callOpenAiCompatible } from "@/lib/llm/openaiCompatibleAdapter";
 import { callLocalBridge, resumeLocalBridgeRequest } from "@/lib/llm/localBridgeAdapter";
 import { getBridgeStatus, writeWorkspaceDataFile } from "@/lib/llm/localBridgeStorage";
 import { buildWorkspaceDataSnapshot } from "@/lib/llm/systemPrompt";
+import { runPlanMicroAgents } from "@/lib/llm/planMicroAgents";
+
+// Any turn queuing MORE than this many tool calls gets a real <plan> block
+// — see RESPONSE FORMAT in systemPrompt.js/entry.ts and planMicroAgents.js's
+// own module comment for how that block is actually generated.
+const PLAN_TOOL_CALL_THRESHOLD = 2;
 
 // A short pause between each simulated "live" chunk shown for Local
 // Mode — its file-polling transport can't stream mid-generation (see
@@ -137,21 +143,40 @@ export async function runByokChat({ providerConfig, contextArgs, onEvent }) {
   // only anthropic/openai-compatible get the filtered set.
   const connections = getConnectionFlags(contextArgs);
 
-  const { reply, reasoning, thinking } = provider.adapter === "anthropic"
+  // A real planning pass, BEFORE the main call — see planMicroAgents.js's
+  // own module comment. Returns null (no fast-call path, budget missed, or
+  // an error) for local-bridge or any turn that just didn't finish in time;
+  // either way the main call below proceeds on its own contextPrompt
+  // unchanged.
+  const planText = await runPlanMicroAgents({
+    providerConfig, systemPrompt, contextPrompt, connections, dataset,
+    externalVault: contextArgs.externalVault, onEvent,
+  });
+  const mainContextPrompt = planText
+    ? `${contextPrompt}\n\n[YOUR OWN PLANNING — already done, before this turn began]\n${planText}\n\nThis is genuinely your own reasoning, already worked through — proceed to execute it for real now via the tools above, and answer the user normally. Never mention "the plan," "as I planned," "per my planning," or refer to this section at all in your reply — just act and respond the way you would if you'd reasoned this through in the same breath as answering.`
+    : contextPrompt;
+
+  const { reply, thinking } = provider.adapter === "anthropic"
     ? await callAnthropic({
-        apiKey: providerConfig.apiKey, model: providerConfig.model, systemPrompt, contextPrompt,
+        apiKey: providerConfig.apiKey, model: providerConfig.model, systemPrompt, contextPrompt: mainContextPrompt,
         tools: toAnthropicTools(connections), runTool, onEvent,
       })
     : isLocalBridge
-    ? await callLocalBridge({ contextPrompt, runTool, sessionId: contextArgs.sessionId })
+    ? await callLocalBridge({ contextPrompt: mainContextPrompt, runTool, sessionId: contextArgs.sessionId })
     : await callOpenAiCompatible({
-        baseUrl: provider.baseUrl || providerConfig.baseUrl, apiKey: providerConfig.apiKey, model: providerConfig.model, systemPrompt, contextPrompt,
+        baseUrl: provider.baseUrl || providerConfig.baseUrl, apiKey: providerConfig.apiKey, model: providerConfig.model, systemPrompt, contextPrompt: mainContextPrompt,
         tools: toOpenAiCompatibleTools(connections), runTool, onEvent, providerId: provider.id,
       });
 
   if (isLocalBridge && onEvent) {
     await simulateLiveReveal({ liveTrace, thinking, onEvent });
   }
+
+  // The <plan> detail is only ever SHOWN once the real, now-known tool-call
+  // count exceeds the threshold — the planning pass above always runs (when
+  // a fast-call path exists), but a turn that only needed a couple of tool
+  // calls doesn't get a plan detail cluttering it just because one exists.
+  const reasoning = plan.length > PLAN_TOOL_CALL_THRESHOLD ? planText : null;
 
   return { reply, reasoning, actions: plan, liveTrace };
 }
@@ -186,5 +211,7 @@ export async function resumeOrphanedLocalModeRequest({ requestId, contextArgs })
   const result = await resumeLocalBridgeRequest({ requestId, runTool });
   if (!result) return null;
 
-  return { reply: result.reply, reasoning: result.reasoning, actions: plan, liveTrace };
+  // No plan-detail here — see planMicroAgents.js's own module comment on why
+  // Local Mode never gets one.
+  return { reply: result.reply, reasoning: null, actions: plan, liveTrace };
 }

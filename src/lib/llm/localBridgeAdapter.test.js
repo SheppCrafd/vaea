@@ -33,10 +33,9 @@ describe("localBridgeAdapter: file-based round loop", () => {
   it("writes round 0, and returns the model's text when there are no tool_use blocks", async () => {
     pollForResponseFile.mockResolvedValueOnce({ content: [{ type: "text", text: "Just a reply." }] });
 
-    const { reply, reasoning } = await callLocalBridge({ contextPrompt: "c", runTool: vi.fn() });
+    const { reply } = await callLocalBridge({ contextPrompt: "c", runTool: vi.fn() });
 
     expect(reply).toBe("Just a reply.");
-    expect(reasoning).toBe("Just a reply.");
     expect(writeRequestFile).toHaveBeenCalledTimes(1);
     const [requestId, round, body] = writeRequestFile.mock.calls[0];
     expect(round).toBe(0);
@@ -58,15 +57,12 @@ describe("localBridgeAdapter: file-based round loop", () => {
       .mockResolvedValueOnce({ content: [{ type: "text", text: "Found it." }] });
 
     const runTool = vi.fn(() => ({ count: 1 }));
-    const { reply, reasoning } = await callLocalBridge({ contextPrompt: "c", runTool });
+    const { reply } = await callLocalBridge({ contextPrompt: "c", runTool });
 
-    // `reply` is only the last round's own text; `reasoning` carries both
-    // rounds' — "Let me check that." was real thinking the model produced
-    // before calling the tool (see THINK OUT LOUD AS YOU GO), which belongs
-    // in the plan's own natural-language detail, not doubled into the
-    // chat-facing reply too.
+    // `reply` is only the last round's own text — per RESPONSE FORMAT, the
+    // earlier round's own text ("Let me check that.") made a tool call, so
+    // it's discarded, not surfaced.
     expect(reply).toBe("Found it.");
-    expect(reasoning).toBe("Let me check that.\n\nFound it.");
     expect(runTool).toHaveBeenCalledWith("search_workspace", { query: "growth" });
     expect(writeRequestFile).toHaveBeenCalledTimes(2);
 
@@ -89,14 +85,11 @@ describe("localBridgeAdapter: file-based round loop", () => {
       content: [{ type: "text", text: "Here's the first thing to know.\n\nAnd here's the second, equally real, paragraph." }],
     });
 
-    const { reply, reasoning, thinking } = await callLocalBridge({ contextPrompt: "c", runTool: vi.fn() });
+    const { reply, thinking } = await callLocalBridge({ contextPrompt: "c", runTool: vi.fn() });
 
     // A single round with zero tool calls has nothing to separate out — the
-    // whole thing, both paragraphs, is the real reply (see
-    // anthropicAdapter.test.js's matching case for why an earlier version of
-    // this code got this wrong).
-    expect(reasoning).toBe("Here's the first thing to know.\n\nAnd here's the second, equally real, paragraph.");
-    expect(reply).toBe(reasoning);
+    // whole thing, both paragraphs, is the real reply.
+    expect(reply).toBe("Here's the first thing to know.\n\nAnd here's the second, equally real, paragraph.");
     expect(thinking).toEqual(["Here's the first thing to know.\n\nAnd here's the second, equally real, paragraph."]);
   });
 
@@ -239,7 +232,7 @@ describe("localBridgeAdapter: orphaned-request pointer + resume", () => {
 
     const result = await resumeLocalBridgeRequest({ requestId: "req-1", runTool: vi.fn() });
 
-    expect(result).toEqual({ reply: "Recovered reply.", reasoning: "Recovered reply.", thinking: ["Recovered reply."] });
+    expect(result).toEqual({ reply: "Recovered reply.", thinking: ["Recovered reply."] });
     // Round 2's own file already exists on disk (that's what got read to
     // reconstruct `messages`) — writing it again would clobber it.
     expect(writeRequestFile).not.toHaveBeenCalled();

@@ -179,6 +179,7 @@ export default function ChatBox({ startOpen = false }) {
             messages={chat.chatState.messages}
             isComputing={chat.isComputing}
             isLoading={chat.chatState.isLoading}
+            isPlanning={chat.isPlanning}
             liveSteps={chat.liveSteps}
             streamingText={chat.streamingText}
             iconChoice={chat.iconChoice}

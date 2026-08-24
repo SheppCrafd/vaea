@@ -1,5 +1,5 @@
 import { writeRequestFile, pollForResponseFile, archiveProcessedRound, savePendingLocalModeRequest, clearPendingLocalModeRequest, findLatestLivePromptRound, readPromptFile } from "@/lib/llm/localBridgeStorage";
-import { extractPlan } from "@/lib/llm/streamUtils";
+import { extractResponse } from "@/lib/llm/streamUtils";
 
 // "Local Mode" — same plan-then-tools loop shape as anthropicAdapter.js's
 // callAnthropic, but the transport is two folders on disk instead of a
@@ -46,8 +46,8 @@ function newRequestId() {
 // the two apart: false for a fresh call (round 0 genuinely needs writing),
 // true for a resume (the starting round's file already exists — writing it
 // again would clobber the real messages with whatever a resume happens to
-// reconstruct). Returns {reply, reasoning, thinking} — see callLocalBridge's
-// own comment for what each means.
+// reconstruct). Returns {reply, thinking} — see callLocalBridge's own
+// comment for what each means.
 // Polls one round, and — if the response is malformed (unparseable JSON, or
 // valid JSON that doesn't match {content: [...]}) — gives the relay up to
 // MAX_MALFORMED_RETRIES chances to resend correctly before actually failing.
@@ -90,9 +90,6 @@ async function pollRoundWithRetries({ requestId, round, messages, pollIntervalMs
 }
 
 async function runToolLoop({ requestId, startRound, messages, runTool, pollIntervalMs, firstRoundAlreadyWritten = false }) {
-  const thinking = [];
-  const planParts = [];
-
   for (let round = startRound; round < MAX_TOOL_ROUNDS; round++) {
     const isFirstIteration = round === startRound;
     if (!isFirstIteration || !firstRoundAlreadyWritten) {
@@ -110,16 +107,10 @@ async function runToolLoop({ requestId, startRound, messages, runTool, pollInter
     await archiveProcessedRound(requestId, round);
     const toolUseBlocks = content.filter((block) => block.type === "tool_use");
     const rawRoundText = content.filter((block) => block.type === "text").map((block) => block.text).join("\n").trim();
-    const { text: roundText, plan } = extractPlan(rawRoundText);
-    if (plan) planParts.push(plan);
-    if (roundText) thinking.push(roundText);
 
     if (toolUseBlocks.length === 0) {
-      return {
-        reply: roundText || "I couldn't come up with a reply — could you rephrase?",
-        reasoning: planParts.length ? planParts.join("\n\n") : thinking.join("\n\n"),
-        thinking,
-      };
+      const reply = extractResponse(rawRoundText) || "I couldn't come up with a reply — could you rephrase?";
+      return { reply, thinking: [reply] };
     }
 
     messages.push({ role: "assistant", content });
@@ -151,16 +142,18 @@ async function runToolLoop({ requestId, startRound, messages, runTool, pollInter
   throw new Error(`Gave up after ${MAX_TOOL_ROUNDS} tool-call rounds without a final reply.`);
 }
 
-// Returns {reply, reasoning, thinking} for one turn — `reply` is just the
-// last round's own text, taken whole (the actual conversational answer,
-// however many paragraphs it takes — see anthropicAdapter.js's matching
-// comment for why this is no longer a paragraph-split guess), `reasoning` is
-// every round's own text joined (the full deliberation, self-corrections
-// included), and `thinking` is that same set of rounds as a real array
-// (not yet joined into one string) — this adapter never streams live (see
-// the module comment above), so byokChat.js's simulateLiveReveal needs the
-// real round boundaries back, not just a flat string, to fake the same
-// live "past round dims, new round grows" behavior real streaming gives.
+// Returns {reply, thinking} for one turn — see anthropicAdapter.js's
+// matching comment for the RESPONSE FORMAT contract this follows: every
+// round before the last one made a tool call, so its own text (if any) is
+// discarded, never narration to preserve; `reply` is the last round's own
+// `<response>...</response>` content, extracted whole, however many
+// paragraphs it takes. `thinking` is `[reply]` — a single-entry array, not a
+// real multi-round narrative anymore — kept as an array (not a bare string)
+// purely because byokChat.js's simulateLiveReveal (this adapter never
+// streams live — see the module comment above) already paces text round by
+// round; a plan-detail narrative for Local Mode, when this turn's plan has
+// more than 2 tool calls, comes from planMicroAgents.js instead, same as
+// every other provider — this adapter has no part in producing it.
 //
 // `sessionId` is only used to record the pending-request pointer
 // (localBridgeStorage.js) so an interrupted browser session (reload, tab

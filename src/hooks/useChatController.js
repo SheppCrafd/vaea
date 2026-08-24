@@ -121,6 +121,12 @@ function buildLoggedContent(reply, lines) {
 export function useChatController({ activeProjectId } = {}) {
   const [input, setInput] = useState("");
   const [isComputing, setIsComputing] = useState(false);
+  // True only during the hidden planning pass (planMicroAgents.js/entry.ts's
+  // own twin) that now runs BEFORE the real model call — toggled by
+  // "planning-start"/"planning-end" events, shown as a "(planning...)" line
+  // in ChatMessageList.jsx until the real streaming/tool-call events for
+  // this turn start arriving.
+  const [isPlanning, setIsPlanning] = useState(false);
   const [attachedFile, setAttachedFile] = useState(null);
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const [iconChoice, setIconChoice] = useState(loadIconChoice);
@@ -516,7 +522,7 @@ export function useChatController({ activeProjectId } = {}) {
     let finalPayload = null;
     let streamError = null;
     await readNdjson(response, (event) => {
-      if (event.type === "thinking-delta" || event.type === "tool-call" || event.type === "round-boundary") {
+      if (event.type === "thinking-delta" || event.type === "tool-call" || event.type === "round-boundary" || event.type === "planning-start" || event.type === "planning-end") {
         onEvent?.(event);
       } else if (event.type === "done") {
         finalPayload = event;
@@ -1026,6 +1032,10 @@ export function useChatController({ activeProjectId } = {}) {
           // anthropicAdapter.js's callAnthropic for where this event
           // actually comes from.
           setStreamingText((prev) => prev + ROUND_BOUNDARY_MARKER);
+        } else if (event.type === "planning-start") {
+          setIsPlanning(true);
+        } else if (event.type === "planning-end") {
+          setIsPlanning(false);
         }
       };
 
@@ -1071,6 +1081,7 @@ export function useChatController({ activeProjectId } = {}) {
       }
     } finally {
       setIsComputing(false);
+      setIsPlanning(false);
       setLiveSteps([]);
       setStreamingText("");
     }
@@ -1169,6 +1180,7 @@ export function useChatController({ activeProjectId } = {}) {
   return {
     input, setInput,
     isComputing,
+    isPlanning,
     liveSteps,
     streamingText,
     newMessageIds,

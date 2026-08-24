@@ -5,7 +5,7 @@
 // request/response shape (streaming included), just a different base
 // URL/model catalog (providers.js), so one adapter covers all three
 // companies.
-import { readSse, extractPlan } from "@/lib/llm/streamUtils";
+import { readSse, extractResponse } from "@/lib/llm/streamUtils";
 
 const MAX_TOOL_ROUNDS = 15;
 
@@ -82,44 +82,28 @@ async function streamOnce({ baseUrl, apiKey, model, messages, tools, onEvent, se
   return { choices: [{ message: { role: "assistant", content: content || null, ...(tool_calls.length ? { tool_calls } : {}) } }] };
 }
 
-// Returns {reply, reasoning} for one turn — `reply` is just the last
-// round's own text, taken whole (the actual conversational answer, however
-// many paragraphs it takes — see anthropicAdapter.js's matching comment for
-// why this is no longer a paragraph-split guess), `reasoning` is every
-// round's own text joined (the full deliberation, self-corrections
-// included) — see anthropicAdapter.js's matching comment for why these
-// need to be two different strings, not the same one returned twice.
+// Returns {reply} for one turn — see anthropicAdapter.js's matching comment
+// for the RESPONSE FORMAT contract this follows: the model's own text on
+// every round before the last one is discarded (it made a tool call, so by
+// definition it isn't the final answer), and the last round's text must be
+// wrapped in `<response>...</response>` — that's `reply`, whole, however
+// many paragraphs it takes. `<plan>` is never model-authored anymore; see
+// byokChat.js's post-loop call to planMicroAgents.js.
 export async function callOpenAiCompatible({ baseUrl, apiKey, model, systemPrompt, contextPrompt, tools, runTool, onEvent, providerId }) {
   const messages = [
     { role: "system", content: systemPrompt },
     { role: "user", content: contextPrompt },
   ];
   const searchParameters = providerId === "xai" ? XAI_SEARCH_PARAMETERS : undefined;
-  // Every round's own text — not just the final round's — is real thinking
-  // the model produced as it worked through the request (see THINK OUT LOUD
-  // AS YOU GO in systemPrompt.js): "I'll check the workspace first...",
-  // then after results come back, "Found two matches, now creating the
-  // plan...". Now streamed live via onEvent as each round's text actually
-  // arrives, not just collected here for the final joined string.
-  const thinking = [];
-  // See anthropicAdapter.js's matching comment — any round's text can wrap
-  // part of itself in <plan>...</plan>, collected here and preferred over
-  // `thinking` wholesale as the plan-detail modal's content when present.
-  const planParts = [];
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     const response = await streamOnce({ baseUrl, apiKey, model, messages, tools, onEvent, searchParameters });
     const message = response.choices?.[0]?.message;
     if (!message) throw new Error("Empty response from the model.");
-    const { text: roundText, plan } = extractPlan(message.content?.trim());
-    if (plan) planParts.push(plan);
-    if (roundText) thinking.push(roundText);
 
     if (!message.tool_calls?.length) {
-      return {
-        reply: roundText || "I couldn't come up with a reply — could you rephrase?",
-        reasoning: planParts.length ? planParts.join("\n\n") : thinking.join("\n\n"),
-      };
+      const reply = extractResponse(message.content?.trim());
+      return { reply: reply || "I couldn't come up with a reply — could you rephrase?" };
     }
 
     onEvent?.({ type: "round-boundary" });
