@@ -194,6 +194,7 @@ export default function ChatPage() {
           <ChatMessageList
             messages={chat.chatState.messages}
             isComputing={chat.isComputing}
+            isPlanning={chat.isPlanning}
             liveSteps={chat.liveSteps}
             streamingText={chat.streamingText}
             iconChoice={chat.iconChoice}
