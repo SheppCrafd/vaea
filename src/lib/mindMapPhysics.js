@@ -3,7 +3,7 @@
 // state. These feed VaultGraph.jsx's force simulation directly: nothing
 // here is decorative, every value below changes how the graph actually
 // settles.
-export const PHYSICS_STORAGE_KEY = "vaea_mindmap_physics";
+const PHYSICS_STORAGE_KEY = "vaea_mindmap_physics";
 
 export const DEFAULT_PHYSICS = {
   centerGravity: 0.03, // how hard nodes are pulled toward the canvas center

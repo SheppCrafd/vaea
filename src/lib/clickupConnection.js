@@ -8,9 +8,7 @@
 // same local-only shape as vaultConnection.js/calendarConnection.js: the
 // resulting token lives in deviceStorage only, sent to aiChatStream
 // transiently per-request, never stored server-side.
-import { readKey, writeKey, removeKey } from "@/lib/deviceStorage";
-
-export const CLICKUP_CONNECTION_KEY = "vaea_clickup";
+import { createDeviceKeyStore } from "@/lib/deviceKeyStore";
 
 export const DEFAULTS = {
   accessToken: "",
@@ -20,30 +18,11 @@ export const DEFAULTS = {
   defaultListName: "",
 };
 
-export async function loadClickUpConnection() {
-  try {
-    const stored = await readKey(CLICKUP_CONNECTION_KEY);
-    return { ...DEFAULTS, ...(stored || {}) };
-  } catch {
-    return { ...DEFAULTS };
-  }
-}
+const store = createDeviceKeyStore("vaea_clickup", DEFAULTS);
 
-export async function saveClickUpConnection(connection) {
-  try {
-    await writeKey(CLICKUP_CONNECTION_KEY, { ...DEFAULTS, ...connection });
-  } catch {
-    // best-effort — the connection just won't survive a reload
-  }
-}
-
-export async function clearClickUpConnection() {
-  try {
-    await removeKey(CLICKUP_CONNECTION_KEY);
-  } catch {
-    // best-effort
-  }
-}
+export const loadClickUpConnection = store.load;
+export const saveClickUpConnection = store.save;
+export const clearClickUpConnection = store.clear;
 
 export function isClickUpConnected(connection) {
   return !!(connection?.accessToken && connection?.workspaceId);

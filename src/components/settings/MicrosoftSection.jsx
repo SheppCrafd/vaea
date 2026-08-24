@@ -5,57 +5,23 @@ import { loadMicrosoftConnection, saveMicrosoftConnection, clearMicrosoftConnect
 import { buildAuthorizationUrl } from "@/lib/microsoftOAuthPkce";
 import { listEvents } from "@/lib/microsoftGraphApi";
 import { SettingsCard } from "@/components/ui/settings-card";
+import ConnectorPreview from "@/components/settings/ConnectorPreview";
 
-// Real upcoming-events preview, same on-demand-not-polled discipline as
-// GoogleWorkspaceSection/GmailSection — Graph is also a shared per-app quota
-// across every Vaea user.
 function UpcomingEvents({ connection, onTokenRefreshed }) {
-  const [events, setEvents] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
   const load = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const { events: fetched, connection: refreshed } = await listEvents(connection, { maxResults: 4 });
-      setEvents(fetched);
-      if (refreshed.accessToken !== connection.accessToken) onTokenRefreshed(refreshed);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    const { events, connection: refreshed } = await listEvents(connection, { maxResults: 4 });
+    if (refreshed.accessToken !== connection.accessToken) onTokenRefreshed(refreshed);
+    return events;
   };
 
-  useEffect(() => {
-    load();
-  }, []);
-
   return (
-    <div className="mt-6 pt-6 border-t border-border">
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-sm font-medium">What's next</p>
-        <button
-          type="button"
-          onClick={load}
-          disabled={loading}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-        >
-          {loading ? "Refreshing…" : "Refresh"}
-        </button>
-      </div>
-      {loading && !events ? (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground py-2">
-          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading your calendar…
-        </div>
-      ) : error ? (
-        <p className="flex items-start gap-1.5 text-xs text-destructive">
-          <TriangleAlert className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {error}
-        </p>
-      ) : events.length === 0 ? (
-        <p className="text-xs text-muted-foreground">Nothing coming up.</p>
-      ) : (
+    <ConnectorPreview
+      title="What's next"
+      loadingLabel="Loading your calendar…"
+      emptyLabel="Nothing coming up."
+      load={load}
+    >
+      {(events) => (
         <ul className="flex flex-col gap-2">
           {events.map((event) => (
             <li key={event.id} className="flex items-baseline gap-2.5 text-sm">
@@ -66,7 +32,7 @@ function UpcomingEvents({ connection, onTokenRefreshed }) {
           ))}
         </ul>
       )}
-    </div>
+    </ConnectorPreview>
   );
 }
 

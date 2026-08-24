@@ -44,7 +44,7 @@ const _clearFromRemoveQueue = (toastId) => {
   }
 };
 
-export const reducer = (state, action) => {
+const reducer = (state, action) => {
   switch (action.type) {
     case actionTypes.ADD_TOAST:
       return {
@@ -142,7 +142,7 @@ function toast({ ...props }) {
 }
 
 // New helper: immediately remove a toast and clear any pending timeout.
-export function removeToast(toastId) {
+function removeToast(toastId) {
   _clearFromRemoveQueue(toastId);
   dispatch({ type: actionTypes.REMOVE_TOAST, toastId });
 }

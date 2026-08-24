@@ -5,6 +5,7 @@ import { loadSlackConnection, clearSlackConnection, isSlackConnected, DEFAULTS }
 import { buildAuthorizationUrl } from "@/lib/slackOAuth";
 import { listChannels } from "@/lib/slackApi";
 import { SettingsCard } from "@/components/ui/settings-card";
+import ConnectorPreview from "@/components/settings/ConnectorPreview";
 
 // Slack's mental model is channel-first — you navigate TO a channel, then
 // see messages. So the connected preview shows channels (not messages),
@@ -13,74 +14,33 @@ import { SettingsCard } from "@/components/ui/settings-card";
 // preview, which is the point.
 const ACCENT = "#9333ea";
 
-function ChannelPip({ unread }) {
-  if (!unread) return null;
-  return <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: ACCENT }} />;
-}
-
 function ChannelList({ connection }) {
-  const [channels, setChannels] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  const load = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const fetched = await listChannels(connection);
-      setChannels(fetched.slice(0, 6));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
+  const load = async () => (await listChannels(connection)).slice(0, 6);
 
   return (
-    <div className="mt-6 pt-6 border-t border-border">
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-sm font-medium">Channels</p>
-        <button
-          type="button"
-          onClick={load}
-          disabled={loading}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-        >
-          {loading ? "Loading…" : "Refresh"}
-        </button>
-      </div>
-
-      {loading && !channels ? (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground py-2">
-          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading channels…
-        </div>
-      ) : error ? (
-        <p className="flex items-start gap-1.5 text-xs text-destructive">
-          <TriangleAlert className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {error}
-        </p>
-      ) : channels?.length === 0 ? (
-        <p className="text-xs text-muted-foreground">No public channels found.</p>
-      ) : (
-        // Channel-sidebar layout: # prefix, name, optional unread pip.
-        // This is Slack's own navigation paradigm rather than a message feed.
+    <ConnectorPreview
+      title="Channels"
+      loadingLabel="Loading channels…"
+      emptyLabel="No public channels found."
+      refreshingLabel="Loading…"
+      load={load}
+    >
+      {/* Channel-sidebar layout: # prefix then name — Slack's own navigation
+          paradigm rather than a message feed. */}
+      {(channels) => (
         <ul className="flex flex-col gap-0.5">
-          {channels?.map((ch) => (
+          {channels.map((ch) => (
             <li key={ch.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-muted/50 transition-colors">
               <Hash className="w-3.5 h-3.5 shrink-0 text-muted-foreground/60" />
               <span className="text-sm font-terminal truncate flex-1">{ch.name}</span>
               {ch.topic && (
                 <span className="text-xs text-muted-foreground/50 truncate max-w-[120px] hidden sm:block">{ch.topic}</span>
               )}
-              <ChannelPip unread={false} />
             </li>
           ))}
         </ul>
       )}
-    </div>
+    </ConnectorPreview>
   );
 }
 

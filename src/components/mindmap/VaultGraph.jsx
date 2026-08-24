@@ -103,6 +103,15 @@ function titleOf(path) {
   return path.split("/").pop().replace(/\.md$/, "");
 }
 
+// The demo graph isn't interactive, so it keeps the page's normal cursor;
+// a live canvas shows a grab hand over a node and the default arrow
+// elsewhere, and grabs on drag either way.
+function canvasCursorClass(demo, hovered) {
+  if (demo) return "";
+  if (hovered) return "cursor-grab active:cursor-grabbing";
+  return "cursor-default active:cursor-grabbing";
+}
+
 // Stable per-tag hue — same tag always gets the same color within a
 // session, no palette to maintain by hand as new tags show up.
 function tagHue(tag) {
@@ -675,7 +684,7 @@ export default function VaultGraph({ demo = false }) {
             onPointerUp={handlePointerUp}
             onPointerLeave={handlePointerUp}
             onDoubleClick={handleDoubleClick}
-            className={`w-full h-full touch-none ${demo ? "" : hovered ? "cursor-grab active:cursor-grabbing" : "cursor-default active:cursor-grabbing"}`}
+            className={`w-full h-full touch-none ${canvasCursorClass(demo, hovered)}`}
           />
         </>
       )}

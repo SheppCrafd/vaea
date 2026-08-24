@@ -39,7 +39,7 @@ export default function Modal({
   return (
     <Portal>
       <div
-        className={`animate-in fade-in duration-[var(--motion-base)] ${overlayClassName}`}
+        className={`animate-in fade-in duration-[time:var(--motion-base)] ${overlayClassName}`}
         onClick={closeOnBackdropClick ? onClose : undefined}
       >
         <div
@@ -48,7 +48,7 @@ export default function Modal({
           aria-modal="true"
           aria-label={label}
           tabIndex={-1}
-          className={`animate-in fade-in zoom-in-95 duration-[var(--motion-base)] ${panelClassName}`}
+          className={`animate-in fade-in zoom-in-95 duration-[time:var(--motion-base)] ${panelClassName}`}
           onClick={(e) => e.stopPropagation()}
         >
           {children}

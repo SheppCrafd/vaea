@@ -169,20 +169,6 @@ async function setStoredHandle(handle) {
   }
 }
 
-async function clearStoredHandle() {
-  try {
-    const db = await openHandleDb();
-    await new Promise((resolve, reject) => {
-      const tx = db.transaction(HANDLE_STORE, "readwrite");
-      tx.objectStore(HANDLE_STORE).delete(HANDLE_KEY);
-      tx.oncomplete = resolve;
-      tx.onerror = () => reject(tx.error);
-    });
-  } catch {
-    // best-effort
-  }
-}
-
 // Must be called from a user-gesture handler (click) — the permission
 // prompt this can trigger is spec'd to require one.
 async function ensurePermission(handle) {
@@ -259,12 +245,6 @@ export async function reconnectFolder() {
   return stored;
 }
 
-export async function disconnectFolder() {
-  dirHandle = null;
-  await clearStoredHandle();
-  notify();
-}
-
 // --- Manual-mode state --------------------------------------------------
 
 const manualStore = new Map(); // key -> already-parsed JSON value
@@ -282,7 +262,7 @@ export function startFreshManual() {
   notify();
 }
 
-export function exportSnapshot() {
+function exportSnapshot() {
   const data = Object.fromEntries(manualStore.entries());
   return { version: 1, exportedAt: new Date().toISOString(), data };
 }
@@ -415,7 +395,7 @@ export async function writeKey(key, value) {
   return writeDeviceKey(key, value);
 }
 
-export async function removeDeviceKey(key) {
+async function removeDeviceKey(key) {
   if (supportsFileSystemAccess) {
     if (!dirHandle) throw new Error("Device folder not connected.");
     try {
@@ -434,14 +414,6 @@ export async function removeKey(key) {
   if (await isFileBackedModeAvailable()) return removeFileBackedKey(key);
   if (isCloudMode()) return cloudStorage.removeKey(key);
   return removeDeviceKey(key);
-}
-
-// Marks every currently-connected key as durably persisted — called after a
-// successful legacy-localStorage seed writes straight to disk in FSA mode,
-// where there's no separate "save" step for the user to trigger.
-export function markManualSaved() {
-  manualDirty = false;
-  notify();
 }
 
 // Test-only: clears the in-memory manual store between test cases in the

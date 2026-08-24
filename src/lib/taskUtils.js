@@ -51,7 +51,7 @@ export function getQuadrantCounts(tasks = [], highlights = []) {
 // its own rendering; this only owns the categorization and display order.
 // Ordered Not Started (left) through Done (right) — a left-to-right progress
 // reading — per direct user request.
-export const STATUS_BUCKETS = [
+const STATUS_BUCKETS = [
   { key: "NOT_STARTED", label: "Not Started", match: (s) => !s || s === "NOT_STARTED" },
   { key: "ON_HOLD", label: "On Hold", match: (s) => s === "ON_HOLD" },
   { key: "IN_PROGRESS", label: "In Progress", match: (s) => s === "IN_PROGRESS" },

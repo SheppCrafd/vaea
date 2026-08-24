@@ -5,7 +5,7 @@ import { readKey, writeKey } from "@/lib/deviceStorage";
 
 const SNIPPETS_KEY = "vaea_snippets";
 
-export async function loadSnippets() {
+async function loadSnippets() {
   try {
     const stored = await readKey(SNIPPETS_KEY);
     return Array.isArray(stored) ? stored : [];
@@ -14,7 +14,7 @@ export async function loadSnippets() {
   }
 }
 
-export async function saveSnippets(snippets) {
+async function saveSnippets(snippets) {
   try {
     await writeKey(SNIPPETS_KEY, snippets);
   } catch {

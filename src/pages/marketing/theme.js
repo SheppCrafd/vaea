@@ -17,8 +17,6 @@
 export const darkSectionBg =
   "bg-[linear-gradient(180deg,hsl(var(--band-1))_0%,hsl(var(--band-2))_38%,hsl(var(--band-3))_72%,hsl(var(--band-4))_100%)]";
 export const darkText = "text-foreground";
-export const darkSubtext = "text-muted-foreground";
-export const darkHairline = "border-foreground/10";
 
 // The seam between a band and whatever sits above it — a single bright
 // hairline, the way light catches the top edge of a glass panel.
@@ -84,17 +82,11 @@ export const hairlineH =
 export const glowTop =
   "pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(55%_70%_at_50%_0%,rgba(70,186,209,0.07),transparent_70%)]";
 
-// High-contrast pill CTAs — always the opposite tone of whatever section
-// they sit on, matching the contrast a "Buy" pill keeps regardless of the
-// imagery behind it. Now that a band's own tone flips with theme, "opposite
-// of the band" and "opposite of a light section" resolve to the exact same
-// foreground/background swap — pillOnDark and pillOnLight are kept as
-// separate exports for call-site clarity (which surface a button sits on),
-// not because they still differ.
+// High-contrast pill CTA — always the opposite tone of whatever section
+// it sits on, matching the contrast a "Buy" pill keeps regardless of the
+// imagery behind it.
 export const pillOnDark =
   "inline-flex items-center gap-1.5 text-sm px-6 py-3 bg-foreground hover:bg-foreground/90 text-background font-medium rounded-full transition-all hover:-translate-y-0.5 shadow-[0_8px_24px_-8px_hsl(var(--foreground)/0.4)] outline-none focus-visible:ring-2 focus-visible:ring-[#46BAD1] focus-visible:ring-offset-2 focus-visible:ring-offset-background";
-export const pillOnLight =
-  "inline-flex items-center gap-1.5 text-sm px-6 py-3 bg-foreground hover:bg-foreground/90 text-background font-medium rounded-full transition-all hover:-translate-y-0.5 outline-none focus-visible:ring-2 focus-visible:ring-[#46BAD1] focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 export const linkOnDark =
   "text-sm text-muted-foreground hover:text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#46BAD1] focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm";

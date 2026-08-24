@@ -5,9 +5,7 @@
 // a narrower Mail.Read/Mail.Send scope requested separately — see
 // outlookOAuthPkce.js. Same trust model: local-only, sent to aiChatStream
 // transiently per-request, never stored server-side.
-import { readKey, writeKey, removeKey } from "@/lib/deviceStorage";
-
-export const OUTLOOK_CONNECTION_KEY = "vaea_outlook";
+import { createDeviceKeyStore } from "@/lib/deviceKeyStore";
 
 export const DEFAULTS = {
   accessToken: "",
@@ -16,30 +14,11 @@ export const DEFAULTS = {
   emailAddress: "",
 };
 
-export async function loadOutlookConnection() {
-  try {
-    const stored = await readKey(OUTLOOK_CONNECTION_KEY);
-    return { ...DEFAULTS, ...(stored || {}) };
-  } catch {
-    return { ...DEFAULTS };
-  }
-}
+const store = createDeviceKeyStore("vaea_outlook", DEFAULTS);
 
-export async function saveOutlookConnection(connection) {
-  try {
-    await writeKey(OUTLOOK_CONNECTION_KEY, { ...DEFAULTS, ...connection });
-  } catch {
-    // best-effort — the connection just won't survive a reload
-  }
-}
-
-export async function clearOutlookConnection() {
-  try {
-    await removeKey(OUTLOOK_CONNECTION_KEY);
-  } catch {
-    // best-effort
-  }
-}
+export const loadOutlookConnection = store.load;
+export const saveOutlookConnection = store.save;
+export const clearOutlookConnection = store.clear;
 
 export function isOutlookConnected(connection) {
   return !!(connection?.accessToken && connection?.refreshToken);

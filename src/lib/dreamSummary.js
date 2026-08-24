@@ -22,7 +22,7 @@ export const MAX_MESSAGE_CHARS = 2000;
 export const MAX_TRANSCRIPT_CHARS = 40000;
 // The @base44/sdk's own per-request hard cap on list()/filter() — realistic
 // for one day of personal use; no pagination loop needed for v1.
-export const DREAM_FETCH_LIMIT = 5000;
+const DREAM_FETCH_LIMIT = 5000;
 
 // Pure — takes already-fetched ChatMessage rows (ascending by created_date,
 // as gatherDreamTranscript's own query below already returns them), groups
