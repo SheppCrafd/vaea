@@ -67,11 +67,14 @@ export default function Header() {
         {/* Each tab is a Link (navigate) + a separate close button, not a
             button nested inside the Link's own <a> — nesting interactive
             elements is invalid HTML and breaks focus/click semantics. */}
-        {/* overflow-x-auto, not flex-wrap: 8 tabs at narrower desktop widths
-            scroll horizontally within the bar rather than wrapping to a
-            second row, which would fight the header's fixed h-16 and clip
-            the wrapped tabs entirely. */}
-        <nav className="hidden md:flex items-center gap-1 ml-2 overflow-x-auto max-w-[46vw]">
+        {/* overflow-x-auto, not flex-wrap: many tabs at narrower desktop
+            widths scroll horizontally within the bar rather than wrapping to
+            a second row, which would fight the header's fixed h-16 and clip
+            the wrapped tabs entirely. The cap only needs to reserve room for
+            the right-side controls (Search pill + settings ≈ 240px), so 60vw
+            leaves 4–6 typical tabs fully visible without a scrollbar and only
+            engages the scroll once the bar genuinely can't fit. */}
+        <nav className="hidden md:flex items-center gap-1 ml-2 overflow-x-auto max-w-[60vw]">
           {openTabs.map((tab) => {
             const { key, label, to, Icon } = tab;
             const active = tab.isActive(location.pathname);
@@ -80,7 +83,7 @@ export default function Header() {
               <SectionAnchor
                 key={key}
                 id={`tab:${key}`}
-                className={`flex items-center rounded-full transition-all ${active ? "bg-card shadow-sm" : "hover:bg-card/60"}`}
+                className={`flex items-center shrink-0 whitespace-nowrap rounded-full transition-all ${active ? "bg-card shadow-sm" : "hover:bg-card/60"}`}
               >
                 <Link
                   to={to}

@@ -118,7 +118,7 @@ export default function AppShell({ children }) {
               dark. Rounded here (the marketing header isn't) since this bar
               sits boxed inside the dashboard's own floating-panel canvas
               rather than running full-bleed edge to edge. */}
-          <div className="h-14 shrink-0 flex items-center gap-2 px-3 mb-2 rounded-2xl bg-background/70 supports-[backdrop-filter]:bg-background/55 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_1px_0_0_hsl(var(--foreground)/0.06),0_16px_32px_-24px_hsl(200_30%_12%/0.3)] dark:shadow-[0_1px_0_0_hsl(var(--foreground)/0.08),0_0_24px_-8px_hsl(var(--foreground)/0.10)]">
+          <div className="h-14 shrink-0 flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 mb-2 rounded-2xl bg-background/70 supports-[backdrop-filter]:bg-background/55 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_1px_0_0_hsl(var(--foreground)/0.06),0_16px_32px_-24px_hsl(200_30%_12%/0.3)] dark:shadow-[0_1px_0_0_hsl(var(--foreground)/0.08),0_0_24px_-8px_hsl(var(--foreground)/0.10)]">
             {(isMobile || !isLeftSidebarOpen) && (
               <button
                 onClick={() => (isMobile ? setIsMobileLeftDrawerOpen(true) : toggleLeftSidebar())}
@@ -128,7 +128,7 @@ export default function AppShell({ children }) {
                 <PanelLeft className="w-4 h-4" />
               </button>
             )}
-            <Button onClick={() => openCreateModal("task")} className="gap-2 rounded-full px-5 shadow-[0_8px_20px_-10px_hsl(var(--primary)/0.7)]">
+            <Button onClick={() => openCreateModal("task")} className="shrink-0 gap-2 rounded-full px-4 sm:px-5 shadow-[0_8px_20px_-10px_hsl(var(--primary)/0.7)]">
               <Plus className="w-4 h-4" />
               Create New
             </Button>
@@ -139,16 +139,16 @@ export default function AppShell({ children }) {
               <button
                 onClick={() => setCardView("mini")}
                 aria-pressed={cardView === "mini"}
-                className={`px-3.5 py-1.5 rounded-full transition-colors ${cardView === "mini" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                className={`px-2.5 sm:px-3.5 py-1.5 rounded-full transition-colors ${cardView === "mini" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
               >
-                Mini Cards
+                Mini<span className="hidden sm:inline"> Cards</span>
               </button>
               <button
                 onClick={() => setCardView("full")}
                 aria-pressed={cardView === "full"}
-                className={`px-3.5 py-1.5 rounded-full transition-colors ${cardView === "full" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                className={`px-2.5 sm:px-3.5 py-1.5 rounded-full transition-colors ${cardView === "full" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
               >
-                Full Cards
+                Full<span className="hidden sm:inline"> Cards</span>
               </button>
             </div>
             {(isMobile || !isRightSidebarOpen) && (
