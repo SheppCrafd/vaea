@@ -79,18 +79,6 @@
     --status-in-progress: #ff9800;
     --status-done: #4caf50;
     --status-not-started: #000000;
-    /* The marketing site's "band" sections (hero, CTA, vault demo) — a
-       featured/dramatic surface, not just another card. In dark mode this
-       is a near-black, moody stage (see .dark below); in light mode it's a
-       pale, luminous cyan-white instead of plain page-white, so the section
-       still reads as "the lit moment" rather than disappearing into the
-       page around it. Four gradient stops (theme.js's darkSectionBg),
-       clustered toward the top like a backdrop actually falls off under a
-       real light source. */
-    --band-1: 195 45% 96%;
-    --band-2: 195 50% 93%;
-    --band-3: 198 40% 95%;
-    --band-4: 200 30% 97%;
 
     /* Shared timing/easing for non-chat motion (dashboard cards, table rows,
        modals, skeletons) — timing values, not colors, so they don't need a
@@ -152,21 +140,6 @@
     --status-in-progress: #ff9800;
     --status-done: #4caf50;
     --status-not-started: #ffffff;
-    /* A true lightness-mirror of :root's own band values (same H/S, only L
-       inverted) rather than the separately hand-picked near-black this used
-       to be — that version desaturated each stop by a different amount and
-       reordered the hue sequence (193→200→206→195, non-monotonic), which is
-       what read as visible seams/borders instead of one continuous surface.
-       Light's own hue drift (195→195→198→200) is already smooth; carrying
-       it through unchanged keeps that smoothness in dark mode too. NOT the
-       same fix as the neutral tokens above staying desaturated — those are
-       meant to read as neutral surfaces and carrying their hue into dark
-       mode read as muddy per direct feedback; bands are deliberately
-       colorful in both themes, so the lesson doesn't transfer. */
-    --band-1: 195 45% 4%;
-    --band-2: 195 50% 7%;
-    --band-3: 198 40% 5%;
-    --band-4: 200 30% 3%;
   }
 
   /* Curated accent-theme presets — set via `data-accent` on <html> by
@@ -214,12 +187,13 @@
   }
 
   /* The authenticated app's canvas sits a real step dimmer than the shared
-     --background (which the marketing pages keep at near-white) so the
-     floating panels and cards read as lifted surfaces without needing any
-     border to outline them — the Payflow-reference "objects on a table"
-     look. Scoped to the app-shell class (and light mode only; dark mode's
-     7%-vs-9.5% card contrast already floats) rather than changing the
-     token globally, so the marketing site's light sections stay bright. */
+     --background so the floating panels and cards read as lifted surfaces
+     without needing any border to outline them — the Payflow-reference
+     "objects on a table" look. Scoped to the app-shell class (and light mode
+     only; dark mode's 7%-vs-9.5% card contrast already floats). The whole
+     product is now app-only, but keeping this scoped rather than changing
+     the base token still costs nothing and stays a deliberate elevation
+     choice rather than a global default. */
   html.app-shell-locked:not(.dark) {
     --background: 200 20% 94%;
   }
@@ -233,8 +207,8 @@
      AppShell's own overflow-hidden only clips its own content, not the
      page around it. Scoped to this class (toggled on <html> by
      AuthenticatedApp in App.jsx while mounted) rather than applied
-     globally — the public marketing pages are normal tall documents that
-     need to scroll like any other web page. */
+     globally so the `/login` and `/signup` routes — normal scrollable
+     documents — aren't affected. */
   html.app-shell-locked, html.app-shell-locked body, html.app-shell-locked #root {
     overflow: hidden;
   }
@@ -274,6 +248,18 @@
     background-color: hsl(var(--muted-foreground) / 0.5);
     background-clip: content-box;
   }
+}
+
+/* Opt-out of the app-wide thin scrollbar for strips that scroll only as an
+   overflow fallback (e.g. the header tab bar once many tabs are open) —
+   the 10px chrome reads as a broken element there. Content stays
+   scrollable by drag/wheel/keys; only the visible track is suppressed. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 @keyframes chat-launch-pulse {
