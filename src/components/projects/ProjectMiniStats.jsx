@@ -90,7 +90,7 @@ export default function ProjectMiniStats({ quadrants, riskNotes = [], questionNo
         </div>
       ) : (
         <div
-          className="w-full h-1.5 rounded-full shrink-0 mb-0.5 bg-white border border-black dark:bg-black dark:border-white"
+          className="w-full h-1.5 rounded-full shrink-0 mb-0.5 bg-foreground/[0.04] border border-foreground/[0.08]"
           title="No tasks yet"
         />
       )}
