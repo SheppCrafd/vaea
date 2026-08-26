@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Search, X, Menu } from "lucide-react";
 import { useAppStore } from "@/lib/store";
@@ -24,6 +24,7 @@ export default function Header() {
   const openTabKeys = useAppStore((s) => s.openTabKeys);
   const closeTab = useAppStore((s) => s.closeTab);
   const ensureTabOpen = useAppStore((s) => s.ensureTabOpen);
+  const navRef = useRef(null);
 
   // Navigating to a route reopens its tab if it had been closed — same as
   // clicking a link to an already-closed browser tab's page just opens it
@@ -32,6 +33,15 @@ export default function Header() {
     const match = TABS.find((t) => t.isActive(location.pathname));
     if (match) ensureTabOpen(match.key);
   }, [location.pathname, ensureTabOpen]);
+
+  // Once enough tabs are open the strip scrolls (max-w-[60vw]); its
+  // scrollbar chrome is hidden (no-scrollbar), so pull the current page's
+  // tab into view on navigation — otherwise you can be on a page whose own
+  // tab is off-screen with nothing pointing to it.
+  useEffect(() => {
+    const active = navRef.current?.querySelector('[aria-current="page"]');
+    active?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [location.pathname, openTabKeys]);
 
   // Below md, the header collapses to logo + this one hamburger — the tab
   // nav's own browser-tab metaphor (close buttons, only-open-tabs-shown)
@@ -74,7 +84,7 @@ export default function Header() {
             the right-side controls (Search pill + settings ≈ 240px), so 60vw
             leaves 4–6 typical tabs fully visible without a scrollbar and only
             engages the scroll once the bar genuinely can't fit. */}
-        <nav className="hidden md:flex items-center gap-1 ml-2 overflow-x-auto max-w-[60vw]">
+        <nav ref={navRef} className="hidden md:flex items-center gap-1 ml-2 overflow-x-auto no-scrollbar max-w-[60vw]">
           {openTabs.map((tab) => {
             const { key, label, to, Icon } = tab;
             const active = tab.isActive(location.pathname);
