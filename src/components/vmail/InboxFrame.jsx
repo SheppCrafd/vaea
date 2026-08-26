@@ -47,20 +47,25 @@ export default function InboxFrame({
   return (
     <>
       <div className="px-4 flex items-center gap-3 border-b border-border">
-        <nav className="flex items-center gap-1">
+        {/* min-w-0 + overflow-x-auto so the five folders stay reachable by
+            swipe on a phone instead of the last one clipping under the
+            fixed-width search field. */}
+        <nav className="flex-1 min-w-0 flex items-center gap-1 overflow-x-auto no-scrollbar">
           {FOLDERS.map(({ key, label, Icon }) => (
             <button
               key={key}
               onClick={() => onFolderChange(key)}
-              className={`flex items-center gap-1.5 text-sm px-3 py-2 border-b-2 -mb-px transition-colors ${folder === key ? "border-primary text-foreground font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+              className={`shrink-0 flex items-center gap-1.5 text-sm px-2.5 sm:px-3 py-2 border-b-2 -mb-px transition-colors ${folder === key ? "border-primary text-foreground font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
             >
               <Icon className="w-3.5 h-3.5" /> {label}
             </button>
           ))}
         </nav>
+        {/* Hidden below sm: the five folder tabs plus a text field don't
+            coexist on a phone row. The tabs win; search returns at sm+. */}
         <form
           onSubmit={(e) => { e.preventDefault(); onSearchSubmit?.(e); }}
-          className="ml-auto py-2 flex items-center gap-1.5 text-sm text-muted-foreground"
+          className="shrink-0 py-2 hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground"
         >
           <Search className="w-3.5 h-3.5 shrink-0" />
           <input
@@ -68,26 +73,32 @@ export default function InboxFrame({
             onChange={(e) => onSearchInputChange?.(e.target.value)}
             placeholder="Search this folder"
             readOnly={demo}
-            className="bg-transparent outline-none w-40 text-foreground placeholder:text-muted-foreground"
+            className="bg-transparent outline-none w-28 sm:w-40 text-foreground placeholder:text-muted-foreground"
           />
         </form>
       </div>
 
       <div className="flex-1 min-h-0 overflow-auto px-4 pb-6">
         {!anyConnected && !loading ? (
-          <div className="h-full flex flex-col items-center justify-center text-center gap-3 py-16">
-            <Inbox className="w-8 h-8 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground max-w-sm">
-              Nothing connected yet. Connect Gmail, Outlook, or Apple Mail in Settings and it shows up here.
-            </p>
-            {!demo && (
-              <Link
-                to="/app/settings"
-                className="flex items-center gap-1.5 text-sm px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md transition-colors shadow-sm"
-              >
-                <SettingsIcon className="w-3.5 h-3.5" /> Go to Settings
-              </Link>
-            )}
+          // Same card treatment as the other "connect a service" pages
+          // (Calendar, Meetings, Mind Map) — a top-aligned bg-card panel,
+          // not a viewport-centered bare stack, so all four read alike.
+          <div className="max-w-2xl mx-auto pt-4">
+            <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-8 text-center">
+              <Inbox className="w-6 h-6 text-muted-foreground mx-auto mb-3" />
+              <p className="text-sm font-medium">Nothing connected yet</p>
+              <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                Connect Gmail, Outlook, or Apple Mail in Settings and your inbox shows up here.
+              </p>
+              {!demo && (
+                <Link
+                  to="/app/settings"
+                  className="inline-flex items-center gap-1.5 text-sm mt-4 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md transition-colors shadow-sm"
+                >
+                  <SettingsIcon className="w-3.5 h-3.5" /> Go to Settings
+                </Link>
+              )}
+            </div>
           </div>
         ) : (
           <>

@@ -44,11 +44,9 @@ const VmailPage = lazy(() => import('@/pages/VmailPage'));
 
 // Everything reachable only via /app/* — Dashboard, AppShell, the chat
 // controller, the command palette, the device storage gate — lives in this
-// module, which App.jsx only reaches through lazy(). Anonymous visitors to
-// the marketing routes (/, /features, /how-it-works, /about, /login,
-// /signup) never download or parse any of it; only a visit to /app/*
-// triggers this chunk's fetch. See App.jsx's own comment on the route split
-// for why.
+// module, which App.jsx only reaches through lazy(). Visitors sitting on the
+// /login or /signup screen never download or parse any of it; only a visit
+// to /app/* (or the `/` → /app redirect) triggers this chunk's fetch.
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
   const location = useLocation();
@@ -106,13 +104,11 @@ const AuthenticatedApp = () => {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
-      // Redirect to the real /login page (marketing site) rather than
-      // rendering the login form in place — LoginScreen used to render
-      // inline here since this used to be the only place unauthenticated
-      // visitors ever landed. Now that / is public marketing content,
-      // /login is a real, linkable route of its own; `from` carries the
-      // originally-requested path so a deep link (e.g. /app/settings)
-      // still lands where it was headed after signing in. See
+      // Redirect to the standalone /login route rather than rendering the
+      // login form in place. `/login` and `/signup` are the only non-/app
+      // routes left (the marketing site was removed); `from` carries the
+      // originally-requested path so a deep link (e.g. /app/settings) still
+      // lands where it was headed after signing in. See
       // Decisions/Vaea - Full-App Login Gate Restored.md for why a
       // redirect-based flow (not Base44's hosted /login) is used at all.
       const from = encodeURIComponent(location.pathname + location.search);

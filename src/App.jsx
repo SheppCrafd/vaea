@@ -12,27 +12,16 @@ import { HighlightProvider } from '@/lib/HighlightContext';
 import { FilterProvider } from '@/lib/FilterContext';
 import { CardViewProvider } from '@/lib/CardViewContext';
 import ErrorBoundary from '@/components/shared/ErrorBoundary';
-import HomePage from '@/pages/marketing/HomePage';
-import FeaturesPage from '@/pages/marketing/FeaturesPage';
-import HowItWorksPage from '@/pages/marketing/HowItWorksPage';
-import LoginPage from '@/pages/marketing/LoginPage';
-import SignUpPage from '@/pages/marketing/SignUpPage';
-import AboutPage from '@/pages/marketing/AboutPage';
-import PrivacyPage from '@/pages/marketing/PrivacyPage';
-import TermsPage from '@/pages/marketing/TermsPage';
-import ComparePage from '@/pages/marketing/ComparePage';
-import ChatPage from '@/pages/marketing/ChatPage';
-import VaultPage from '@/pages/marketing/VaultPage';
-import WorkplacePage from '@/pages/marketing/WorkplacePage';
-// Everything reachable only via /app/* — Dashboard, AppShell, the chat
-// controller, the command palette, the device storage gate — is lazy too,
-// same as /chat and /settings already were. Anonymous visitors landing on
-// the marketing routes below (the overwhelming majority of first hits, per
-// the SEO audit that flagged this) never download or parse any of that
-// authenticated-app code; only navigating to /app/* fetches it. See
-// AuthenticatedApp.jsx's own header for what moved there.
+import LoginScreen from '@/components/auth/LoginScreen';
+import SignUpScreen from '@/components/auth/SignUpScreen';
+
+// The public marketing site was removed — Vaea is now app-only. `/` redirects
+// straight into the product at `/app`. `/login` and `/signup` remain as the
+// unauthenticated auth entry points (AuthContext redirects here on
+// `auth_required`); they render the real auth screens directly, no marketing
+// chrome. Everything else lives under `/app/*`, code-split behind this lazy
+// import so the auth screens don't pull the whole app bundle.
 const AuthenticatedApp = lazy(() => import('./AuthenticatedApp'));
-// Add page imports here
 
 function App() {
 
@@ -46,35 +35,10 @@ function App() {
                 <Router>
                   <ScrollToTop />
                   <ErrorBoundary>
-                    {/* The public marketing site (/, /features, /how-it-works,
-                        /compare, /about, /login, /signup) renders completely outside AuthenticatedApp —
-                        real, unauthenticated, scrollable content, not just
-                        past a lenient auth check. The actual product lives
-                        under /app/*, gated by AuthenticatedApp as before. */}
                     <Routes>
-                      <Route path="/" element={<HomePage />} />
-                      <Route path="/features" element={<FeaturesPage />} />
-                      <Route path="/how-it-works" element={<HowItWorksPage />} />
-                      <Route path="/about" element={<AboutPage />} />
-                      <Route path="/compare" element={<ComparePage />} />
-                      <Route path="/chat" element={<ChatPage />} />
-                      <Route path="/brain" element={<VaultPage />} />
-                      <Route path="/vault" element={<Navigate to="/brain" replace />} />
-                      <Route path="/workplace" element={<WorkplacePage />} />
-                      {/* Calendar, Vmail, and Meetings folded into one "Vaea Workplace"
-                          marketing page — keep the old URLs working for anyone with
-                          them bookmarked/linked. */}
-                      <Route path="/calendar" element={<Navigate to="/workplace" replace />} />
-                      <Route path="/vmail" element={<Navigate to="/workplace" replace />} />
-                      <Route path="/meetings" element={<Navigate to="/workplace" replace />} />
-                      {/* Workflows folded into Vaea Brain (Vault) as a tab within it — keep the
-                          old URL working for anyone with it bookmarked/linked. */}
-                      <Route path="/workflows" element={<Navigate to="/brain" replace />} />
-                      <Route path="/mindmap" element={<Navigate to="/brain" replace />} />
-                      <Route path="/privacy" element={<PrivacyPage />} />
-                      <Route path="/terms" element={<TermsPage />} />
-                      <Route path="/login" element={<LoginPage />} />
-                      <Route path="/signup" element={<SignUpPage />} />
+                      <Route path="/" element={<Navigate to="/app" replace />} />
+                      <Route path="/login" element={<LoginScreen />} />
+                      <Route path="/signup" element={<SignUpScreen />} />
                       <Route
                         path="/app/*"
                         element={
@@ -89,7 +53,7 @@ function App() {
                           </Suspense>
                         }
                       />
-                      <Route path="*" element={<Navigate to="/" replace />} />
+                      <Route path="*" element={<Navigate to="/app" replace />} />
                     </Routes>
                   </ErrorBoundary>
                 </Router>

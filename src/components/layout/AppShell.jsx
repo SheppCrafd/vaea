@@ -128,9 +128,12 @@ export default function AppShell({ children }) {
                 <PanelLeft className="w-4 h-4" />
               </button>
             )}
-            <Button onClick={() => openCreateModal("task")} className="shrink-0 gap-2 rounded-full px-4 sm:px-5 shadow-[0_8px_20px_-10px_hsl(var(--primary)/0.7)]">
+            {/* Icon-only below sm: the full label plus the filter, card-view
+                toggle and both panel buttons overflow a phone-width bar and
+                clip the rightmost control. */}
+            <Button onClick={() => openCreateModal("task")} aria-label="Create new" className="shrink-0 gap-2 rounded-full px-3 sm:px-5 shadow-[0_8px_20px_-10px_hsl(var(--primary)/0.7)]">
               <Plus className="w-4 h-4" />
-              Create New
+              <span className="hidden sm:inline">Create New</span>
             </Button>
             <Button variant="outline" size="icon" onClick={() => setIsFilterOpen(true)} aria-label="Filter" className="rounded-full bg-card/70 shadow-[0_0_0_1px_hsl(var(--foreground)/0.05)] border-transparent">
               <Filter className="w-4 h-4" />

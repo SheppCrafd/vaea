@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Search, X, Menu } from "lucide-react";
 import { useAppStore } from "@/lib/store";
@@ -24,6 +24,7 @@ export default function Header() {
   const openTabKeys = useAppStore((s) => s.openTabKeys);
   const closeTab = useAppStore((s) => s.closeTab);
   const ensureTabOpen = useAppStore((s) => s.ensureTabOpen);
+  const navRef = useRef(null);
 
   // Navigating to a route reopens its tab if it had been closed — same as
   // clicking a link to an already-closed browser tab's page just opens it
@@ -32,6 +33,15 @@ export default function Header() {
     const match = TABS.find((t) => t.isActive(location.pathname));
     if (match) ensureTabOpen(match.key);
   }, [location.pathname, ensureTabOpen]);
+
+  // Once enough tabs are open the strip scrolls (max-w-[60vw]); its
+  // scrollbar chrome is hidden (no-scrollbar), so pull the current page's
+  // tab into view on navigation — otherwise you can be on a page whose own
+  // tab is off-screen with nothing pointing to it.
+  useEffect(() => {
+    const active = navRef.current?.querySelector('[aria-current="page"]');
+    active?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [location.pathname, openTabKeys]);
 
   // Below md, the header collapses to logo + this one hamburger — the tab
   // nav's own browser-tab metaphor (close buttons, only-open-tabs-shown)
@@ -67,19 +77,18 @@ export default function Header() {
         {/* Each tab is a Link (navigate) + a separate close button, not a
             button nested inside the Link's own <a> — nesting interactive
             elements is invalid HTML and breaks focus/click semantics. */}
-        {/* overflow-x-auto, not flex-wrap: 9 tabs at narrower desktop widths
-            scroll horizontally within the bar rather than wrapping to a
-            second row, which would fight the header's fixed h-16 and clip
+        {/* overflow-x-auto, not flex-wrap: many tabs at narrower desktop
+            widths scroll horizontally within the bar rather than wrapping to
+            a second row, which would fight the header's fixed h-16 and clip
             the wrapped tabs entirely. shrink-0 + whitespace-nowrap on every
-            pill/label is load-bearing here — without it the flex row
-            shrinks each tab's text to fit instead of ever triggering the
-            scroll, wrapping "Vaea Chat" onto two lines inside its own pill
-            (confirmed live at 1100px/820px widths with all 9 tabs open).
-            The cap only needs to reserve room for the right-side controls
-            (Search pill + settings ≈ 240px), so 60vw (was 46vw) keeps 6–7
-            typical tabs fully visible before the scroll engages instead of
-            leaving ~500px of header empty next to a scrollbar. */}
-        <nav className="hidden md:flex items-center gap-1 ml-2 overflow-x-auto max-w-[60vw]">
+            pill/label is load-bearing here — without it the flex row shrinks
+            each tab's text to fit instead of ever triggering the scroll,
+            wrapping "Vaea Chat" onto two lines inside its own pill. The cap
+            only reserves room for the right-side controls (Search pill +
+            settings ≈ 240px), so 60vw keeps 6–7 typical tabs visible before
+            the scroll engages. no-scrollbar hides the 10px chrome once it
+            does; the effect above keeps the active tab scrolled into view. */}
+        <nav ref={navRef} className="hidden md:flex items-center gap-1 ml-2 overflow-x-auto no-scrollbar max-w-[60vw]">
           {openTabs.map((tab) => {
             const { key, label, to, Icon } = tab;
             const active = tab.isActive(location.pathname);
