@@ -169,8 +169,6 @@ export default function LoginScreen() {
           <Link to={`/signup${searchParams.get("from") ? `?from=${sanitizeReturnTo(searchParams.get("from"))}` : ""}`} className="underline hover:text-foreground transition-colors">
             Create an account
           </Link>
-          {" · "}
-          <Link to="/" className="underline hover:text-foreground transition-colors">Back to home</Link>
         </p>
       </div>
     </div>
