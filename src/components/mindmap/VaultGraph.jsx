@@ -661,9 +661,23 @@ export default function VaultGraph({ demo = false }) {
           </div>
         </div>
       ) : error ? (
-        <p className="flex items-start gap-1.5 text-xs text-destructive mt-4 max-w-2xl mx-auto">
-          <TriangleAlert className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {error}
-        </p>
+        <div className="max-w-2xl mx-auto pt-4">
+          <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-8 text-center">
+            <TriangleAlert className="w-6 h-6 text-destructive mx-auto mb-3" />
+            <p className="text-sm font-medium">Couldn't read your Vaea Brain</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+              GitHub returned: {error}. This usually means the access token
+              expired or lost repo access — reconnect it and the map will
+              rebuild.
+            </p>
+            <Link
+              to="/app/settings"
+              className="inline-flex items-center gap-1.5 text-sm mt-4 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md transition-colors shadow-sm"
+            >
+              Check connection in Settings
+            </Link>
+          </div>
+        </div>
       ) : !graph ? (
         <div className="flex items-center gap-1.5 text-sm text-muted-foreground py-6 max-w-2xl mx-auto">
           <Loader2 className="w-4 h-4 animate-spin" /> Reading your vault…

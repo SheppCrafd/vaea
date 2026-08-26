@@ -74,8 +74,12 @@ export default function Header() {
             pill/label is load-bearing here — without it the flex row
             shrinks each tab's text to fit instead of ever triggering the
             scroll, wrapping "Vaea Chat" onto two lines inside its own pill
-            (confirmed live at 1100px/820px widths with all 9 tabs open). */}
-        <nav className="hidden md:flex items-center gap-1 ml-2 overflow-x-auto max-w-[46vw]">
+            (confirmed live at 1100px/820px widths with all 9 tabs open).
+            The cap only needs to reserve room for the right-side controls
+            (Search pill + settings ≈ 240px), so 60vw (was 46vw) keeps 6–7
+            typical tabs fully visible before the scroll engages instead of
+            leaving ~500px of header empty next to a scrollbar. */}
+        <nav className="hidden md:flex items-center gap-1 ml-2 overflow-x-auto max-w-[60vw]">
           {openTabs.map((tab) => {
             const { key, label, to, Icon } = tab;
             const active = tab.isActive(location.pathname);
@@ -84,7 +88,7 @@ export default function Header() {
               <SectionAnchor
                 key={key}
                 id={`tab:${key}`}
-                className={`flex items-center shrink-0 rounded-full transition-all ${active ? "bg-card shadow-sm" : "hover:bg-card/60"}`}
+                className={`flex items-center shrink-0 whitespace-nowrap rounded-full transition-all ${active ? "bg-card shadow-sm" : "hover:bg-card/60"}`}
               >
                 <Link
                   to={to}

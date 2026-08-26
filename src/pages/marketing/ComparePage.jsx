@@ -109,7 +109,11 @@ export default function ComparePage() {
                   <th scope="col" className="text-left text-sm font-heading font-semibold pb-4 px-5 pt-4 rounded-t-2xl bg-foreground/[0.035]">
                     Vaea
                   </th>
-                  <th scope="col" className="text-left text-sm font-heading font-semibold text-muted-foreground pb-4 pl-5">
+                  {/* pt-4 mirrors the Vaea cell's own top padding so both
+                      column headers share one baseline — without it this one
+                      rides up and the Vaea tint block's top edge cuts through
+                      its descenders. */}
+                  <th scope="col" className="text-left text-sm font-heading font-semibold text-muted-foreground pb-4 pl-5 pt-4">
                     Typical task manager
                   </th>
                 </tr>
