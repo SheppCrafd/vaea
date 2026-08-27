@@ -229,7 +229,7 @@ function PendingActionCard({ actions, onConfirm, onCancel, resolving }) {
         <span className="text-[10px] font-semibold uppercase tracking-wider text-destructive/80">Confirm to proceed</span>
       </div>
       <ul className="px-3 py-2 space-y-0.5">
-        {actions.map((a, i) => (
+        {(actions || []).map((a, i) => (
           <li key={i} className="text-foreground/90">{humanizeAction(a.action)}</li>
         ))}
       </ul>

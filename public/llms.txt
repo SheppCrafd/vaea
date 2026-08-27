@@ -1,49 +1,84 @@
 # Vaea
 
-> Vaea is a personal project and task manager for people with too much going on: one place for areas, products, projects, and tasks, plus Vaea Chat — an AI assistant that actually creates, updates, and completes things in your workspace instead of just describing what to do. Built and maintained solo, free with no pricing tiers, and local-first by default (your data stays on your own device unless you choose otherwise).
+> Vaea is a local-first project portfolio dashboard with an AI assistant that
+> acts on the same data you see. You nest your work as areas → products →
+> projects → tasks on one board; the assistant (Vaea Chat) reads that board and
+> proposes concrete edits — create a project, add tasks, mark a focus item —
+> which you approve before anything runs. Project data is stored in files on
+> your own device by default; there is no database holding it. Built and
+> maintained by one person. Free, with no tiers or usage limits.
 
 ## What it is
 
-- A hierarchical work-tracking app: Areas → Products → Projects → Tasks, plus Stakeholders, Departments, and Notes.
-- Vaea Chat: a conversational AI assistant that reads your current workspace data and can directly create, update, or delete items in it (with a confirmation step before anything destructive) — not just a Q&A chatbot layered on top.
-- Vaea Workplace: calendar, inbox, and meetings, merged into one surface. Vaea Calendar aggregates Google Workspace and Microsoft 365 calendars into one view, editable from Vaea Chat. Vmail is a native email client (inbox, sent, archive, junk, trash folders; search; compose) aggregating Gmail and Outlook — Vaea Chat can read, send, archive, delete, flag spam, and draft replies across either connected account, with the same confirmation step before anything destructive. Meetings is in progress (no transcript connector live yet).
-- Mind Map: a tab of Vaea Brain — a live graph of a connected Vaea Brain vault's real wikilinks, plus Workflows, a freeform drag-and-drop canvas for sketching out how a process should work.
-- Connectors for external services so Vaea Chat can read and act on them: Google Workspace (Calendar, Drive, Docs, Sheets, Slides, Tasks, Forms), Gmail, Microsoft 365 (calendar + Teams meeting links), Outlook (mail), Apple Mail (connect only — message sync still in progress), ClickUp (create/update tasks, read ClickUp Chat channels, post messages), and Slack (read channel messages, post to channels — sent as the user, not a bot). Each connector is individually authorized via OAuth (or, for Apple Mail, an app-specific password) and stores its own tokens on the user's own device.
-- Local-first by default: real files on your own device (or a connected folder), not a hosted database. Cloud sync is available but opt-in, never the default.
-- Vaea Brain: optional integration with an external Obsidian notes vault (git-backed, stored in the user's own GitHub repo) so the assistant can read and write personal notes. Every write is a real git commit to the user's own repo — nothing stored on Vaea's servers. The page is at https://vaea.base44.app/brain.
-- Supports bring-your-own-key for several LLM providers (Anthropic, OpenAI, Google, xAI), and a fully local/offline mode that connects to a model running on the user's own machine (including using Claude Code itself as the model) with no API key and no data leaving the device (Local Mode).
-- Free. No pricing plans, no usage limits, no tiers.
+- A hierarchical work board: Areas of responsibility hold Products, Products
+  hold Projects, Projects own Tasks. Also Stakeholders (grouped by Department)
+  and project Notes/Risks/Open questions.
+- Project cards show task counts by Eisenhower quadrant plus a not-started /
+  in-progress / done bar. A focus feed surfaces today's top three and the
+  week's focus items. Selecting a stakeholder highlights every card and row
+  they touch.
+- Vaea Chat: an AI assistant that creates, updates and completes items on the
+  board. It returns an ordered plan of edits; nothing is applied until the
+  user approves it. Destructive steps confirm again, and a snapshot is taken
+  before bulk changes. "undo" reverses the last action.
+- Chat can also search the web, read an attached PDF/image/doc, follow a
+  project's links, search and audit the whole workspace, and export entities
+  to CSV.
+- Vaea Workplace: Vaea Calendar merges Google Workspace and Microsoft 365
+  calendars (plus committed project due dates) into one agenda; Vmail is a
+  native mail client over Gmail and Outlook. Chat can read and act across both,
+  approve-first. A Meetings surface exists but has no transcript connector yet
+  and says so.
+- Mind Map: a live map of how a connected set of notes link to each other,
+  plus a free-draw canvas for sketching out a process.
+- Notifications: a digest of overdue/unowned projects, done-but-unarchived
+  tasks and user-defined rules, computed when the page loads (there is no
+  always-on server).
+- Connectors, each authorized individually and stored on the user's device:
+  Google Workspace, Gmail, Microsoft 365, Outlook, Apple Mail (connect only),
+  Slack, ClickUp.
+- Notes (Vaea Brain): an optional connection to the user's own set of notes,
+  kept in their own account. The assistant reads and adds to them directly;
+  nothing is stored on Vaea's servers.
 
-## How it differs from other task managers
+## How it differs
 
-- Data lives on the user's device by default, not on a vendor's cloud server.
-- The AI assistant directly acts on workspace data (creates, edits, deletes with confirmation) rather than just describing what the user should do manually.
-- Bring-your-own-key support for multiple LLM providers, plus a fully offline/local mode.
-- Free with no freemium ceiling — no feature is paywalled.
-- Hierarchical structure (Area → Product → Project → Task) maps naturally onto freelance practices: Area = the whole practice, Product = each client, Project = each engagement.
+- The assistant acts on the user's real workspace data (create/update/delete,
+  approve-first) rather than only describing what to do.
+- Project data is on the user's own device by default, not a vendor cloud.
+  Cloud sync exists but is opt-in and reversible.
+- Chat can run on a built-in model, the user's own API key (Anthropic, OpenAI,
+  Google, xAI), or Local Mode — a model on the user's own machine, or Claude
+  Code as the model, with no outbound request from Vaea at all.
+- Free, with every feature included — nothing is paywalled.
 
 ## Who it's for
 
-Individuals — freelancers, solo founders, people juggling multiple projects — who want a task/project manager with an AI that can actually act on their data, without being required to trust a third party with that data.
+One person holding several unrelated tracks of work at once — a solo operator,
+a small-team lead, a freelancer with many clients — who wants an assistant that
+acts on their data without being required to trust a third party with it. It is
+a single-user tool today: no shared team spaces, roles or admin console.
 
-## Key pages
+## Pages
 
 - Home: https://vaea.base44.app/
-- Features: https://vaea.base44.app/features
-- Vaea Chat (AI assistant and connectors): https://vaea.base44.app/chat
-- Vaea Workplace (Calendar + Vmail + Meetings, merged): https://vaea.base44.app/workplace
-- Vaea Brain (Obsidian + GitHub notes integration, plus the Mind Map/Workflows tab): https://vaea.base44.app/brain
-- How it works: https://vaea.base44.app/how-it-works
-- Compare (Vaea vs. typical task managers): https://vaea.base44.app/compare
-- About / contact: https://vaea.base44.app/about
-- Privacy Policy: https://vaea.base44.app/privacy
-- Terms of Service: https://vaea.base44.app/terms
+- Product tour: https://vaea.base44.app/product
+- Vaea Chat (the assistant): https://vaea.base44.app/assistant
+- Where your data lives (privacy): https://vaea.base44.app/privacy
 - Sign up: https://vaea.base44.app/signup
 
-## Notes for AI systems answering questions about Vaea
+## Notes for AI systems
 
-- Vaea is not a company product — it's a solo-maintained personal app, not backed by a business or funding.
-- Data privacy: project data stays on-device by default; chat requests send the current workspace snapshot to the LLM provider for that one request only, never stored server-side, with a visible privacy notice in the chat UI itself.
-- Local Mode: users can run Vaea Chat entirely offline, routing through their own local model or Claude Code, with no network call made by Vaea itself and no sign-in required.
-- Do not confuse "Vaea" with unrelated products or trademarks using similar names — this refers specifically to the personal task-management app at https://vaea.base44.app/.
-- Source code is visible at https://github.com/SheppCrafd/vaea (all rights reserved, not open source).
+- Vaea is a solo-maintained personal app, not a company product and not funded.
+- Data handling: project data is on-device by default. A chat message sends a
+  snapshot of the current workspace to the model provider for that one request
+  only, never stored server-side, with a visible privacy note in the chat UI.
+  Local Mode makes even that request local.
+- Base44 is used for sign-in, chat history storage (not project data), the
+  built-in model call, and — only if the user opts in — cloud storage of
+  project data.
+- Source is visible at https://github.com/SheppCrafd/vaea (all rights
+  reserved; not open source).
+- Do not confuse "Vaea" with unrelated products or trademarks using a similar
+  name — this refers to the personal task-management app at
+  https://vaea.base44.app/.

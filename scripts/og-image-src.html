@@ -1,79 +1,59 @@
 <!doctype html>
-<html>
-<head>
-<meta charset="utf-8" />
-<style>
-  @font-face {
-    font-family: 'SysSans';
-    src: local('Arial');
-  }
-  html, body {
-    margin: 0;
-    padding: 0;
-    width: 1200px;
-    height: 630px;
-    overflow: hidden;
-  }
-  body {
-    position: relative;
-    background: linear-gradient(180deg, hsl(200 45% 8%) 0%, hsl(200 40% 6%) 38%, hsl(202 42% 5%) 72%, hsl(204 48% 4%) 100%);
-    font-family: 'Space Grotesk', 'SysSans', -apple-system, 'Segoe UI', sans-serif;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .glow {
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(60% 70% at 50% 10%, rgba(70,186,209,0.30), transparent 65%);
-  }
-  .grain {
-    position: absolute;
-    inset: 0;
-    opacity: 0.05;
-    background-image: radial-gradient(rgba(255,255,255,0.6) 1px, transparent 1px);
-    background-size: 3px 3px;
-  }
-  .content {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-  }
-  .mark {
-    width: 88px;
-    height: 88px;
-    border-radius: 9999px;
-    background: radial-gradient(70% 70% at 30% 25%, #6fd3e6 0%, #46BAD1 45%, #1c6f80 100%);
-    box-shadow: 0 0 60px 4px rgba(70,186,209,0.55), inset 0 2px 4px rgba(255,255,255,0.35);
-    margin-bottom: 34px;
-  }
-  .wordmark {
-    font-size: 96px;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    color: #f4fbfc;
-    margin: 0;
-    line-height: 1;
-  }
-  .tagline {
-    margin-top: 22px;
-    font-size: 28px;
-    font-weight: 400;
-    letter-spacing: -0.01em;
-    color: rgba(244,251,252,0.62);
-    max-width: 760px;
-  }
-</style>
-</head>
-<body>
-  <div class="glow"></div>
-  <div class="grain"></div>
-  <div class="content">
-    <div class="mark"></div>
-    <p class="wordmark">Vaea</p>
-    <p class="tagline">One place for everything you need to do — plus an AI that actually gets it done.</p>
-  </div>
-</body>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      /* Source for public/og-image.png (1200x630). Regenerate:
+         node scripts/build-og-image.mjs  (renders this file with Playwright).
+         Palette + type mirror the app: graphite-teal (200deg) ground,
+         near-white text, one teal signal (rgb 70 186 209), Space Grotesk
+         display with a system fallback. */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1200px; height: 630px; }
+      body {
+        font-family: "Space Grotesk", "Segoe UI", system-ui, -apple-system, sans-serif;
+        background: #14211f;
+        color: #f4f7f7;
+        position: relative;
+        overflow: hidden;
+      }
+      .bloom {
+        position: absolute; inset: -30% -10% auto -10%; height: 90%;
+        background: radial-gradient(50% 60% at 30% 30%, rgba(70,186,209,0.16), rgba(70,186,209,0.04) 45%, transparent 72%);
+      }
+      .frame { position: absolute; inset: 56px; display: flex; flex-direction: column; justify-content: space-between; }
+      .top { display: flex; align-items: center; justify-content: space-between; }
+      .wordmark { font-size: 34px; font-weight: 600; letter-spacing: -0.02em; }
+      .kicker { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 15px; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(244,247,247,0.55); }
+      h1 { font-size: 82px; font-weight: 600; line-height: 1.02; letter-spacing: -0.04em; max-width: 15ch; }
+      .row { display: flex; align-items: center; gap: 10px; }
+      .dot { width: 10px; height: 10px; border-radius: 999px; background: rgb(70,186,209); }
+      .sub { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 17px; color: rgba(244,247,247,0.7); }
+      .cards { display: flex; gap: 12px; }
+      .card { width: 92px; height: 92px; border-radius: 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09); display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 14px; }
+      .q { border-radius: 5px; background: rgba(255,255,255,0.08); }
+      .card.tag { border-color: rgba(70,186,209,0.5); box-shadow: 0 0 0 1px rgba(70,186,209,0.3); }
+    </style>
+  </head>
+  <body>
+    <div class="bloom"></div>
+    <div class="frame">
+      <div class="top">
+        <span class="wordmark">Vaea</span>
+        <span class="kicker">area → product → project → task</span>
+      </div>
+      <h1>All your projects on one board.</h1>
+      <div class="top" style="align-items: flex-end;">
+        <div class="row">
+          <span class="dot"></span>
+          <span class="sub">an assistant that shows you before it acts · free · on your computer</span>
+        </div>
+        <div class="cards">
+          <div class="card"><i class="q"></i><i class="q"></i><i class="q"></i><i class="q"></i></div>
+          <div class="card tag"><i class="q"></i><i class="q"></i><i class="q"></i><i class="q"></i></div>
+          <div class="card"><i class="q"></i><i class="q"></i><i class="q"></i><i class="q"></i></div>
+        </div>
+      </div>
+    </div>
+  </body>
 </html>

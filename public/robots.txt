@@ -2,18 +2,23 @@ User-agent: *
 Allow: /
 Disallow: /app/
 Disallow: /api/
+Disallow: /login
+Disallow: /signup
 
+# AI answer-engine crawlers are allowed on the public marketing pages
+# (deliberate — we want the product described accurately in AI answers) and
+# kept out of the authenticated app.
 User-agent: GPTBot
 Allow: /
 Disallow: /app/
 Disallow: /api/
 
-User-agent: ChatGPT-User
+User-agent: OAI-SearchBot
 Allow: /
 Disallow: /app/
 Disallow: /api/
 
-User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
 Allow: /
 Disallow: /app/
 Disallow: /api/
@@ -48,7 +53,7 @@ Allow: /
 Disallow: /app/
 Disallow: /api/
 
-# Common Crawl — used to train AI models; disallowed per operator preference
+# Common Crawl — used to train models; disallowed per operator preference.
 User-agent: CCBot
 Disallow: /
 
