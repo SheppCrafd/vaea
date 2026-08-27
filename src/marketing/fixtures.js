@@ -15,50 +15,78 @@ const T = (quadrant, status, focus = false) => ({
   is_weekly_focus: focus,
 });
 
-// Real project -> the props ProjectMiniStats expects, built the same way
-// ProjectCard.jsx builds them.
+// One fixture project. Keeps its raw `tasks` (what the real TaskStatistics
+// bar reads) alongside the ProjectMiniStats props, derived the same way
+// ProjectCard.jsx derives them. `notes` mirrors the real useProjectNotes
+// shape so risk/question flags light up exactly as they do in-app.
+let seq = 0;
 function project(title, tasks, { risks = 0, questions = 0 } = {}) {
   const quadrants = getQuadrantCounts(tasks, []);
   const miniStats = getMiniStatusCounts(tasks);
   const miniTotal = miniStats.reduce((s, c) => s + c.count, 0);
+  const riskNotes = Array.from({ length: risks }, (_, i) => ({ type: "RISK", content: `Risk ${i + 1}` }));
+  const questionNotes = Array.from({ length: questions }, (_, i) => ({ type: "QUESTION", content: `Open question ${i + 1}` }));
   return {
+    id: `demo-project-${++seq}`,
     title,
+    tasks,
     quadrants,
     miniStats,
     miniTotal,
-    riskNotes: Array.from({ length: risks }, (_, i) => ({ content: `Risk ${i + 1}` })),
-    questionNotes: Array.from({ length: questions }, (_, i) => ({ content: `Open question ${i + 1}` })),
+    riskNotes,
+    questionNotes,
   };
 }
 
-export const BOARD = {
-  area: "Work",
-  products: [
-    {
-      name: "Marketing",
-      projects: [
-        project("Website relaunch", [T(1, "IN_PROGRESS", true), T(1, "NOT_STARTED"), T(2, "IN_PROGRESS"), T(2, "DONE"), T(3, "DONE"), T(4, "NOT_STARTED"), T(4, "DONE")], { risks: 1 }),
-        project("Brand refresh", [T(2, "NOT_STARTED"), T(2, "IN_PROGRESS"), T(3, "NOT_STARTED"), T(4, "DONE")]),
-      ],
-    },
-    {
-      name: "Platform",
-      projects: [
-        project("Auth rework", [T(1, "BLOCKED"), T(1, "IN_PROGRESS", true), T(2, "IN_PROGRESS"), T(3, "DONE"), T(4, "NOT_STARTED"), T(4, "DONE")], { questions: 2 }),
-        project("API v2", [T(1, "NOT_STARTED"), T(1, "IN_PROGRESS"), T(2, "NOT_STARTED"), T(4, "DONE"), T(4, "NOT_STARTED"), T(4, "NOT_STARTED")]),
-      ],
-    },
-    {
-      name: "Ops",
-      projects: [
-        project("Onboarding refresh", [T(1, "DONE"), T(2, "DONE"), T(2, "IN_PROGRESS"), T(3, "DONE"), T(4, "DONE")]),
-        project("Vendor review", [T(1, "NOT_STARTED", true), T(2, "NOT_STARTED"), T(4, "NOT_STARTED")], { risks: 1, questions: 1 }),
-      ],
-    },
+// A fixture area/product entity in the shape the real card shells read:
+// `display_on_card_fields` empty (so the real CardCustomFields renders
+// nothing, same as an entity with no card fields), `custom_data` empty.
+function entity(id, description) {
+  return { id, description, display_on_card_fields: [], custom_data: {} };
+}
+
+const MARKETING = {
+  ...entity("demo-product-marketing", "Launches, brand, and the site"),
+  name: "Marketing",
+  projects: [
+    project("Website relaunch", [T(1, "IN_PROGRESS", true), T(1, "NOT_STARTED"), T(2, "IN_PROGRESS"), T(2, "DONE"), T(3, "DONE"), T(4, "NOT_STARTED"), T(4, "DONE")], { risks: 1 }),
+    project("Brand refresh", [T(2, "NOT_STARTED"), T(2, "IN_PROGRESS"), T(3, "NOT_STARTED"), T(4, "DONE")]),
   ],
-  // The card the assistant adds mid-demo, into Marketing.
-  added: project("Q3 launch", [T(2, "NOT_STARTED"), T(1, "NOT_STARTED"), T(3, "NOT_STARTED")]),
 };
+const PLATFORM = {
+  ...entity("demo-product-platform", "The app itself and its APIs"),
+  name: "Platform",
+  projects: [
+    project("Auth rework", [T(1, "BLOCKED"), T(1, "IN_PROGRESS", true), T(2, "IN_PROGRESS"), T(3, "DONE"), T(4, "NOT_STARTED"), T(4, "DONE")], { questions: 2 }),
+    project("API v2", [T(1, "NOT_STARTED"), T(1, "IN_PROGRESS"), T(2, "NOT_STARTED"), T(4, "DONE"), T(4, "NOT_STARTED"), T(4, "NOT_STARTED")]),
+  ],
+};
+const OPS = {
+  ...entity("demo-product-ops", "Vendors, onboarding, and internal process"),
+  name: "Ops",
+  projects: [
+    project("Onboarding refresh", [T(1, "DONE"), T(2, "DONE"), T(2, "IN_PROGRESS"), T(3, "DONE"), T(4, "DONE")]),
+    project("Vendor review", [T(1, "NOT_STARTED", true), T(2, "NOT_STARTED"), T(4, "NOT_STARTED")], { risks: 1, questions: 1 }),
+  ],
+};
+
+const ADDED = project("Q3 launch", [T(2, "NOT_STARTED"), T(1, "NOT_STARTED"), T(3, "NOT_STARTED")]);
+
+export const BOARD = {
+  ...entity("demo-area-work", "Everything I'm on the hook for"),
+  area: "Work",
+  products: [MARKETING, PLATFORM, OPS],
+  // The card the assistant adds mid-demo, into Marketing.
+  added: ADDED,
+};
+
+// All the tasks under one product / the whole area — what the product- and
+// area-level TaskStatistics bars read, aggregated the same way the real
+// ProductCard / AreaCard aggregate their subtree.
+export const tasksOfProduct = (product, includeAdded = false) =>
+  [...product.projects, ...(includeAdded && product === MARKETING ? [ADDED] : [])].flatMap((p) => p.tasks);
+export const tasksOfBoard = (includeAdded = false) =>
+  BOARD.products.flatMap((p) => tasksOfProduct(p, includeAdded));
 
 export const CHAT_PROMPT = "Set up “Q3 launch” under Marketing with three tasks";
 
@@ -67,16 +95,20 @@ export const CHAT_MESSAGES = [
   {
     id: "a1",
     role: "assistant",
+    // A real staged turn's shape (see useChatController.js buildLoggedContent):
+    // a dim ```tool-log summary line, then the plain-English reply. The step
+    // list itself isn't re-typed here — pending_action.actions below is what
+    // ChatMessageList renders as the confirm card, each with its target, so
+    // the plan is stated once, not twice. The tool-log line is exactly
+    // chatActions.js describePlan() output for 1 project + 3 tasks.
     content:
-      "plan · read Marketing, 1 project\n\nHere's what I'll do — nothing runs until you approve:\n\n- **Create project** “Q3 launch” in Marketing\n- **Add task** Draft the announcement · quadrant 2\n- **Add task** Brief the design review · quadrant 1\n- **Add task** Schedule the send · quadrant 3",
-    // Shape must match a real staged turn: ChatMessageList reads
-    // pending_action.actions and lists each one in the confirm card.
+      "```tool-log\nplan · 4 steps across 1 project, 3 tasks\n```\n\nHere's a Q3 launch project mapped out under Marketing, with the three tasks you asked for. Nothing's been created yet — look it over and approve.",
     pending_action: {
       actions: [
-        { action: "CREATE_PROJECT" },
-        { action: "CREATE_TASK" },
-        { action: "CREATE_TASK" },
-        { action: "CREATE_TASK" },
+        { action: "CREATE_PROJECT", args: { title: "Q3 launch" } },
+        { action: "CREATE_TASK", args: { title: "Draft the announcement" } },
+        { action: "CREATE_TASK", args: { title: "Brief the design review" } },
+        { action: "CREATE_TASK", args: { title: "Schedule the send" } },
       ],
     },
   },

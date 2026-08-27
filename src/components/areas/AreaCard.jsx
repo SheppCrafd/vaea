@@ -13,6 +13,7 @@ import CardCustomFields from "@/components/shared/CardCustomFields";
 import ProductCard from "@/components/products/ProductCard";
 import ProjectsGrid from "@/components/shared/ProjectsGrid";
 import TaskStatistics from "@/components/shared/TaskStatistics";
+import AreaCardShell from "@/components/areas/AreaCardShell";
 
 // `stakeholderIds` (the full aggregated subtree, from Dashboard.jsx) is only
 // used here to pass down to orphan ProjectCards as their empty-project
@@ -71,13 +72,11 @@ function AreaCard({ area, products = [], orphanProjects = [], onExpand, stakehol
   const { data: areaTasks = [] } = useTasksForProjects(areaProjectIds);
 
   return (
-    <article
-      ref={setCardRefs}
+    <AreaCardShell
+      rootRef={setCardRefs}
       style={{ opacity: isDragging ? 0.4 : 1 }}
-      className={`card-enter relative z-10 bg-card border rounded-2xl shadow-md p-5 break-inside-avoid flex flex-col gap-4 transition-colors duration-[time:var(--motion-fast)] ${isCardOver ? "ring-2 ring-primary ring-offset-1 border-primary" : "border-foreground/[0.04]"}`}
-    >
-
-      <div className="relative">
+      className={isCardOver ? "ring-2 ring-primary ring-offset-1 border-primary" : "border-foreground/[0.04]"}
+      dragHandle={
         <div
           className="absolute top-0 left-0 z-20 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1.5"
           aria-label="Drag to reorder area"
@@ -87,18 +86,19 @@ function AreaCard({ area, products = [], orphanProjects = [], onExpand, stakehol
         >
           <GripVertical className="w-4 h-4" />
         </div>
-        <div className="absolute top-0 right-0 flex items-center gap-1 z-20">
-          <button
-            onClick={() => onExpand(area)}
-            className="text-muted-foreground hover:text-foreground hover:bg-accent p-2 rounded-md transition-colors"
-            title="Expand Area"
-            aria-label="Expand Area"
-          >
-            <Expand className="w-4 h-4" />
-          </button>
-          <DeleteButton onClick={handleDelete} label="Delete area" size="md" className="p-2 rounded-md" />
-        </div>
-
+      }
+      expandButton={
+        <button
+          onClick={() => onExpand(area)}
+          className="text-muted-foreground hover:text-foreground hover:bg-accent p-2 rounded-md transition-colors"
+          title="Expand Area"
+          aria-label="Expand Area"
+        >
+          <Expand className="w-4 h-4" />
+        </button>
+      }
+      deleteButton={<DeleteButton onClick={handleDelete} label="Delete area" size="md" className="p-2 rounded-md" />}
+      title={
         <EditableTitle
           as="h3"
           value={title}
@@ -108,17 +108,17 @@ function AreaCard({ area, products = [], orphanProjects = [], onExpand, stakehol
           tooltip={title}
           className="font-heading font-semibold text-lg pl-6 pr-16 min-w-0"
         />
-        <div className="mt-1 min-w-0">
-          <EditableText
-            value={area.description}
-            onSave={(v) => updateArea.mutate({ id: area.id, data: { description: v } })}
-            placeholder="Add a description..."
-            className="text-sm text-muted-foreground"
-          />
-        </div>
-      </div>
-
-      {products.length > 0 && (
+      }
+      description={
+        <EditableText
+          value={area.description}
+          onSave={(v) => updateArea.mutate({ id: area.id, data: { description: v } })}
+          placeholder="Add a description..."
+          className="text-sm text-muted-foreground"
+        />
+      }
+      productsGrid={
+        products.length > 0 && (
         <div
           className={`mt-2 grid items-start ${cardView === "mini" ? "-mx-5" : "gap-4"}`}
           // Full Cards' project card is a fixed 420px, and a Product needs
@@ -176,33 +176,34 @@ function AreaCard({ area, products = [], orphanProjects = [], onExpand, stakehol
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
-      )}
-
-      <div 
-        ref={setNodeRef}
-        className={`mt-2 p-4 rounded-xl transition-all ${isOver ? "bg-primary/10 shadow-[inset_0_0_0_2px_hsl(var(--primary)/0.6)]" : "bg-muted/40 shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.035)]"}`}
-      >
-        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-          Direct Projects
-        </h4>
-        <ProjectsGrid
-          projects={orphanProjects}
-          stakeholderIds={stakeholderIds}
-          emptyMessage="Drop a project here to remove it from a product"
-          gap={8}
-          className="min-h-[50px]"
+        )
+      }
+      directProjects={
+        <div
+          ref={setNodeRef}
+          className={`mt-2 p-4 rounded-xl transition-all ${isOver ? "bg-primary/10 shadow-[inset_0_0_0_2px_hsl(var(--primary)/0.6)]" : "bg-muted/40 shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.035)]"}`}
+        >
+          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            Direct Projects
+          </h4>
+          <ProjectsGrid
+            projects={orphanProjects}
+            stakeholderIds={stakeholderIds}
+            emptyMessage="Drop a project here to remove it from a product"
+            gap={8}
+            className="min-h-[50px]"
+          />
+        </div>
+      }
+      stats={<TaskStatistics tasks={areaTasks} />}
+      customFields={
+        <CardCustomFields
+          entity={area}
+          onUpdateEntity={(data) => updateArea.mutate({ id: area.id, data })}
+          className="flex flex-wrap gap-x-3 gap-y-1"
         />
-      </div>
-
-      <TaskStatistics tasks={areaTasks} />
-
-      <CardCustomFields
-        entity={area}
-        onUpdateEntity={(data) => updateArea.mutate({ id: area.id, data })}
-        className="flex flex-wrap gap-x-3 gap-y-1"
-      />
-
-    </article>
+      }
+    />
   );
 }
 

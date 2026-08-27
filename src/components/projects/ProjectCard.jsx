@@ -11,7 +11,7 @@ import { useUpdateProject, useDeleteProject } from "@/hooks/useProjects";
 import { confirmThen } from "@/lib/entityUtils";
 import { getQuadrantCounts, getMiniStatusCounts } from "@/lib/taskUtils";
 import EditableTitle from "@/components/shared/EditableTitle";
-import ProjectMiniStats from "@/components/projects/ProjectMiniStats";
+import ProjectCardShell from "@/components/projects/ProjectCardShell";
 
 // Lazy: neither modal is needed until a user opens it from this card.
 const TaskTableModal = lazy(() => import("@/components/projects/TaskTableModal"));
@@ -77,21 +77,19 @@ function ProjectCard({ project, stakeholderIds = [] }) {
   const miniTotal = miniStats.reduce((sum, c) => sum + c.count, 0);
 
   return (
-    <div
-      ref={setRefs}
+    <ProjectCardShell
+      rootRef={setRefs}
       style={style}
-      data-project-card={project.id}
       // Width comes from ProjectsGrid's Mini-mode CSS grid, which fixes every
       // track at 112px rather than letting them grow to fill the row —
       // sized to this tile's own content instead of wasting leftover grid
       // space. aspect-square derives the height from that same 112px.
-      className={`relative bg-card border border-border rounded-xl p-2 w-full aspect-square flex flex-col items-center transition-colors ${isMatched ? "bg-primary/10 ring-1 ring-primary/30" : ""} ${isDragging ? "shadow-2xl scale-105 border-primary" : "shadow-sm"} ${isOver ? "ring-2 ring-primary ring-offset-1" : ""}`}
-    >
-      {/* Header row in normal flow (not absolute corners): grip, then the
-          title sitting between the move and expand icons, then the
-          expand/delete cluster — the title's flex-1 keeps it centered in
-          whatever width the icons leave over. */}
-      <div className="w-full flex items-start gap-0.5 z-20">
+      rootProps={{ "data-project-card": project.id }}
+      className={`${isMatched ? "bg-primary/10 ring-1 ring-primary/30" : ""} ${isDragging ? "shadow-2xl scale-105 border-primary" : "shadow-sm"} ${isOver ? "ring-2 ring-primary ring-offset-1" : ""}`}
+      // Header row: grip, then the title sitting between the move and expand
+      // icons, then the expand/delete cluster — the title's flex-1 keeps it
+      // centered in whatever width the icons leave over.
+      dragHandle={
         <div
           {...attributes}
           {...listeners}
@@ -99,7 +97,8 @@ function ProjectCard({ project, stakeholderIds = [] }) {
         >
           <GripVertical className="w-3 h-3" />
         </div>
-
+      }
+      title={
         <EditableTitle
           as="h4"
           value={title}
@@ -109,29 +108,25 @@ function ProjectCard({ project, stakeholderIds = [] }) {
           tooltip={title}
           className="flex-1 min-w-0 font-heading font-semibold text-[11px] leading-tight text-center cursor-text line-clamp-2"
         />
-
-        <div className="shrink-0 flex items-center gap-0.5">
-          <button
-            onClick={() => setIsDetailOpen(true)}
-            className="text-muted-foreground hover:text-foreground p-0.5 rounded hover:bg-muted transition-colors"
-            title="Expand Project"
-            aria-label="Expand project"
-          >
-            <Expand className="w-3 h-3" />
-          </button>
-          <DeleteButton onClick={handleDelete} label="Delete project" />
-        </div>
-      </div>
-
-      <ProjectMiniStats
-        quadrants={quadrants}
-        riskNotes={riskNotes}
-        questionNotes={questionNotes}
-        miniStats={miniStats}
-        miniTotal={miniTotal}
-        onOpenTable={() => setIsTableOpen(true)}
-      />
-
+      }
+      expandButton={
+        <button
+          onClick={() => setIsDetailOpen(true)}
+          className="text-muted-foreground hover:text-foreground p-0.5 rounded hover:bg-muted transition-colors"
+          title="Expand Project"
+          aria-label="Expand project"
+        >
+          <Expand className="w-3 h-3" />
+        </button>
+      }
+      deleteButton={<DeleteButton onClick={handleDelete} label="Delete project" />}
+      quadrants={quadrants}
+      riskNotes={riskNotes}
+      questionNotes={questionNotes}
+      miniStats={miniStats}
+      miniTotal={miniTotal}
+      onOpenTable={() => setIsTableOpen(true)}
+    >
       <Suspense fallback={null}>
         {isTableOpen && (
           <TaskTableModal project={project} onClose={() => setIsTableOpen(false)} />
@@ -140,7 +135,7 @@ function ProjectCard({ project, stakeholderIds = [] }) {
           <ProjectDetailModal project={project} onClose={() => setIsDetailOpen(false)} />
         )}
       </Suspense>
-    </div>
+    </ProjectCardShell>
   );
 }
 
