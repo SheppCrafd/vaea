@@ -69,7 +69,16 @@ export const CHAT_MESSAGES = [
     role: "assistant",
     content:
       "plan · read Marketing, 1 project\n\nHere's what I'll do — nothing runs until you approve:\n\n- **Create project** “Q3 launch” in Marketing\n- **Add task** Draft the announcement · quadrant 2\n- **Add task** Brief the design review · quadrant 1\n- **Add task** Schedule the send · quadrant 3",
-    pending_action: true,
+    // Shape must match a real staged turn: ChatMessageList reads
+    // pending_action.actions and lists each one in the confirm card.
+    pending_action: {
+      actions: [
+        { action: "CREATE_PROJECT" },
+        { action: "CREATE_TASK" },
+        { action: "CREATE_TASK" },
+        { action: "CREATE_TASK" },
+      ],
+    },
   },
 ];
 

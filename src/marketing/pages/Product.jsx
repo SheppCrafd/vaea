@@ -79,7 +79,7 @@ export default function Product() {
         tone="dark"
         eyebrow="ask · read the plan · approve"
         title="The assistant works on the same board you see"
-        visual={<ChatDemo />}
+        visual={<ChatDemo onDark />}
         cta={{ to: "/assistant", label: "More on the assistant" }}
       >
         <p>
