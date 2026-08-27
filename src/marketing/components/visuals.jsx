@@ -16,6 +16,19 @@ const VaultGraph = lazy(() => import("@/components/mindmap/VaultGraph"));
 
 const noop = () => {};
 
+// Bare inert wrapper — no card chrome. For demos that bring their own
+// framing (the terminal blocks), just the aria-hidden + pointer-events-none
+// + select-none + cursor-stays-arrow (.mkt-demo) treatment every demo needs
+// so nothing inside (e.g. TerminalBlock's copy button) is hoverable or
+// clickable. Component-internal animation still runs.
+export function InertDemo({ className, children }) {
+  return (
+    <div aria-hidden="true" className={cn("mkt-demo pointer-events-none select-none", className)}>
+      {children}
+    </div>
+  );
+}
+
 // Inert wrapper: aria-hidden, pointer-events-none (pointer stays a default
 // arrow, nothing is clickable), select-none. Component-internal animation
 // (the chat typewriter, the notes-map motion) still runs.
@@ -57,7 +70,7 @@ function Deferred({ height = 320, children }) {
 export function ChatDemo({ onDark = false }) {
   return (
     <DemoStage label="Assistant" onDark={onDark}>
-      <Deferred height={256}>
+      <Deferred height={200}>
         <ChatMessageList
           messages={CHAT_MESSAGES}
           isComputing={false}
@@ -116,21 +129,25 @@ export function MindMapDemo() {
 // render scope), so it renders straight into the prerendered HTML.
 export function StorageTerminal() {
   return (
-    <TerminalBlock
-      title="your-folder"
-      showPrompt
-      code={["ls", "# areas.json   projects.json   tasks.json", "# people.json   notes.json", "", "# times your work was sent anywhere: 0"].join("\n")}
-    />
+    <InertDemo>
+      <TerminalBlock
+        title="your-folder"
+        showPrompt
+        code={["ls", "# areas.json   projects.json   tasks.json", "# people.json   notes.json", "", "# times your work was sent anywhere: 0"].join("\n")}
+      />
+    </InertDemo>
   );
 }
 
 export function LocalModeTerminal() {
   return (
-    <TerminalBlock
-      title="on your computer"
-      showPrompt
-      code={["# the assistant runs against a model on this machine", "ask  ->  answer      (no internet)", "", "# requests leaving your computer: 0"].join("\n")}
-    />
+    <InertDemo>
+      <TerminalBlock
+        title="on your computer"
+        showPrompt
+        code={["# the assistant runs against a model on this machine", "ask  ->  answer      (no internet)", "", "# requests leaving your computer: 0"].join("\n")}
+      />
+    </InertDemo>
   );
 }
 

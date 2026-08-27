@@ -99,16 +99,13 @@ export default function Assistant() {
         eyebrow="more than the board"
         title="It can reach past your task list"
         visual={
-          <div
-            aria-hidden="true"
-            className="mkt-demo pointer-events-none select-none rounded-2xl border border-foreground/[0.08] bg-card/70 p-5 shadow-[0_36px_72px_-34px_hsl(200_30%_12%/0.34)] backdrop-blur-xl"
-          >
+          <ul className="divide-y divide-foreground/[0.08] border-y border-foreground/[0.08]">
             {CAN.map((t, i) => (
-              <p key={i} className="border-b border-foreground/[0.06] py-2.5 text-[0.9rem] text-foreground last:border-0">
+              <li key={i} className="py-3 text-[0.95rem] text-foreground">
                 {t}
-              </p>
+              </li>
             ))}
-          </div>
+          </ul>
         }
       >
         <p>
