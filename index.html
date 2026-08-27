@@ -7,12 +7,42 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#f5f7f8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)" />
     <link rel="manifest" href="/site.webmanifest" />
-    <title>Vaea</title>
+
+    <!-- Defaults. scripts/prerender.mjs overwrites the tags between the
+         PRERENDER markers per route at build time; these values are the
+         fallback for any path that isn't prerendered. -->
+    <!-- PRERENDER:HEAD:START -->
+    <title>Vaea — one board for every project you're holding</title>
+    <meta
+      name="description"
+      content="Vaea nests your work as areas, products, projects and tasks on a single board — with an AI assistant that edits that same board when you ask. Your data stays on your device."
+    />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://vaea.base44.app/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Vaea" />
+    <meta property="og:title" content="Vaea — one board for every project you're holding" />
+    <meta
+      property="og:description"
+      content="A nested project board with an AI assistant that acts on it. Local-first — your workspace stays on your device."
+    />
+    <meta property="og:url" content="https://vaea.base44.app/" />
+    <meta property="og:image" content="https://vaea.base44.app/og-image.png" />
+    <meta property="og:image:alt" content="Vaea — a nested board of areas, products, projects and tasks" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Vaea — one board for every project you're holding" />
+    <meta
+      name="twitter:description"
+      content="A nested project board with an AI assistant that acts on it. Local-first — your workspace stays on your device."
+    />
+    <meta name="twitter:image" content="https://vaea.base44.app/og-image.png" />
+    <!-- PRERENDER:HEAD:END -->
   </head>
   <body>
-    <div id="root"></div>
+    <!-- PRERENDER:BODY:START --><div id="root"></div><!-- PRERENDER:BODY:END -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
