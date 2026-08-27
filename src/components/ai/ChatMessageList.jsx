@@ -229,9 +229,19 @@ function PendingActionCard({ actions, onConfirm, onCancel, resolving }) {
         <span className="text-[10px] font-semibold uppercase tracking-wider text-destructive/80">Confirm to proceed</span>
       </div>
       <ul className="px-3 py-2 space-y-0.5">
-        {(actions || []).map((a, i) => (
-          <li key={i} className="text-foreground/90">{humanizeAction(a.action)}</li>
-        ))}
+        {(actions || []).map((a, i) => {
+          // The target of the action, when the plan carries one — a title on
+          // a create, otherwise a name/label. Without it a plan that stages
+          // three creates reads as three identical "Create Task" lines with
+          // no way to tell which task each one is.
+          const target = a.args?.title || a.args?.name || a.args?.label || a.title;
+          return (
+            <li key={i} className="text-foreground/90">
+              {humanizeAction(a.action)}
+              {target ? <span className="text-muted-foreground"> — {target}</span> : null}
+            </li>
+          );
+        })}
       </ul>
       <div className="px-3 pb-2.5 pt-0.5 flex gap-2">
         <button
