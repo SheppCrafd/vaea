@@ -12,6 +12,7 @@ export default [
       "src/hooks/**/*.{js,mjs,cjs,jsx}",
       "src/lib/**/*.{js,mjs,cjs,jsx}",
       "src/api/**/*.{js,mjs,cjs,jsx}",
+      "src/marketing/**/*.{js,mjs,cjs,jsx}",
       "src/App.jsx",
       "src/main.jsx",
       "src/Layout.jsx",
