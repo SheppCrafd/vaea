@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { GripVertical, Expand } from "lucide-react";
+import { GripVertical, Expand, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DeleteButton } from "@/components/ui/delete-button";
 import AreaCardShell from "@/components/areas/AreaCardShell";
@@ -248,15 +248,33 @@ export default function BoardDemo({ hero = false, className }) {
         }
       />
 
+      {/* The assistant's composer row, receiving the typed instruction.
+          ChatBox.jsx (the real widget) can't mount here — it's wired to
+          ChatControllerContext, the app store and window-geometry hooks — so
+          this is its input row reconstructed CLASS-FOR-CLASS from
+          ChatBox.jsx's <form> (the `+` button, the inset `bg-muted/50
+          rounded-xl` field with the `>` prompt, the `Send` button). Only the
+          outer wrapper differs: a rounded card edge instead of the full
+          panel's `border-t`, since there's no panel above it here. Inert
+          like the rest of the demo — the text types on a timer, nothing is
+          focusable or clickable. */}
       {hero && (
-        <div className="mt-4 flex items-center gap-2.5 rounded-full border border-foreground/[0.08] bg-background/50 px-4 py-2.5">
-          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[rgb(var(--signal-rgb))]" />
-          <span className="min-w-0 flex-1 truncate font-mono text-[0.78rem] text-foreground">
-            {typed}
-            {!added && <span className="mkt-caret" style={{ height: "1em" }} />}
+        <div className="mt-4 flex items-center gap-2 rounded-2xl border border-foreground/[0.06] bg-card p-3 shadow-sm">
+          <span
+            aria-hidden="true"
+            className="shrink-0 p-2 text-muted-foreground rounded-md"
+          >
+            <Plus className="w-4 h-4" />
           </span>
-          <span className="hidden shrink-0 font-mono text-[0.64rem] uppercase tracking-wider text-muted-foreground sm:inline">
-            {added ? "1 change · applied" : "Assistant"}
+          <div className="flex-1 flex items-center gap-1.5 bg-muted/50 rounded-xl px-3 py-2 shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.04)]">
+            <span className="font-terminal text-primary text-sm select-none">{'>'}</span>
+            <span className="flex-1 min-w-0 truncate font-terminal text-sm text-foreground">
+              {typed || <span className="text-muted-foreground">Ask Vaea to change the board…</span>}
+              {!added && typed && <span className="mkt-caret" style={{ height: "1em" }} />}
+            </span>
+          </div>
+          <span className="shrink-0 text-sm px-4 py-2 bg-primary text-primary-foreground font-medium rounded-md shadow-sm">
+            Send
           </span>
         </div>
       )}

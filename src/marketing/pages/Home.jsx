@@ -2,29 +2,7 @@ import { Container, Eyebrow, Section, CtaRow, Reveal } from "../components/ui";
 import { ShowBlock, ProofStrip, Manifesto, Marquee, Faq, ClosingCta } from "../components/blocks";
 import BoardDemo from "../components/BoardDemo";
 import { ChatDemo, VmailDemo, StorageTerminal } from "../components/visuals";
-
-const FAQ = [
-  {
-    q: "Who is this for?",
-    a: "Anyone keeping track of a lot at once — several projects, a few clients, work and home in the same list. It's made for one person's own setup, not a shared team space.",
-  },
-  {
-    q: "What does it cost?",
-    a: "Nothing. There are no paid plans and nothing is locked behind an upgrade. If you connect your own AI account, you pay that provider directly — Vaea adds no charge.",
-  },
-  {
-    q: "Does the assistant actually change things, or just talk?",
-    a: "It changes things. You ask in plain words, it shows you exactly what it's about to do, and nothing happens until you say yes. You can undo the last thing with one word.",
-  },
-  {
-    q: "Where is my information kept?",
-    a: "On your own computer, in ordinary files you can see. Nothing is stored on a server unless you specifically switch that on. You can move it or delete it whenever you want.",
-  },
-  {
-    q: "Will it still be here next year?",
-    a: "It's made and looked after by one person, and the code is public. There's no company that could fold and take it offline — it's a personal tool kept in daily use.",
-  },
-];
+import { HOME_FAQ } from "../seo";
 
 export default function Home() {
   return (
@@ -33,16 +11,16 @@ export default function Home() {
       <section className="pt-12 sm:pt-16">
         <Container>
           <div className="max-w-[54rem]">
-            <Eyebrow className="mkt-hero-rise mb-4">your work, one board, an assistant that helps run it</Eyebrow>
+            <Eyebrow className="mkt-hero-rise mb-4">one board · an assistant that acts on it · nothing leaves your computer</Eyebrow>
             {/* Not animated in — it's the LCP element; it must be final on
                 first paint. The lighter elements around it carry the entrance. */}
-            <h1 className="text-balance font-display text-[clamp(2.7rem,7.4vw,5.4rem)] font-semibold leading-[1.0] tracking-[-0.04em] text-foreground">
+            <h1 className="text-balance font-display text-[clamp(2.9rem,8vw,5.8rem)] font-semibold leading-[1.0] tracking-[-0.04em] text-foreground">
               Say what's on your plate. It sorts it onto the board.
             </h1>
-            <p className="mkt-hero-rise mt-6 max-w-[40rem] text-pretty text-[1.12rem] leading-relaxed text-muted-foreground [--rise-delay:120ms]">
-              Keep every project in one place, tucked under the part of your life it belongs to. Ask the
-              built-in assistant to add, change, or tidy things — it shows you the change first, and
-              nothing happens until you approve it.
+            <p className="mkt-hero-rise mt-6 max-w-[42rem] text-pretty text-[1.12rem] leading-relaxed text-muted-foreground [--rise-delay:120ms]">
+              Vaea is one board for everything you're juggling — every project tucked under the part of
+              your life it belongs to. Most assistants just hand you another to-do list. This one makes
+              the change on the board itself, and shows you first.
             </p>
             <div className="mkt-hero-rise mt-8 [--rise-delay:180ms]">
               <CtaRow note="Free · no card · your information stays on your computer" />
@@ -60,8 +38,8 @@ export default function Home() {
       />
 
       <Manifesto>
-        Most assistants just hand you another to-do list. This one moves the pieces on the board —
-        and it can run without anything leaving your computer.
+        A tool for your own work shouldn't need a company's server. Every project stays in plain files
+        on your computer — and the assistant can run there too, with nothing sent out.
       </Manifesto>
 
       {/* PROBLEM — short, concrete, then straight into the show */}
@@ -160,7 +138,21 @@ export default function Home() {
 
       <Section id="faq" eyebrow="fair questions" title="The things people ask first">
         <Reveal className="mt-8">
-          <Faq items={FAQ} />
+          <Faq items={HOME_FAQ} />
+        </Reveal>
+      </Section>
+
+      <Section eyebrow="who's behind it" title="Made by one person, kept in daily use">
+        <Reveal className="mt-6 max-w-[46rem] space-y-3.5 text-[1.02rem] leading-relaxed text-muted-foreground">
+          <p>
+            I built Vaea because I was the person it's for — too many projects across too many apps,
+            and no wish to hand all of it to another company's server. It's free because I'm not
+            building a business on it; I'm keeping my own week straight.
+          </p>
+          <p>
+            The code is public, the app runs offline, and your work sits in files you own. If it
+            stopped being looked after tomorrow, nothing of yours would go anywhere.
+          </p>
         </Reveal>
       </Section>
 

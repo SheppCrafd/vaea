@@ -7,6 +7,13 @@
 export const SITE_URL = "https://vaea.base44.app";
 export const SITE_NAME = "Vaea";
 export const OG_IMAGE = `${SITE_URL}/og-image.png`;
+// Public source repo — used as the Organization/Person `sameAs` so answer
+// engines and Google can resolve the "Vaea" entity to the right thing (the
+// name collides with unrelated places/words).
+export const SITE_REPO = "https://github.com/SheppCrafd/vaea";
+// Bump when page copy materially changes. Surfaced visibly in the footer and
+// as `dateModified` in structured data (a freshness signal for search + AI).
+export const SITE_MODIFIED = "2026-08-27";
 
 // Every indexable marketing route. `path` is the router path; `loc` is what
 // lands in sitemap.xml. Keep this list and MarketingApp's <Route> list in
@@ -54,13 +61,91 @@ export function routeFor(pathname) {
   return ROUTES.find((r) => r.path === pathname);
 }
 
+// --- Shared page content that also has to appear in structured data -------
+// Kept here so the visible copy and the JSON-LD can never drift (Google
+// drops FAQ/HowTo markup that doesn't match what's on the page). The pages
+// import these arrays and render them; jsonLdFor() below builds FAQPage /
+// HowTo from the same source.
+
+export const HOME_FAQ = [
+  {
+    q: "Who is this for?",
+    a: "One person keeping track of a lot at once — several projects, a few clients, work and home in the same list. It's made for your own setup, not a shared team space.",
+  },
+  {
+    q: "What does it cost?",
+    a: "Nothing. There are no paid plans and nothing is locked behind an upgrade. If you connect your own AI account, you pay that provider directly — Vaea adds no charge.",
+  },
+  {
+    q: "Does the assistant actually change things, or just talk?",
+    a: "It changes things. You ask in plain words, it shows you exactly what it's about to do, and nothing happens until you say yes. You can undo the last thing with one word.",
+  },
+  {
+    q: "Where is my information kept?",
+    a: "On your own computer, in ordinary files you can see. Nothing is stored on a server unless you specifically switch that on. You can move it or delete it whenever you want.",
+  },
+  {
+    q: "Will it still be here next year?",
+    a: "It's made and looked after by one person, and the code is public. There's no company that could fold and take it offline — it's a personal tool kept in daily use.",
+  },
+];
+
+export const ASSISTANT_FAQ = [
+  {
+    q: "What gets sent, and where?",
+    a: "When you ask something, a copy of your current board goes to the AI service for that one question so it can understand what you mean. Nothing is saved on a server afterward. The app tells you this right in the chat window.",
+  },
+  {
+    q: "Can I use my own AI account?",
+    a: "Yes. Connect an account from a major AI provider and the assistant talks to it directly from your browser. Or run a model on your own computer, with nothing sent out at all.",
+  },
+  {
+    q: "Could it do something I didn't want?",
+    a: "It can't act on its own. Every change is shown to you first and waits for your yes. Removing things asks a second time, and a backup is saved before anything large — so a mistake is easy to walk back.",
+  },
+  {
+    q: "Does it watch how I work?",
+    a: "Only if you turn that on. By default, reopening the chat can show a plain summary of what changed while you were away — nothing about how you work. A separate switch lets it keep notes on your habits; leave it off and it can't.",
+  },
+];
+
+// The five steps of a single assistant change — rendered on /assistant as a
+// visible ordered list. Deliberately NOT emitted as HowTo structured data:
+// Google deprecated HowTo rich results in 2023, so the markup would only add
+// weight with no upside.
+export const ASSISTANT_STEPS = [
+  ["You ask", "Type it the way you'd say it — “move everything that's stuck waiting on the vendor to the top and flag it for this week.”"],
+  ["It looks at your board", "Your current board is sent along so it can see what's actually there. Just for that one question — nothing is kept."],
+  ["It shows you the plan", "You get a short list of exactly what it would change. Nothing has changed yet."],
+  ["You approve", "It makes the changes. Anything that removes something asks again, and a backup is saved before big changes."],
+  ["You can undo", "Say “undo” to take back the last change, or restore a backup."],
+];
+
+function faqPageLd(items) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map((it) => ({
+      "@type": "Question",
+      name: it.q,
+      acceptedAnswer: { "@type": "Answer", text: it.a },
+    })),
+  };
+}
+
+
 export function canonicalFor(pathname) {
   return pathname === "/" ? `${SITE_URL}/` : `${SITE_URL}${pathname}`;
 }
 
 // --- JSON-LD -------------------------------------------------------------
 
-const PERSON = { "@type": "Person", name: "the maker of Vaea", url: SITE_URL };
+const PERSON = {
+  "@type": "Person",
+  "@id": `${SITE_URL}/#maker`,
+  name: "the maker of Vaea",
+  sameAs: ["https://github.com/SheppCrafd"],
+};
 
 export function organizationLd() {
   return {
@@ -71,6 +156,7 @@ export function organizationLd() {
     url: SITE_URL,
     logo: `${SITE_URL}/android-chrome-512x512.png`,
     founder: PERSON,
+    sameAs: [SITE_REPO],
     description: "Vaea is a one-person project, free, with your information kept on your own computer by default.",
   };
 }
@@ -95,9 +181,12 @@ export function softwareApplicationLd() {
     applicationSubCategory: "Project and task management",
     operatingSystem: "Web",
     url: SITE_URL,
+    screenshot: OG_IMAGE,
+    dateModified: SITE_MODIFIED,
     description:
       "One board for all your projects and tasks, grouped by the part of life they belong to, with an assistant that makes changes after showing you first. Your information stays on your own computer by default.",
-    author: PERSON,
+    author: { "@id": `${SITE_URL}/#maker` },
+    publisher: { "@id": `${SITE_URL}/#org` },
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD", availability: "https://schema.org/InStock" },
     featureList: [
       "One board for projects and tasks, grouped by area of your life",
@@ -113,25 +202,33 @@ export function softwareApplicationLd() {
 
 export function jsonLdFor(pathname) {
   const route = routeFor(pathname);
-  if (pathname === "/") return [organizationLd(), websiteLd(), softwareApplicationLd()];
+  if (pathname === "/") {
+    return [organizationLd(), websiteLd(), softwareApplicationLd(), faqPageLd(HOME_FAQ)];
+  }
   if (!route) return [];
-  return [
-    {
-      "@context": "https://schema.org",
-      "@type": "WebPage",
-      name: route.title,
-      description: route.description,
-      url: canonicalFor(pathname),
-      isPartOf: { "@id": `${SITE_URL}/#website` },
-      breadcrumb: {
-        "@type": "BreadcrumbList",
-        itemListElement: [
-          { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_URL}/` },
-          { "@type": "ListItem", position: 2, name: route.title.split(" | ")[0].split(" — ")[0], item: canonicalFor(pathname) },
-        ],
-      },
+  if (pathname === "/assistant") {
+    return [webPageLd(route, pathname), faqPageLd(ASSISTANT_FAQ)];
+  }
+  return [webPageLd(route, pathname)];
+}
+
+function webPageLd(route, pathname) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: route.title,
+    description: route.description,
+    url: canonicalFor(pathname),
+    dateModified: SITE_MODIFIED,
+    isPartOf: { "@id": `${SITE_URL}/#website` },
+    breadcrumb: {
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_URL}/` },
+        { "@type": "ListItem", position: 2, name: route.title.split(" | ")[0].split(" — ")[0], item: canonicalFor(pathname) },
+      ],
     },
-  ];
+  };
 }
 
 export function headTagsFor(pathname) {

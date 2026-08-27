@@ -36,12 +36,12 @@ export default function Product() {
         <Container>
           <div className="max-w-[48rem]">
             <Eyebrow className="mb-4">a look at every part</Eyebrow>
-            <h1 className="text-balance font-display text-[clamp(2.4rem,5.8vw,4rem)] font-semibold leading-[1.02] tracking-[-0.037em] text-foreground">
-              One board, an assistant that helps run it, and the tools it plugs into
+            <h1 className="text-balance font-display text-[clamp(2.5rem,6vw,4.2rem)] font-semibold leading-[1.02] tracking-[-0.037em] text-foreground">
+              One board, one assistant, everything in one place
             </h1>
             <p className="mt-5 max-w-[40rem] text-[1.05rem] leading-relaxed text-muted-foreground">
-              Start with the board and the assistant. Connect your calendar, email and notes when
-              you're ready, and the same assistant helps with those too.
+              Start with the board and the assistant. Connect your calendar, email, and notes when
+              you're ready — the same assistant helps with those too.
             </p>
             <div className="mt-7">
               <CtaRow note="Free · the board works before you even sign in" />

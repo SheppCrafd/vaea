@@ -11,32 +11,57 @@
     <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)" />
     <link rel="manifest" href="/site.webmanifest" />
 
+    <!-- Above-the-fold fonts, preloaded + declared inline so the prerendered
+         marketing <h1>/<h2> (Space Grotesk 600) and body (Inter 400) paint in
+         their real face on first frame instead of swapping after the JS
+         bundle parses the @fontsource imports. The full weight set still
+         loads from @fontsource in main.jsx for the app; these two stable
+         copies in /public just cover the critical path. -->
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/space-grotesk-latin-600-normal.woff2" />
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/inter-latin-400-normal.woff2" />
+    <style>
+      @font-face {
+        font-family: "Space Grotesk";
+        font-style: normal;
+        font-weight: 600;
+        font-display: swap;
+        src: url("/fonts/space-grotesk-latin-600-normal.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Inter";
+        font-style: normal;
+        font-weight: 400;
+        font-display: swap;
+        src: url("/fonts/inter-latin-400-normal.woff2") format("woff2");
+      }
+    </style>
+
     <!-- Defaults. scripts/prerender.mjs overwrites the tags between the
          PRERENDER markers per route at build time; these values are the
          fallback for any path that isn't prerendered. -->
     <!-- PRERENDER:HEAD:START -->
-    <title>Vaea — one board for every project you're holding</title>
+    <title>Vaea — all your projects on one board, run by an assistant</title>
     <meta
       name="description"
-      content="Vaea nests your work as areas, products, projects and tasks on a single board — with an AI assistant that edits that same board when you ask. Your data stays on your device."
+      content="All your projects in one place. Ask the built-in assistant to add or change things — it shows you first, and your info stays on your own computer."
     />
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://vaea.base44.app/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Vaea" />
-    <meta property="og:title" content="Vaea — one board for every project you're holding" />
+    <meta property="og:title" content="Vaea — all your projects on one board, run by an assistant" />
     <meta
       property="og:description"
-      content="A nested project board with an AI assistant that acts on it. Local-first — your workspace stays on your device."
+      content="All your projects in one place. Ask the built-in assistant to add or change things — it shows you first, and your info stays on your own computer."
     />
     <meta property="og:url" content="https://vaea.base44.app/" />
     <meta property="og:image" content="https://vaea.base44.app/og-image.png" />
-    <meta property="og:image:alt" content="Vaea — a nested board of areas, products, projects and tasks" />
+    <meta property="og:image:alt" content="The Vaea board — projects grouped by the part of life they belong to" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Vaea — one board for every project you're holding" />
+    <meta name="twitter:title" content="Vaea — all your projects on one board, run by an assistant" />
     <meta
       name="twitter:description"
-      content="A nested project board with an AI assistant that acts on it. Local-first — your workspace stays on your device."
+      content="All your projects in one place. Ask the built-in assistant to add or change things — it shows you first, and your info stays on your own computer."
     />
     <meta name="twitter:image" content="https://vaea.base44.app/og-image.png" />
     <!-- PRERENDER:HEAD:END -->

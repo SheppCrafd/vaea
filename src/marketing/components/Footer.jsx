@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { SITE_MODIFIED } from "../seo";
 
 const COLS = [
   {
@@ -71,7 +72,11 @@ export default function Footer() {
 
       <div className="mx-auto mt-14 flex w-full max-w-[1140px] flex-col gap-2 px-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-8">
         <p>© {new Date().getFullYear()} Vaea. All rights reserved.</p>
-        <p className="font-mono tracking-tight">Your information stays on your computer by default.</p>
+        <p className="font-mono tracking-tight">
+          Updated{" "}
+          {new Date(SITE_MODIFIED).toLocaleDateString("en-US", { month: "long", year: "numeric" })} ·
+          your information stays on your computer by default.
+        </p>
       </div>
     </footer>
   );

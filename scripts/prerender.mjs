@@ -109,6 +109,28 @@ async function main() {
 
   await rm(dirname(outfile), { recursive: true, force: true });
   console.log(`[prerender] wrote ${ok}/${ROUTES.length} routes`);
+
+  // Emit sitemap.xml from the same ROUTES list so it can never drift from
+  // what's actually prerendered. lastmod = build date.
+  const today = new Date().toISOString().slice(0, 10);
+  const SITE = "https://vaea.base44.app";
+  const sitemap =
+    `<?xml version="1.0" encoding="UTF-8"?>\n` +
+    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+    ROUTES.map((r) => {
+      const loc = r.loc === "/" ? `${SITE}/` : `${SITE}${r.loc}`;
+      return (
+        `  <url>\n` +
+        `    <loc>${loc}</loc>\n` +
+        `    <lastmod>${today}</lastmod>\n` +
+        `    <changefreq>${r.changefreq}</changefreq>\n` +
+        `    <priority>${r.priority}</priority>\n` +
+        `  </url>`
+      );
+    }).join("\n") +
+    `\n</urlset>\n`;
+  await writeFile(join(DIST, "sitemap.xml"), sitemap, "utf8");
+  console.log(`[prerender] wrote sitemap.xml (${ROUTES.length} urls, lastmod ${today})`);
 }
 
 main().catch((err) => {

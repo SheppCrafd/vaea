@@ -23,17 +23,20 @@ export default function MarketingLayout() {
 
       {/* mobile sticky CTA — one action, thumb zone, clears the OS home bar */}
       <div
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-foreground/[0.08] bg-background/90 px-4 pt-3 backdrop-blur-xl md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-foreground/[0.08] bg-background/90 px-4 pt-2.5 backdrop-blur-xl md:hidden"
         style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
       >
         <Link
           to="/signup"
           className="flex w-full items-center justify-center rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground shadow-[0_10px_24px_-12px_rgb(var(--signal-rgb)/0.6)]"
         >
-          Get started free — your information stays with you
+          Start your board
         </Link>
+        <p className="mt-1.5 text-center font-mono text-[0.66rem] tracking-tight text-muted-foreground">
+          Free · no card · your info stays on your computer
+        </p>
       </div>
-      <div className="h-20 md:hidden" aria-hidden="true" />
+      <div className="h-24 md:hidden" aria-hidden="true" />
     </div>
   );
 }

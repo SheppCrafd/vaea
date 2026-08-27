@@ -132,7 +132,7 @@ export function ClosingCta({ title, note }) {
     <section className="mt-[var(--mkt-section-y)] bg-primary py-[clamp(3.5rem,8vw,6rem)] text-primary-foreground">
       <Container>
         <Reveal className="mx-auto max-w-[40rem] text-center">
-          <h2 className="text-balance font-display text-[clamp(2.1rem,5.5vw,3.7rem)] font-semibold leading-[1.02] tracking-[-0.035em]">
+          <h2 className="text-balance font-display text-[clamp(2.4rem,6.5vw,4.6rem)] font-semibold leading-[1.0] tracking-[-0.038em]">
             {title}
           </h2>
           <div className="mt-7 flex flex-col items-center gap-3.5">
@@ -141,13 +141,13 @@ export function ClosingCta({ title, note }) {
                 to="/signup"
                 className="mkt-lift inline-flex items-center rounded-full bg-primary-foreground px-6 py-3 text-sm font-medium text-primary"
               >
-                Get started free
+                Start your board
               </Link>
               <Link
                 to="/app"
                 className="mkt-lift inline-flex items-center rounded-full border border-primary-foreground/25 px-6 py-3 text-sm font-medium text-primary-foreground hover:border-primary-foreground/50"
               >
-                Open it now
+                Open the board
               </Link>
             </div>
             {note && <p className="font-mono text-[0.72rem] tracking-tight text-primary-foreground/70">{note}</p>}

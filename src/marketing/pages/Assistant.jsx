@@ -1,14 +1,7 @@
 import { Container, Eyebrow, Section, CtaRow, Reveal } from "../components/ui";
 import { ShowBlock, Faq, Marquee, ClosingCta } from "../components/blocks";
 import { ChatDemo, LocalModeTerminal } from "../components/visuals";
-
-const STEPS = [
-  ["You ask", "Type it the way you'd say it — “move everything that's stuck waiting on the vendor to the top and flag it for this week.”"],
-  ["It looks at your board", "Your current board is sent along so it can see what's actually there. Just for that one question — nothing is kept."],
-  ["It shows you the plan", "You get a short list of exactly what it would change. Nothing has changed yet."],
-  ["You approve", "It makes the changes. Anything that removes something asks again, and a backup is saved before big changes."],
-  ["You can undo", "Say “undo” to take back the last change, or restore a backup."],
-];
+import { ASSISTANT_FAQ, ASSISTANT_STEPS } from "../seo";
 
 const CAN = [
   "Look something up online while answering",
@@ -17,25 +10,6 @@ const CAN = [
   "Check your whole board for things that slipped",
   "Pull anything into a spreadsheet",
   "Read and add to your linked notes",
-];
-
-const FAQ = [
-  {
-    q: "What gets sent, and where?",
-    a: "When you ask something, a copy of your current board goes to the AI service for that one question so it can understand what you mean. Nothing is saved on a server afterward. The app tells you this right in the chat window.",
-  },
-  {
-    q: "Can I use my own AI account?",
-    a: "Yes. Connect an account from a major AI provider and the assistant talks to it directly from your browser. Or run a model on your own computer, with nothing sent out at all.",
-  },
-  {
-    q: "Could it do something I didn't want?",
-    a: "It can't act on its own. Every change is shown to you first and waits for your yes. Removing things asks a second time, and a backup is saved before anything large — so a mistake is easy to walk back.",
-  },
-  {
-    q: "Does it watch how I work?",
-    a: "Only if you turn that on. By default, reopening the chat can show a plain summary of what changed while you were away — nothing about how you work. A separate switch lets it keep notes on your habits; leave it off and it can't.",
-  },
 ];
 
 export default function Assistant() {
@@ -53,7 +27,7 @@ export default function Assistant() {
               adding, updating, and finishing things — and shows you every step before it runs.
             </p>
             <div className="mt-7">
-              <CtaRow primaryLabel="Get started free" note="Signing in turns on the assistant. The board works without it." />
+              <CtaRow primaryLabel="Turn on the assistant" note="Free · signing in turns on the assistant — the board works without it." />
             </div>
           </div>
           <Reveal delay={90} className="mt-12">
@@ -65,7 +39,7 @@ export default function Assistant() {
       <Section eyebrow="how a change happens" title="Five steps — and you control the two that matter">
         <Reveal className="mt-8">
           <ol className="divide-y divide-foreground/[0.08] border-y border-foreground/[0.08]">
-            {STEPS.map(([t, d], i) => (
+            {ASSISTANT_STEPS.map(([t, d], i) => (
               <li key={i} className="grid gap-2.5 py-4 sm:grid-cols-[auto_1fr] sm:gap-6">
                 <span className="font-mono text-[0.8rem] text-muted-foreground sm:pt-0.5">{String(i + 1).padStart(2, "0")}</span>
                 <div>
@@ -122,7 +96,7 @@ export default function Assistant() {
 
       <Section id="faq" eyebrow="the fair questions" title="What it sends, and what it can't do">
         <Reveal className="mt-8">
-          <Faq items={FAQ} />
+          <Faq items={ASSISTANT_FAQ} />
         </Reveal>
       </Section>
 
