@@ -14,6 +14,7 @@ import EditableTitle from "@/components/shared/EditableTitle";
 import CardCustomFields from "@/components/shared/CardCustomFields";
 import ProjectsGrid from "@/components/shared/ProjectsGrid";
 import TaskStatistics from "@/components/shared/TaskStatistics";
+import ProductCardShell from "@/components/products/ProductCardShell";
 
 // Lazy: only needed once a user opens the detail view, not on the initial
 // card-grid render — same reasoning as Dashboard.jsx's modal imports.
@@ -78,22 +79,23 @@ function ProductCard({ product, forceFullProjects = false }) {
   // recessed treatment AreaCard already uses for its own "Direct Projects"
   // drop zone.
   return (
-    <div
-      ref={setNodeRef}
-      data-product-card={product.id}
+    <ProductCardShell
+      rootRef={setNodeRef}
       style={{ opacity: isDragging ? 0.4 : 1 }}
-      className={`relative z-10 bg-muted/50 rounded-xl p-4 overflow-hidden transition-colors shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.04)] ${sizingClass} ${isMatched ? "bg-primary/10 ring-1 ring-primary/30" : ""} ${isOver ? "ring-2 ring-primary ring-offset-1" : ""}`}
-    >
-      <div
-        className="absolute top-1.5 left-1.5 z-20 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1.5"
-        aria-label="Drag to reorder product"
-        title="Drag to reorder"
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical className="w-4 h-4" />
-      </div>
-      <div className="absolute top-1.5 right-1.5 flex items-center gap-1 z-20">
+      rootProps={{ "data-product-card": product.id }}
+      className={`${sizingClass} ${isMatched ? "bg-primary/10 ring-1 ring-primary/30" : ""} ${isOver ? "ring-2 ring-primary ring-offset-1" : ""}`}
+      dragHandle={
+        <div
+          className="absolute top-1.5 left-1.5 z-20 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1.5"
+          aria-label="Drag to reorder product"
+          title="Drag to reorder"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="w-4 h-4" />
+        </div>
+      }
+      expandButton={
         <button
           onClick={() => setIsDetailOpen(true)}
           className="text-muted-foreground hover:text-foreground hover:bg-card p-1.5 rounded-md transition-colors"
@@ -102,10 +104,9 @@ function ProductCard({ product, forceFullProjects = false }) {
         >
           <Expand className="w-4 h-4" />
         </button>
-        <DeleteButton onClick={handleDelete} label="Delete product" size="md" className="p-1.5 rounded-md" />
-      </div>
-
-      <div className="relative z-[1] min-w-0 pr-12 pl-6">
+      }
+      deleteButton={<DeleteButton onClick={handleDelete} label="Delete product" size="md" className="p-1.5 rounded-md" />}
+      title={
         <EditableTitle
           as="h3"
           value={title}
@@ -115,49 +116,49 @@ function ProductCard({ product, forceFullProjects = false }) {
           tooltip={title}
           className="font-heading font-semibold min-w-0 cursor-text"
         />
-        
-        <div className="mt-0.5 min-w-0">
-           <EditableText
-             value={product.description}
-             onSave={(v) => updateProduct.mutate({ id: product.id, data: { description: v } })}
-             placeholder="Add a description..."
-             className="text-xs text-muted-foreground break-words"
-           />
-        </div>
-      </div>
-      
-      {/* No StakeholderAssigner here, deliberately — Product cards are the
-          one card type without the inline (+) assign control, per design
-          review; assignment still works by dragging a stakeholder from the
-          sidebar onto the card, or through ProductDetailModal. */}
-      <ProjectsGrid
-        projects={projects}
-        stakeholderIds={product.stakeholder_ids}
-        emptyMessage="Drop a project here"
-        gap={8}
-        forceView={forceFullProjects ? "full" : undefined}
-        // `-mx-4` cancels this card's own p-4 for just this element, so a
-        // Project tile's distance to this card's edge is ProjectsGrid's own
-        // p-2 (8px) alone — not p-4 + p-2 (24px) stacked. That already
-        // matches the 8px `gap` above exactly, so a tile's margin to the
-        // Product card's wall reads the same as its gap to its neighbor.
-        className={`relative z-[1] mt-4 min-h-[80px] rounded-lg -mx-4 p-2 transition-colors ${isOver ? "bg-primary/10 ring-2 ring-primary/40" : "bg-transparent"}`}
-      />
-
-      <TaskStatistics tasks={productTasks} />
-
-      <CardCustomFields
-        entity={product}
-        onUpdateEntity={(data) => updateProduct.mutate({ id: product.id, data })}
-        className="relative z-[1] mt-3 pt-3 border-t border-foreground/[0.06] flex flex-wrap gap-x-3 gap-y-1"
-      />
-
+      }
+      description={
+        <EditableText
+          value={product.description}
+          onSave={(v) => updateProduct.mutate({ id: product.id, data: { description: v } })}
+          placeholder="Add a description..."
+          className="text-xs text-muted-foreground break-words"
+        />
+      }
+      // No StakeholderAssigner here, deliberately — Product cards are the
+      // one card type without the inline (+) assign control, per design
+      // review; assignment still works by dragging a stakeholder from the
+      // sidebar onto the card, or through ProductDetailModal.
+      projectsGrid={
+        <ProjectsGrid
+          projects={projects}
+          stakeholderIds={product.stakeholder_ids}
+          emptyMessage="Drop a project here"
+          gap={8}
+          forceView={forceFullProjects ? "full" : undefined}
+          // `-mx-4` cancels this card's own p-4 for just this element, so a
+          // Project tile's distance to this card's edge is ProjectsGrid's own
+          // p-2 (8px) alone — not p-4 + p-2 (24px) stacked. That already
+          // matches the 8px `gap` above exactly, so a tile's margin to the
+          // Product card's wall reads the same as its gap to its neighbor.
+          className={`relative z-[1] mt-4 min-h-[80px] rounded-lg -mx-4 p-2 transition-colors ${isOver ? "bg-primary/10 ring-2 ring-primary/40" : "bg-transparent"}`}
+        />
+      }
+      stats={<TaskStatistics tasks={productTasks} />}
+      customFields={
+        <CardCustomFields
+          entity={product}
+          onUpdateEntity={(data) => updateProduct.mutate({ id: product.id, data })}
+          className="relative z-[1] mt-3 pt-3 border-t border-foreground/[0.06] flex flex-wrap gap-x-3 gap-y-1"
+        />
+      }
+    >
       {isDetailOpen && (
         <Suspense fallback={null}>
           <ProductDetailModal product={product} onClose={() => setIsDetailOpen(false)} />
         </Suspense>
       )}
-    </div>
+    </ProductCardShell>
   );
 }
 
