@@ -69,7 +69,7 @@ function Deferred({ height = 320, children }) {
 
 export function ChatDemo({ onDark = false }) {
   return (
-    <DemoStage label="Assistant" onDark={onDark}>
+    <DemoStage label="Vaea Chat" onDark={onDark}>
       <Deferred height={200}>
         <ChatMessageList
           messages={CHAT_MESSAGES}
@@ -145,7 +145,30 @@ export function LocalModeTerminal() {
       <TerminalBlock
         title="on your computer"
         showPrompt
-        code={["# the assistant runs against a model on this machine", "ask  ->  answer      (no internet)", "", "# requests leaving your computer: 0"].join("\n")}
+        code={["# Vaea Chat runs against a model on this machine", "ask  ->  answer      (no internet)", "", "# requests leaving your computer: 0"].join("\n")}
+      />
+    </InertDemo>
+  );
+}
+
+// The self-hosting relay path: Vaea on localhost, Local Mode on, Claude Code
+// answering Vaea Chat as the model from inside the checked-out repo.
+export function ClaudeCodeTerminal() {
+  return (
+    <InertDemo>
+      <TerminalBlock
+        title="~/vaea"
+        showPrompt
+        code={[
+          "git clone https://github.com/SheppCrafd/vaea && cd vaea",
+          "npm install && npm run dev        # Vaea on localhost",
+          "",
+          "# Settings -> AI Model -> Local Mode -> connect a folder",
+          "claude          # in the repo, pointed at that folder",
+          "/local-relay    # answer one pending Vaea Chat message  (or: /l)",
+          "",
+          "# requests leaving your network: 0",
+        ].join("\n")}
       />
     </InertDemo>
   );

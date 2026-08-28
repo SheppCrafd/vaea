@@ -1,8 +1,11 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import MarketingLayout from "./MarketingLayout";
 import Home from "./pages/Home";
 import Product from "./pages/Product";
-import Assistant from "./pages/Assistant";
+import VaeaChat from "./pages/VaeaChat";
+import Brain from "./pages/Brain";
+import Workplace from "./pages/Workplace";
+import SelfHosting from "./pages/SelfHosting";
 import Privacy from "./pages/Privacy";
 import Pricing from "./pages/Pricing";
 import Compare from "./pages/Compare";
@@ -21,13 +24,19 @@ export default function MarketingApp() {
       <Route element={<MarketingLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/product" element={<Product />} />
-        <Route path="/assistant" element={<Assistant />} />
+        <Route path="/vaea-chat" element={<VaeaChat />} />
+        <Route path="/brain" element={<Brain />} />
+        <Route path="/workplace" element={<Workplace />} />
+        <Route path="/self-hosting" element={<SelfHosting />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/compare" element={<Compare />} />
         <Route path="/about" element={<About />} />
         <Route path="/privacy-policy" element={<LegalPrivacy />} />
         <Route path="/terms" element={<LegalTerms />} />
+        {/* Old URL — Vaea Chat used to live at /assistant. Client-side
+            redirect so external links and old bookmarks still land right. */}
+        <Route path="/assistant" element={<Navigate to="/vaea-chat" replace />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Container, Eyebrow, Section, CtaRow, Reveal } from "../components/ui";
 import { ShowBlock, ProofStrip, Manifesto, Marquee, Faq, ClosingCta } from "../components/blocks";
 import BoardDemo from "../components/BoardDemo";
-import { ChatDemo, VmailDemo, StorageTerminal } from "../components/visuals";
+import { ChatDemo, VmailDemo, StorageTerminal, ClaudeCodeTerminal } from "../components/visuals";
 import { HOME_FAQ } from "../seo";
 
 export default function Home() {
@@ -12,7 +12,7 @@ export default function Home() {
       <section className="pt-12 sm:pt-16">
         <Container>
           <div className="max-w-[54rem]">
-            <Eyebrow className="mkt-hero-rise mb-4">one board · an assistant that acts on it · nothing leaves your computer</Eyebrow>
+            <Eyebrow className="mkt-hero-rise mb-4">one board · Vaea Chat acts on it · nothing leaves your computer</Eyebrow>
             {/* Not animated in — it's the LCP element; it must be final on
                 first paint. The lighter elements around it carry the entrance. */}
             <h1 className="text-balance font-display text-[clamp(2.9rem,8vw,5.8rem)] font-semibold leading-[1.0] tracking-[-0.04em] text-foreground">
@@ -20,8 +20,8 @@ export default function Home() {
             </h1>
             <p className="mkt-hero-rise mt-6 max-w-[42rem] text-pretty text-[1.12rem] leading-relaxed text-muted-foreground [--rise-delay:120ms]">
               Vaea is one board for everything you're juggling — every project tucked under the part of
-              your life it belongs to. Most assistants just hand you another to-do list. This one makes
-              the change on the board itself, and shows you first.
+              your life it belongs to. Most assistants just hand you another to-do list. Vaea Chat
+              makes the change on the board itself, and shows you first.
             </p>
             <div className="mkt-hero-rise mt-8 [--rise-delay:180ms]">
               <CtaRow note="Free · no card · your information stays on your computer" />
@@ -40,17 +40,17 @@ export default function Home() {
 
       <Manifesto>
         A tool for your own work shouldn't need a company's server. Every project stays in plain files
-        on your computer — and the assistant can run there too, with nothing sent out.
+        on your computer — and Vaea Chat can run there too, with nothing sent out.
       </Manifesto>
 
       {/* SHOW A — flagship, dark stage */}
       <ShowBlock
-        id="assistant"
+        id="vaea-chat"
         tone="dark"
         eyebrow="it shows you first · you say yes"
-        title="An assistant that does the change, not one that describes it"
+        title="Vaea Chat does the change, it doesn't just describe it"
         visual={<ChatDemo onDark />}
-        cta={{ to: "/assistant", label: "See how the assistant works" }}
+        cta={{ to: "/vaea-chat", label: "See how Vaea Chat works" }}
       >
         <p>
           Say “set up a Q3 launch project under Marketing with three tasks,” and it reads your board,
@@ -83,9 +83,30 @@ export default function Home() {
         </p>
       </ShowBlock>
 
-      {/* SHOW C — device / trust */}
+      {/* SHOW C — Workplace + Brain fold in */}
+      <ShowBlock
+        id="connected"
+        eyebrow="once you connect them"
+        title="Your calendar, email, and notes — under the same Vaea Chat"
+        visual={<VmailDemo />}
+        cta={{ to: "/workplace", label: "See Vaea Workplace" }}
+      >
+        <p>
+          <strong className="font-medium text-foreground">Vaea Workplace</strong> brings your Google
+          and Microsoft calendars into one agenda and your email into one inbox. Vaea Chat can draft a
+          reply, add an event, or turn a long thread into tasks — showing you first.
+        </p>
+        <p>
+          <strong className="font-medium text-foreground">Vaea Brain</strong> connects a personal
+          notes vault kept in your own account, so Vaea Chat can read it for context and write to it
+          when you ask. <Link to="/brain" className="underline decoration-foreground/25 underline-offset-2 hover:decoration-foreground">More on Vaea Brain →</Link>
+        </p>
+      </ShowBlock>
+
+      {/* SHOW D — device / trust */}
       <ShowBlock
         id="yours"
+        flip
         eyebrow="the starting point, not a setting to find"
         title="Your information stays on your computer"
         visual={<StorageTerminal />}
@@ -97,26 +118,27 @@ export default function Home() {
         </p>
         <p>
           If you'd rather sync it across devices, you can switch that on — and switch it back off.
-          You can also run the assistant entirely on your own computer, with nothing sent out at all.
+          You can also run Vaea Chat entirely on your own computer, with nothing sent out at all.
         </p>
       </ShowBlock>
 
-      {/* SHOW D — connected tools */}
+      {/* SHOW E — self-hosting, the private-company path */}
       <ShowBlock
-        id="connected"
-        flip
-        eyebrow="once you connect them"
-        title="Your calendar and email, handled by the same assistant"
-        visual={<VmailDemo />}
-        cta={{ to: "/product", label: "Everything it connects to" }}
+        id="self-hosting"
+        eyebrow="the way private companies run it"
+        title="Clone it, run it on localhost, keep every request in-house"
+        visual={<ClaudeCodeTerminal />}
+        cta={{ to: "/self-hosting", label: "The self-hosting walkthrough" }}
       >
         <p>
-          Link your Google or Microsoft account and Vaea brings your calendars into one view and your
-          email into one place.
+          The source is public and the hosted version runs the same code. Copy the repository down,
+          start Vaea on your own machine, and turn on Local Mode.
         </p>
         <p>
-          Then the assistant can help there too — draft a reply, add an event, turn a long thread into
-          tasks — always showing you first.
+          Then point Claude Code at it from inside your working copy and it answers Vaea Chat as the
+          model — <code className="font-mono text-[0.9em]">/local-relay</code> for one message,{" "}
+          <code className="font-mono text-[0.9em]">/l</code> when it's all day. No request leaves your
+          network.
         </p>
       </ShowBlock>
 

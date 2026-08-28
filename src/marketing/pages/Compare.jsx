@@ -11,7 +11,7 @@ const ROWS = [
   ["Where your work is stored", "Plain files on your own computer, by default", "On the vendor's server"],
   ["Does the AI change things?", "Yes — it edits the board itself, after you approve each step", "Often suggests; you make the edit"],
   ["Cost", "Free. You pay your own AI provider directly if you connect one", "Typically a per-seat subscription"],
-  ["Works offline", "Yes — the board, and the assistant too if you run a local model", "Usually not"],
+  ["Works offline", "Yes — the board, and Vaea Chat too if you run a local model", "Usually not"],
   ["Team features (roles, shared spaces, admin)", "No — it's a single-person tool", "Usually yes"],
   ["Native mobile apps", "No — it's a responsive web app", "Usually iOS and Android"],
   ["Integrations", "A small set — calendar and mail through a connected account", "Usually a larger catalogue"],
@@ -32,7 +32,7 @@ export default function Compare() {
             <p className="mt-5 max-w-[42rem] text-[1.05rem] leading-relaxed text-muted-foreground">
               Most people run a cloud task manager plus a separate AI, or a stack of apps and their
               memory. Vaea is the better fit if you're one person who wants the work in files you own
-              and an assistant that makes the change itself. The usual setup is the better fit if you
+              and Vaea Chat to make the change itself. The usual setup is the better fit if you
               need a team system of record, native mobile apps, or a support contract — Vaea has none
               of those. Everything below is about that general pattern, not any one product.
             </p>
@@ -79,7 +79,7 @@ export default function Compare() {
               <ul className="mt-4 space-y-2.5 text-[0.98rem] leading-relaxed text-muted-foreground">
                 <li>You're managing your own portfolio of work, not a team's.</li>
                 <li>You want your projects in files on your machine, not a database you don't control.</li>
-                <li>You want the assistant to do the edit — and to see it before it runs.</li>
+                <li>You want Vaea Chat to do the edit — and to see it before it runs.</li>
                 <li>You'd rather not pay a subscription, and you're fine bringing your own AI key.</li>
               </ul>
             </Reveal>

@@ -13,7 +13,7 @@ export const OG_IMAGE = `${SITE_URL}/og-image.png`;
 export const SITE_REPO = "https://github.com/SheppCrafd/vaea";
 // Bump when page copy materially changes. Surfaced visibly in the footer and
 // as `dateModified` in structured data (a freshness signal for search + AI).
-export const SITE_MODIFIED = "2026-08-27";
+export const SITE_MODIFIED = "2026-08-28";
 
 // The person behind the project. Real, public identity (the GitHub + Gravatar
 // are already public) — used for the /about card, the footer, and the
@@ -37,27 +37,54 @@ export const ROUTES = [
     loc: "/",
     priority: "1.0",
     changefreq: "weekly",
-    title: "Vaea — all your projects on one board, run by an assistant",
+    title: "Vaea — all your projects on one board, run by Vaea Chat",
     description:
-      "All your projects in one place. Ask the built-in assistant to add or change things — it shows you first, and your info stays on your own computer.",
+      "All your projects in one place. Ask Vaea Chat to add or change things — it shows you first, and your info stays on your own computer.",
   },
   {
     path: "/product",
     loc: "/product",
     priority: "0.9",
     changefreq: "monthly",
-    title: "What's in Vaea — board, assistant, calendar, email | Vaea",
+    title: "What's in Vaea — board, Vaea Chat, Workplace, Brain | Vaea",
     description:
-      "A walk through everything in Vaea: the board, the assistant that works on it, one calendar and inbox, a map of your notes, and where your files are kept.",
+      "A walk through everything in Vaea: the board, Vaea Chat that works on it, Vaea Workplace for calendar and email, Vaea Brain for your notes, and where your files are kept.",
   },
   {
-    path: "/assistant",
-    loc: "/assistant",
+    path: "/vaea-chat",
+    loc: "/vaea-chat",
     priority: "0.9",
     changefreq: "monthly",
-    title: "The Vaea assistant — see every change before it happens",
+    title: "Vaea Chat — see every change before it happens | Vaea",
     description:
-      "Ask in plain words. It reads your board, shows what it would change, and waits for your yes. Built-in model, your own AI account, or one on your computer.",
+      "Ask in plain words. Vaea Chat reads your board, shows what it would change, and waits for your yes. Built-in model, your own AI account, or Claude Code on your own machine.",
+  },
+  {
+    path: "/brain",
+    loc: "/brain",
+    priority: "0.7",
+    changefreq: "monthly",
+    title: "Vaea Brain — your own notes, read and written by Vaea Chat | Vaea",
+    description:
+      "Connect a personal notes vault kept in your own account. Vaea Chat reads and adds to it directly, see it as a map, and nothing is stored on Vaea's servers.",
+  },
+  {
+    path: "/workplace",
+    loc: "/workplace",
+    priority: "0.7",
+    changefreq: "monthly",
+    title: "Vaea Workplace — one calendar, one inbox | Vaea",
+    description:
+      "Vaea Workplace brings your Google and Microsoft calendars into one agenda and your email into one place. Vaea Chat can draft, file, and schedule — showing you first.",
+  },
+  {
+    path: "/self-hosting",
+    loc: "/self-hosting",
+    priority: "0.8",
+    changefreq: "monthly",
+    title: "Run Vaea on your own machine — self-hosting | Vaea",
+    description:
+      "The way private companies run Vaea: clone the repo, run on localhost, turn on Local Mode, and answer Vaea Chat with Claude Code in your own working copy. Nothing leaves your network.",
   },
   {
     path: "/privacy",
@@ -135,7 +162,7 @@ export const HOME_FAQ = [
     a: "Nothing. There are no paid plans and nothing is locked behind an upgrade. If you connect your own AI account, you pay that provider directly — Vaea adds no charge.",
   },
   {
-    q: "Does the assistant actually change things, or just talk?",
+    q: "Does Vaea Chat actually change things, or just talk?",
     a: "It changes things. You ask in plain words, it shows you exactly what it's about to do, and nothing happens until you say yes. You can undo the last thing with one word.",
   },
   {
@@ -155,7 +182,7 @@ export const ASSISTANT_FAQ = [
   },
   {
     q: "Can I use my own AI account?",
-    a: "Yes. Connect an account from a major AI provider and the assistant talks to it directly from your browser. Or run a model on your own computer, with nothing sent out at all.",
+    a: "Yes. Connect an account from a major AI provider and Vaea Chat talks to it directly from your browser. Or run a model on your own computer, with nothing sent out at all.",
   },
   {
     q: "Could it do something I didn't want?",
@@ -167,7 +194,7 @@ export const ASSISTANT_FAQ = [
   },
 ];
 
-// The five steps of a single assistant change — rendered on /assistant as a
+// The five steps of a single Vaea Chat change — rendered on /vaea-chat as a
 // visible ordered list. Deliberately NOT emitted as HowTo structured data:
 // Google deprecated HowTo rich results in 2023, so the markup would only add
 // weight with no upside.
@@ -177,6 +204,51 @@ export const ASSISTANT_STEPS = [
   ["It shows you the plan", "You get a short list of exactly what it would change. Nothing has changed yet."],
   ["You approve", "It makes the changes. Anything that removes something asks again, and a backup is saved before big changes."],
   ["You can undo", "Say “undo” to take back the last change, or restore a backup."],
+];
+
+export const BRAIN_FAQ = [
+  {
+    q: "Where are the notes kept?",
+    a: "In your own account — a personal notes vault you already control. Vaea connects to it and reads and writes it directly. Nothing about the notes is stored on Vaea's servers.",
+  },
+  {
+    q: "What can Vaea Chat do with them?",
+    a: "Pull a note in for context while it answers, and add or update notes when you ask — logging a decision, writing up a session, filing a reference. Every write is shown to you first, the same as changes to your board.",
+  },
+  {
+    q: "Do I have to use it?",
+    a: "No. Vaea Brain is an optional connection. The board and Vaea Chat work fully without it.",
+  },
+];
+
+export const WORKPLACE_FAQ = [
+  {
+    q: "Which accounts can I connect?",
+    a: "Google and Microsoft, for both calendar and email. Connect one or both — every calendar lands in a single agenda alongside your project due dates, and your mail comes into one inbox.",
+  },
+  {
+    q: "Can Vaea Chat act on my email and calendar?",
+    a: "Yes — draft a reply, file a message, add an event, turn a long thread into tasks. As everywhere else, it shows you the change first and waits for your yes.",
+  },
+  {
+    q: "What about meeting notes?",
+    a: "The Meetings surface exists but the transcript connector it needs isn't available yet, and the app says so directly rather than pretending otherwise.",
+  },
+];
+
+export const SELFHOSTING_FAQ = [
+  {
+    q: "What does self-hosting actually involve?",
+    a: "Clone the public repository, run Vaea on localhost with a couple of commands, and turn on Local Mode in Settings. From then on Vaea Chat writes each question to a folder on your machine instead of calling any service.",
+  },
+  {
+    q: "How does Claude Code answer Vaea Chat?",
+    a: "Run Claude Code inside your Vaea working copy, pointed at the Local Mode folder. It picks up each pending message, answers as the model using its own tools, and writes the reply back where Vaea expects it. Run /local-relay for one message, or /l for the same thing when you want it quick.",
+  },
+  {
+    q: "What leaves our network?",
+    a: "Nothing from Vaea. Project data is already in files on the machine, and in this setup the model call is local too. Your own use of Claude Code is between you and that tool.",
+  },
 ];
 
 function faqPageLd(items) {
@@ -245,7 +317,7 @@ export function softwareApplicationLd() {
     screenshot: OG_IMAGE,
     dateModified: SITE_MODIFIED,
     description:
-      "One board for all your projects and tasks, grouped by the part of life they belong to, with an assistant that makes changes after showing you first. Your information stays on your own computer by default.",
+      "One board for all your projects and tasks, grouped by the part of life they belong to, with Vaea Chat making changes after showing you first. Your information stays on your own computer by default, and the whole thing can be self-hosted.",
     author: { "@id": `${SITE_URL}/#maker` },
     publisher: { "@id": `${SITE_URL}/#org` },
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD", availability: "https://schema.org/InStock" },
@@ -253,10 +325,12 @@ export function softwareApplicationLd() {
       "One board for projects and tasks, grouped by area of your life",
       "A short list of today's top three and this week's focus",
       "See the people attached to any project or task",
-      "An assistant that adds and changes things after you approve",
-      "Use the built-in model, your own AI account, or a model on your own computer",
-      "One calendar view and one inbox across connected accounts",
+      "Vaea Chat adds and changes things after you approve",
+      "Use the built-in model, your own AI account, or Claude Code on your own machine",
+      "Vaea Workplace: one calendar view and one inbox across connected accounts",
+      "Vaea Brain: your own notes vault, read and written by Vaea Chat",
       "Files kept on your computer, with optional sync you can turn off",
+      "Self-host: clone the repo, run on localhost, keep every request on your network",
     ],
   };
 }
@@ -276,8 +350,17 @@ export function jsonLdFor(pathname) {
     return [organizationLd(), websiteLd(), softwareApplicationLd(), faqPageLd(HOME_FAQ)];
   }
   if (!route) return [];
-  if (pathname === "/assistant") {
+  if (pathname === "/vaea-chat") {
     return [webPageLd(route, pathname), faqPageLd(ASSISTANT_FAQ)];
+  }
+  if (pathname === "/brain") {
+    return [webPageLd(route, pathname), faqPageLd(BRAIN_FAQ)];
+  }
+  if (pathname === "/workplace") {
+    return [webPageLd(route, pathname), faqPageLd(WORKPLACE_FAQ)];
+  }
+  if (pathname === "/self-hosting") {
+    return [webPageLd(route, pathname), faqPageLd(SELFHOSTING_FAQ)];
   }
   if (pathname === "/about") {
     return [webPageLd(route, pathname), personLd()];

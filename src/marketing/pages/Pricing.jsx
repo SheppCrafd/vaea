@@ -3,7 +3,7 @@ import { Faq, ClosingCta } from "../components/blocks";
 
 const INCLUDED = [
   "The whole board — areas, products, projects, tasks, stakeholders, notes",
-  "The assistant, with the built-in model",
+  "Vaea Chat, with the built-in model",
   "Bring your own AI account, or run a model on your own computer",
   "One calendar view and one inbox across connected accounts",
   "The notes map and the free-draw canvas",
@@ -22,11 +22,11 @@ const PRICING_FAQ = [
   },
   {
     q: "Is there a free trial? Do I need a card?",
-    a: "There is no separate trial — the full product is free. No card is required. The board works before you sign in; signing in enables the built-in assistant.",
+    a: "There is no separate trial — the full product is free. No card is required. The board works before you sign in; signing in enables Vaea Chat with the built-in model.",
   },
   {
-    q: "Can I keep using it if the built-in assistant goes away?",
-    a: "Yes. You can point the assistant at your own AI account or a model on your own computer, and the board and everything else keeps working either way.",
+    q: "Can I keep using it if the built-in model goes away?",
+    a: "Yes. You can point Vaea Chat at your own AI account or a model on your own computer, and the board and everything else keeps working either way.",
   },
 ];
 

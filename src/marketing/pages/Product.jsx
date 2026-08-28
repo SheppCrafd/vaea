@@ -5,9 +5,9 @@ import { ChatDemo, CalendarDemo, MindMapDemo, StorageTerminal } from "../compone
 
 const SECTIONS = [
   ["board", "The board"],
-  ["assistant", "The assistant"],
-  ["calendar", "Calendar & email"],
-  ["map", "Notes map"],
+  ["vaea-chat", "Vaea Chat"],
+  ["workplace", "Vaea Workplace"],
+  ["brain", "Vaea Brain"],
   ["yours", "Your files"],
 ];
 
@@ -37,12 +37,11 @@ export default function Product() {
           <div className="max-w-[48rem]">
             <Eyebrow className="mb-4">a look at every part</Eyebrow>
             <h1 className="text-balance font-display text-[clamp(2.5rem,6vw,4.2rem)] font-semibold leading-[1.02] tracking-[-0.037em] text-foreground">
-              One board, one assistant, everything in one place
+              One board, one Vaea Chat, everything in one place
             </h1>
             <p className="mt-5 max-w-[40rem] text-[1.05rem] leading-relaxed text-muted-foreground">
-              Not five apps and a browser full of tabs. The board and the assistant to start; your
-              calendar, email, and notes fold in when you're ready — the same assistant across all of
-              it.
+              Not five apps and a browser full of tabs. The board and Vaea Chat to start; Vaea
+              Workplace and Vaea Brain fold in when you're ready — the same Vaea Chat across all of it.
             </p>
             <div className="mt-7">
               <CtaRow note="Free · the board works before you even sign in" />
@@ -75,13 +74,13 @@ export default function Product() {
       </ShowBlock>
 
       <ShowBlock
-        id="assistant"
+        id="vaea-chat"
         flip
         tone="dark"
         eyebrow="ask · read the plan · approve"
-        title="The assistant works on the same board you see"
+        title="Vaea Chat works on the same board you see"
         visual={<ChatDemo onDark />}
-        cta={{ to: "/assistant", label: "More on the assistant" }}
+        cta={{ to: "/vaea-chat", label: "More on Vaea Chat" }}
       >
         <p>
           A small window you can drag anywhere, and a full page. Ask for a change in plain words and
@@ -96,10 +95,11 @@ export default function Product() {
       </ShowBlock>
 
       <ShowBlock
-        id="calendar"
+        id="workplace"
         eyebrow="one view, one inbox"
-        title="Your calendar and email, brought together"
+        title="Vaea Workplace — your calendar and email, brought together"
         visual={<CalendarDemo />}
+        cta={{ to: "/workplace", label: "More on Vaea Workplace" }}
       >
         <p>
           Connect a Google or Microsoft account and every calendar lands in one agenda, alongside
@@ -107,26 +107,29 @@ export default function Product() {
           across both accounts.
         </p>
         <p>
-          The assistant can send or file email, draft replies, and add events — always showing you
+          Vaea Chat can send or file email, draft replies, and add events — always showing you
           first. Meeting-notes capture needs a connection that isn't available yet; the app says so
           directly.
         </p>
       </ShowBlock>
 
       <ShowBlock
-        id="map"
+        id="brain"
         flip
         eyebrow="how your notes connect"
-        title="A map of your notes"
+        title="Vaea Brain — your own notes, on tap"
         visual={<MindMapDemo />}
+        cta={{ to: "/brain", label: "More on Vaea Brain" }}
       >
         <p>
-          If you keep a set of linked notes, Vaea can show them as a map — each note a dot, each link
-          a line — so you can see how ideas connect. There's also a free-draw canvas for sketching
-          out how a process should run.
+          Connect a personal notes vault kept in your own account, and Vaea Chat can read it for
+          context and add to it when you ask. If your notes link to each other, Vaea can show them as
+          a map — each note a dot, each link a line. There's also a free-draw canvas for sketching out
+          how a process should run.
         </p>
         <p>
-          The assistant can read and add to those notes, saving straight to your own files.
+          Every write is shown to you first, and saved straight to your own account — nothing is kept
+          on a Vaea server.
         </p>
       </ShowBlock>
 
@@ -135,20 +138,21 @@ export default function Product() {
         eyebrow="where it all lives"
         title="On your computer, in files you can open"
         visual={<StorageTerminal />}
-        cta={{ to: "/privacy", label: "Where your information lives" }}
+        cta={{ to: "/self-hosting", label: "Run it all on your own machine" }}
       >
         <p>
           Your board is saved as plain files in a folder you choose. Want it on more than one device?
           Turn on sync — and turn it back off whenever, without losing anything.
         </p>
         <p>
-          The assistant can use the model built in, your own AI account, or a model running on your
-          own computer with nothing sent out.
+          Vaea Chat can use the model built in, your own AI account, or a model running on your own
+          computer with nothing sent out. Private companies go a step further and self-host the whole
+          app.
         </p>
       </ShowBlock>
 
       <Marquee
-        items={["one board", "one assistant", "one calendar", "one inbox", "your files, your computer", "free"]}
+        items={["one board", "one Vaea Chat", "one calendar", "one inbox", "your files, your computer", "free"]}
       />
 
       <ClosingCta title="Open the board and move something." note="Free · no card · yours, on your computer" />

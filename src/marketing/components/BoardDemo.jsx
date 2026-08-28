@@ -186,7 +186,10 @@ export default function BoardDemo({ hero = false, className }) {
     <div
       aria-hidden="true"
       className={cn(
-        "mkt-demo pointer-events-none mx-auto w-full max-w-[560px] select-none",
+        "mkt-demo pointer-events-none mx-auto w-full select-none",
+        // The hero demo carries the first screen — give it real width so it
+        // reads as the product, not a narrow strip floating in the margin.
+        hero ? "max-w-[920px]" : "max-w-[560px]",
         className,
       )}
     >

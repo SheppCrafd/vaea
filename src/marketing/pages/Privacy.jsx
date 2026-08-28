@@ -15,11 +15,11 @@ const UPDATED = new Date(`${SITE_MODIFIED}T00:00:00`).toLocaleDateString("en-US"
 
 const LEAVES = [
   [
-    "You ask the assistant something",
-    "A copy of your current board goes to the AI service so it can understand your question. Just for that one question — it isn't saved anywhere afterward. If you run the assistant on your own computer, even this stays local.",
+    "You ask Vaea Chat something",
+    "A copy of your current board goes to the AI service so it can understand your question. Just for that one question — it isn't saved anywhere afterward. If you run Vaea Chat on your own computer, even this stays local.",
   ],
   [
-    "The assistant looks something up or opens a link or file",
+    "Vaea Chat looks something up or opens a link or file",
     "That one lookup goes out for that one question, and the result is used in the answer. Same rule — nothing is kept.",
   ],
   [
@@ -85,7 +85,7 @@ export default function Privacy() {
               nothing on a server to lose, hand over, or leak.
             </p>
             <p>
-              The assistant works on those same files. What you do by hand and what you ask it to do
+              Vaea Chat works on those same files. What you do by hand and what you ask it to do
               act on one set of information, not two.
             </p>
           </Block>
@@ -106,16 +106,17 @@ export default function Privacy() {
 
           <Block heading="Running with nothing leaving at all">
             <p>
-              You can point the assistant at a model running on your own computer. Combined with
+              You can point Vaea Chat at a model running on your own computer. Combined with
               keeping your board in local files, the whole thing then works with nothing sent out —
-              no account, no internet needed.
+              no account, no internet needed. Private companies self-host the whole app for this
+              reason.
             </p>
           </Block>
 
           <Block heading="What the hosted side is for">
             <p>
               A hosted service handles signing in, keeps your past chats (not your board), runs the
-              built-in assistant, and — only if you choose sync — holds your board so it's there on
+              built-in model for Vaea Chat, and — only if you choose sync — holds your board so it's there on
               your other devices. Each of those is either needed to sign in or something you turned on.
             </p>
           </Block>

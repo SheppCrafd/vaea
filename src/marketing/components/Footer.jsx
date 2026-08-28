@@ -6,7 +6,10 @@ const COLS = [
     heading: "Product",
     links: [
       { to: "/product", label: "Product tour" },
-      { to: "/assistant", label: "The assistant" },
+      { to: "/vaea-chat", label: "Vaea Chat" },
+      { to: "/brain", label: "Vaea Brain" },
+      { to: "/workplace", label: "Vaea Workplace" },
+      { to: "/self-hosting", label: "Self-hosting" },
       { to: "/pricing", label: "Pricing" },
       { to: "/compare", label: "Vaea vs. the usual setup" },
       { to: "/privacy", label: "Where your info lives" },
@@ -43,7 +46,7 @@ export default function Footer() {
             Vaea
           </Link>
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
-            All your work on one board, with an assistant that helps run it. Free, with every feature
+            All your work on one board, with Vaea Chat to help run it. Free, with every feature
             included.
           </p>
         </div>

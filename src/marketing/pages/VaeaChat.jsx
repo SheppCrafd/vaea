@@ -1,6 +1,6 @@
 import { Container, Eyebrow, Section, CtaRow, Reveal } from "../components/ui";
 import { ShowBlock, Faq, Marquee, ClosingCta } from "../components/blocks";
-import { ChatDemo, LocalModeTerminal } from "../components/visuals";
+import { ChatDemo, LocalModeTerminal, ClaudeCodeTerminal } from "../components/visuals";
 import { ASSISTANT_FAQ, ASSISTANT_STEPS } from "../seo";
 
 const CAN = [
@@ -12,22 +12,22 @@ const CAN = [
   "Read and add to your linked notes",
 ];
 
-export default function Assistant() {
+export default function VaeaChat() {
   return (
     <>
       <section className="pt-12 sm:pt-16">
         <Container>
           <div className="max-w-[50rem]">
-            <Eyebrow className="mb-4">the assistant</Eyebrow>
+            <Eyebrow className="mb-4">Vaea Chat</Eyebrow>
             <h1 className="text-balance font-display text-[clamp(2.5rem,6.4vw,4.6rem)] font-semibold leading-[1.01] tracking-[-0.039em] text-foreground">
               It makes the change. You get to see it first.
             </h1>
             <p className="mt-6 max-w-[40rem] text-[1.08rem] leading-relaxed text-muted-foreground">
-              Not a chat box stuck onto an app. It works on the exact board you're looking at —
-              adding, updating, and finishing things — and shows you every step before it runs.
+              Vaea Chat isn't a chat box stuck onto an app. It works on the exact board you're looking
+              at — adding, updating, and finishing things — and shows you every step before it runs.
             </p>
             <div className="mt-7">
-              <CtaRow primaryLabel="Turn on the assistant" note="Free · signing in turns on the assistant — the board works without it." />
+              <CtaRow primaryLabel="Turn on Vaea Chat" note="Free · signing in turns on Vaea Chat — the board works without it." />
             </div>
           </div>
           <Reveal delay={90} className="mt-12">
@@ -60,12 +60,30 @@ export default function Assistant() {
         visual={<LocalModeTerminal />}
       >
         <p>
-          The built-in option works the moment you sign in. Prefer your own AI account? Connect it and
-          the assistant talks straight to it from your browser.
+          The built-in model works the moment you sign in. Prefer your own AI account? Connect it and
+          Vaea Chat talks straight to it from your browser.
         </p>
         <p>
           Or keep everything in-house: point it at a model running on your own computer. Then no part
           of the conversation leaves the machine.
+        </p>
+      </ShowBlock>
+
+      <ShowBlock
+        eyebrow="the setup private companies use"
+        title="Answer Vaea Chat with Claude Code, on your own machine"
+        visual={<ClaudeCodeTerminal />}
+        cta={{ to: "/self-hosting", label: "The full self-hosting walkthrough" }}
+      >
+        <p>
+          Clone the repository, run Vaea on localhost, and turn on Local Mode. Vaea Chat then writes
+          each question to a folder on your machine instead of calling out to any service.
+        </p>
+        <p>
+          Point Claude Code at that folder in your Vaea working copy and it answers as the model —
+          with its own tools. Run <code className="font-mono text-[0.9em]">/local-relay</code> to
+          take one pending message, or <code className="font-mono text-[0.9em]">/l</code> for the same
+          thing when you're in it all day and want something quick off the fingers.
         </p>
       </ShowBlock>
 
@@ -83,8 +101,8 @@ export default function Assistant() {
         }
       >
         <p>
-          It can pull in things that aren't on your board — a fact from the web, what's inside a file
-          or behind a link — and use them in the same answer.
+          Vaea Chat can pull in things that aren't on your board — a fact from the web, what's inside
+          a file or behind a link — and use them in the same answer.
         </p>
         <p>
           Ask it to check your board and it will flag what's overdue, what has no owner, and where

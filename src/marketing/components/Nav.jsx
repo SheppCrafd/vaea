@@ -5,13 +5,18 @@ import { cn } from "@/lib/utils";
 
 const LINKS = [
   { to: "/product", label: "Product" },
-  { to: "/assistant", label: "Assistant" },
+  { to: "/vaea-chat", label: "Vaea Chat" },
+  { to: "/brain", label: "Vaea Brain" },
+  { to: "/workplace", label: "Vaea Workplace" },
+  { to: "/self-hosting", label: "Self-hosting" },
   { to: "/pricing", label: "Pricing" },
   { to: "/privacy", label: "Your info" },
 ];
 
 // Transparent over the hero, gains a hairline + blur once the page scrolls.
-// Mobile: a full-height sheet. Primary CTA stays visible at every width.
+// Below lg the whole link set collapses into a full-height sheet (seven
+// items is too many to sit inline on a tablet). Primary CTA stays visible at
+// every width.
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
@@ -42,7 +47,7 @@ export default function Nav() {
           Vaea
         </Link>
 
-        <div className="hidden items-center gap-8 md:flex">
+        <div className="hidden items-center gap-6 lg:flex">
           {LINKS.map((l) => (
             <NavLink
               key={l.to}
@@ -59,7 +64,7 @@ export default function Nav() {
           ))}
         </div>
 
-        <div className="hidden items-center gap-4 md:flex">
+        <div className="hidden items-center gap-4 lg:flex">
           <Link to="/login" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
             Log in
           </Link>
@@ -74,7 +79,7 @@ export default function Nav() {
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full text-foreground md:hidden"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full text-foreground lg:hidden"
           aria-label={open ? "Close menu" : "Open menu"}
           aria-expanded={open}
         >
@@ -83,7 +88,7 @@ export default function Nav() {
       </nav>
 
       {open && (
-        <div className="fixed inset-x-0 top-16 bottom-0 z-40 bg-background/95 backdrop-blur-xl md:hidden">
+        <div className="fixed inset-x-0 top-16 bottom-0 z-40 bg-background/95 backdrop-blur-xl lg:hidden">
           <div className="flex flex-col gap-1 px-6 py-6">
             {LINKS.map((l) => (
               <NavLink
