@@ -27,8 +27,14 @@ export function DemoStage({ label, className, onDark = false, children }) {
         "mkt-demo pointer-events-none select-none overflow-hidden rounded-2xl border shadow-[0_1px_3px_0_hsl(200_30%_12%/0.1),0_36px_72px_-34px_hsl(200_30%_12%/0.34)]",
         // On a light section: a frosted, translucent card. On a dark
         // section (tone="dark" ShowBlock) that same treatment turns milky
-        // grey, so switch to a crisp opaque white card instead.
-        onDark ? "border-black/5 bg-card" : "border-foreground/[0.08] bg-card/70 backdrop-blur-xl",
+        // grey, so switch to a crisp opaque white card instead — and pin the
+        // text colour back to the app foreground, since the dark section sets
+        // `text-primary-foreground` (near-white) and some demo components
+        // (InboxFrame's rows) inherit their colour rather than setting it,
+        // which would render white-on-white on the opaque card.
+        onDark
+          ? "border-black/5 bg-card text-foreground"
+          : "border-foreground/[0.08] bg-card/70 backdrop-blur-xl",
         className,
       )}
     >
@@ -70,7 +76,7 @@ export function ChatDemo({ onDark = false }) {
 
   return (
     <DemoStage label="Vaea Chat" onDark={onDark}>
-      <div ref={ref} className="flex h-[420px] flex-col">
+      <div ref={ref} className="flex h-[360px] flex-col">
         {shown ? (
           <Suspense fallback={<div className="flex-1" />}>
             <ChatMessageList
@@ -98,9 +104,9 @@ export function ChatDemo({ onDark = false }) {
   );
 }
 
-export function VmailDemo() {
+export function VmailDemo({ onDark = false }) {
   return (
-    <DemoStage>
+    <DemoStage onDark={onDark}>
       <Deferred height={320}>
         <div className="flex flex-1 flex-col pt-1">
           <InboxFrame demo folder="inbox" onFolderChange={noop} anyConnected messages={VMAIL_MESSAGES} />
@@ -195,7 +201,7 @@ export function ClaudeCodeTerminal() {
         "",
         "# Settings -> AI Model -> Local Mode -> connect a folder",
         "claude          # in the repo, pointed at that folder",
-        "/local-relay    # answer one pending Vaea Chat message  (or: /l)",
+        "/local-relay    # answer one pending Vaea Chat message",
         "",
         "# requests leaving your network: 0",
       ].join("\n")}

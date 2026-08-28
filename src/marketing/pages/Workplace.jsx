@@ -47,7 +47,7 @@ export default function Workplace() {
         tone="dark"
         eyebrow="one inbox"
         title="Gmail and Outlook, read and written in one client"
-        visual={<VmailDemo />}
+        visual={<VmailDemo onDark />}
       >
         <p>
           Your mail from both accounts comes into one place — read, search, and write across them
@@ -59,20 +59,21 @@ export default function Workplace() {
         </p>
       </ShowBlock>
 
-      <ShowBlock
+      <Section
         eyebrow="honest about the edges"
         title="Meetings — the surface is here, the connector isn't yet"
-        visual={<CalendarDemo />}
       >
-        <p>
-          There's a place for meeting notes to land, but the transcript connector it needs isn't
-          available yet.
-        </p>
-        <p>
-          The app says that plainly where you'd expect it to work, rather than looking finished and
-          failing quietly.
-        </p>
-      </ShowBlock>
+        <Reveal className="mt-5 max-w-[46rem] space-y-3.5 text-[1.02rem] leading-relaxed text-muted-foreground">
+          <p>
+            There's a place for meeting notes to land, but the transcript connector it needs isn't
+            available yet.
+          </p>
+          <p>
+            The app says that plainly where you'd expect it to work, rather than looking finished and
+            failing quietly.
+          </p>
+        </Reveal>
+      </Section>
 
       <Marquee items={["one agenda", "one inbox", "Google and Microsoft", "drafted on approval", "next to the board"]} />
 

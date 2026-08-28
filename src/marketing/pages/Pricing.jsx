@@ -53,7 +53,7 @@ export default function Pricing() {
 
       <section className="py-[calc(var(--mkt-section-y)*0.85)]">
         <Container>
-          <Reveal className="mx-auto max-w-[34rem] rounded-2xl border border-foreground/[0.08] bg-card/60 p-8 shadow-[0_1px_3px_0_hsl(200_30%_12%/0.08),0_24px_56px_-30px_hsl(200_30%_12%/0.28)] backdrop-blur">
+          <Reveal className="max-w-[34rem] rounded-2xl border border-foreground/[0.08] bg-card/60 p-8 shadow-[0_1px_3px_0_hsl(200_30%_12%/0.08),0_24px_56px_-30px_hsl(200_30%_12%/0.28)] backdrop-blur">
             <p className="font-mono text-[0.72rem] uppercase tracking-[0.18em] text-muted-foreground">
               one plan
             </p>
@@ -79,7 +79,7 @@ export default function Pricing() {
 
       <section className="py-[calc(var(--mkt-section-y)*0.75)]">
         <Container>
-          <Reveal className="mx-auto max-w-[42rem]">
+          <Reveal className="max-w-[42rem]">
             <h2 className="font-display text-[clamp(1.7rem,3.4vw,2.5rem)] font-semibold leading-[1.08] tracking-[-0.03em] text-foreground">
               Common questions about pricing
             </h2>

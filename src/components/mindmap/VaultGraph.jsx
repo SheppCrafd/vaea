@@ -128,11 +128,27 @@ function tagHue(tag) {
 const DEMO_GRAPH = {
   links: [
     { from: "Decisions/Auth Architecture.md", to: "Projects/Vaea.md" },
+    { from: "Decisions/Session Storage.md", to: "Projects/Vaea.md" },
+    { from: "Decisions/Local-First Sync.md", to: "Projects/Vaea.md" },
+    { from: "Decisions/Local-First Sync.md", to: "Decisions/Session Storage.md" },
     { from: "Daily/2026-08-14.md", to: "Decisions/Auth Architecture.md" },
-    { from: "Projects/Vaea.md", to: "People/Client.md" },
+    { from: "Daily/2026-08-19.md", to: "Decisions/Local-First Sync.md" },
+    { from: "Daily/2026-08-19.md", to: "Reference/Deploy Runbook.md" },
+    { from: "Projects/Vaea.md", to: "People/Priya.md" },
+    { from: "Projects/Vaea.md", to: "Areas/Work.md" },
+    { from: "Projects/Zmanim Today.md", to: "Areas/Work.md" },
+    { from: "Projects/Zmanim Today.md", to: "Decisions/Local-First Sync.md" },
+    { from: "MOC/Engineering.md", to: "Decisions/Auth Architecture.md" },
+    { from: "MOC/Engineering.md", to: "Decisions/Session Storage.md" },
+    { from: "MOC/Engineering.md", to: "Reference/Deploy Runbook.md" },
+    { from: "Knowledge/React Query.md", to: "Projects/Vaea.md" },
+    { from: "Knowledge/Obsidian Git.md", to: "MOC/Engineering.md" },
+    { from: "Ideas/Offline Mode.md", to: "Decisions/Local-First Sync.md" },
+    { from: "Reference/Deploy Runbook.md", to: "Projects/Vaea.md" },
   ],
   suggested_links: [
     { a: "Decisions/Auth Architecture.md", b: "Decisions/Session Storage.md" },
+    { a: "Ideas/Offline Mode.md", b: "Decisions/Session Storage.md" },
   ],
   tags: {},
 };
@@ -303,8 +319,11 @@ export default function VaultGraph({ demo = false, interactive = false }) {
     nodesRef.current = nodes;
     positionsRef.current = nodes.length ? seedPositions(nodes, width, height) : null;
     alphaRef.current = 1;
-    setView({ scale: 1, x: width / 2, y: height / 2 });
-  }, [graph, proposedPaths]);
+    // The marketing demo graph is a small fixed sample; start it zoomed in a
+    // touch so it fills the frame and node labels clear each other rather than
+    // sitting as a tight speck mid-canvas. A real (large) vault stays at 1.
+    setView({ scale: demo ? 1.35 : 1, x: width / 2, y: height / 2 });
+  }, [graph, proposedPaths, demo]);
 
   // The live loop: one physics tick + one draw per animation frame, applying
   // the current pan/zoom as a canvas transform. Keeps running while alpha

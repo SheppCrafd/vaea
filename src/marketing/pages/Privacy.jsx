@@ -77,7 +77,8 @@ export default function Privacy() {
       </section>
 
       <section className="pb-[calc(var(--mkt-section-y)*0.85)] pt-[calc(var(--mkt-section-y)*0.35)]">
-        <Container className="max-w-[52rem]">
+        <Container>
+         <div className="max-w-[52rem]">
           <Block heading="What stays on your computer">
             <p>
               Every project, task, note, and person you add is written to ordinary files on your own
@@ -136,6 +137,7 @@ export default function Privacy() {
               that switch as one to leave off and check, not assume.
             </p>
           </Block>
+         </div>
         </Container>
       </section>
 
