@@ -41,9 +41,8 @@ export default function Pricing() {
               Vaea is free.
             </h1>
             <p className="mt-6 max-w-[38rem] text-[1.08rem] leading-relaxed text-muted-foreground">
-              No paid plans. No seats. Nothing held back behind an upgrade. The only thing you can
-              spend money on is your own AI provider, if you choose to connect one — and that bill
-              goes to them, not here.
+              No paid plans, no seats, and no features reserved for an upgrade. The only cost is your
+              own AI provider, if you choose to connect one — and that bill goes to them, not to us.
             </p>
             <div className="mt-8">
               <CtaRow note="Free · no card · your information stays on your computer" />
