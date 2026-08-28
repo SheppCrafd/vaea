@@ -14,9 +14,15 @@ export default function MarketingLayout() {
   return (
     <div className="mkt relative min-h-screen overflow-x-clip bg-background font-body text-foreground antialiased">
       <SeoHead pathname={pathname} />
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-primary focus:px-5 focus:py-2.5 focus:text-sm focus:font-medium focus:text-primary-foreground focus:shadow-lg"
+      >
+        Skip to content
+      </a>
       <Ambience />
       <Nav />
-      <main id="main">
+      <main id="main" tabIndex={-1} className="outline-none">
         <Outlet />
       </main>
       <Footer />

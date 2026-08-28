@@ -42,6 +42,9 @@ export default function Compare() {
 
       <section className="py-[calc(var(--mkt-section-y)*0.8)]">
         <Container>
+          <p className="mb-3 font-mono text-[0.68rem] tracking-tight text-muted-foreground md:hidden">
+            Swipe the table sideways to see both columns →
+          </p>
           <Reveal className="overflow-x-auto">
             <table className="w-full min-w-[46rem] border-collapse text-left text-[0.95rem]">
               <thead>
