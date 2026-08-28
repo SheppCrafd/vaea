@@ -56,11 +56,17 @@ function InertExpand({ className, iconClass = "w-4 h-4", title, label }) {
 }
 
 // One project tile — the real ProjectCardShell, fed fixture-derived stats.
-function DemoProject({ p, justAdded, delay = 0 }) {
+// `addedCard` marks the "Q3 launch" tile the assistant drops mid-demo; while
+// `pending` it's rendered but held at opacity 0 so its grid cell always
+// occupies space — the board never changes height across the loop.
+function DemoProject({ p, addedCard = false, pending = false, delay = 0 }) {
   return (
     <ProjectCardShell
-      style={!justAdded ? { "--piece-delay": `${delay}ms` } : undefined}
-      className={cn("shadow-sm", justAdded ? "mkt-just-added" : "mkt-board-piece")}
+      style={!addedCard ? { "--piece-delay": `${delay}ms` } : undefined}
+      className={cn(
+        "shadow-sm",
+        addedCard ? (pending ? "opacity-0" : "mkt-just-added") : "mkt-board-piece",
+      )}
       dragHandle={<InertGrip className="shrink-0 p-0.5" iconClass="w-3 h-3" label="Drag to reorder project" />}
       title={
         <EditableTitle
@@ -95,8 +101,12 @@ function DemoProject({ p, justAdded, delay = 0 }) {
 
 // One product — the real ProductCardShell, its project grid replicating
 // ProjectsGrid's Mini-mode CSS grid exactly.
-function DemoProduct({ product, added, delay }) {
-  const projects = added ? [...product.projects, BOARD.added] : product.projects;
+function DemoProduct({ product, hero, showAdded, cycle, delay }) {
+  // Only the first product ever gets the assistant's added card. In the hero
+  // demo its cell is always present (invisible until `showAdded`) so the
+  // layout height is identical whether or not the card has "arrived".
+  const withCard = hero && product === BOARD.products[0];
+  const projects = withCard ? [...product.projects, BOARD.added] : product.projects;
   return (
     <div className="mkt-board-piece" style={{ "--piece-delay": `${delay}ms` }}>
       <ProductCardShell
@@ -132,17 +142,21 @@ function DemoProduct({ product, added, delay }) {
             className="relative z-[1] mt-4 min-h-[80px] rounded-lg -mx-4 p-2 transition-colors bg-transparent"
             style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, 112px)", alignItems: "start", gap: "8px" }}
           >
-            {projects.map((proj, j) => (
-              <DemoProject
-                key={proj.id}
-                p={proj}
-                justAdded={added && proj === BOARD.added}
-                delay={140 + j * 55}
-              />
-            ))}
+            {projects.map((proj, j) => {
+              const isAdded = proj === BOARD.added;
+              return (
+                <DemoProject
+                  key={isAdded ? `added-${cycle}` : proj.id}
+                  p={proj}
+                  addedCard={isAdded}
+                  pending={isAdded && !showAdded}
+                  delay={140 + j * 55}
+                />
+              );
+            })}
           </div>
         }
-        stats={<TaskStatistics tasks={tasksOfProduct(product, added)} />}
+        stats={<TaskStatistics tasks={tasksOfProduct(product, withCard && showAdded)} />}
         customFields={
           <CardCustomFields
             entity={product}
@@ -158,6 +172,8 @@ function DemoProduct({ product, added, delay }) {
 export default function BoardDemo({ hero = false, className }) {
   const [typed, setTyped] = useState("");
   const [added, setAdded] = useState(false);
+  // Bumped once per loop; keys the product grid so every piece re-drops.
+  const [cycle, setCycle] = useState(0);
 
   useEffect(() => {
     if (!hero) return;
@@ -168,14 +184,29 @@ export default function BoardDemo({ hero = false, className }) {
     }
     let cancelled = false;
     const timers = [];
-    timers.push(
-      setTimeout(function step(i = 0) {
-        if (cancelled) return;
-        setTyped(CHAT_PROMPT.slice(0, i));
-        if (i <= CHAT_PROMPT.length) timers.push(setTimeout(() => step(i + 1), 26));
-        else timers.push(setTimeout(() => setAdded(true), 300));
-      }, 1100),
-    );
+    const at = (fn, ms) => timers.push(setTimeout(fn, ms));
+
+    // One loop: rebuild the board, type the instruction, drop the card,
+    // hold on the finished state, then start over. Opacity/translate only —
+    // nothing resizes across the cycle.
+    const runCycle = () => {
+      if (cancelled) return;
+      setTyped("");
+      setAdded(false);
+      setCycle((c) => c + 1);
+      at(() => {
+        const step = (i = 0) => {
+          if (cancelled) return;
+          setTyped(CHAT_PROMPT.slice(0, i));
+          if (i < CHAT_PROMPT.length) return at(() => step(i + 1), 26);
+          at(() => !cancelled && setAdded(true), 420);
+          at(runCycle, 420 + 4200);
+        };
+        step();
+      }, 1100);
+    };
+
+    runCycle();
     return () => {
       cancelled = true;
       timers.forEach(clearTimeout);
@@ -222,6 +253,7 @@ export default function BoardDemo({ hero = false, className }) {
         }
         productsGrid={
           <div
+            key={hero ? cycle : "static"}
             className="mt-2 grid items-start -mx-5"
             style={{ gridTemplateColumns: "repeat(auto-fit, 248px)", justifyContent: "space-evenly" }}
           >
@@ -229,7 +261,9 @@ export default function BoardDemo({ hero = false, className }) {
               <DemoProduct
                 key={prod.id}
                 product={prod}
-                added={added && prod === BOARD.products[0]}
+                hero={hero}
+                showAdded={added}
+                cycle={cycle}
                 delay={80 + pi * 60}
               />
             ))}

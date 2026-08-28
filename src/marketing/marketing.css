@@ -68,10 +68,13 @@
 }
 
 /* ---- the hero board assembly ---------------------------------------- */
+/* Opacity + translate only — never scale. The hero board demo loops (it
+   rebuilds itself on a timer, see BoardDemo.jsx), and a scaling keyframe
+   would make cards visibly change size on every cycle. */
 @keyframes mkt-card-drop {
   from {
     opacity: 0;
-    transform: translateY(16px) scale(0.97);
+    transform: translateY(16px);
   }
   to {
     opacity: 1;
@@ -83,11 +86,13 @@
   animation-delay: var(--piece-delay, 0ms);
 }
 
-/* the card the assistant "just added" — the one place the signal ring shows */
+/* the card the assistant "just added" — the one place the signal ring shows.
+   Re-keyed each loop cycle by BoardDemo.jsx so this entrance replays. Box
+   shadow pulse only; no scale, so the card never resizes mid-loop. */
 @keyframes mkt-just-added {
   0% {
     opacity: 0;
-    transform: translateY(18px) scale(0.95);
+    transform: translateY(18px);
   }
   55% {
     box-shadow: 0 0 0 2px rgb(var(--signal-rgb) / 0.9), 0 18px 40px -12px rgb(var(--signal-rgb) / 0.4);

@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import TerminalBlock from "@/components/settings/TerminalBlock";
-import { useReveal } from "../useReveal";
+import { useReveal, prefersReducedMotion } from "../useReveal";
 import { CHAT_MESSAGES, VMAIL_MESSAGES, CALENDAR_GROUPS } from "../fixtures";
 
 // The demos render the REAL app components with fixture data. They're
@@ -67,26 +67,46 @@ function Deferred({ height = 320, children }) {
   );
 }
 
+// Loops: the reply re-types every ~9s. The stage height is fixed and the
+// message list scrolls internally, so nothing outside it resizes as the
+// text fills in or resets.
 export function ChatDemo({ onDark = false }) {
+  const [ref, shown] = useReveal();
+  const [cycle, setCycle] = useState(0);
+  const reduced = prefersReducedMotion();
+
+  useEffect(() => {
+    if (!shown || reduced) return;
+    const id = setInterval(() => setCycle((c) => c + 1), 9000);
+    return () => clearInterval(id);
+  }, [shown, reduced]);
+
   return (
     <DemoStage label="Vaea Chat" onDark={onDark}>
-      <Deferred height={200}>
-        <ChatMessageList
-          messages={CHAT_MESSAGES}
-          isComputing={false}
-          isPlanning={false}
-          liveSteps={[]}
-          streamingText=""
-          iconChoice="terminal"
-          hasMore={false}
-          onLoadMore={noop}
-          resolvingId={null}
-          onConfirm={noop}
-          onCancel={noop}
-          newMessageIds={new Set(["a1"])}
-          onMessageTyped={noop}
-        />
-      </Deferred>
+      <div ref={ref} className="flex h-[420px] flex-col">
+        {shown ? (
+          <Suspense fallback={<div className="flex-1" />}>
+            <ChatMessageList
+              key={cycle}
+              messages={CHAT_MESSAGES}
+              isComputing={false}
+              isPlanning={false}
+              liveSteps={[]}
+              streamingText=""
+              iconChoice="terminal"
+              hasMore={false}
+              onLoadMore={noop}
+              resolvingId={null}
+              onConfirm={noop}
+              onCancel={noop}
+              newMessageIds={reduced ? new Set() : new Set(["a1"])}
+              onMessageTyped={noop}
+            />
+          </Suspense>
+        ) : (
+          <div className="flex-1" />
+        )}
+      </div>
     </DemoStage>
   );
 }

@@ -268,6 +268,19 @@ export default function VaultGraph({ demo = false }) {
     })();
   }, [demo]);
 
+  // Demo mode only: re-heat the simulation on an interval so the marketing
+  // graph keeps drifting in a slow loop instead of settling once and going
+  // still. Just nudges the existing `alphaRef` the live loop already reads;
+  // skipped under reduced-motion so it comes to rest and stays there.
+  useEffect(() => {
+    if (!demo) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const id = setInterval(() => {
+      alphaRef.current = 1;
+    }, 5000);
+    return () => clearInterval(id);
+  }, [demo]);
+
   // Seeds nodes/positions once per real graph (not on every hover/physics/
   // view change) — dragging, panning, and zooming below all mutate this
   // SAME positions Map in place rather than replacing it, so a drag isn't
