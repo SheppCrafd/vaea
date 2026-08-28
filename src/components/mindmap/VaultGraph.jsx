@@ -103,11 +103,11 @@ function titleOf(path) {
   return path.split("/").pop().replace(/\.md$/, "");
 }
 
-// The demo graph isn't interactive, so it keeps the page's normal cursor;
-// a live canvas shows a grab hand over a node and the default arrow
-// elsewhere, and grabs on drag either way.
-function canvasCursorClass(demo, hovered) {
-  if (demo) return "";
+// A plain (non-demo) canvas — and an explicitly `interactive` demo — show a
+// grab hand over a node and grab on drag; a passive demo keeps the page's
+// normal cursor.
+function canvasCursorClass(demo, hovered, interactive) {
+  if (demo && !interactive) return "";
   if (hovered) return "cursor-grab active:cursor-grabbing";
   return "cursor-default active:cursor-grabbing";
 }
@@ -137,7 +137,12 @@ const DEMO_GRAPH = {
   tags: {},
 };
 
-export default function VaultGraph({ demo = false }) {
+// `interactive` opts a demo graph back into pan / zoom / node-drag / hover
+// (the marketing "Vaea Brain" hero wants a graph visitors can actually move
+// around). Note-open, link-create, note-create and every GitHub write stay
+// gated on a real (`!demo`) connection regardless.
+export default function VaultGraph({ demo = false, interactive = false }) {
+  const demoInert = demo && !interactive;
   const [connected, setConnected] = useState(demo ? true : null);
   const [connection, setConnection] = useState(null);
   const [graph, setGraph] = useState(demo ? DEMO_GRAPH : null);
@@ -268,18 +273,19 @@ export default function VaultGraph({ demo = false }) {
     })();
   }, [demo]);
 
-  // Demo mode only: re-heat the simulation on an interval so the marketing
-  // graph keeps drifting in a slow loop instead of settling once and going
-  // still. Just nudges the existing `alphaRef` the live loop already reads;
-  // skipped under reduced-motion so it comes to rest and stays there.
+  // Passive demo only: re-heat the simulation on an interval so the graph
+  // keeps drifting in a slow loop instead of settling once and going still.
+  // Just nudges the existing `alphaRef` the live loop already reads; skipped
+  // under reduced-motion, and skipped for an interactive demo (there the
+  // visitor moves it, and constant drift would fight them).
   useEffect(() => {
-    if (!demo) return;
+    if (!demoInert) return;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     const id = setInterval(() => {
       alphaRef.current = 1;
     }, 5000);
     return () => clearInterval(id);
-  }, [demo]);
+  }, [demoInert]);
 
   // Seeds nodes/positions once per real graph (not on every hover/physics/
   // view change) — dragging, panning, and zooming below all mutate this
@@ -445,14 +451,14 @@ export default function VaultGraph({ demo = false }) {
   };
 
   const handlePointerDown = (e) => {
-    if (demo) return;
+    if (demoInert) return;
     const { x, y } = toGraphSpace(e.clientX, e.clientY);
     const node = nodeAt(x, y);
     // Shift-drag from a node draws a real [[wikilink]] instead of moving
     // it — the graph's own "create a connection" gesture, same modifier
     // convention as most diagram tools use to distinguish "move" from
     // "connect."
-    if (node && e.shiftKey) {
+    if (node && e.shiftKey && !demo) {
       dragRef.current = { kind: "link", node, moved: false, startClientX: e.clientX, startClientY: e.clientY };
       linkCursorRef.current = { x, y };
       setLinkFrom(node);
@@ -471,7 +477,7 @@ export default function VaultGraph({ demo = false }) {
   };
 
   const handlePointerMove = (e) => {
-    if (demo) return;
+    if (demoInert) return;
     const drag = dragRef.current;
     if (!drag) {
       const { x, y } = toGraphSpace(e.clientX, e.clientY);
@@ -505,12 +511,12 @@ export default function VaultGraph({ demo = false }) {
   // pointerup with no real movement) does, same click-vs-drag distinction
   // WorkflowCanvas.jsx doesn't need (its cards have no separate "open" action).
   const handlePointerUp = () => {
-    if (demo) return;
+    if (demoInert) return;
     const drag = dragRef.current;
     if (drag?.kind === "node") {
       positionsRef.current.get(drag.node).fixed = false;
-      if (!drag.moved) setOpenNote(drag.node);
-    } else if (drag?.kind === "link" && linkCursorRef.current) {
+      if (!drag.moved && !demo) setOpenNote(drag.node);
+    } else if (drag?.kind === "link" && !demo && linkCursorRef.current) {
       const target = nodeAt(linkCursorRef.current.x, linkCursorRef.current.y);
       if (target && target !== drag.node) createLinkBetween(drag.node, target);
     }
@@ -592,7 +598,7 @@ export default function VaultGraph({ demo = false }) {
   };
 
   const handleWheel = (e) => {
-    if (demo) return;
+    if (demoInert) return;
     // Only actually prevents the page from scrolling under the canvas when
     // this handler is attached as a real, non-passive DOM listener (see the
     // useEffect below) — React's own onWheel prop attaches passively by
@@ -711,12 +717,12 @@ export default function VaultGraph({ demo = false }) {
             onPointerUp={handlePointerUp}
             onPointerLeave={handlePointerUp}
             onDoubleClick={handleDoubleClick}
-            className={`w-full h-full touch-none ${canvasCursorClass(demo, hovered)}`}
+            className={`w-full h-full touch-none ${canvasCursorClass(demo, hovered, interactive)}`}
           />
         </>
       )}
 
-      {!demo && graph ? (
+      {(!demo || interactive) && graph ? (
         <div className="absolute bottom-2 left-2 z-10 flex items-center gap-0.5 rounded-md bg-card/90 border border-border shadow-sm backdrop-blur-sm p-0.5">
           <button
             type="button"

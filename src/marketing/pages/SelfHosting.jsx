@@ -1,6 +1,6 @@
 import { Container, Eyebrow, Section, CtaRow, Reveal } from "../components/ui";
 import { ShowBlock, Faq, Marquee, ClosingCta } from "../components/blocks";
-import { ClaudeCodeTerminal, LocalModeTerminal, InertDemo } from "../components/visuals";
+import { ClaudeCodeTerminal, LocalModeTerminal } from "../components/visuals";
 import TerminalBlock from "@/components/settings/TerminalBlock";
 import { SELFHOSTING_FAQ } from "../seo";
 
@@ -75,18 +75,16 @@ export default function SelfHosting() {
         eyebrow="two commands, one of them shorter"
         title="/local-relay for one message, /l when it's all day"
         visual={
-          <InertDemo>
-            <TerminalBlock
-              title="claude"
-              showPrompt
-              code={[
-                "/local-relay   # take the oldest pending message, answer it,",
-                "               # then handle the next round if one comes",
-                "",
-                "/l             # same command, quicker to type",
-              ].join("\n")}
-            />
-          </InertDemo>
+          <TerminalBlock
+            title="claude"
+            showPrompt
+            code={[
+              "/local-relay   # take the oldest pending message, answer it,",
+              "               # then handle the next round if one comes",
+              "",
+              "/l             # same command, quicker to type",
+            ].join("\n")}
+          />
         }
         cta={{ to: "/vaea-chat", label: "More on Vaea Chat" }}
       >

@@ -16,19 +16,6 @@ const VaultGraph = lazy(() => import("@/components/mindmap/VaultGraph"));
 
 const noop = () => {};
 
-// Bare inert wrapper — no card chrome. For demos that bring their own
-// framing (the terminal blocks), just the aria-hidden + pointer-events-none
-// + select-none + cursor-stays-arrow (.mkt-demo) treatment every demo needs
-// so nothing inside (e.g. TerminalBlock's copy button) is hoverable or
-// clickable. Component-internal animation still runs.
-export function InertDemo({ className, children }) {
-  return (
-    <div aria-hidden="true" className={cn("mkt-demo pointer-events-none select-none", className)}>
-      {children}
-    </div>
-  );
-}
-
 // Inert wrapper: aria-hidden, pointer-events-none (pointer stays a default
 // arrow, nothing is clickable), select-none. Component-internal animation
 // (the chat typewriter, the notes-map motion) still runs.
@@ -135,7 +122,33 @@ export function CalendarDemo() {
   );
 }
 
-export function MindMapDemo() {
+// `interactive` (the /brain hero) renders a real, movable graph — pan, zoom,
+// drag a node — in a plain fixed-height frame, not the inert DemoStage. The
+// lazy VaultGraph still mounts only once the frame scrolls into view, so the
+// prerender/first paint just shows the empty reserved box. Everywhere else
+// it's the passive, looping notes-map demo.
+export function MindMapDemo({ interactive = false }) {
+  const [ref, shown] = useReveal();
+  if (interactive) {
+    return (
+      <div>
+        <div className="h-[440px] overflow-hidden rounded-2xl border border-foreground/[0.08] bg-card/70 shadow-[0_1px_3px_0_hsl(200_30%_12%/0.1),0_36px_72px_-34px_hsl(200_30%_12%/0.34)] backdrop-blur-xl">
+          <div ref={ref} className="flex h-full flex-col">
+            {shown ? (
+              <Suspense fallback={<div className="flex-1" />}>
+                <VaultGraph demo interactive />
+              </Suspense>
+            ) : (
+              <div className="flex-1" />
+            )}
+          </div>
+        </div>
+        <p className="mt-2 text-center font-mono text-[0.68rem] tracking-tight text-muted-foreground">
+          drag a note · scroll to zoom · this one you can actually move
+        </p>
+      </div>
+    );
+  }
   return (
     <DemoStage label="Notes map">
       <Deferred height={320}>
@@ -145,29 +158,27 @@ export function MindMapDemo() {
   );
 }
 
-// Real TerminalBlock — light enough to keep static (no window at module or
-// render scope), so it renders straight into the prerendered HTML.
+// Real TerminalBlock with a working copy button — a real command to run is
+// worth copying, so these are NOT wrapped in the inert demo treatment. Light
+// enough to keep static (no window at module or render scope), so it renders
+// straight into the prerendered HTML.
 export function StorageTerminal() {
   return (
-    <InertDemo>
-      <TerminalBlock
-        title="your-folder"
-        showPrompt
-        code={["ls", "# areas.json   projects.json   tasks.json", "# people.json   notes.json", "", "# times your work was sent anywhere: 0"].join("\n")}
-      />
-    </InertDemo>
+    <TerminalBlock
+      title="your-folder"
+      showPrompt
+      code={["ls", "# areas.json   projects.json   tasks.json", "# people.json   notes.json", "", "# times your work was sent anywhere: 0"].join("\n")}
+    />
   );
 }
 
 export function LocalModeTerminal() {
   return (
-    <InertDemo>
-      <TerminalBlock
-        title="on your computer"
-        showPrompt
-        code={["# Vaea Chat runs against a model on this machine", "ask  ->  answer      (no internet)", "", "# requests leaving your computer: 0"].join("\n")}
-      />
-    </InertDemo>
+    <TerminalBlock
+      title="on your computer"
+      showPrompt
+      code={["# Vaea Chat runs against a model on this machine", "ask  ->  answer      (no internet)", "", "# requests leaving your computer: 0"].join("\n")}
+    />
   );
 }
 
@@ -175,22 +186,20 @@ export function LocalModeTerminal() {
 // answering Vaea Chat as the model from inside the checked-out repo.
 export function ClaudeCodeTerminal() {
   return (
-    <InertDemo>
-      <TerminalBlock
-        title="~/vaea"
-        showPrompt
-        code={[
-          "git clone https://github.com/SheppCrafd/vaea && cd vaea",
-          "npm install && npm run dev        # Vaea on localhost",
-          "",
-          "# Settings -> AI Model -> Local Mode -> connect a folder",
-          "claude          # in the repo, pointed at that folder",
-          "/local-relay    # answer one pending Vaea Chat message  (or: /l)",
-          "",
-          "# requests leaving your network: 0",
-        ].join("\n")}
-      />
-    </InertDemo>
+    <TerminalBlock
+      title="~/vaea"
+      showPrompt
+      code={[
+        "git clone https://github.com/SheppCrafd/vaea && cd vaea",
+        "npm install && npm run dev        # Vaea on localhost",
+        "",
+        "# Settings -> AI Model -> Local Mode -> connect a folder",
+        "claude          # in the repo, pointed at that folder",
+        "/local-relay    # answer one pending Vaea Chat message  (or: /l)",
+        "",
+        "# requests leaving your network: 0",
+      ].join("\n")}
+    />
   );
 }
 

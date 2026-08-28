@@ -31,7 +31,7 @@ export default function Brain() {
             </div>
           </div>
           <Reveal delay={90} className="mt-12">
-            <MindMapDemo />
+            <MindMapDemo interactive />
           </Reveal>
         </Container>
       </section>
