@@ -197,7 +197,12 @@ function DepartmentSection({ id, name, children }) {
   return (
     <div ref={setNodeRef} className={`rounded-md transition-colors ${isOver ? "bg-primary/10 ring-2 ring-primary/40" : ""}`}>
       <AccordionItem value={id ?? "__unassigned__"}>
-        <AccordionTrigger className="text-sm">{name || "Unassigned"}</AccordionTrigger>
+        {/* px-0 mx-0 cancels the base trigger's `px-2 -mx-2` (which assumes a
+            px-2 container to absorb it, like AgentsCard/PromptTemplatesCard
+            have). This Accordion has no side padding, so the negative margin
+            was bleeding the trigger 8px past each edge of the sidebar and
+            forcing a horizontal scrollbar. Text position is unchanged. */}
+        <AccordionTrigger className="text-sm px-0 mx-0">{name || "Unassigned"}</AccordionTrigger>
         <AccordionContent>{children}</AccordionContent>
       </AccordionItem>
     </div>);
