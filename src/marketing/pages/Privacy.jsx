@@ -1,8 +1,17 @@
+import { Link } from "react-router-dom";
 import { Container, Eyebrow, Reveal } from "../components/ui";
 import { ClosingCta } from "../components/blocks";
 import { StorageTerminal } from "../components/visuals";
+import { SITE_MODIFIED } from "../seo";
 
-const UPDATED = "August 26, 2026";
+// One source for "last updated" — the same constant the footer and the
+// structured data read, so the visible date can't drift. Parsed as local
+// midnight so it doesn't slip a day in western time zones.
+const UPDATED = new Date(`${SITE_MODIFIED}T00:00:00`).toLocaleDateString("en-US", {
+  month: "long",
+  day: "numeric",
+  year: "numeric",
+});
 
 const LEAVES = [
   [
@@ -50,7 +59,14 @@ export default function Privacy() {
             </h1>
             <p className="mt-5 max-w-[54ch] text-[1.05rem] leading-relaxed text-muted-foreground">
               No badges, no fine print — just the list. You can check every line of it in the app or
-              the public code.
+              the public code. There's a{" "}
+              <Link
+                to="/privacy-policy"
+                className="text-foreground underline decoration-foreground/25 underline-offset-2 hover:decoration-foreground"
+              >
+                formal privacy policy
+              </Link>{" "}
+              too, if you need the version in the usual shape.
             </p>
             <p className="mt-4 font-mono text-[0.72rem] tracking-tight text-muted-foreground">Last updated {UPDATED}</p>
           </div>

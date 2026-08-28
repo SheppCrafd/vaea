@@ -22,6 +22,20 @@
   cursor: default !important;
 }
 
+/* Designed keyboard-focus ring for every interactive element on the
+   marketing pages — a real 2px signal-colour ring instead of the thin
+   browser default. Only on :focus-visible, so a mouse click never shows it.
+   (The demos are inert / pointer-events:none, so nothing inside them is
+   focusable and this never lands there.) */
+.mkt a:focus-visible,
+.mkt button:focus-visible,
+.mkt summary:focus-visible,
+.mkt [tabindex]:focus-visible {
+  outline: 2px solid rgb(var(--signal-rgb));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 /* ---- reveal on scroll -------------------------------------------------- */
 .mkt-reveal {
   opacity: 0;

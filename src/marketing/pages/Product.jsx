@@ -40,8 +40,9 @@ export default function Product() {
               One board, one assistant, everything in one place
             </h1>
             <p className="mt-5 max-w-[40rem] text-[1.05rem] leading-relaxed text-muted-foreground">
-              Start with the board and the assistant. Connect your calendar, email, and notes when
-              you're ready — the same assistant helps with those too.
+              Not five apps and a browser full of tabs. The board and the assistant to start; your
+              calendar, email, and notes fold in when you're ready — the same assistant across all of
+              it.
             </p>
             <div className="mt-7">
               <CtaRow note="Free · the board works before you even sign in" />

@@ -15,6 +15,19 @@ export const SITE_REPO = "https://github.com/SheppCrafd/vaea";
 // as `dateModified` in structured data (a freshness signal for search + AI).
 export const SITE_MODIFIED = "2026-08-27";
 
+// The person behind the project. Real, public identity (the GitHub + Gravatar
+// are already public) — used for the /about card, the footer, and the
+// Person/author structured data so the site isn't an anonymous page.
+export const MAKER = {
+  name: "SheppCrafd",
+  role: "Built & maintained solo",
+  bio: "Builds mods, builds robots, builds modded robots.",
+  avatar: "/maker-avatar.png",
+  email: "mwallis31@outlook.com",
+  github: "https://github.com/SheppCrafd",
+  gravatar: "https://gravatar.com/sheppcrafd",
+};
+
 // Every indexable marketing route. `path` is the router path; `loc` is what
 // lands in sitemap.xml. Keep this list and MarketingApp's <Route> list in
 // step — prerender iterates this array.
@@ -44,7 +57,7 @@ export const ROUTES = [
     changefreq: "monthly",
     title: "The Vaea assistant — see every change before it happens",
     description:
-      "Ask in plain words. It reads your board, shows exactly what it would change, and waits for your yes. Built-in model, your own AI account, or one on your own computer.",
+      "Ask in plain words. It reads your board, shows what it would change, and waits for your yes. Built-in model, your own AI account, or one on your computer.",
   },
   {
     path: "/privacy",
@@ -54,6 +67,51 @@ export const ROUTES = [
     title: "Where your information lives — on your computer | Vaea",
     description:
       "Vaea keeps your projects and tasks on your own computer by default. This page lists every time anything leaves it, and what you can switch off.",
+  },
+  {
+    path: "/pricing",
+    loc: "/pricing",
+    priority: "0.7",
+    changefreq: "yearly",
+    title: "Pricing — Vaea is free | Vaea",
+    description:
+      "Vaea is free. No paid plans, no seats, nothing locked behind an upgrade. If you connect your own AI account you pay that provider directly; Vaea adds no charge.",
+  },
+  {
+    path: "/compare",
+    loc: "/compare",
+    priority: "0.7",
+    changefreq: "monthly",
+    title: "Vaea vs. the usual setup — an honest comparison | Vaea",
+    description:
+      "How Vaea compares to the common setup — a cloud task manager plus a separate AI, or a stack of apps. Where Vaea fits, and where the usual setup is still the better call.",
+  },
+  {
+    path: "/about",
+    loc: "/about",
+    priority: "0.6",
+    changefreq: "yearly",
+    title: "Who makes Vaea | Vaea",
+    description:
+      "Vaea is built and maintained by one person — SheppCrafd. What that means for the project, how to get in touch, and where the code lives.",
+  },
+  {
+    path: "/privacy-policy",
+    loc: "/privacy-policy",
+    priority: "0.3",
+    changefreq: "yearly",
+    title: "Privacy Policy | Vaea",
+    description:
+      "The formal privacy policy for Vaea: what data exists, where it lives, the few things that touch a server, and your rights. Plain-language companion at /privacy.",
+  },
+  {
+    path: "/terms",
+    loc: "/terms",
+    priority: "0.3",
+    changefreq: "yearly",
+    title: "Terms of Use | Vaea",
+    description:
+      "The terms for using Vaea — a free, one-person project provided as-is, with no warranty and no lock-in. Your work stays yours.",
   },
 ];
 
@@ -143,8 +201,11 @@ export function canonicalFor(pathname) {
 const PERSON = {
   "@type": "Person",
   "@id": `${SITE_URL}/#maker`,
-  name: "the maker of Vaea",
-  sameAs: ["https://github.com/SheppCrafd"],
+  name: MAKER.name,
+  description: MAKER.bio,
+  image: `${SITE_URL}${MAKER.avatar}`,
+  url: `${SITE_URL}/about`,
+  sameAs: [MAKER.github, MAKER.gravatar],
 };
 
 export function organizationLd() {
@@ -200,6 +261,15 @@ export function softwareApplicationLd() {
   };
 }
 
+function personLd() {
+  return {
+    "@context": "https://schema.org",
+    ...PERSON,
+    knowsAbout: ["local-first software", "project management tools", "AI assistants"],
+    worksFor: { "@id": `${SITE_URL}/#org` },
+  };
+}
+
 export function jsonLdFor(pathname) {
   const route = routeFor(pathname);
   if (pathname === "/") {
@@ -208,6 +278,9 @@ export function jsonLdFor(pathname) {
   if (!route) return [];
   if (pathname === "/assistant") {
     return [webPageLd(route, pathname), faqPageLd(ASSISTANT_FAQ)];
+  }
+  if (pathname === "/about") {
+    return [webPageLd(route, pathname), personLd()];
   }
   return [webPageLd(route, pathname)];
 }

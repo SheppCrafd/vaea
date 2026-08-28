@@ -64,7 +64,11 @@ function DemoProject({ p, justAdded, delay = 0 }) {
       dragHandle={<InertGrip className="shrink-0 p-0.5" iconClass="w-3 h-3" label="Drag to reorder project" />}
       title={
         <EditableTitle
-          as="h4"
+          // as="div" not "h4": this whole demo is aria-hidden decoration, so
+          // its card titles must not inject headings into the page outline
+          // (that was skipping the page from <h1> straight to <h3>/<h4>).
+          // Class list is unchanged, so the rendered pixels are identical.
+          as="div"
           value={p.title}
           className="flex-1 min-w-0 font-heading font-semibold text-[11px] leading-tight text-center cursor-text line-clamp-2"
           tooltip={p.title}
@@ -109,7 +113,7 @@ function DemoProduct({ product, added, delay }) {
         deleteButton={<DeleteButton onClick={noop} label="Delete product" size="md" className="p-1.5 rounded-md" />}
         title={
           <EditableTitle
-            as="h3"
+            as="div"
             value={product.name}
             className="font-heading font-semibold min-w-0 cursor-text"
             tooltip={product.name}
@@ -199,7 +203,7 @@ export default function BoardDemo({ hero = false, className }) {
         deleteButton={<DeleteButton onClick={noop} label="Delete area" size="md" className="p-2 rounded-md" />}
         title={
           <EditableTitle
-            as="h3"
+            as="div"
             value={BOARD.area}
             className="font-heading font-semibold text-lg pl-6 pr-16 min-w-0"
             tooltip={BOARD.area}
@@ -228,16 +232,10 @@ export default function BoardDemo({ hero = false, className }) {
             ))}
           </div>
         }
-        directProjects={
-          <div className="mt-2 p-4 rounded-xl transition-all bg-muted/40 shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.035)]">
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-              Direct Projects
-            </h4>
-            <p className="w-full text-xs text-muted-foreground text-center py-4 min-h-[50px]">
-              Drop a project here to remove it from a product
-            </p>
-          </div>
-        }
+        // The real Area card has a "Direct Projects" drop zone here; it's a
+        // drag target with instructional text ("Drop a project here…") that
+        // does nothing in an inert demo and just adds dead vertical height,
+        // so the demo omits that one slot.
         stats={<TaskStatistics tasks={tasksOfBoard(added)} />}
         customFields={
           <CardCustomFields

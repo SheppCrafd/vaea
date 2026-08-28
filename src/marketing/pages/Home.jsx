@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Container, Eyebrow, Section, CtaRow, Reveal } from "../components/ui";
 import { ShowBlock, ProofStrip, Manifesto, Marquee, Faq, ClosingCta } from "../components/blocks";
 import BoardDemo from "../components/BoardDemo";
@@ -41,13 +42,6 @@ export default function Home() {
         A tool for your own work shouldn't need a company's server. Every project stays in plain files
         on your computer — and the assistant can run there too, with nothing sent out.
       </Manifesto>
-
-      {/* PROBLEM — short, concrete, then straight into the show */}
-      <Section
-        eyebrow="the usual"
-        title="Your work is spread across five apps, and the sixth is your memory"
-        lede="A list here, a calendar there, an inbox, a notes file, a chat thread — and the things you only think of at 11pm. The weekly catch-up that should take ten minutes turns into an afternoon of clicking through everything one by one."
-      />
 
       {/* SHOW A — flagship, dark stage */}
       <ShowBlock
@@ -142,16 +136,16 @@ export default function Home() {
         </Reveal>
       </Section>
 
-      <Section eyebrow="who's behind it" title="Made by one person, kept in daily use">
+      <Section eyebrow="who's behind it" title="Built and maintained by one person">
         <Reveal className="mt-6 max-w-[46rem] space-y-3.5 text-[1.02rem] leading-relaxed text-muted-foreground">
+          <p>The code is public.</p>
           <p>
-            I built Vaea because I was the person it's for — too many projects across too many apps,
-            and no wish to hand all of it to another company's server. It's free because I'm not
-            building a business on it; I'm keeping my own week straight.
-          </p>
-          <p>
-            The code is public, the app runs offline, and your work sits in files you own. If it
-            stopped being looked after tomorrow, nothing of yours would go anywhere.
+            <Link
+              to="/about"
+              className="font-medium text-foreground underline decoration-foreground/25 underline-offset-2 hover:decoration-foreground"
+            >
+              Who makes Vaea, and how to reach them →
+            </Link>
           </p>
         </Reveal>
       </Section>

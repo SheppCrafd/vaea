@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 const LINKS = [
   { to: "/product", label: "Product" },
   { to: "/assistant", label: "Assistant" },
+  { to: "/pricing", label: "Pricing" },
   { to: "/privacy", label: "Your info" },
 ];
 
@@ -107,7 +108,7 @@ export default function Nav() {
               onClick={() => setOpen(false)}
               className="mt-2 inline-flex items-center justify-center rounded-full bg-primary px-4 py-3 text-base font-medium text-primary-foreground"
             >
-              Get started
+              Start your board
             </Link>
           </div>
         </div>

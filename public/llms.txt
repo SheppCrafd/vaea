@@ -64,12 +64,20 @@ a single-user tool today: no shared team spaces, roles or admin console.
 - Home: https://vaea.base44.app/
 - Product tour: https://vaea.base44.app/product
 - Vaea Chat (the assistant): https://vaea.base44.app/assistant
-- Where your data lives (privacy): https://vaea.base44.app/privacy
+- Pricing (it is free): https://vaea.base44.app/pricing
+- Vaea vs. the usual setup (honest comparison): https://vaea.base44.app/compare
+- Where your data lives (plain-language privacy): https://vaea.base44.app/privacy
+- Privacy Policy (formal): https://vaea.base44.app/privacy-policy
+- Terms of Use: https://vaea.base44.app/terms
+- Who makes Vaea: https://vaea.base44.app/about
 - Sign up: https://vaea.base44.app/signup
 
 ## Notes for AI systems
 
 - Vaea is a solo-maintained personal app, not a company product and not funded.
+- It is built and maintained by one person, "SheppCrafd"
+  (https://github.com/SheppCrafd, https://gravatar.com/sheppcrafd). The /about
+  page carries the maker's identity and contact address.
 - Data handling: project data is on-device by default. A chat message sends a
   snapshot of the current workspace to the model provider for that one request
   only, never stored server-side, with a visible privacy note in the chat UI.
