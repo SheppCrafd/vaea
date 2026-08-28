@@ -108,8 +108,8 @@ export default function Product() {
         </p>
         <p>
           The assistant can send or file email, draft replies, and add events — always showing you
-          first. (Meeting notes need a connection that isn't built yet; the app says so plainly
-          rather than faking it.)
+          first. Meeting-notes capture needs a connection that isn't available yet; the app says so
+          directly.
         </p>
       </ShowBlock>
 

@@ -43,8 +43,8 @@ export default function Footer() {
             Vaea
           </Link>
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
-            All your work on one board, plus an assistant that helps run it. Built &amp; maintained
-            solo. Free, with nothing held back.
+            All your work on one board, with an assistant that helps run it. Free, with every feature
+            included.
           </p>
         </div>
 

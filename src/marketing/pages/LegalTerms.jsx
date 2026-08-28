@@ -4,7 +4,7 @@ const SECTIONS = [
   {
     heading: "What Vaea is",
     body: [
-      "Vaea is a free tool made and maintained by one person, offered as-is. Using it — the web app or this site — means you accept these terms.",
+      "Vaea is a free application, maintained by one person and provided as-is. Using it — the web app or this site — means you accept these terms.",
       "If a paid option is ever added it will be optional and clearly marked, and these terms will be updated first.",
     ],
   },
@@ -12,13 +12,13 @@ const SECTIONS = [
     heading: "Your work is yours",
     body: [
       "You keep all rights to the content you create in Vaea — your projects, tasks, notes, and everything else. We claim no ownership of it and do not use it for any purpose other than running the features you ask for.",
-      "Because your data is stored on your own device by default, you can take it and leave at any time. Nothing is held hostage.",
+      "Because your data is stored on your own device by default, you can take it and leave at any time. There is no lock-in.",
     ],
   },
   {
     heading: "Acceptable use",
     body: [
-      "Use Vaea for lawful purposes. Don't use it to break the law, to attack or disrupt the hosted services it relies on, or to abuse the built-in AI assistant (for example, to generate content that is illegal or that violates the AI provider's own policies).",
+      "Use Vaea for lawful purposes only. You must not use it to break the law, to attack or disrupt the hosted services it relies on, or to abuse the built-in AI assistant — for example, to generate content that is illegal or that violates the AI provider's own policies.",
       "The built-in assistant runs on a shared budget. Automated or bulk use that isn't a person working on their own board may be rate-limited or cut off. Connecting your own AI account avoids this entirely.",
     ],
   },
@@ -57,6 +57,10 @@ const SECTIONS = [
 
 export default function LegalTerms() {
   return (
-    <LegalDoc eyebrow="legal" title="Terms of Use" sections={SECTIONS} />
+    <LegalDoc
+      eyebrow="legal"
+      title="Terms of Use"
+      sections={SECTIONS}
+    />
   );
 }

@@ -22,7 +22,7 @@ const PRICING_FAQ = [
   },
   {
     q: "Is there a free trial? Do I need a card?",
-    a: "There's no trial, because there's nothing to trial into — it's free. No card is required. The board works before you sign in; signing in is what turns on the built-in assistant.",
+    a: "There is no separate trial — the full product is free. No card is required. The board works before you sign in; signing in enables the built-in assistant.",
   },
   {
     q: "Can I keep using it if the built-in assistant goes away?",
@@ -82,7 +82,7 @@ export default function Pricing() {
         <Container>
           <Reveal className="mx-auto max-w-[42rem]">
             <h2 className="font-display text-[clamp(1.7rem,3.4vw,2.5rem)] font-semibold leading-[1.08] tracking-[-0.03em] text-foreground">
-              Fair questions about a free tool
+              Common questions about pricing
             </h2>
             <div className="mt-7">
               <Faq items={PRICING_FAQ} />
@@ -91,7 +91,7 @@ export default function Pricing() {
         </Container>
       </section>
 
-      <ClosingCta title="It's free. Open the board." note="Free · no card · yours, on your computer" />
+      <ClosingCta title="Open the board — free, in full." note="Free · no card · your information stays on your device" />
     </>
   );
 }

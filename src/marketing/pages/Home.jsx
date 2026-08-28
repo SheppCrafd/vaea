@@ -35,7 +35,7 @@ export default function Home() {
       </section>
 
       <ProofStrip
-        items={["Code is public", "Works with no internet", "No sign-up needed to try the board", "Free — nothing held back"]}
+        items={["Source is public", "Works with no internet", "No sign-up needed to try the board", "Free — every feature included"]}
       />
 
       <Manifesto>
@@ -126,7 +126,7 @@ export default function Home() {
           "it shows you before it acts",
           "your information stays with you",
           "works offline",
-          "free, nothing held back",
+          "free, every feature included",
         ]}
       />
 
@@ -138,7 +138,9 @@ export default function Home() {
 
       <Section eyebrow="who's behind it" title="Built and maintained by one person">
         <Reveal className="mt-6 max-w-[46rem] space-y-3.5 text-[1.02rem] leading-relaxed text-muted-foreground">
-          <p>The code is public.</p>
+          <p>
+            Vaea is developed and supported by a single maintainer, and the full source is public.
+          </p>
           <p>
             <Link
               to="/about"

@@ -98,7 +98,7 @@ export default function Compare() {
         </Container>
       </section>
 
-      <ClosingCta title="One person's work, in files you own." note="Free · no card · try the board before you sign in" />
+      <ClosingCta title="Your work, in files you own." note="Free · no card · try the board before you sign in" />
     </>
   );
 }

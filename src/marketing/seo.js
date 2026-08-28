@@ -20,7 +20,7 @@ export const SITE_MODIFIED = "2026-08-27";
 // Person/author structured data so the site isn't an anonymous page.
 export const MAKER = {
   name: "SheppCrafd",
-  role: "Built & maintained solo",
+  role: "Maintainer",
   bio: "Builds mods, builds robots, builds modded robots.",
   avatar: "/maker-avatar.png",
   email: "mwallis31@outlook.com",
@@ -84,7 +84,7 @@ export const ROUTES = [
     changefreq: "monthly",
     title: "Vaea vs. the usual setup — an honest comparison | Vaea",
     description:
-      "How Vaea compares to the common setup — a cloud task manager plus a separate AI, or a stack of apps. Where Vaea fits, and where the usual setup is still the better call.",
+      "How Vaea compares to the common setup of a cloud task manager plus a separate AI: where Vaea fits, and where that setup is still the better call.",
   },
   {
     path: "/about",
