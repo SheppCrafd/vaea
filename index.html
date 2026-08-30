@@ -11,12 +11,10 @@
     <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)" />
     <link rel="manifest" href="/site.webmanifest" />
 
-    <!-- Above-the-fold fonts, preloaded + declared inline so the prerendered
-         marketing <h1>/<h2> (Space Grotesk 600) and body (Inter 400) paint in
-         their real face on first frame instead of swapping after the JS
-         bundle parses the @fontsource imports. The full weight set still
-         loads from @fontsource in main.jsx for the app; these two stable
-         copies in /public just cover the critical path. -->
+    <!-- Above-the-fold fonts, preloaded and declared inline so the prerendered
+         marketing headings (Space Grotesk 600) and body (Inter 400) paint in
+         their real face on the first frame. The full weight set loads
+         separately for the app; these two copies cover the critical path. -->
     <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/space-grotesk-latin-600-normal.woff2" />
     <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/inter-latin-400-normal.woff2" />
     <style>
@@ -40,28 +38,28 @@
          PRERENDER markers per route at build time; these values are the
          fallback for any path that isn't prerendered. -->
     <!-- PRERENDER:HEAD:START -->
-    <title>Vaea — all your projects on one board, run by an assistant</title>
+    <title>Vaea — one calm board for everything you're carrying</title>
     <meta
       name="description"
-      content="All your projects in one place. Ask the built-in assistant to add or change things — it shows you first, and your info stays on your own computer."
+      content="The calm place to organize every project you're juggling. An assistant does the sorting and shows you first, and your information stays on your own computer."
     />
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://vaea.base44.app/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Vaea" />
-    <meta property="og:title" content="Vaea — all your projects on one board, run by an assistant" />
+    <meta property="og:title" content="Vaea — one calm board for everything you're carrying" />
     <meta
       property="og:description"
-      content="All your projects in one place. Ask the built-in assistant to add or change things — it shows you first, and your info stays on your own computer."
+      content="The calm place to organize every project you're juggling. An assistant does the sorting and shows you first, and your information stays on your own computer."
     />
     <meta property="og:url" content="https://vaea.base44.app/" />
     <meta property="og:image" content="https://vaea.base44.app/og-image.png" />
     <meta property="og:image:alt" content="The Vaea board — projects grouped by the part of life they belong to" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Vaea — all your projects on one board, run by an assistant" />
+    <meta name="twitter:title" content="Vaea — one calm board for everything you're carrying" />
     <meta
       name="twitter:description"
-      content="All your projects in one place. Ask the built-in assistant to add or change things — it shows you first, and your info stays on your own computer."
+      content="The calm place to organize every project you're juggling. An assistant does the sorting and shows you first, and your information stays on your own computer."
     />
     <meta name="twitter:image" content="https://vaea.base44.app/og-image.png" />
     <!-- PRERENDER:HEAD:END -->
