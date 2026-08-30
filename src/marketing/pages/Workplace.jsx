@@ -60,7 +60,7 @@ export default function Workplace() {
       </ShowBlock>
 
       <Section
-        eyebrow="honest about the edges"
+        eyebrow="not ready yet"
         title="Meetings — the surface is here, the connector isn't yet"
       >
         <Reveal className="mt-5 max-w-[46rem] space-y-3.5 text-[1.02rem] leading-relaxed text-muted-foreground">

@@ -83,7 +83,7 @@ export default function VaeaChat() {
           Point Claude Code at that folder in your Vaea working copy and it answers as the model —
           with its own tools. Run <code className="font-mono text-[0.9em]">/local-relay</code> to
           take one pending message, or <code className="font-mono text-[0.9em]">/l</code> for the same
-          thing when you're in it all day and want something quick off the fingers.
+          thing with less to type when you're relaying all day.
         </p>
       </ShowBlock>
 

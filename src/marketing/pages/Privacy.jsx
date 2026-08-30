@@ -130,7 +130,7 @@ export default function Privacy() {
             </p>
           </Block>
 
-          <Block heading="Being straight about the limits">
+          <Block heading="The limits">
             <p>
               This is a tool for one person on one computer today — no shared team spaces, no roles,
               no admin screen. If your workplace needs a guarantee that nothing is ever synced, treat

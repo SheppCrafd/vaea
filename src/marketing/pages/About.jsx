@@ -89,9 +89,9 @@ export default function About() {
               </h2>
               <div className="mt-3.5 space-y-3.5 text-[1rem] leading-relaxed text-muted-foreground">
                 <p>
-                  The source is public, and your board is stored as plain files on your own device by
-                  default. If development ever paused, those files would still open and the code would
-                  still be available.
+                  The source is public, and your board is stored as plain files on your own computer
+                  by default. If development ever paused, those files would still open and the code
+                  would still be available.
                 </p>
                 <p>
                   Vaea is a single-user product today — there are no shared team spaces, roles, or
@@ -130,7 +130,7 @@ export default function About() {
         </Container>
       </section>
 
-      <ClosingCta title="Put your portfolio on one board." note="No card required · your information stays on your device" />
+      <ClosingCta title="Put your portfolio on one board." note="No card required · your information stays on your computer" />
     </>
   );
 }

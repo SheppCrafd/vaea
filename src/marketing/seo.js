@@ -13,7 +13,7 @@ export const OG_IMAGE = `${SITE_URL}/og-image.png`;
 export const SITE_REPO = "https://github.com/SheppCrafd/vaea";
 // Bump when page copy materially changes. Surfaced visibly in the footer and
 // as `dateModified` in structured data (a freshness signal for search + AI).
-export const SITE_MODIFIED = "2026-08-29";
+export const SITE_MODIFIED = "2026-08-30";
 
 // The person behind the project. Real, public identity (the GitHub + Gravatar
 // are already public) — used for the /about card, the footer, and the

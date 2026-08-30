@@ -30,11 +30,12 @@ export default function Compare() {
               Vaea vs. the usual setup
             </h1>
             <p className="mt-5 max-w-[42rem] text-[1.05rem] leading-relaxed text-muted-foreground">
-              Most people run a cloud task manager plus a separate AI, or a stack of apps and their
-              memory. Vaea is the better fit if you're one person who wants the work in files you own
-              and Vaea Chat to make the change itself. The usual setup is the better fit if you
-              need a team system of record, native mobile apps, or a support contract — Vaea has none
-              of those. Everything below is about that general pattern, not any one product.
+              Most people run a cloud task manager plus a separate AI, or a stack of apps they hold
+              together in their head. Vaea is the better fit if you're one person who wants the work
+              in files you own and Vaea Chat to make the change itself. The usual setup is the better
+              fit if you need a team system of record, native mobile apps, or a support contract —
+              Vaea has none of those. Everything below is about that general pattern, not any one
+              product.
             </p>
           </div>
         </Container>

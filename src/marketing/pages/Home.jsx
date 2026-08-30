@@ -137,8 +137,8 @@ export default function Home() {
         <p>
           Then point Claude Code at it from inside your working copy and it answers Vaea Chat as the
           model — <code className="font-mono text-[0.9em]">/local-relay</code> for one message,{" "}
-          <code className="font-mono text-[0.9em]">/l</code> when it's all day. No request leaves your
-          network.
+          <code className="font-mono text-[0.9em]">/l</code> when you're relaying all day. No request
+          leaves your network.
         </p>
       </ShowBlock>
 

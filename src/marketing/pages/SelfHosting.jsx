@@ -9,7 +9,7 @@ const STEPS = [
   ["Run it on localhost", "Install and start it with two commands. Vaea now runs from your own machine, in your browser, with your project files on disk."],
   ["Turn on Local Mode", "In Settings → AI Model, switch Vaea Chat to Local Mode and point it at a folder. From now on it writes each question to that folder instead of calling any service."],
   ["Answer it with Claude Code", "Run Claude Code inside your working copy, pointed at that same folder. It picks up each pending message, answers as the model using its own tools, and writes the reply back."],
-  ["Keep it quick", "Run /local-relay to take one pending message. If Vaea Chat is part of your day, /l does the same thing and rolls off the fingers."],
+  ["Keep it quick", "Run /local-relay to take one pending message. /l does the same thing with a shorter name, for when you're relaying all day."],
 ];
 
 export default function SelfHosting() {
@@ -73,7 +73,7 @@ export default function SelfHosting() {
 
       <ShowBlock
         eyebrow="two commands, one of them shorter"
-        title="/local-relay for one message, /l when it's all day"
+        title="/local-relay for one message, /l for all day"
         visual={
           <TerminalBlock
             title="claude"
@@ -94,8 +94,8 @@ export default function SelfHosting() {
           handles that too.
         </p>
         <p>
-          <code className="font-mono text-[0.9em]">/l</code> is the same command with a name that
-          rolls off the fingers, for when you're relaying messages all day.
+          <code className="font-mono text-[0.9em]">/l</code> is the same command with a shorter
+          name, for when you're relaying messages all day.
         </p>
       </ShowBlock>
 
