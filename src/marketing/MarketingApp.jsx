@@ -7,7 +7,6 @@ import Brain from "./pages/Brain";
 import Workplace from "./pages/Workplace";
 import SelfHosting from "./pages/SelfHosting";
 import Privacy from "./pages/Privacy";
-import Pricing from "./pages/Pricing";
 import Compare from "./pages/Compare";
 import About from "./pages/About";
 import LegalPrivacy from "./pages/LegalPrivacy";
@@ -29,7 +28,6 @@ export default function MarketingApp() {
         <Route path="/workplace" element={<Workplace />} />
         <Route path="/self-hosting" element={<SelfHosting />} />
         <Route path="/privacy" element={<Privacy />} />
-        <Route path="/pricing" element={<Pricing />} />
         <Route path="/compare" element={<Compare />} />
         <Route path="/about" element={<About />} />
         <Route path="/privacy-policy" element={<LegalPrivacy />} />

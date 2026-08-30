@@ -44,7 +44,7 @@ export default function Product() {
               Workplace and Vaea Brain fold in when you're ready — the same Vaea Chat across all of it.
             </p>
             <div className="mt-7">
-              <CtaRow note="Free · the board works before you even sign in" />
+              <CtaRow note="The board works before you even sign in" />
             </div>
           </div>
           <Reveal delay={90} className="mt-10">
@@ -152,10 +152,10 @@ export default function Product() {
       </ShowBlock>
 
       <Marquee
-        items={["one board", "one Vaea Chat", "one calendar", "one inbox", "your files, your computer", "free"]}
+        items={["one board", "one Vaea Chat", "one calendar", "one inbox", "your files, your computer"]}
       />
 
-      <ClosingCta title="Open the board and move something." note="Free · no card · yours, on your computer" />
+      <ClosingCta title="Open the board and move something." note="No card · yours, on your computer" />
     </>
   );
 }

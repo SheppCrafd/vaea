@@ -4,8 +4,7 @@ const SECTIONS = [
   {
     heading: "What Vaea is",
     body: [
-      "Vaea is a free application, maintained by one person and provided as-is. Using it — the web app or this site — means you accept these terms.",
-      "If a paid option is ever added it will be optional and clearly marked, and these terms will be updated first.",
+      "Vaea is an application maintained by one person and provided as-is. Using it — the web app or this site — means you accept these terms.",
     ],
   },
   {
@@ -39,7 +38,7 @@ const SECTIONS = [
   {
     heading: "Limitation of liability",
     body: [
-      "To the maximum extent allowed by law, we are not liable for any indirect, incidental, or consequential damages, or for lost data or lost profits, arising from your use of Vaea. Since the tool is free, any direct liability is limited to the amount you paid to use it — which is nothing.",
+      "To the maximum extent allowed by law, we are not liable for any indirect, incidental, or consequential damages, or for lost data or lost profits, arising from your use of Vaea. Any direct liability is limited to the amount, if any, you have paid to use it.",
     ],
   },
   {

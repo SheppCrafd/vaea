@@ -9,12 +9,11 @@ const LINKS = [
   { to: "/brain", label: "Vaea Brain" },
   { to: "/workplace", label: "Vaea Workplace" },
   { to: "/self-hosting", label: "Self-hosting" },
-  { to: "/pricing", label: "Pricing" },
   { to: "/privacy", label: "Your info" },
 ];
 
 // Transparent over the hero, gains a hairline + blur once the page scrolls.
-// Below lg the whole link set collapses into a full-height sheet (seven
+// Below lg the whole link set collapses into a full-height sheet (six
 // items is too many to sit inline on a tablet). Primary CTA stays visible at
 // every width.
 export default function Nav() {

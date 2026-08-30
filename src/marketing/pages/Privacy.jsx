@@ -141,7 +141,7 @@ export default function Privacy() {
         </Container>
       </section>
 
-      <ClosingCta title="Keep your work where you can see it." note="Free · on your computer · take it with you anytime" />
+      <ClosingCta title="Keep your work where you can see it." note="On your computer · take it with you anytime" />
     </>
   );
 }

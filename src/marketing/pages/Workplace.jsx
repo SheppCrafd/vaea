@@ -18,7 +18,7 @@ export default function Workplace() {
               into one inbox — next to the board they relate to, and handled by the same Vaea Chat.
             </p>
             <div className="mt-7">
-              <CtaRow note="Free · connect an account when you're ready — the board works without it." />
+              <CtaRow note="Connect an account when you're ready — the board works without it." />
             </div>
           </div>
           <Reveal delay={90} className="mt-12">
@@ -83,7 +83,7 @@ export default function Workplace() {
         </Reveal>
       </Section>
 
-      <ClosingCta title="Bring the day into one view." note="Free · your accounts, connected one at a time" />
+      <ClosingCta title="Bring the day into one view." note="Your accounts, connected one at a time" />
     </>
   );
 }

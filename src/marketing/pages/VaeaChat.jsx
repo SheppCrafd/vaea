@@ -27,7 +27,7 @@ export default function VaeaChat() {
               at — adding, updating, and finishing things — and shows you every step before it runs.
             </p>
             <div className="mt-7">
-              <CtaRow primaryLabel="Turn on Vaea Chat" note="Free · signing in turns on Vaea Chat — the board works without it." />
+              <CtaRow primaryLabel="Turn on Vaea Chat" note="Signing in turns on Vaea Chat — the board works without it." />
             </div>
           </div>
           <Reveal delay={90} className="mt-12">
@@ -118,7 +118,7 @@ export default function VaeaChat() {
         </Reveal>
       </Section>
 
-      <ClosingCta title="Tell it what changed. Approve the plan." note="Free · your own account or your own computer, if you'd rather" />
+      <ClosingCta title="Tell it what changed. Approve the plan." note="Your own account or your own computer, if you'd rather" />
     </>
   );
 }

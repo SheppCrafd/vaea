@@ -24,7 +24,7 @@ export default function Home() {
               makes the change on the board itself, and shows you first.
             </p>
             <div className="mkt-hero-rise mt-8 [--rise-delay:180ms]">
-              <CtaRow note="Free · no card · your information stays on your computer" />
+              <CtaRow note="No card · your information stays on your computer" />
             </div>
           </div>
 
@@ -35,7 +35,7 @@ export default function Home() {
       </section>
 
       <ProofStrip
-        items={["Source is public", "Works with no internet", "No sign-up needed to try the board", "Free — every feature included"]}
+        items={["Source is public", "Works with no internet", "No sign-up needed to try the board", "Every feature included"]}
       />
 
       <Manifesto>
@@ -148,7 +148,7 @@ export default function Home() {
           "it shows you before it acts",
           "your information stays with you",
           "works offline",
-          "free, every feature included",
+          "every feature included",
         ]}
       />
 
@@ -174,7 +174,7 @@ export default function Home() {
         </Reveal>
       </Section>
 
-      <ClosingCta title="Put it all on one board." note="Free · no card · your information stays on your computer" />
+      <ClosingCta title="Put it all on one board." note="No card · your information stays on your computer" />
     </>
   );
 }

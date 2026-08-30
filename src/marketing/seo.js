@@ -13,7 +13,7 @@ export const OG_IMAGE = `${SITE_URL}/og-image.png`;
 export const SITE_REPO = "https://github.com/SheppCrafd/vaea";
 // Bump when page copy materially changes. Surfaced visibly in the footer and
 // as `dateModified` in structured data (a freshness signal for search + AI).
-export const SITE_MODIFIED = "2026-08-28";
+export const SITE_MODIFIED = "2026-08-29";
 
 // The person behind the project. Real, public identity (the GitHub + Gravatar
 // are already public) — used for the /about card, the footer, and the
@@ -96,15 +96,6 @@ export const ROUTES = [
       "Vaea keeps your projects and tasks on your own computer by default. This page lists every time anything leaves it, and what you can switch off.",
   },
   {
-    path: "/pricing",
-    loc: "/pricing",
-    priority: "0.7",
-    changefreq: "yearly",
-    title: "Pricing — Vaea is free | Vaea",
-    description:
-      "Vaea is free. No paid plans, no seats, nothing locked behind an upgrade. If you connect your own AI account you pay that provider directly; Vaea adds no charge.",
-  },
-  {
     path: "/compare",
     loc: "/compare",
     priority: "0.7",
@@ -138,7 +129,7 @@ export const ROUTES = [
     changefreq: "yearly",
     title: "Terms of Use | Vaea",
     description:
-      "The terms for using Vaea — a free, one-person project provided as-is, with no warranty and no lock-in. Your work stays yours.",
+      "The terms for using Vaea — a one-person project provided as-is, with no warranty and no lock-in. Your work stays yours.",
   },
 ];
 
@@ -156,10 +147,6 @@ export const HOME_FAQ = [
   {
     q: "Who is this for?",
     a: "One person keeping track of a lot at once — several projects, a few clients, work and home in the same list. It's made for your own setup, not a shared team space.",
-  },
-  {
-    q: "What does it cost?",
-    a: "Nothing. There are no paid plans and nothing is locked behind an upgrade. If you connect your own AI account, you pay that provider directly — Vaea adds no charge.",
   },
   {
     q: "Does Vaea Chat actually change things, or just talk?",
@@ -290,7 +277,7 @@ export function organizationLd() {
     logo: `${SITE_URL}/android-chrome-512x512.png`,
     founder: PERSON,
     sameAs: [SITE_REPO],
-    description: "Vaea is a one-person project, free, with your information kept on your own computer by default.",
+    description: "Vaea is a one-person project, with your information kept on your own computer by default.",
   };
 }
 
@@ -320,7 +307,6 @@ export function softwareApplicationLd() {
       "One board for all your projects and tasks, grouped by the part of life they belong to, with Vaea Chat making changes after showing you first. Your information stays on your own computer by default, and the whole thing can be self-hosted.",
     author: { "@id": `${SITE_URL}/#maker` },
     publisher: { "@id": `${SITE_URL}/#org` },
-    offers: { "@type": "Offer", price: "0", priceCurrency: "USD", availability: "https://schema.org/InStock" },
     featureList: [
       "One board for projects and tasks, grouped by area of your life",
       "A short list of today's top three and this week's focus",

@@ -27,7 +27,7 @@ export default function Brain() {
               See how the notes link up as a map, or sketch a process on a free-draw canvas.
             </p>
             <div className="mt-7">
-              <CtaRow note="Free · Vaea Brain is optional — the board and Vaea Chat work without it." />
+              <CtaRow note="Vaea Brain is optional — the board and Vaea Chat work without it." />
             </div>
           </div>
           <Reveal delay={90} className="mt-12">
@@ -86,7 +86,7 @@ export default function Brain() {
         </Reveal>
       </Section>
 
-      <ClosingCta title="Give Vaea Chat something to remember." note="Free · your notes stay in your own account" />
+      <ClosingCta title="Give Vaea Chat something to remember." note="Your notes stay in your own account" />
     </>
   );
 }

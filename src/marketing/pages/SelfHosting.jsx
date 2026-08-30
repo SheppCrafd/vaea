@@ -28,7 +28,7 @@ export default function SelfHosting() {
               request leaves your network.
             </p>
             <div className="mt-7">
-              <CtaRow note="Free · the source is public · the hosted version runs this same code" />
+              <CtaRow note="The source is public · the hosted version runs this same code" />
             </div>
           </div>
           <Reveal delay={90} className="mt-12">
@@ -107,7 +107,7 @@ export default function SelfHosting() {
         </Reveal>
       </Section>
 
-      <ClosingCta title="Keep it all on your own machine." note="Free · the source is public · runs entirely on your machine" />
+      <ClosingCta title="Keep it all on your own machine." note="The source is public · runs entirely on your machine" />
     </>
   );
 }

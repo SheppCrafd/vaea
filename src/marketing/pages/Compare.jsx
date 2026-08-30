@@ -10,7 +10,7 @@ import { ClosingCta } from "../components/blocks";
 const ROWS = [
   ["Where your work is stored", "Plain files on your own computer, by default", "On the vendor's server"],
   ["Does the AI change things?", "Yes — it edits the board itself, after you approve each step", "Often suggests; you make the edit"],
-  ["Cost", "Free. You pay your own AI provider directly if you connect one", "Typically a per-seat subscription"],
+  ["Cost", "You pay your own AI provider directly if you connect one", "Typically a per-seat subscription"],
   ["Works offline", "Yes — the board, and Vaea Chat too if you run a local model", "Usually not"],
   ["Team features (roles, shared spaces, admin)", "No — it's a single-person tool", "Usually yes"],
   ["Native mobile apps", "No — it's a responsive web app", "Usually iOS and Android"],
@@ -83,7 +83,7 @@ export default function Compare() {
                 <li>You're managing your own portfolio of work, not a team's.</li>
                 <li>You want your projects in files on your machine, not a database you don't control.</li>
                 <li>You want Vaea Chat to do the edit — and to see it before it runs.</li>
-                <li>You'd rather not pay a subscription, and you're fine bringing your own AI key.</li>
+                <li>You're fine bringing your own AI key instead of a per-seat subscription.</li>
               </ul>
             </Reveal>
             <Reveal delay={70}>
@@ -101,7 +101,7 @@ export default function Compare() {
         </Container>
       </section>
 
-      <ClosingCta title="Your work, in files you own." note="Free · no card · try the board before you sign in" />
+      <ClosingCta title="Your work, in files you own." note="No card · try the board before you sign in" />
     </>
   );
 }

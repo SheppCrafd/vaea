@@ -130,7 +130,7 @@ export default function About() {
         </Container>
       </section>
 
-      <ClosingCta title="Put your portfolio on one board." note="Free · no card required · your information stays on your device" />
+      <ClosingCta title="Put your portfolio on one board." note="No card required · your information stays on your device" />
     </>
   );
 }

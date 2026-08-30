@@ -6,7 +6,7 @@
 > proposes concrete edits — create a project, add tasks, mark a focus item —
 > which you approve before anything runs. Project data is stored in files on
 > your own device by default; there is no database holding it. Built and
-> maintained by one person. Free, with no tiers or usage limits.
+> maintained by one person.
 
 ## What it is
 
@@ -50,7 +50,7 @@
 - Chat can run on a built-in model, the user's own API key (Anthropic, OpenAI,
   Google, xAI), or Local Mode — a model on the user's own machine, or Claude
   Code as the model, with no outbound request from Vaea at all.
-- Free, with every feature included — nothing is paywalled.
+- Every feature is available to every user; there are no feature tiers.
 
 ## Who it's for
 
@@ -67,7 +67,6 @@ a single-user tool today: no shared team spaces, roles or admin console.
 - Vaea Brain (your own notes vault): https://vaea.base44.app/brain
 - Vaea Workplace (one calendar and inbox): https://vaea.base44.app/workplace
 - Self-hosting (clone the repo, run on localhost, Claude Code relay): https://vaea.base44.app/self-hosting
-- Pricing (it is free): https://vaea.base44.app/pricing
 - Vaea vs. the usual setup (honest comparison): https://vaea.base44.app/compare
 - Where your data lives (plain-language privacy): https://vaea.base44.app/privacy
 - Privacy Policy (formal): https://vaea.base44.app/privacy-policy
