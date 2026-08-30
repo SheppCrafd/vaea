@@ -55,7 +55,7 @@ export default function Privacy() {
         as="section"
         src="/img/marketing/privacy-hero.jpg"
         eager
-        strength={36}
+        strength={108}
         scrim={0.76}
         position="50% 46%"
         className="pt-12 pb-[calc(var(--mkt-section-y)*0.5)] sm:pt-16"

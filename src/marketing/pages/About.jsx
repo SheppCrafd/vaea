@@ -84,7 +84,7 @@ export default function About() {
       <ParallaxBackdrop
         as="section"
         src="/img/marketing/about-band.jpg"
-        strength={48}
+        strength={144}
         scrim={0.85}
         position="50% 70%"
         className="py-[calc(var(--mkt-section-y)*0.95)]"

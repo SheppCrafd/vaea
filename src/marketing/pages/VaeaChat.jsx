@@ -37,7 +37,7 @@ export default function VaeaChat() {
         </Container>
       </section>
 
-      <ParallaxBackdrop src="/img/marketing/vaeachat-band.jpg" strength={44} scrim={0.88} position="50% 50%">
+      <ParallaxBackdrop src="/img/marketing/vaeachat-band.jpg" strength={132} scrim={0.88} position="50% 50%">
         <Section eyebrow="how a change happens" title="Five steps — and you control the two that matter">
           <Reveal className="mt-8">
             <ol className="divide-y divide-foreground/[0.08] border-y border-foreground/[0.08]">

@@ -22,7 +22,7 @@ export default function ParallaxBackdrop({
   sizes,
   position = "50% 50%",
   // Peak drift in px as the section travels through the viewport.
-  strength = 48,
+  strength = 144,
   // 0–1: how strongly the scrim hides the photo. Higher = text-safe, flatter.
   scrim = 0.72,
   // Set on a backdrop that's above the fold so its photo isn't lazy-loaded.
@@ -77,7 +77,7 @@ export default function ParallaxBackdrop({
           decoding="async"
           loading={eager ? "eager" : "lazy"}
           style={{ objectPosition: position }}
-          className="absolute inset-x-0 -inset-y-[13%] h-[126%] w-full object-cover will-change-transform"
+          className="absolute inset-x-0 -inset-y-[80%] h-[260%] w-full object-cover will-change-transform"
         />
         <div
           className="absolute inset-0"

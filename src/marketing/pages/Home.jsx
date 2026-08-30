@@ -15,7 +15,7 @@ export default function Home() {
         as="section"
         src="/img/marketing/hero-dusk.jpg"
         eager
-        strength={38}
+        strength={114}
         scrim={0.5}
         position="50% 42%"
         className="pt-12 pb-[calc(var(--mkt-section-y)*0.6)] sm:pt-16"
@@ -47,7 +47,7 @@ export default function Home() {
         items={["Source is public", "Works with no internet", "No sign-up needed to try the board", "Every feature included"]}
       />
 
-      <ParallaxBackdrop src="/img/marketing/interlude-wave.jpg" strength={54} scrim={0.5} position="50% 58%">
+      <ParallaxBackdrop src="/img/marketing/interlude-wave.jpg" strength={162} scrim={0.5} position="50% 58%">
         <Manifesto>
           A tool for your own work shouldn't need a company's server. Every project stays in plain files
           on your computer — and Vaea Chat can run there too, with nothing sent out.

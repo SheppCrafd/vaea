@@ -20,7 +20,7 @@ export default function SelfHosting() {
         as="section"
         src="/img/marketing/selfhosting-hero.jpg"
         eager
-        strength={36}
+        strength={108}
         scrim={0.8}
         position="50% 32%"
         className="pt-12 pb-[calc(var(--mkt-section-y)*0.5)] sm:pt-16"

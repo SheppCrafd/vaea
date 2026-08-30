@@ -175,7 +175,7 @@ export function ClosingCta({ title, note, image }) {
     return (
       <ParallaxBackdrop
         src={image}
-        strength={44}
+        strength={132}
         scrim={0}
         position="50% 14%"
         className="mt-[var(--mkt-section-y)] py-[clamp(4rem,9vw,7rem)] text-white"
