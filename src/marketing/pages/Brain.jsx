@@ -20,7 +20,6 @@ export default function Brain() {
         src="/img/marketing/brain-hero.jpg"
         eager
         strength={36}
-        scrim={0.78}
         position="50% 40%"
         className="pt-12 pb-[calc(var(--mkt-section-y)*0.55)] sm:pt-16"
       >

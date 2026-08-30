@@ -134,7 +134,7 @@ export default function Product() {
         </p>
       </ShowBlock>
 
-      <ParallaxBackdrop src="/img/marketing/product-band.jpg" strength={50} scrim={0.58} position="50% 50%">
+      <ParallaxBackdrop src="/img/marketing/product-band.jpg" strength={50} position="50% 50%">
         <ShowBlock
           id="yours"
           eyebrow="where it all lives"

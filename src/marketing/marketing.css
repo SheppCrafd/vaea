@@ -16,6 +16,44 @@
   --mkt-section-y: clamp(3.25rem, 6.5vw, 5.5rem);
 }
 
+/* Text sits directly on the photo (ParallaxBackdrop) — nothing washed
+   between the words and the image, so the picture stays fully vivid. Each
+   glyph instead carries its own small, smooth glow in the page colour
+   (white in light mode, black in dark), giving it a clean edge over any
+   patch of photo. The one concession: secondary "muted" copy is pulled up
+   to the same weight of ink as the headings (it's still set apart by size),
+   because pale grey plus a thin glow disappears into a mid-tone photo.
+   Real app demos inside the backdrop keep their own tokens and get no glow. */
+.mkt-on-photo {
+  --muted-foreground: var(--foreground);
+}
+.mkt-on-photo .mkt-demo {
+  --muted-foreground: 200 10% 38%;
+}
+.dark .mkt-on-photo .mkt-demo {
+  --muted-foreground: 0 0% 62%;
+}
+.mkt-on-photo :is(h1, h2, h3, h4, p, li, span, a, strong, em, code):not(.mkt-demo *) {
+  text-shadow:
+    0 0 2px hsl(0 0% 100% / 0.95),
+    0 0 5px hsl(0 0% 100% / 0.8),
+    0 1px 1px hsl(0 0% 100% / 0.9);
+}
+.dark .mkt-on-photo :is(h1, h2, h3, h4, p, li, span, a, strong, em, code):not(.mkt-demo *) {
+  text-shadow:
+    0 0 2px hsl(0 0% 0% / 0.95),
+    0 0 5px hsl(0 0% 0% / 0.8),
+    0 1px 1px hsl(0 0% 0% / 0.9);
+}
+/* The closing CTA photo band keeps white type in both themes, so its glow
+   is always dark. */
+.mkt-photo-cta :is(h1, h2, h3, h4, p, li, span, a) {
+  text-shadow:
+    0 0 2px hsl(0 0% 0% / 0.92),
+    0 0 6px hsl(0 0% 0% / 0.78),
+    0 1px 1px hsl(0 0% 0% / 0.88);
+}
+
 /* Demos render real, interactive app components — force them fully inert:
    no pointer events (so the cursor stays a default arrow and nothing is
    clickable) and no text selection. Internal JS animation still runs. */

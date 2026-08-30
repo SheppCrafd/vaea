@@ -85,7 +85,6 @@ export default function About() {
         as="section"
         src="/img/marketing/about-band.jpg"
         strength={48}
-        scrim={0.85}
         position="50% 70%"
         className="py-[calc(var(--mkt-section-y)*0.95)]"
       >
