@@ -79,7 +79,7 @@ export function CtaRow({ className, primaryLabel = "Start your board", primaryTo
       <div className="flex flex-wrap items-center gap-3">
         <Link
           to={primaryTo}
-          className="mkt-lift inline-flex items-center rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-[0_12px_30px_-12px_rgb(var(--signal-rgb)/0.55)] hover:shadow-[0_16px_38px_-12px_rgb(var(--signal-rgb)/0.7)]"
+          className="mkt-lift inline-flex items-center rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-[0_12px_30px_-12px_hsl(var(--signal)/0.55)] hover:shadow-[0_16px_38px_-12px_hsl(var(--signal)/0.7)]"
         >
           {primaryLabel}
         </Link>

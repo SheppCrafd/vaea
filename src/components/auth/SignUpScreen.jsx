@@ -110,7 +110,7 @@ export default function SignUpScreen() {
       <AuthAmbience />
       <div className="relative max-w-sm w-full rounded-[1.75rem] bg-card/75 backdrop-blur-xl p-8 space-y-5 shadow-[0_0_0_1px_hsl(var(--foreground)/0.05),inset_0_1px_0_0_hsl(var(--card)),0_32px_64px_-32px_hsl(200_30%_12%/0.35)] dark:shadow-[0_0_0_1px_hsl(var(--foreground)/0.10),inset_0_1px_0_0_hsl(var(--card)),0_0_60px_-10px_hsl(var(--foreground)/0.12)]">
         <div className="text-center space-y-3">
-          <div className="w-16 h-16 mx-auto rounded-full overflow-hidden shadow-[0_0_0_1px_hsl(var(--foreground)/0.06),0_10px_28px_-10px_rgba(70,186,209,0.4)]">
+          <div className="w-16 h-16 mx-auto rounded-full overflow-hidden shadow-[0_0_0_1px_hsl(var(--foreground)/0.06),0_10px_28px_-10px_hsl(var(--primary)/0.4)]">
             <img src="/android-chrome-512x512.png" alt="" className="w-full h-full object-cover" />
           </div>
           <div className="space-y-1">

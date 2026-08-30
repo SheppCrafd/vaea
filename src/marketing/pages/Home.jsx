@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Container, Eyebrow, Section, CtaRow, Reveal } from "../components/ui";
 import { ShowBlock, ProofStrip, Manifesto, Marquee, Faq, ClosingCta } from "../components/blocks";
+import ParallaxBackdrop from "../components/ParallaxBackdrop";
 import BoardDemo from "../components/BoardDemo";
 import { ChatDemo, VmailDemo, StorageTerminal, ClaudeCodeTerminal } from "../components/visuals";
 import { HOME_FAQ } from "../seo";
@@ -8,20 +9,28 @@ import { HOME_FAQ } from "../seo";
 export default function Home() {
   return (
     <>
-      {/* HERO — left-aligned, the real board carries the first screen */}
-      <section className="pt-12 sm:pt-16">
+      {/* HERO — left-aligned, the real board carries the first screen; a
+          still photograph of the coast at dusk drifts behind it */}
+      <ParallaxBackdrop
+        as="section"
+        src="/img/marketing/hero-dusk.jpg"
+        eager
+        strength={38}
+        scrim={0.5}
+        position="50% 42%"
+        className="pt-12 pb-[calc(var(--mkt-section-y)*0.6)] sm:pt-16"
+      >
         <Container>
           <div className="max-w-[54rem]">
-            <Eyebrow className="mkt-hero-rise mb-4">one board · Vaea Chat acts on it · nothing leaves your computer</Eyebrow>
+            <Eyebrow className="mkt-hero-rise mb-4">one board · an assistant that sorts · nothing leaves your computer</Eyebrow>
             {/* Not animated in — it's the LCP element; it must be final on
                 first paint. The lighter elements around it carry the entrance. */}
             <h1 className="text-balance font-display text-[clamp(2.9rem,8vw,5.8rem)] font-semibold leading-[1.0] tracking-[-0.04em] text-foreground">
-              Say what's on your plate. It sorts it onto the board.
+              Your work, at sea level.
             </h1>
             <p className="mkt-hero-rise mt-6 max-w-[42rem] text-pretty text-[1.12rem] leading-relaxed text-muted-foreground [--rise-delay:120ms]">
-              Vaea is one board for everything you're juggling — every project tucked under the part of
-              your life it belongs to. Most assistants just hand you another to-do list. Vaea Chat
-              makes the change on the board itself, and shows you first.
+              The calm place to organize everything you're carrying — with an assistant that does the
+              sorting.
             </p>
             <div className="mkt-hero-rise mt-8 [--rise-delay:180ms]">
               <CtaRow note="No card · your information stays on your computer" />
@@ -32,16 +41,18 @@ export default function Home() {
             <BoardDemo hero />
           </Reveal>
         </Container>
-      </section>
+      </ParallaxBackdrop>
 
       <ProofStrip
         items={["Source is public", "Works with no internet", "No sign-up needed to try the board", "Every feature included"]}
       />
 
-      <Manifesto>
-        A tool for your own work shouldn't need a company's server. Every project stays in plain files
-        on your computer — and Vaea Chat can run there too, with nothing sent out.
-      </Manifesto>
+      <ParallaxBackdrop src="/img/marketing/interlude-wave.jpg" strength={54} scrim={0.5} position="50% 58%">
+        <Manifesto>
+          A tool for your own work shouldn't need a company's server. Every project stays in plain files
+          on your computer — and Vaea Chat can run there too, with nothing sent out.
+        </Manifesto>
+      </ParallaxBackdrop>
 
       {/* SHOW A — flagship, dark stage */}
       <ShowBlock
@@ -144,7 +155,7 @@ export default function Home() {
 
       <Marquee
         items={[
-          "your work, one board",
+          "your work, at sea level",
           "it shows you before it acts",
           "your information stays with you",
           "works offline",
@@ -174,7 +185,11 @@ export default function Home() {
         </Reveal>
       </Section>
 
-      <ClosingCta title="Put it all on one board." note="No card · your information stays on your computer" />
+      <ClosingCta
+        title="Set it all down."
+        note="No card · your information stays on your computer"
+        image="/img/marketing/closing-lagoon.jpg"
+      />
     </>
   );
 }

@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Container, Eyebrow, Reveal, CtaRow } from "./ui";
+import ParallaxBackdrop from "./ParallaxBackdrop";
 
 // Larger recurring page blocks.
 
@@ -127,33 +128,74 @@ export function Faq({ items, className }) {
 }
 
 // Full-bleed closing band — biggest type on the page, both actions once more.
-export function ClosingCta({ title, note }) {
+// With `image`, the band becomes a photo panel: the photograph drifts behind
+// a fixed deep-water tint (theme-independent, so the white type stays legible
+// in light and dark alike) instead of the flat --primary fill.
+export function ClosingCta({ title, note, image }) {
+  const inner = (
+    <Container>
+      <Reveal className="mx-auto max-w-[40rem] text-center">
+        <h2 className="text-balance font-display text-[clamp(2.4rem,6.5vw,4.6rem)] font-semibold leading-[1.0] tracking-[-0.038em]">
+          {title}
+        </h2>
+        <div className="mt-7 flex flex-col items-center gap-3.5">
+          <div className="flex flex-wrap justify-center gap-3">
+            <Link
+              to="/signup"
+              className={cn(
+                "mkt-lift inline-flex items-center rounded-full px-6 py-3 text-sm font-medium",
+                image ? "bg-white text-[hsl(200_40%_16%)]" : "bg-primary-foreground text-primary",
+              )}
+            >
+              Start your board
+            </Link>
+            <Link
+              to="/app"
+              className={cn(
+                "mkt-lift inline-flex items-center rounded-full border px-6 py-3 text-sm font-medium",
+                image
+                  ? "border-white/35 text-white hover:border-white/60"
+                  : "border-primary-foreground/25 text-primary-foreground hover:border-primary-foreground/50",
+              )}
+            >
+              Open the board
+            </Link>
+          </div>
+          {note && (
+            <p className={cn("font-mono text-[0.72rem] tracking-tight", image ? "text-white/75" : "text-primary-foreground/70")}>
+              {note}
+            </p>
+          )}
+        </div>
+      </Reveal>
+    </Container>
+  );
+
+  if (image) {
+    return (
+      <ParallaxBackdrop
+        src={image}
+        strength={44}
+        scrim={0}
+        position="50% 14%"
+        className="mt-[var(--mkt-section-y)] py-[clamp(4rem,9vw,7rem)] text-white"
+      >
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 -z-10"
+          style={{
+            background:
+              "linear-gradient(180deg, hsl(200 48% 8% / 0.62) 0%, hsl(200 48% 8% / 0.30) 45%, hsl(200 48% 8% / 0.30) 55%, hsl(200 48% 8% / 0.62) 100%)",
+          }}
+        />
+        {inner}
+      </ParallaxBackdrop>
+    );
+  }
+
   return (
     <section className="mt-[var(--mkt-section-y)] bg-primary py-[clamp(3.5rem,8vw,6rem)] text-primary-foreground">
-      <Container>
-        <Reveal className="mx-auto max-w-[40rem] text-center">
-          <h2 className="text-balance font-display text-[clamp(2.4rem,6.5vw,4.6rem)] font-semibold leading-[1.0] tracking-[-0.038em]">
-            {title}
-          </h2>
-          <div className="mt-7 flex flex-col items-center gap-3.5">
-            <div className="flex flex-wrap justify-center gap-3">
-              <Link
-                to="/signup"
-                className="mkt-lift inline-flex items-center rounded-full bg-primary-foreground px-6 py-3 text-sm font-medium text-primary"
-              >
-                Start your board
-              </Link>
-              <Link
-                to="/app"
-                className="mkt-lift inline-flex items-center rounded-full border border-primary-foreground/25 px-6 py-3 text-sm font-medium text-primary-foreground hover:border-primary-foreground/50"
-              >
-                Open the board
-              </Link>
-            </div>
-            {note && <p className="font-mono text-[0.72rem] tracking-tight text-primary-foreground/70">{note}</p>}
-          </div>
-        </Reveal>
-      </Container>
+      {inner}
     </section>
   );
 }

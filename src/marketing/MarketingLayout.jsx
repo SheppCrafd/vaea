@@ -3,6 +3,7 @@ import Nav from "./components/Nav";
 import Footer from "./components/Footer";
 import Ambience from "./components/Ambience";
 import SeoHead from "./SeoHead";
+import { useAccentTheme } from "@/hooks/useAccentTheme";
 import "./marketing.css";
 
 // Shell for every marketing route: a normal scrollable document (the
@@ -11,6 +12,11 @@ import "./marketing.css";
 // everything.
 export default function MarketingLayout() {
   const { pathname } = useLocation();
+  // Honor a previously-chosen accent color (Settings → Appearance, persisted
+  // in localStorage) on the public site too, so the signal color here tracks
+  // it just like inside the app. Read-only — the marketing site has no accent
+  // picker of its own; it just applies whatever the app saved.
+  useAccentTheme();
   return (
     <div className="mkt relative min-h-screen overflow-x-clip bg-background font-body text-foreground antialiased">
       <SeoHead pathname={pathname} />
@@ -34,7 +40,7 @@ export default function MarketingLayout() {
       >
         <Link
           to="/signup"
-          className="flex w-full items-center justify-center rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground shadow-[0_10px_24px_-12px_rgb(var(--signal-rgb)/0.6)]"
+          className="flex w-full items-center justify-center rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground shadow-[0_10px_24px_-12px_hsl(var(--signal)/0.6)]"
         >
           Start your board
         </Link>

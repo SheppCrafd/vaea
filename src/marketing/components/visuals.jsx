@@ -40,7 +40,7 @@ export function DemoStage({ label, className, onDark = false, children }) {
     >
       {label && (
         <div className="flex items-center gap-2 border-b border-foreground/[0.06] px-4 py-2.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-[rgb(var(--signal-rgb))]" />
+          <span className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--signal))]" />
           <span className="font-mono text-[0.64rem] uppercase tracking-[0.16em] text-muted-foreground">{label}</span>
         </div>
       )}

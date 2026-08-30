@@ -4,11 +4,13 @@
    couple of surface treatments the app doesn't need. */
 
 .mkt {
-  /* One signal color — the teal from the login glow (rgb 70 186 209). It
-     touches only live/active things: the typing caret, the "just added"
-     card ring, the primary CTA glow. Never headings, never body links. */
-  --signal: 189 62% 55%;
-  --signal-rgb: 70 186 209;
+  /* One signal color — used only on live/active things: the typing caret,
+     the "just added" card ring, the primary CTA glow. Never headings, never
+     body links. Follows the app's own --primary token, so it tracks the
+     user's chosen accent color (Settings → Appearance) just like every
+     other accented element; was a fixed turquoise. HSL triplet form, so
+     consumers write hsl(var(--signal) / <alpha>). */
+  --signal: var(--primary);
   /* Fluid section rhythm, 8px base — tightened so the page reads dense and
      purposeful, not airy. */
   --mkt-section-y: clamp(3.25rem, 6.5vw, 5.5rem);
@@ -31,7 +33,7 @@
 .mkt button:focus-visible,
 .mkt summary:focus-visible,
 .mkt [tabindex]:focus-visible {
-  outline: 2px solid rgb(var(--signal-rgb));
+  outline: 2px solid hsl(var(--signal));
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -95,12 +97,12 @@
     transform: translateY(18px);
   }
   55% {
-    box-shadow: 0 0 0 2px rgb(var(--signal-rgb) / 0.9), 0 18px 40px -12px rgb(var(--signal-rgb) / 0.4);
+    box-shadow: 0 0 0 2px hsl(var(--signal) / 0.9), 0 18px 40px -12px hsl(var(--signal) / 0.4);
   }
   100% {
     opacity: 1;
     transform: none;
-    box-shadow: 0 0 0 1px rgb(var(--signal-rgb) / 0.35), 0 12px 30px -14px hsl(200 30% 12% / 0.22);
+    box-shadow: 0 0 0 1px hsl(var(--signal) / 0.35), 0 12px 30px -14px hsl(200 30% 12% / 0.22);
   }
 }
 .mkt-just-added {
@@ -114,7 +116,7 @@
 .mkt-caret {
   display: inline-block;
   width: 0.5ch;
-  background: rgb(var(--signal-rgb));
+  background: hsl(var(--signal));
   margin-left: 1px;
   animation: mkt-blink 1s step-end infinite;
 }

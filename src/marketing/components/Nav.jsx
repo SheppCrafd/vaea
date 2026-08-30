@@ -69,7 +69,7 @@ export default function Nav() {
           </Link>
           <Link
             to="/signup"
-            className="mkt-lift inline-flex items-center rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-[0_10px_24px_-12px_rgb(var(--signal-rgb)/0.6)]"
+            className="mkt-lift inline-flex items-center rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-[0_10px_24px_-12px_hsl(var(--signal)/0.6)]"
           >
             Start your board
           </Link>

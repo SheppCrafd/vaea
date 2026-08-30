@@ -89,7 +89,7 @@ export default function LoginScreen() {
           {/* Placeholder mark until there's a real logo — swap the src below when there is one.
               The source PNG has its own white background baked in (not transparent) — shown at
               its natural resolution/proportions, just clipped to a circle by overflow-hidden. */}
-          <div className="w-16 h-16 mx-auto rounded-full overflow-hidden shadow-[0_0_0_1px_hsl(var(--foreground)/0.06),0_10px_28px_-10px_rgba(70,186,209,0.4)]">
+          <div className="w-16 h-16 mx-auto rounded-full overflow-hidden shadow-[0_0_0_1px_hsl(var(--foreground)/0.06),0_10px_28px_-10px_hsl(var(--primary)/0.4)]">
             <img src="/android-chrome-512x512.png" alt="" className="w-full h-full object-cover" />
           </div>
           <div className="space-y-1">

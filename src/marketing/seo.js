@@ -37,9 +37,9 @@ export const ROUTES = [
     loc: "/",
     priority: "1.0",
     changefreq: "weekly",
-    title: "Vaea — all your projects on one board, run by Vaea Chat",
+    title: "Vaea — one calm board for everything you're carrying",
     description:
-      "All your projects in one place. Ask Vaea Chat to add or change things — it shows you first, and your info stays on your own computer.",
+      "The calm place to organize every project you're juggling. An assistant does the sorting and shows you first, and your information stays on your own computer.",
   },
   {
     path: "/product",
