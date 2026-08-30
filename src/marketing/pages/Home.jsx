@@ -16,6 +16,7 @@ export default function Home() {
         src="/img/marketing/hero-dusk.jpg"
         eager
         strength={38}
+        scrim={0.5}
         position="50% 42%"
         className="pt-12 pb-[calc(var(--mkt-section-y)*0.6)] sm:pt-16"
       >

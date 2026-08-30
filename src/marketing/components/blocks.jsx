@@ -162,7 +162,7 @@ export function ClosingCta({ title, note, image }) {
             </Link>
           </div>
           {note && (
-            <p className={cn("font-mono text-[0.72rem] tracking-tight", image ? "text-white/85" : "text-primary-foreground/70")}>
+            <p className={cn("font-mono text-[0.72rem] tracking-tight", image ? "text-white/75" : "text-primary-foreground/70")}>
               {note}
             </p>
           )}
@@ -176,9 +176,18 @@ export function ClosingCta({ title, note, image }) {
       <ParallaxBackdrop
         src={image}
         strength={44}
-        position="50% 32%"
-        className="mkt-photo-cta mt-[var(--mkt-section-y)] py-[clamp(4rem,9vw,7rem)] text-white"
+        scrim={0}
+        position="50% 14%"
+        className="mt-[var(--mkt-section-y)] py-[clamp(4rem,9vw,7rem)] text-white"
       >
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 -z-10"
+          style={{
+            background:
+              "linear-gradient(180deg, hsl(200 48% 8% / 0.62) 0%, hsl(200 48% 8% / 0.30) 45%, hsl(200 48% 8% / 0.30) 55%, hsl(200 48% 8% / 0.62) 100%)",
+          }}
+        />
         {inner}
       </ParallaxBackdrop>
     );

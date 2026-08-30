@@ -28,6 +28,7 @@ export default function Compare() {
         src="/img/marketing/compare-hero.jpg"
         eager
         strength={34}
+        scrim={0.68}
         position="50% 40%"
         className="pt-12 pb-[calc(var(--mkt-section-y)*0.5)] sm:pt-16"
       >

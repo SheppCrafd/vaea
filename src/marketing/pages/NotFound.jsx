@@ -26,6 +26,7 @@ export default function NotFound() {
       src="/img/marketing/notfound-beach.jpg"
       eager
       strength={40}
+      scrim={0.72}
       position="50% 46%"
       className="flex min-h-[78vh] items-center py-[var(--mkt-section-y)]"
     >
