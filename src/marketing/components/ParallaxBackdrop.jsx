@@ -77,7 +77,7 @@ export default function ParallaxBackdrop({
           decoding="async"
           loading={eager ? "eager" : "lazy"}
           style={{ objectPosition: position }}
-          className="absolute inset-x-0 -inset-y-[80%] h-[260%] w-full object-cover will-change-transform"
+          className="absolute inset-x-0 -inset-y-[90%] h-[280%] w-full object-cover will-change-transform"
         />
         <div
           className="absolute inset-0"
