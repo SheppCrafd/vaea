@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Container, Eyebrow, Reveal } from "../components/ui";
 import { ClosingCta } from "../components/blocks";
+import ParallaxBackdrop from "../components/ParallaxBackdrop";
 import { StorageTerminal } from "../components/visuals";
 import { SITE_MODIFIED } from "../seo";
 
@@ -50,7 +51,15 @@ function Block({ heading, children }) {
 export default function Privacy() {
   return (
     <>
-      <section className="pt-12 sm:pt-16">
+      <ParallaxBackdrop
+        as="section"
+        src="/img/marketing/privacy-hero.jpg"
+        eager
+        strength={36}
+        scrim={0.76}
+        position="50% 46%"
+        className="pt-12 pb-[calc(var(--mkt-section-y)*0.5)] sm:pt-16"
+      >
         <Container>
           <div className="max-w-[46rem]">
             <Eyebrow className="mb-4">where your information lives</Eyebrow>
@@ -74,7 +83,7 @@ export default function Privacy() {
             <StorageTerminal />
           </Reveal>
         </Container>
-      </section>
+      </ParallaxBackdrop>
 
       <section className="pb-[calc(var(--mkt-section-y)*0.85)] pt-[calc(var(--mkt-section-y)*0.35)]">
         <Container>

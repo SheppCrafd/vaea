@@ -1,5 +1,6 @@
 import { Container, Eyebrow, Section, CtaRow, Reveal } from "../components/ui";
 import { ShowBlock, Faq, Marquee, ClosingCta } from "../components/blocks";
+import ParallaxBackdrop from "../components/ParallaxBackdrop";
 import { MindMapDemo, StorageTerminal } from "../components/visuals";
 import { BRAIN_FAQ } from "../seo";
 
@@ -14,7 +15,15 @@ const USES = [
 export default function Brain() {
   return (
     <>
-      <section className="pt-12 sm:pt-16">
+      <ParallaxBackdrop
+        as="section"
+        src="/img/marketing/brain-hero.jpg"
+        eager
+        strength={36}
+        scrim={0.78}
+        position="50% 40%"
+        className="pt-12 pb-[calc(var(--mkt-section-y)*0.55)] sm:pt-16"
+      >
         <Container>
           <div className="max-w-[50rem]">
             <Eyebrow className="mb-4">Vaea Brain</Eyebrow>
@@ -34,7 +43,7 @@ export default function Brain() {
             <MindMapDemo interactive />
           </Reveal>
         </Container>
-      </section>
+      </ParallaxBackdrop>
 
       <ShowBlock
         eyebrow="it stays in your account"

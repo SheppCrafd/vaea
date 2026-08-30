@@ -1,5 +1,6 @@
 import { Container, Eyebrow, CtaRow, Reveal } from "../components/ui";
 import { ShowBlock, Marquee, ClosingCta } from "../components/blocks";
+import ParallaxBackdrop from "../components/ParallaxBackdrop";
 import BoardDemo from "../components/BoardDemo";
 import { ChatDemo, CalendarDemo, MindMapDemo, StorageTerminal } from "../components/visuals";
 
@@ -133,29 +134,35 @@ export default function Product() {
         </p>
       </ShowBlock>
 
-      <ShowBlock
-        id="yours"
-        eyebrow="where it all lives"
-        title="On your computer, in files you can open"
-        visual={<StorageTerminal />}
-        cta={{ to: "/self-hosting", label: "Run it all on your own machine" }}
-      >
-        <p>
-          Your board is saved as plain files in a folder you choose. Want it on more than one device?
-          Turn on sync — and turn it back off whenever, without losing anything.
-        </p>
-        <p>
-          Vaea Chat can use the model built in, your own AI account, or a model running on your own
-          computer with nothing sent out. Private companies go a step further and self-host the whole
-          app.
-        </p>
-      </ShowBlock>
+      <ParallaxBackdrop src="/img/marketing/product-band.jpg" strength={50} scrim={0.58} position="50% 50%">
+        <ShowBlock
+          id="yours"
+          eyebrow="where it all lives"
+          title="On your computer, in files you can open"
+          visual={<StorageTerminal />}
+          cta={{ to: "/self-hosting", label: "Run it all on your own machine" }}
+        >
+          <p>
+            Your board is saved as plain files in a folder you choose. Want it on more than one device?
+            Turn on sync — and turn it back off whenever, without losing anything.
+          </p>
+          <p>
+            Vaea Chat can use the model built in, your own AI account, or a model running on your own
+            computer with nothing sent out. Private companies go a step further and self-host the whole
+            app.
+          </p>
+        </ShowBlock>
+      </ParallaxBackdrop>
 
       <Marquee
         items={["one board", "one Vaea Chat", "one calendar", "one inbox", "your files, your computer"]}
       />
 
-      <ClosingCta title="Open the board and move something." note="No card · yours, on your computer" />
+      <ClosingCta
+        title="Open the board and move something."
+        note="No card · yours, on your computer"
+        image="/img/marketing/product-closing.jpg"
+      />
     </>
   );
 }

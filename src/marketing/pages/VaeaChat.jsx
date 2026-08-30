@@ -1,5 +1,6 @@
 import { Container, Eyebrow, Section, CtaRow, Reveal } from "../components/ui";
 import { ShowBlock, Faq, Marquee, ClosingCta } from "../components/blocks";
+import ParallaxBackdrop from "../components/ParallaxBackdrop";
 import { ChatDemo, LocalModeTerminal, ClaudeCodeTerminal } from "../components/visuals";
 import { ASSISTANT_FAQ, ASSISTANT_STEPS } from "../seo";
 
@@ -36,21 +37,23 @@ export default function VaeaChat() {
         </Container>
       </section>
 
-      <Section eyebrow="how a change happens" title="Five steps — and you control the two that matter">
-        <Reveal className="mt-8">
-          <ol className="divide-y divide-foreground/[0.08] border-y border-foreground/[0.08]">
-            {ASSISTANT_STEPS.map(([t, d], i) => (
-              <li key={i} className="grid gap-2.5 py-4 sm:grid-cols-[auto_1fr] sm:gap-6">
-                <span className="font-mono text-[0.8rem] text-muted-foreground sm:pt-0.5">{String(i + 1).padStart(2, "0")}</span>
-                <div>
-                  <p className="text-[1rem] font-medium text-foreground">{t}</p>
-                  <p className="mt-1 max-w-[58ch] text-[0.95rem] leading-relaxed text-muted-foreground">{d}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </Reveal>
-      </Section>
+      <ParallaxBackdrop src="/img/marketing/vaeachat-band.jpg" strength={44} scrim={0.88} position="50% 50%">
+        <Section eyebrow="how a change happens" title="Five steps — and you control the two that matter">
+          <Reveal className="mt-8">
+            <ol className="divide-y divide-foreground/[0.08] border-y border-foreground/[0.08]">
+              {ASSISTANT_STEPS.map(([t, d], i) => (
+                <li key={i} className="grid gap-2.5 py-4 sm:grid-cols-[auto_1fr] sm:gap-6">
+                  <span className="font-mono text-[0.8rem] text-muted-foreground sm:pt-0.5">{String(i + 1).padStart(2, "0")}</span>
+                  <div>
+                    <p className="text-[1rem] font-medium text-foreground">{t}</p>
+                    <p className="mt-1 max-w-[58ch] text-[0.95rem] leading-relaxed text-muted-foreground">{d}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </Reveal>
+        </Section>
+      </ParallaxBackdrop>
 
       <ShowBlock
         flip

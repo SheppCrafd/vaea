@@ -1,5 +1,6 @@
 import { Container, Eyebrow, Section, CtaRow, Reveal } from "../components/ui";
 import { ShowBlock, Faq, Marquee, ClosingCta } from "../components/blocks";
+import ParallaxBackdrop from "../components/ParallaxBackdrop";
 import { ClaudeCodeTerminal, LocalModeTerminal } from "../components/visuals";
 import TerminalBlock from "@/components/settings/TerminalBlock";
 import { SELFHOSTING_FAQ } from "../seo";
@@ -15,7 +16,15 @@ const STEPS = [
 export default function SelfHosting() {
   return (
     <>
-      <section className="pt-12 sm:pt-16">
+      <ParallaxBackdrop
+        as="section"
+        src="/img/marketing/selfhosting-hero.jpg"
+        eager
+        strength={36}
+        scrim={0.8}
+        position="50% 32%"
+        className="pt-12 pb-[calc(var(--mkt-section-y)*0.5)] sm:pt-16"
+      >
         <Container>
           <div className="max-w-[52rem]">
             <Eyebrow className="mb-4">self-hosting</Eyebrow>
@@ -35,7 +44,7 @@ export default function SelfHosting() {
             <ClaudeCodeTerminal />
           </Reveal>
         </Container>
-      </section>
+      </ParallaxBackdrop>
 
       <Section eyebrow="the setup, end to end" title="Five steps to a copy that never calls out">
         <Reveal className="mt-8">

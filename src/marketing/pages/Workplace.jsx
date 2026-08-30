@@ -83,7 +83,11 @@ export default function Workplace() {
         </Reveal>
       </Section>
 
-      <ClosingCta title="Bring the day into one view." note="Your accounts, connected one at a time" />
+      <ClosingCta
+        title="Bring the day into one view."
+        note="Your accounts, connected one at a time"
+        image="/img/marketing/workplace-closing.jpg"
+      />
     </>
   );
 }

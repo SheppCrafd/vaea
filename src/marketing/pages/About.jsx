@@ -1,5 +1,6 @@
 import { Container, Eyebrow, Reveal } from "../components/ui";
 import { ClosingCta } from "../components/blocks";
+import ParallaxBackdrop from "../components/ParallaxBackdrop";
 import { MAKER } from "../seo";
 
 // A hand-built profile card using the site's own tokens — deliberately not
@@ -80,7 +81,14 @@ export default function About() {
         </Container>
       </section>
 
-      <section className="py-[calc(var(--mkt-section-y)*0.85)]">
+      <ParallaxBackdrop
+        as="section"
+        src="/img/marketing/about-band.jpg"
+        strength={48}
+        scrim={0.85}
+        position="50% 70%"
+        className="py-[calc(var(--mkt-section-y)*0.95)]"
+      >
         <Container className="max-w-[42rem]">
           <Reveal className="space-y-8">
             <div>
@@ -128,7 +136,7 @@ export default function About() {
             </div>
           </Reveal>
         </Container>
-      </section>
+      </ParallaxBackdrop>
 
       <ClosingCta title="Put your portfolio on one board." note="No card required · your information stays on your computer" />
     </>

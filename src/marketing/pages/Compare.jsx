@@ -1,5 +1,6 @@
 import { Container, Eyebrow, Reveal } from "../components/ui";
 import { ClosingCta } from "../components/blocks";
+import ParallaxBackdrop from "../components/ParallaxBackdrop";
 
 // An honest category comparison — Vaea against the general pattern most
 // people use (a cloud task manager plus a separate AI), NOT a named
@@ -22,7 +23,15 @@ const ROWS = [
 export default function Compare() {
   return (
     <>
-      <section className="pt-12 sm:pt-16">
+      <ParallaxBackdrop
+        as="section"
+        src="/img/marketing/compare-hero.jpg"
+        eager
+        strength={34}
+        scrim={0.68}
+        position="50% 40%"
+        className="pt-12 pb-[calc(var(--mkt-section-y)*0.5)] sm:pt-16"
+      >
         <Container>
           <div className="max-w-[46rem]">
             <Eyebrow className="mb-4">an honest comparison</Eyebrow>
@@ -39,7 +48,7 @@ export default function Compare() {
             </p>
           </div>
         </Container>
-      </section>
+      </ParallaxBackdrop>
 
       <section className="py-[calc(var(--mkt-section-y)*0.8)]">
         <Container>
