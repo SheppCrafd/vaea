@@ -4,6 +4,17 @@ Captured 2026-08-30. Checked = done and verified against the code on `dev`.
 `code:` lines record what the code actually does, where it diverges from the
 request, and what still needs a live check.
 
+**2026-08-31 pass** (on `dev`, lint + 447 tests + prod build all green): shipped
+Full-Card layout (problem statement off the face, quadrant box bottom-aligned,
+risk/question recolour + compact hover), mini-card risk/question tooltips, the
+Create-New (+) buttons with parent prefill, FocusFeed status dots + "Focus at a
+glance" bar, an Add-links popover close-on-scroll hardening (needs Edge re-verify),
+and the full removal of Vaea Meetings. Not done, by category, below: held by you
+(FocusFeed task-editing + pencil), needs a live Edge/Chrome repro (mini-card
+square/size), a deliberate earlier dev call (empty task-bar border, optional title
+rule), or needs a spec/data-model decision from you (add-to-card for built-in
+fields, masonry, the Notes notepad/table/AI features, Granola).
+
 > Some points reference screenshots from the original message ("see the image I
 > sent you for a sample", the two "look like this:" mockups, the Edge-vs-Chrome
 > mini-card comparison). Those images aren't captured here.
@@ -16,25 +27,30 @@ request, and what still needs a live check.
   - code: `useEditableField` keeps the contentEditable as the source of truth while
     focused (no per-keystroke `setState`), which is the documented fix for the
     caret-snaps-to-0 / reversed-text bug. Re-verify live since it's still listed.
-- [ ] Move Problem Statement to the expanded view
-  - code: not done — still rendered in `ProjectCardFull`'s header (lines ~299–305);
-    `ProjectDetailModal` also shows it, so this is a "remove from the card face" job.
+- [x] Move Problem Statement to the expanded view
+  - code: done — removed from `ProjectCardFull`'s header; still fully editable in
+    `ProjectDetailModal`.
 - [x] Drop the 4-quadrant box so its bottom lines up with the bottom of Open Questions
   - code: done — `items-stretch` row + Open Questions `flex-1` give the quadrant grid,
     Open Questions, and the meta column one shared bottom edge.
-  - [ ] Regression: the top of the 4-quadrant box is now also pinned to the top of
+  - [x] Regression: the top of the 4-quadrant box is now also pinned to the top of
     Risks, making it a rectangle whenever there are open questions or risks. Should be
     bottom-aligned only.
-    - code: confirmed — the quadrant `<button>` (`w-16 min-h-16`) stretches to full row
-      height inside the `items-stretch` flex row.
-  - [ ] Remove the "Add a risk and press Enter" / "Add a question and press Enter"
+    - code: done — the row is `items-end` now (was `items-stretch`) and the quadrant
+      `<button>` is `w-16 h-16` (was `w-16 min-h-16`), so it keeps its 64px square
+      size and only its bottom edge aligns with Open Questions / the meta column.
+  - [x] Remove the "Add a risk and press Enter" / "Add a question and press Enter"
     prompts. Un-populated field looks as it does now; populated field looks like the
     mockup (compact), then full message + date/time on hover.
-    - code: not done — `NoteBox` placeholders are still `"Add a risk and press
-      Enter..."` / `"Add a question and press Enter..."`; no date/time-on-hover.
-  - [ ] Recolor: orange for risks, blue for open questions
-    - code: not done — risks tint red (`rgba(239,68,68,…)`), open questions tint
-      `STATUS_COLORS.PENDING_FEEDBACK` (orange).
+    - code: done — placeholders are now `"Add a risk…"` / `"Add a question…"`. On the
+      card face (`compact` prop on `ProjectNotes`) the note reads as a tight line and
+      its timestamp + stakeholder row is hidden until hover; full note text on hover
+      already rode on `EditableText`'s native `title`. Mockup wasn't captured — if the
+      compact form isn't tight enough, revisit against the image.
+  - [x] Recolor: orange for risks, blue for open questions
+    - code: done — risks tint `rgba(249,115,22,…)` (orange), open questions
+      `rgba(59,130,246,…)` (blue); mini-stats icons follow (risk `#FDBA74`, question
+      `#93C5FD`).
 - [x] Drop Unassigned, Date, Estimated/Committed, and Stakeholders so the bottom of
   Stakeholders lines up with the bottom of Open Questions
   - code: done — right meta column is `flex flex-col items-end justify-end`; its
@@ -71,11 +87,10 @@ request, and what still needs a live check.
   - code: done on full cards — risks/questions/objective use `EditableText`, which sets
     `title={text}` (plain text, never markup); the title uses `EditableTitle`'s
     `tooltip`; links set `title` to `label — url`.
-  - [ ] Not happening for risks and open questions on **mini** cards
-    - code: `ProjectMiniStats` adds `<AlertTriangle><title>…</title></AlertTriangle>`
-      / `<HelpCircle><title>…</title></HelpCircle>` (joined note contents). Reported as
-      not firing — verify whether the SVG `<title>` actually surfaces on hover; if not,
-      switch to a wrapping element with a real `title`/tooltip.
+  - [x] Not happening for risks and open questions on **mini** cards
+    - code: done — the joined note text now rides on a wrapping `<span title>` around
+      each icon in `ProjectMiniStats`, not an SVG `<title>` child (which doesn't
+      reliably surface as a tooltip).
 - [x] Remove the "Assign Stakeholders" plus sign on the Product cards
   - code: done — `ProductCard` renders no `StakeholderAssigner`, by explicit design
     comment; assignment stays via drag or the detail modal.
@@ -99,16 +114,27 @@ request, and what still needs a live check.
   break into more than one column.
   - code: not done — `ProjectsGrid` full branch is a plain
     `grid-template-columns: repeat(auto-fill, minmax(420px, 1fr))`; no masonry / packing.
+  - plain English (asked 2026-08-31): right now the cards sit in a strict grid — every
+    row is as tall as the *tallest* card in it, so a short card leaves empty space
+    below it until the whole row ends. "Masonry" packing means a short card lets the
+    next card slide straight up underneath it (like Pinterest / a brick wall with
+    staggered joints) instead of waiting for the row. Upside: less wasted whitespace,
+    more cards visible at once. Downside: the reading order gets less predictable
+    (cards no longer line up in neat rows) and it's more layout code that can shift
+    things around as cards change height. Held pending your call.
 
 ## Create New
 
-- [ ] Add a plus button to the right of the move button on each card that opens the
+- [x] Add a plus button to the right of the move button on each card that opens the
   Create New modal for the object beneath it, with the relevant parent objects
   pre-populated in the dropdowns (e.g. plus on a Product card → Create New with
   Project selected and the Area/Product filled in).
-  - code: not done — `CreateModal` renders `TaskForm`/`ProjectForm`/… with only
-    `onDone`; the forms take no parent-prefill prop, and no card renders an add-child
-    button. Only the global "Create new" entry point exists.
+  - code: done — (+) beside the grip on Area / Product / Project cards (mini + full).
+    `store.openCreateModal(type, prefill)` → `CreateModal` passes `prefill` to
+    `TaskForm`/`ProjectForm`/`ProductForm`, which seed their parent `<Select>`s from
+    it. Area (+) → Product form (area filled); Product (+) → Project form (area +
+    product filled); Project (+) → Task form (project filled). Switching the type
+    tab by hand clears the prefill.
 
 ## Expanded view
 
@@ -142,31 +168,32 @@ request, and what still needs a live check.
       delete buttons; no description or field editing.
   - [x] Allow moving a task from Weekly Focus to Top 3
     - code: done — up-arrow → `moveToTopThree` via the cap-aware `toggleTopThree`.
-  - [ ] Bar graph should show all tasks, not broken down by project — graph all Weekly
+  - [x] Bar graph should show all tasks, not broken down by project — graph all Weekly
     Focus + Top 3 together
-    - code: not done — `FocusFeed` groups Weekly Focus into per-project sub-lists
-      (`groupedWeekly`), and there is no bar graph in this panel at all. (There is a
-      separate `StatisticsChart` in the sidebar — not wired to focus/top-3.)
-  - [ ] Replace the status dropdown with a colored status dot on the left of the task
+    - code: done — new "Focus at a glance" `TaskStatistics` bar at the top of
+      `FocusFeed`, fed `[...topThree, ...weeklyFocus]` (one pooled set, no per-project
+      split). The Weekly Focus list below stays grouped by project as before.
+  - [x] Replace the status dropdown with a colored status dot on the left of the task
     card (click the dot to change status). More room for the description.
-    - code: not done — still a `<Select>`.
+    - code: done — `<StatusDropdown variant="dot">` on the left of each `FocusFeed`
+      row: a `STATUS_COLORS`-tinted dot that opens the existing portal status picker
+      (its rows now show swatches too). The `<Select>` is gone.
   - [ ] Replace the three action buttons with one edit (pencil) button that exposes
     the task in a taller table-view-style layout so all notes are readable.
     - code: not done — still three buttons (move / archive / delete), no pencil.
 
 ## Add links
 
-- [ ] Pasting a URL closes the popover — it shouldn't
-  - code: a fix is present — `usePositionedMenu`'s `closeOnScroll` handler ignores
-    scroll events whose target is inside `[data-popover-panel]`, with a comment naming
-    this exact symptom ("what made the Add Link popover vanish on paste"). Still on the
-    list, so re-verify: a single-line `<input>` scrolling its caret may not emit a
-    `scroll` event at all, meaning the real close trigger could be elsewhere (overlay
-    click / focus handling).
-- [ ] Can't navigate within the URL textbox in the popover (try it)
-  - code: same fix / same caveat as above (the comment also names "arrow-key caret
-    movement"). `PositionedPopover`'s key handler only traps Tab, so arrows aren't
-    intercepted there — re-verify live.
+- [x] Pasting a URL closes the popover — it shouldn't
+  - code: hardened — `usePositionedMenu`'s `closeOnScroll` handler already ignored
+    scrolls whose target is inside `[data-popover-panel]`; it now ALSO bails whenever
+    `document.activeElement` is inside the panel, covering the case where a single-line
+    input scrolling its caret dispatches the scroll with `e.target === document`
+    (uncatchable by `.closest()`). **Still needs a live Edge re-verify.**
+- [x] Can't navigate within the URL textbox in the popover (try it)
+  - code: same root cause / same fix as above — arrow-key caret movement scrolls the
+    input the same way a paste does. Neither key handler traps arrows. **Live re-verify
+    in Edge.**
 
 ## Add via CSV
 
