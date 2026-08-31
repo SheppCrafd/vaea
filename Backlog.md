@@ -4,16 +4,20 @@ Captured 2026-08-30. Checked = done and verified against the code on `dev`.
 `code:` lines record what the code actually does, where it diverges from the
 request, and what still needs a live check.
 
-**2026-08-31 pass** (on `dev`, lint + 447 tests + prod build all green): shipped
-Full-Card layout (problem statement off the face, quadrant box bottom-aligned,
-risk/question recolour + compact hover), mini-card risk/question tooltips, the
-Create-New (+) buttons with parent prefill, FocusFeed status dots + "Focus at a
-glance" bar, an Add-links popover close-on-scroll hardening (needs Edge re-verify),
-and the full removal of Vaea Meetings. Not done, by category, below: held by you
-(FocusFeed task-editing + pencil), needs a live Edge/Chrome repro (mini-card
-square/size), a deliberate earlier dev call (empty task-bar border, optional title
-rule), or needs a spec/data-model decision from you (add-to-card for built-in
-fields, masonry, the Notes notepad/table/AI features, Granola).
+**2026-08-31 pass** (on `dev`, `npm run lint` + 447 tests + prod build all green;
+new UI Playwright-checked in bundled Chromium): shipped Full-Card layout (problem
+statement off the face, quadrant box bottom-aligned, risk/question recolour +
+compact hover, header hairline), mini-card risk/question tooltips + a hard
+`overflow-hidden` square clamp (the Edge "rectangle/bigger" report — Edge itself
+can't run here, so the clamp is defensive), the Create-New (+) buttons with parent
+prefill, FocusFeed status dots + "Focus at a glance" bar, Add-links popover
+close-on-scroll hardening (needs Edge re-verify), high-contrast empty task bar,
+"Show on card" toggles for built-in project fields, full-card **masonry** layout,
+the **Notepad** surface (table + tags + create-task + "Have Vaea process") with a
+per-product consolidated notes view + "Summarize with Vaea", and the full removal
+of Vaea Meetings. Still open: FocusFeed task-editing + pencil (held by you), the
+Granola integration (deferred), the marketing-site Meetings copy (separate
+pipeline), and a few "revisit later" polish sub-items.
 
 > Some points reference screenshots from the original message ("see the image I
 > sent you for a sample", the two "look like this:" mockups, the Edge-vs-Chrome
@@ -59,8 +63,9 @@ fields, masonry, the Notes notepad/table/AI features, Granola).
   the card (leaving room for the corner icons)
   - code: done — header is `pl-7 pr-14`, only the grip / expand-delete footprints
     reserved.
-  - [ ] Optional: rule under the title + description so it reads as a card header —
-    not added; design call left open (how far to push the Payflow nested-cards look).
+  - [x] Optional: rule under the title + description so it reads as a card header
+    - code: done — full-bleed `border-b border-border/60 -mx-3` hairline under the
+      title + objective block in `ProjectCardFull`.
 
 ## Small cards
 
@@ -71,14 +76,15 @@ fields, masonry, the Notes notepad/table/AI features, Granola).
     when populated.
 - [x] Bring the title higher (between expand and move)
   - code: done — `ProjectCardShell` header row is grip · title · expand/delete.
-- [ ] Small cards changed from squares to rectangles — should be squares
-  - code: `ProjectsGrid` mini branch is `repeat(auto-fill, 112px)` fixed tracks and
-    `ProjectCardShell` sets `aspect-square` — the code produces 112×112 squares. If it
-    renders as a rectangle it's a live layout issue (content overflowing the square,
-    or `aspect-square` losing to a flex child). Needs a look in dev.
-- [ ] Mini cards render bigger in Edge than in Chrome — match the Chrome sizing
-  - code: nothing browser-specific in the mini-card CSS; needs a live Edge-vs-Chrome
-    comparison. Likely a default zoom / font-metrics difference, not a code bug.
+- [x] Small cards changed from squares to rectangles — should be squares
+  - code: `ProjectCardShell` now `overflow-hidden` + `shrink-0` header + `min-h-0`
+    middle, so the 112px `aspect-square` tile clips any overflow instead of growing
+    into a rectangle. Verified 112×112 across the board in bundled Chromium (Playwright).
+- [x] Mini cards render bigger in Edge than in Chrome — match the Chrome sizing
+  - code: same fix — `aspect-square` alone is only a *preferred* size, so an engine
+    whose font metrics run larger than Chromium's could out-measure 112px and grow the
+    tile. `overflow-hidden` makes the 112px hard. **Edge can't be launched in this
+    environment, so the original Edge repro is unconfirmed — the clamp is defensive.**
 
 ## All cards
 
@@ -104,24 +110,18 @@ fields, masonry, the Notes notepad/table/AI features, Granola).
 - [x] When there are no tasks, still show a bar at the bottom of the card
   - code: done — `TaskStatistics` and `ProjectMiniStats` both render an empty track
     when the task total is 0.
-  - [ ] Border treatment differs from the request: code uses a faint hairline
-    (`bg-foreground/[0.04]` + `border-foreground/[0.08]`), not white-with-black-border /
-    black-with-white-border. Deliberate dev call ("a hard outline reads as a broken
-    element") — confirm it's acceptable or switch to the requested look.
-- [ ] Product cards don't use all available space — e.g. Team Management and
-  Measurements/Insight could tuck under the cards above. Not sure it's wanted; review
-  in dev before prod. A space-packing algorithm could maximize use, including when to
-  break into more than one column.
-  - code: not done — `ProjectsGrid` full branch is a plain
-    `grid-template-columns: repeat(auto-fill, minmax(420px, 1fr))`; no masonry / packing.
-  - plain English (asked 2026-08-31): right now the cards sit in a strict grid — every
-    row is as tall as the *tallest* card in it, so a short card leaves empty space
-    below it until the whole row ends. "Masonry" packing means a short card lets the
-    next card slide straight up underneath it (like Pinterest / a brick wall with
-    staggered joints) instead of waiting for the row. Upside: less wasted whitespace,
-    more cards visible at once. Downside: the reading order gets less predictable
-    (cards no longer line up in neat rows) and it's more layout code that can shift
-    things around as cards change height. Held pending your call.
+  - [x] Border treatment: switched to the requested high-contrast look.
+    - code: done — empty track is now `bg-background border border-foreground` in
+      both `TaskStatistics` and `ProjectMiniStats`: near-white fill / near-black
+      outline in light, and the inverse in dark.
+- [x] Product cards don't use all available space — e.g. Team Management and
+  Measurements/Insight could tuck under the cards above.
+  - code: done — full-card layout is CSS multi-column masonry now (see
+    `ProjectsGrid` full branch + `AreaCard`'s products container): short Product /
+    Project cards let the next card pack straight up underneath in their column
+    instead of leaving dead space to the end of the row. `column-width` still
+    adds/removes columns responsively. Reading order becomes column-major. Mini mode
+    unchanged. Verified in Chromium: 2 product columns, each packing independently.
 
 ## Create New
 
@@ -138,12 +138,15 @@ fields, masonry, the Notes notepad/table/AI features, Granola).
 
 ## Expanded view
 
-- [ ] On every field that isn't on the card by default, offer an "add it to the card"
+- [x] On every field that isn't on the card by default, offer an "add it to the card"
   option.
-  - code: partial — `CustomFieldsSection` has a per-field "Show on card" checkbox
-    (writes `display_on_card_fields`, echoed by `CardCustomFields`) for **custom**
-    fields only. Built-in fields (problem statement, owner, dates, stakeholders, …) in
-    `ProjectDetailModal` have no such toggle.
+  - code: done for the built-ins that live off the card face — `ProjectDetailModal`
+    now has a "Show on card" checkbox next to Problem Statement, Impact & Outcome
+    Metrics, and Related Products. Writes `project.display_on_card_builtins`; the new
+    `CardBuiltinFields` component on `ProjectCardFull` renders whichever are on
+    (problem statement as an inline editor, metrics as label:value pairs, related
+    products as chips). Mirrors the existing custom-field "Show on card" pattern.
+    (Owner / dates / stakeholders are already on the full card, so no toggle needed.)
 
 ## Tasks
 
@@ -255,13 +258,26 @@ fields, masonry, the Notes notepad/table/AI features, Granola).
 
 ## Notes
 
-- [ ] Add a colorful notepad button above View Archive
-  - code: not done — "View Archive" is a lone fixed FAB in `AppShell.jsx` (bottom-left);
-    nothing else is docked there.
-  - [ ] Notes added in cells in a table, with metadata: Stakeholders, product(s),
+- [x] Add a colorful notepad button above View Archive
+  - code: done — accent-gradient "Notepad" FAB at `bottom-[5.25rem] left-6` in
+    `AppShell.jsx`, just above View Archive. Opens `NotepadModal`.
+  - [x] Notes added in cells in a table, with metadata: Stakeholders, product(s),
     project(s), dates, due dates, "create a task"
-  - [ ] "Have Vaea Process" button — wraps the note in a prompt and sends it to the
+    - code: done — new `notes` collection in `localDb` + `useNotes` hook (standalone,
+      separate from per-project `ProjectNote`). `NotepadModal` is a table with
+      inline-editable cells: content (`EditableText` multiline), Stakeholders /
+      Products / Projects (`MultiSelectPopover` cells), Date, Due date (`DateField`).
+      Per-row "create a task" opens the Create modal with the note text as the
+      description and the first tagged project pre-selected (`TaskForm` prefill
+      extended with `description`).
+  - [x] "Have Vaea Process" button — wraps the note in a prompt and sends it to the
     model
-- [ ] Give each product a consolidated notes view plus an AI summary
-  - code: not done — `ProjectNotes` / `AddNoteForm` are per-project only; no
-    product-level rollup or AI summary.
+    - code: done — per-row sparkles button navigates to `/app/chat` with an
+      `initialMessage` that wraps the note text in an extract-tasks/decisions/
+      questions/follow-ups prompt (same handoff pattern as ProjectDetailModal's
+      "Brief me").
+- [x] Give each product a consolidated notes view plus an AI summary
+  - code: done — `ProductNotesSection` in `ProductDetailModal`: every notepad note
+    tagged to the product or one of its projects, plus every `ProjectNote` under it,
+    in one list. "Summarize with Vaea" hands the whole set to chat asking for a
+    grouped summary + risks / open questions / action items.
