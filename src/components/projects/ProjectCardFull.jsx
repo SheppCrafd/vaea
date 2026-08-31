@@ -9,6 +9,7 @@ import ProjectNotes from "@/components/projects/ProjectNotes";
 import TaskStatistics from "@/components/shared/TaskStatistics";
 import EditableText from "@/components/shared/EditableText";
 import CardCustomFields from "@/components/shared/CardCustomFields";
+import CardBuiltinFields from "@/components/projects/CardBuiltinFields";
 import DateField from "@/components/shared/DateField";
 import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
 import { useTasks } from "@/hooks/useTasks";
@@ -423,6 +424,12 @@ function ProjectCardFull({ project, stakeholderIds = [] }) {
       <div className="pl-5 pr-1 mt-2">
         <TaskStatistics tasks={tasks} />
       </div>
+
+      <CardBuiltinFields
+        project={project}
+        onUpdate={(data) => updateProject.mutate({ id: project.id, data })}
+        className="mt-2 pl-5 pr-1"
+      />
 
       <CardCustomFields
         entity={project}

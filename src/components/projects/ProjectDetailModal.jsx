@@ -23,6 +23,7 @@ import ProductAssigner from "@/components/shared/ProductAssigner";
 import CustomFieldsSection from "@/components/shared/CustomFieldsSection";
 import DateField from "@/components/shared/DateField";
 import { DUE_DATE_STATUS_OPTIONS, METRIC_FIELDS } from "@/lib/projectUtils";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function ProjectDetailModal({ project, onClose }) {
   const navigate = useNavigate();
@@ -54,6 +55,24 @@ export default function ProjectDetailModal({ project, onClose }) {
   const saveMetric = (key, value) => {
     updateProject.mutate({ id: project.id, data: { metrics: { ...project.metrics, [key]: value } } });
   };
+
+  // "Show on card" for built-in fields that aren't on the project card face
+  // by default — mirrors CustomFieldsSection's per-field toggle, but for
+  // built-ins (problem statement, metrics, related products). Writes
+  // `display_on_card_builtins`, which CardBuiltinFields reads.
+  const cardBuiltins = project.display_on_card_builtins || [];
+  const toggleCardBuiltin = (key) => {
+    const next = cardBuiltins.includes(key)
+      ? cardBuiltins.filter((k) => k !== key)
+      : [...cardBuiltins, key];
+    updateProject.mutate({ id: project.id, data: { display_on_card_builtins: next } });
+  };
+  const ShowOnCard = ({ field }) => (
+    <label className="flex items-center gap-1 text-[10px] text-muted-foreground shrink-0 cursor-pointer normal-case tracking-normal" title="Show this field on the project card">
+      <Checkbox checked={cardBuiltins.includes(field)} onCheckedChange={() => toggleCardBuiltin(field)} aria-label="Show on card" />
+      Show on card
+    </label>
+  );
 
   return (
     <Modal
@@ -137,7 +156,10 @@ export default function ProjectDetailModal({ project, onClose }) {
                 />
               </div>
               <div>
-                <label htmlFor="project-detail-problem-statement" className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider block">Problem Statement</label>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <label htmlFor="project-detail-problem-statement" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Problem Statement</label>
+                  <ShowOnCard field="problem_statement" />
+                </div>
                 <EditableText
                   id="project-detail-problem-statement"
                   value={project.problem_statement}
@@ -150,7 +172,10 @@ export default function ProjectDetailModal({ project, onClose }) {
             </div>
 
             <div>
-              <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Impact & Outcome Metrics</p>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Impact &amp; Outcome Metrics</p>
+                <ShowOnCard field="metrics" />
+              </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {METRIC_FIELDS.map(({ key, label }) => (
                   <div key={key}>
@@ -255,14 +280,17 @@ export default function ProjectDetailModal({ project, onClose }) {
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between gap-2 mb-3">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Related Products</p>
-                <ProductAssigner
-                  currentProductIds={project.related_product_ids || []}
-                  allProducts={allProducts}
-                  excludeProductId={project.parent_product_id}
-                  onSave={(newIds) => updateProject.mutate({ id: project.id, data: { related_product_ids: newIds } })}
-                />
+                <div className="flex items-center gap-3">
+                  <ShowOnCard field="related_products" />
+                  <ProductAssigner
+                    currentProductIds={project.related_product_ids || []}
+                    allProducts={allProducts}
+                    excludeProductId={project.parent_product_id}
+                    onSave={(newIds) => updateProject.mutate({ id: project.id, data: { related_product_ids: newIds } })}
+                  />
+                </div>
               </div>
               {(project.related_product_ids || []).length === 0 ? (
                 <p className="text-sm text-muted-foreground bg-secondary/20 p-3 rounded-lg border border-border text-center">
