@@ -18,6 +18,7 @@ import { useUpdateProject, useDeleteProject } from "@/hooks/useProjects";
 import { useEditableField } from "@/hooks/useEditableField";
 import { useHighlightMatch } from "@/hooks/useHighlightDim";
 import { useHighlight } from "@/lib/HighlightContext";
+import { useAppStore } from "@/lib/store";
 import { confirmThen, sanitizeHttpUrl } from "@/lib/entityUtils";
 import EditableTitle from "@/components/shared/EditableTitle";
 import { filterActiveTasks, getQuadrantCounts, isTaskDone, STATUS_COLORS } from "@/lib/taskUtils";
@@ -186,6 +187,8 @@ function ProjectCardFull({ project, stakeholderIds = [] }) {
   const isMatched = useHighlightMatch(cardStakeholderIds, "projects");
   const { highlights } = useHighlight();
 
+  const openCreateModal = useAppStore((s) => s.openCreateModal);
+
   const { data: tasks = [] } = useTasks(project.id);
   const { data: notes = [] } = useProjectNotes(project.id);
   const riskNotes = notes.filter((n) => n.type === "RISK");
@@ -256,12 +259,23 @@ function ProjectCardFull({ project, stakeholderIds = [] }) {
       // button or the content-sized right-hand column.
       className={`relative bg-card border border-border rounded-xl p-3 pb-6 transition-colors ${isMatched ? "bg-primary/10 ring-1 ring-primary/30" : ""} ${isDragging ? "shadow-2xl scale-105 border-primary" : "shadow-sm"} ${isOver ? "ring-2 ring-primary ring-offset-1" : ""}`}
     >
-      <div
-        {...attributes}
-        {...listeners}
-        className="absolute top-1.5 left-0.5 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 rounded-md z-20 transition-colors"
-      >
-        <GripVertical className="w-4 h-4" />
+      <div className="absolute top-1.5 left-0.5 z-20 flex items-center">
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 rounded-md transition-colors"
+        >
+          <GripVertical className="w-4 h-4" />
+        </div>
+        <button
+          type="button"
+          onClick={() => openCreateModal("task", { project_id: project.id })}
+          className="text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 rounded-md transition-colors"
+          title="Add a task to this project"
+          aria-label="Add a task to this project"
+        >
+          <Plus className="w-3.5 h-3.5" />
+        </button>
       </div>
 
       <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 z-20">
@@ -280,7 +294,7 @@ function ProjectCardFull({ project, stakeholderIds = [] }) {
           only reserved margins are the corner icons' own footprints (grip left,
           expand/delete right). Problem Statement is deliberately NOT on the card
           face; it's edited in the expanded view (ProjectDetailModal) only. */}
-      <div className="pl-7 pr-14 flex flex-col items-center gap-1">
+      <div className="pl-14 pr-14 flex flex-col items-center gap-1">
         <EditableTitle
           as="h4"
           value={title}

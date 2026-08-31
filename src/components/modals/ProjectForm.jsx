@@ -12,10 +12,12 @@ import FormField from "@/components/shared/FormField";
 import { Select } from "@/components/ui/select";
 import { useLastUsedValue } from "@/hooks/useLastUsedValue";
 
-export default function ProjectForm({ onDone }) {
+export default function ProjectForm({ onDone, prefill = null }) {
   const [title, setTitle] = useState("");
-  const [areaId, setAreaId] = useState("");
-  const [productId, setProductId] = useState("");
+  // Seeded from the card that opened this modal (the (+) on a product card
+  // fills both; the (+) on a bare area card fills just the area).
+  const [areaId, setAreaId] = useState(prefill?.parent_area_id || "");
+  const [productId, setProductId] = useState(prefill?.parent_product_id || "");
   const [objective, setObjective] = useState("");
   const [ownerName, setOwnerName] = useLastUsedValue("project_owner_name");
   const [dueDate, setDueDate] = useState("");

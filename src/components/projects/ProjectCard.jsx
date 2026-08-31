@@ -1,7 +1,8 @@
 import { memo, useState, lazy, Suspense } from "react";
-import { Expand, GripVertical } from "lucide-react";
+import { Expand, GripVertical, Plus } from "lucide-react";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
+import { useAppStore } from "@/lib/store";
 import { useTasks } from "@/hooks/useTasks";
 import { useProjectNotes } from "@/hooks/useProjectNotes";
 import { useEditableField } from "@/hooks/useEditableField";
@@ -40,6 +41,7 @@ function ProjectCard({ project, stakeholderIds = [] }) {
   const questionNotes = notes.filter((n) => n.type === "QUESTION");
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
+  const openCreateModal = useAppStore((s) => s.openCreateModal);
 
   const { value: title, handleInput: handleTitleInput, handleBlur: handleTitleBlur, handleKeyDown: handleTitleKeyDown } = useEditableField(
     project.title,
@@ -90,12 +92,23 @@ function ProjectCard({ project, stakeholderIds = [] }) {
       // icons, then the expand/delete cluster — the title's flex-1 keeps it
       // centered in whatever width the icons leave over.
       dragHandle={
-        <div
-          {...attributes}
-          {...listeners}
-          className="shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-0.5"
-        >
-          <GripVertical className="w-3 h-3" />
+        <div className="shrink-0 flex items-center">
+          <div
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-0.5"
+          >
+            <GripVertical className="w-3 h-3" />
+          </div>
+          <button
+            type="button"
+            onClick={() => openCreateModal("task", { project_id: project.id })}
+            className="text-muted-foreground hover:text-foreground p-0.5"
+            title="Add a task to this project"
+            aria-label="Add a task to this project"
+          >
+            <Plus className="w-3 h-3" />
+          </button>
         </div>
       }
       title={

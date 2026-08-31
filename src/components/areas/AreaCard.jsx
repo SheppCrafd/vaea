@@ -1,6 +1,7 @@
 import { memo, useMemo } from "react";
-import { Expand, GripVertical } from "lucide-react";
+import { Expand, GripVertical, Plus } from "lucide-react";
 import { DeleteButton } from "@/components/ui/delete-button";
+import { useAppStore } from "@/lib/store";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { useUpdateArea, useDeleteArea } from "@/hooks/useAreas";
 import { useTasksForProjects } from "@/hooks/useTasks";
@@ -24,6 +25,7 @@ import AreaCardShell from "@/components/areas/AreaCardShell";
 function AreaCard({ area, products = [], orphanProjects = [], onExpand, stakeholderIds = [] }) {
   const updateArea = useUpdateArea();
   const deleteArea = useDeleteArea();
+  const openCreateModal = useAppStore((s) => s.openCreateModal);
   const { cardView } = useCardView();
 
   const { setNodeRef, isOver } = useDroppable({ id: area.id, data: { type: "area", id: area.id } });
@@ -77,14 +79,25 @@ function AreaCard({ area, products = [], orphanProjects = [], onExpand, stakehol
       style={{ opacity: isDragging ? 0.4 : 1 }}
       className={isCardOver ? "ring-2 ring-primary ring-offset-1 border-primary" : "border-foreground/[0.04]"}
       dragHandle={
-        <div
-          className="absolute top-0 left-0 z-20 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1.5"
-          aria-label="Drag to reorder area"
-          title="Drag to reorder"
-          {...attributes}
-          {...listeners}
-        >
-          <GripVertical className="w-4 h-4" />
+        <div className="absolute top-0 left-0 z-20 flex items-center">
+          <div
+            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1.5"
+            aria-label="Drag to reorder area"
+            title="Drag to reorder"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="w-4 h-4" />
+          </div>
+          <button
+            type="button"
+            onClick={() => openCreateModal("product", { parent_area_id: area.id })}
+            className="text-muted-foreground hover:text-foreground p-1.5"
+            title="Add a product to this area"
+            aria-label="Add a product to this area"
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </button>
         </div>
       }
       expandButton={
@@ -106,7 +119,7 @@ function AreaCard({ area, products = [], orphanProjects = [], onExpand, stakehol
           onBlur={handleTitleBlur}
           onKeyDown={handleTitleKeyDown}
           tooltip={title}
-          className="font-heading font-semibold text-lg pl-6 pr-16 min-w-0"
+          className="font-heading font-semibold text-lg pl-14 pr-16 min-w-0"
         />
       }
       description={

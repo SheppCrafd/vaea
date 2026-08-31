@@ -1,6 +1,7 @@
 import { Archive, ArrowDown, ArrowUp } from "lucide-react";
 import { DeleteButton } from "@/components/ui/delete-button";
-import { Select } from "@/components/ui/select";
+import StatusDropdown from "@/components/projects/StatusDropdown";
+import TaskStatistics from "@/components/shared/TaskStatistics";
 import { useAllTasks, useUpdateTask, useToggleTopThree, useDeleteTask } from "@/hooks/useTasks";
 import { useProjects } from "@/hooks/useProjects";
 import { useToast } from "@/components/ui/use-toast";
@@ -8,8 +9,6 @@ import { useHighlight } from "@/lib/HighlightContext";
 import { isHighlightMatch } from "@/hooks/useHighlightDim";
 import { confirmThen } from "@/lib/entityUtils";
 import QueryError from "@/components/shared/QueryError";
-
-const STATUS_OPTIONS = ["NOT_STARTED", "PENDING_FEEDBACK", "DELEGATED", "IN_PROGRESS", "ON_HOLD", "BLOCKED", "DONE", "DELEGATED_DONE"];
 
 // Live feed: today's Top 3 first, then this week's focus items grouped by
 // project. The two lists are mutually exclusive — a task promoted to Top 3
@@ -67,14 +66,12 @@ export default function FocusFeed() {
 
   const renderRow = (task, move) => (
     <div key={task.id} className={`flex items-center justify-between gap-1.5 text-xs bg-muted rounded p-2 ${isMatched(task) ? "bg-primary/10" : ""}`}>
-      <span className="truncate flex-1" title={task.description}>{task.description}</span>
-      <Select
-        value={task.status}
-        onChange={(e) => updateTask.mutate({ id: task.id, data: { status: e.target.value } })}
-        className="text-[10px] px-1 py-0.5 shrink-0"
-        aria-label={`Status for ${task.description}`}
-        options={STATUS_OPTIONS.map((s) => ({ value: s, label: s.replace(/_/g, " ") }))}
+      <StatusDropdown
+        task={task}
+        onStatusChange={(status) => updateTask.mutate({ id: task.id, data: { status } })}
+        variant="dot"
       />
+      <span className="truncate flex-1" title={task.description}>{task.description}</span>
       <button onClick={() => move.onClick(task)} aria-label={move.label} title={move.label} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors">
         <move.Icon className="w-3.5 h-3.5" />
       </button>
@@ -88,8 +85,19 @@ export default function FocusFeed() {
   const demote = { Icon: ArrowDown, label: "Move to Weekly Focus", onClick: moveToWeekly };
   const promote = { Icon: ArrowUp, label: "Move to Today's Top 3", onClick: moveToTopThree };
 
+  // One status bar across the whole focus set — Top 3 and Weekly Focus
+  // pooled together, never split per project (weeklyFocus already excludes
+  // the Top 3, so this is a clean union with no double-counting).
+  const focusTasks = [...topThree, ...weeklyFocus];
+
   return (
     <div className="space-y-4">
+      {focusTasks.length > 0 && (
+        <div>
+          <p className="font-heading font-semibold text-sm mb-1">Focus at a glance</p>
+          <TaskStatistics tasks={focusTasks} />
+        </div>
+      )}
       <div>
         <p className="font-heading font-semibold text-sm mb-2">Today's Top 3</p>
         <div className="space-y-1.5">

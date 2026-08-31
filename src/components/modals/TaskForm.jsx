@@ -10,9 +10,11 @@ import QuadrantOptions from "@/components/shared/QuadrantOptions";
 import FormField from "@/components/shared/FormField";
 import { Select } from "@/components/ui/select";
 
-export default function TaskForm({ onDone }) {
+export default function TaskForm({ onDone, prefill = null }) {
   const [description, setDescription] = useState("");
-  const [projectId, setProjectId] = useState("");
+  // Seeded from the card that opened this modal (the (+) on a project card),
+  // still fully editable in the dropdown below.
+  const [projectId, setProjectId] = useState(prefill?.project_id || "");
   const [quadrant, setQuadrant] = useState("");
   const [stakeholderIds, setStakeholderIds] = useState([]);
   const { data: projects = [] } = useProjects();

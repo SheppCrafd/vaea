@@ -55,9 +55,15 @@ const saveOpenTabKeys = (keys) => {
 // React Query hooks in src/hooks. This store only holds transient UI state.
 export const useAppStore = create((set) => ({
   isCreateModalOpen: false,
-  createModalType: "task", // "task" | "project"
-  openCreateModal: (type = "task") => set({ isCreateModalOpen: true, createModalType: type }),
-  closeCreateModal: () => set({ isCreateModalOpen: false }),
+  createModalType: "task", // "task" | "project" | "product" | "area" | "csv"
+  // Optional parent-id prefill for the form the modal opens on — e.g. the (+)
+  // on a Product card opens the Project form with { parent_area_id,
+  // parent_product_id } already filled. Cleared on close so a later plain
+  // "Create new" starts blank.
+  createModalPrefill: null,
+  openCreateModal: (type = "task", prefill = null) =>
+    set({ isCreateModalOpen: true, createModalType: type, createModalPrefill: prefill }),
+  closeCreateModal: () => set({ isCreateModalOpen: false, createModalPrefill: null }),
 
   isCommandPaletteOpen: false,
   openCommandPalette: () => set({ isCommandPaletteOpen: true }),

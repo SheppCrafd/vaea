@@ -1,8 +1,9 @@
 import { memo, useState, lazy, Suspense } from "react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
-import { Expand, GripVertical } from "lucide-react";
+import { Expand, GripVertical, Plus } from "lucide-react";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { useFilter } from "@/lib/FilterContext";
+import { useAppStore } from "@/lib/store";
 import { useProjects } from "@/hooks/useProjects";
 import { useTasksForProjects } from "@/hooks/useTasks";
 import { useUpdateProduct, useDeleteProduct } from "@/hooks/useProducts";
@@ -26,6 +27,7 @@ function ProductCard({ product, forceFullProjects = false }) {
   const { excludedIds } = useFilter();
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
+  const openCreateModal = useAppStore((s) => s.openCreateModal);
 
   const { value: title, handleInput, handleBlur: handleTitleBlur, handleKeyDown: handleTitleKeyDown } = useEditableField(
     product.title,
@@ -85,14 +87,25 @@ function ProductCard({ product, forceFullProjects = false }) {
       rootProps={{ "data-product-card": product.id }}
       className={`${sizingClass} ${isMatched ? "bg-primary/10 ring-1 ring-primary/30" : ""} ${isOver ? "ring-2 ring-primary ring-offset-1" : ""}`}
       dragHandle={
-        <div
-          className="absolute top-1.5 left-1.5 z-20 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1.5"
-          aria-label="Drag to reorder product"
-          title="Drag to reorder"
-          {...attributes}
-          {...listeners}
-        >
-          <GripVertical className="w-4 h-4" />
+        <div className="absolute top-1.5 left-1.5 z-20 flex items-center">
+          <div
+            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1.5"
+            aria-label="Drag to reorder product"
+            title="Drag to reorder"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="w-4 h-4" />
+          </div>
+          <button
+            type="button"
+            onClick={() => openCreateModal("project", { parent_area_id: product.parent_area_id, parent_product_id: product.id })}
+            className="text-muted-foreground hover:text-foreground p-1.5"
+            title="Add a project to this product"
+            aria-label="Add a project to this product"
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </button>
         </div>
       }
       expandButton={
@@ -114,7 +127,7 @@ function ProductCard({ product, forceFullProjects = false }) {
           onBlur={handleTitleBlur}
           onKeyDown={handleTitleKeyDown}
           tooltip={title}
-          className="font-heading font-semibold min-w-0 cursor-text"
+          className="font-heading font-semibold min-w-0 cursor-text pl-7"
         />
       }
       description={

@@ -20,17 +20,20 @@ const TYPES = [
 export default function CreateModal() {
   const isOpen = useAppStore((s) => s.isCreateModalOpen);
   const type = useAppStore((s) => s.createModalType);
+  const prefill = useAppStore((s) => s.createModalPrefill);
   const closeCreateModal = useAppStore((s) => s.closeCreateModal);
-  const setType = useAppStore.setState;
+  // Switching type by hand drops any parent prefill — it belonged to the
+  // card that opened the modal, not whatever the user clicked over to.
+  const setType = (key) => useAppStore.setState({ createModalType: key, createModalPrefill: null });
 
   const renderForm = () => {
     switch (type) {
-      case "project": return <ProjectForm onDone={closeCreateModal} />;
-      case "product": return <ProductForm onDone={closeCreateModal} />;
+      case "project": return <ProjectForm onDone={closeCreateModal} prefill={prefill} />;
+      case "product": return <ProductForm onDone={closeCreateModal} prefill={prefill} />;
       case "area": return <AreaForm onDone={closeCreateModal} />;
       case "csv": return <CsvImportForm />;
       case "task":
-      default: return <TaskForm onDone={closeCreateModal} />;
+      default: return <TaskForm onDone={closeCreateModal} prefill={prefill} />;
     }
   };
 
@@ -42,7 +45,7 @@ export default function CreateModal() {
             <button
               key={t.key}
               className={`text-xs px-2.5 py-1.5 rounded-full border border-border ${type === t.key ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}
-              onClick={() => setType({ createModalType: t.key })}
+              onClick={() => setType(t.key)}
             >
               {t.label}
             </button>

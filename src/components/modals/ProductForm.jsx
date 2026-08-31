@@ -7,10 +7,11 @@ import { useToast } from "@/components/ui/use-toast";
 import FormField from "@/components/shared/FormField";
 import { Select } from "@/components/ui/select";
 
-export default function ProductForm({ onDone }) {
+export default function ProductForm({ onDone, prefill = null }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [areaId, setAreaId] = useState("");
+  // Seeded from the card that opened this modal (the (+) on an area card).
+  const [areaId, setAreaId] = useState(prefill?.parent_area_id || "");
   const { data: areas = [] } = useAreas();
   const createProduct = useCreateProduct();
   const { toast } = useToast();

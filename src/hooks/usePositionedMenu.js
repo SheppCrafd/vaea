@@ -82,8 +82,16 @@ export function usePositionedMenu({ closeOnScroll = false } = {}) {
     // trigger and is no reason to close; treating those as "outside" is
     // exactly what made the Add Link popover vanish on paste and on
     // arrow-key caret movement.
+    //
+    // Belt-and-suspenders: a single-line <input> scrolling its caret through
+    // overflowing text can dispatch the scroll with `e.target` set to
+    // `document` (not the input element), which no `.closest()` check can
+    // catch. So also bail whenever focus is currently inside the panel — if
+    // the user is actively typing/pasting/arrowing in a popover field, no
+    // scroll it causes should tear the popover down.
     const handleScroll = (e) => {
       if (e.target instanceof Element && e.target.closest("[data-popover-panel]")) return;
+      if (document.activeElement?.closest?.("[data-popover-panel]")) return;
       close();
     };
     window.addEventListener("scroll", handleScroll, true);
