@@ -316,7 +316,7 @@ function ProjectCardFull({ project, stakeholderIds = [] }) {
       {/* Hairline under the title + objective so the top of the card reads
           as a header band, distinct from the quadrant / notes body below.
           Full-bleed: -mx-3 cancels the card's own p-3. */}
-      <div className="border-b border-border/60 -mx-3 mt-2" />
+      <div className="border-b border-border -mx-3 mt-2" />
 
       {/* items-end bottom-aligns all three columns onto one shared edge — the
           quadrant grid, the Open Questions box, and the meta group all sit on

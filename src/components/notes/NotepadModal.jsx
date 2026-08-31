@@ -185,7 +185,7 @@ export default function NotepadModal({ onClose }) {
 
       <div className="flex-1 overflow-auto">
         {sorted.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-16">No notes yet.</p>
+          <p className="text-sm text-muted-foreground text-center py-12">No notes yet. Jot one down above.</p>
         ) : (
           <table className="w-full text-left border-collapse">
             <thead className="sticky top-0 bg-card z-10">

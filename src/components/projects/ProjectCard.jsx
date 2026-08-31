@@ -1,8 +1,7 @@
 import { memo, useState, lazy, Suspense } from "react";
-import { Expand, GripVertical, Plus } from "lucide-react";
+import { Expand, GripVertical } from "lucide-react";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
-import { useAppStore } from "@/lib/store";
 import { useTasks } from "@/hooks/useTasks";
 import { useProjectNotes } from "@/hooks/useProjectNotes";
 import { useEditableField } from "@/hooks/useEditableField";
@@ -41,7 +40,6 @@ function ProjectCard({ project, stakeholderIds = [] }) {
   const questionNotes = notes.filter((n) => n.type === "QUESTION");
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
-  const openCreateModal = useAppStore((s) => s.openCreateModal);
 
   const { value: title, handleInput: handleTitleInput, handleBlur: handleTitleBlur, handleKeyDown: handleTitleKeyDown } = useEditableField(
     project.title,
@@ -88,27 +86,18 @@ function ProjectCard({ project, stakeholderIds = [] }) {
       // space. aspect-square derives the height from that same 112px.
       rootProps={{ "data-project-card": project.id }}
       className={`${isMatched ? "bg-primary/10 ring-1 ring-primary/30" : ""} ${isDragging ? "shadow-2xl scale-105 border-primary" : "shadow-sm"} ${isOver ? "ring-2 ring-primary ring-offset-1" : ""}`}
-      // Header row: grip, then the title sitting between the move and expand
-      // icons, then the expand/delete cluster — the title's flex-1 keeps it
-      // centered in whatever width the icons leave over.
+      // Header row: grip · title (flex-1, centred in the leftover width) ·
+      // expand/delete. No add-a-task (+) here — a 112px tile can't seat five
+      // controls and still show the title; adding a child to a project goes
+      // through Expand → the detail modal from the mini card. The (+) is on
+      // the full card, and on Area / Product cards, where there's room.
       dragHandle={
-        <div className="shrink-0 flex items-center">
-          <div
-            {...attributes}
-            {...listeners}
-            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-0.5"
-          >
-            <GripVertical className="w-3 h-3" />
-          </div>
-          <button
-            type="button"
-            onClick={() => openCreateModal("task", { project_id: project.id })}
-            className="text-muted-foreground hover:text-foreground p-0.5"
-            title="Add a task to this project"
-            aria-label="Add a task to this project"
-          >
-            <Plus className="w-3 h-3" />
-          </button>
+        <div
+          {...attributes}
+          {...listeners}
+          className="shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-0.5"
+        >
+          <GripVertical className="w-3 h-3" />
         </div>
       }
       title={

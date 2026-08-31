@@ -35,7 +35,7 @@ export default function ProductNotesSection({ product, projects, onClose }) {
     navigate("/app/chat", {
       state: {
         initialMessage:
-          `Summarise the notes across the "${product.title}" product — group the themes, ` +
+          `Summarize the notes across the "${product.title}" product — group the themes, ` +
           `call out risks and open questions, and list any action items:\n\n${lines}`,
       },
     });
