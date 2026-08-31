@@ -36,7 +36,6 @@ const MicrosoftOAuthCallbackPage = lazy(() => import('@/pages/MicrosoftOAuthCall
 const OutlookOAuthCallbackPage = lazy(() => import('@/pages/OutlookOAuthCallbackPage'));
 const SlackOAuthCallbackPage = lazy(() => import('@/pages/SlackOAuthCallbackPage'));
 const VaeaCalendarPage = lazy(() => import('@/pages/VaeaCalendarPage'));
-const MeetingsPage = lazy(() => import('@/pages/MeetingsPage'));
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
 const MindMapPage = lazy(() => import('@/pages/MindMapPage'));
 const VmailPage = lazy(() => import('@/pages/VmailPage'));
@@ -155,7 +154,8 @@ const AuthenticatedApp = () => {
                 <Route path="settings/outlook-callback" element={<OutlookOAuthCallbackPage />} />
                 <Route path="settings/slack-callback" element={<SlackOAuthCallbackPage />} />
                 <Route path="calendar" element={<VaeaCalendarPage />} />
-                <Route path="meetings" element={<MeetingsPage />} />
+                {/* Vaea Meetings was removed — bounce any old link to the dashboard. */}
+                <Route path="meetings" element={<Navigate to="/app" replace />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 {/* Workflows folded into Mind Map as its second tab — keep the
                     old URL working for anyone with it bookmarked/linked. */}

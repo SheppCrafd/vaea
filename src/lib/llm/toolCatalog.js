@@ -1452,7 +1452,7 @@ export const TOOL_CATALOG = [
     parameters: {
       type: "object",
       properties: {
-        tab: { type: "string", enum: ["dashboard", "chat", "calendar", "vmail", "meetings", "notifications", "mindmap", "settings"], description: "Which tab to open. Workflows lives inside Mind Map now (mindmap_tab: \"workflows\") — there's no separate \"workflows\" tab." },
+        tab: { type: "string", enum: ["dashboard", "chat", "calendar", "vmail", "notifications", "mindmap", "settings"], description: "Which tab to open. Workflows lives inside Mind Map now (mindmap_tab: \"workflows\") — there's no separate \"workflows\" tab." },
         settings_section: {
           type: "string",
           enum: ["account", "appearance", "ai", "ai-model", "storage", "backup", "connector-health", "brain", "google-workspace", "gmail", "microsoft", "outlook", "apple-mail", "clickup", "slack", "resources"],

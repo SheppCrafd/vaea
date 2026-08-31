@@ -1,7 +1,7 @@
-// The shared h-14 title row every standalone /app/* page (Settings, and now
-// Calendar/Meetings/Notifications/Workflows/Mind Map) opens with — same
-// pattern SettingsPage.jsx already used inline, factored out once it needed
-// to repeat identically across 5 new pages rather than copy-pasted 5 times.
+// The shared h-14 title row every standalone /app/* page (Settings,
+// Calendar/Notifications/Workflows/Mind Map) opens with — same pattern
+// SettingsPage.jsx already used inline, factored out once it needed to
+// repeat identically across several pages rather than copy-pasted each time.
 export default function StandalonePageHeader({ Icon, title, subtitle, action }) {
   return (
     <div className="h-14 shrink-0 flex items-center gap-3 px-4">

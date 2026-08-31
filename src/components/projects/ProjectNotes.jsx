@@ -10,7 +10,11 @@ const TYPE_ICON = { RISK: "⚠️", QUESTION: "❓", NOTE: "📝" };
 // Renders risks (⚠️), questions (❓), and general notes (📝) attached to a
 // project, fetched from ProjectNote records. Content is editable inline;
 // each note can be deleted.
-export default function ProjectNotes({ notes, allStakeholders = [] }) {
+//
+// `compact` (the card face): the note reads as a single tight line and its
+// metadata row (timestamp + stakeholders) stays hidden until the row is
+// hovered. Off (the expanded view): metadata is always shown.
+export default function ProjectNotes({ notes, allStakeholders = [], compact = false }) {
   const updateNote = useUpdateProjectNote();
   const deleteNote = useDeleteProjectNote();
   const { highlights } = useHighlight();
@@ -51,7 +55,11 @@ export default function ProjectNotes({ notes, allStakeholders = [] }) {
               </button>
             </div>
             {(stakeholderNames.length > 0 || note.created_date) && (
-              <div className="pl-5 flex items-center gap-2 text-[10px] text-muted-foreground/80">
+              <div
+                className={`pl-5 flex items-center gap-2 text-[10px] text-muted-foreground/80 ${
+                  compact ? "opacity-0 group-hover:opacity-100 transition-opacity" : ""
+                }`}
+              >
                 {note.created_date && <span>{new Date(note.created_date).toLocaleString()}</span>}
                 {note.created_date && stakeholderNames.length > 0 && <span>•</span>}
                 {stakeholderNames.length > 0 && <span>Stakeholders: {stakeholderNames.join(", ")}</span>}

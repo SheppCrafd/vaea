@@ -73,7 +73,7 @@ function NoteBox({ title, notes, allStakeholders, tintStyle, placeholder, onAdd,
           </button>
         )}
       </div>
-      <ProjectNotes notes={notes} allStakeholders={allStakeholders} />
+      <ProjectNotes notes={notes} allStakeholders={allStakeholders} compact />
     </div>
   );
 }
@@ -276,10 +276,10 @@ function ProjectCardFull({ project, stakeholderIds = [] }) {
         <DeleteButton onClick={handleDelete} label="Delete project" className="p-1.5 rounded" />
       </div>
 
-      {/* Card header: Title and Objective (and the Problem Statement moved up
-          from the card's tail) span nearly the full card width — the only
-          reserved margins are the corner icons' own footprints (grip left,
-          expand/delete right). */}
+      {/* Card header: Title and Objective span nearly the full card width — the
+          only reserved margins are the corner icons' own footprints (grip left,
+          expand/delete right). Problem Statement is deliberately NOT on the card
+          face; it's edited in the expanded view (ProjectDetailModal) only. */}
       <div className="pl-7 pr-14 flex flex-col items-center gap-1">
         <EditableTitle
           as="h4"
@@ -296,24 +296,17 @@ function ProjectCardFull({ project, stakeholderIds = [] }) {
           placeholder="No objective set"
           className="text-[11px] text-muted-foreground text-center"
         />
-        <EditableText
-          value={project.problem_statement}
-          onSave={(v) => updateProject.mutate({ id: project.id, data: { problem_statement: v } })}
-          placeholder="No problem statement set"
-          className="text-[10px] text-muted-foreground text-center"
-          multiline
-        />
       </div>
 
-      {/* items-stretch + the Open Questions box absorbing leftover center
-          height (flex-1) means all three columns share one bottom edge: the
-          quadrant grid, the Open Questions box, and the meta group (which
-          justify-ends onto it) — the row's baseline the design review asked
-          for. */}
-      <div className="mt-2 flex items-stretch gap-3 pl-5 pr-1">
+      {/* items-end bottom-aligns all three columns onto one shared edge — the
+          quadrant grid, the Open Questions box, and the meta group all sit on
+          the row's baseline. The quadrant box keeps its natural 64px square
+          size rather than stretching to a tall rectangle: bottom-aligned only,
+          never top-pinned (see the backlog regression note). */}
+      <div className="mt-2 flex items-end gap-3 pl-5 pr-1">
         <button
           onClick={() => setIsTableOpen(true)}
-          className="shrink-0 grid grid-cols-2 grid-rows-2 gap-1 border border-border rounded overflow-hidden w-16 min-h-16 text-sm z-20 select-none"
+          className="shrink-0 grid grid-cols-2 grid-rows-2 gap-1 border border-border rounded overflow-hidden w-16 h-16 text-sm z-20 select-none"
           title="Open Task Table"
           // The per-cell color coding (this week's focus vs. a highlighted
           // stakeholder's task) has no other way to reach a screen reader —
@@ -359,20 +352,17 @@ function ProjectCardFull({ project, stakeholderIds = [] }) {
             title="Risks"
             notes={riskNotes}
             allStakeholders={allStakeholders}
-            tintStyle={{ backgroundColor: "rgba(239,68,68,0.05)", borderColor: "rgba(239,68,68,0.15)" }}
-            placeholder="Add a risk and press Enter..."
+            tintStyle={{ backgroundColor: "rgba(249,115,22,0.06)", borderColor: "rgba(249,115,22,0.18)" }}
+            placeholder="Add a risk…"
             onAdd={(text) => addNote("RISK", text)}
           />
-          <div className="flex-1 min-h-0">
-            {/* h-full scoped here only — on Risks it would resolve against
-                the stretched column and squeeze this box out. */}
+          <div className="min-h-0">
             <NoteBox
-              className="h-full"
               title="Open Questions"
               notes={questionNotes}
               allStakeholders={allStakeholders}
-              tintStyle={{ backgroundColor: `${STATUS_COLORS.PENDING_FEEDBACK}1A`, borderColor: `${STATUS_COLORS.PENDING_FEEDBACK}4D` }}
-              placeholder="Add a question and press Enter..."
+              tintStyle={{ backgroundColor: "rgba(59,130,246,0.06)", borderColor: "rgba(59,130,246,0.18)" }}
+              placeholder="Add a question…"
               onAdd={(text) => addNote("QUESTION", text)}
             />
           </div>

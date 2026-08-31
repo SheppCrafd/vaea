@@ -2,8 +2,7 @@ import React from "react";
 import { getStatusCounts, STATUS_COLORS } from "@/lib/taskUtils";
 
 // Short legend labels per bucket — colors come from the shared
-// STATUS_COLORS (taskUtils.js) so any other consumer (e.g. the Open
-// Questions card echoing "pending feedback" orange) uses the exact same hex.
+// STATUS_COLORS (taskUtils.js) so every consumer uses the exact same hex.
 const BUCKET_LABEL = {
   DONE: "Done",
   DELEGATED: "Delegated",

@@ -81,8 +81,8 @@ export default function InboxFrame({
       <div className="flex-1 min-h-0 overflow-auto px-4 pb-6">
         {!anyConnected && !loading ? (
           // Same card treatment as the other "connect a service" pages
-          // (Calendar, Meetings, Mind Map) — a top-aligned bg-card panel,
-          // not a viewport-centered bare stack, so all four read alike.
+          // (Calendar, Mind Map) — a top-aligned bg-card panel, not a
+          // viewport-centered bare stack, so they all read alike.
           <div className="max-w-2xl mx-auto pt-4">
             <div className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-8 text-center">
               <Inbox className="w-6 h-6 text-muted-foreground mx-auto mb-3" />

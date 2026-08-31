@@ -56,22 +56,24 @@ export default function ProjectMiniStats({ quadrants, riskNotes = [], questionNo
 
         {/* Both flag icons render always, so the tile's composition never
             shifts as notes come and go — greyed out while there's nothing
-            behind them, full color the moment there is. */}
+            behind them, risk-orange / question-blue the moment there is. The
+            full note text on hover rides on a wrapping <span title> rather than
+            an SVG <title> child, which doesn't reliably surface as a tooltip. */}
         <div className="flex flex-col gap-0.5 shrink-0">
-          <AlertTriangle
-            className={`w-3.5 h-3.5 ${hasRisks ? "" : "text-muted-foreground/35"}`}
-            style={hasRisks ? { color: "#FCA5A5" } : undefined}
-            aria-label={hasRisks ? `${riskNotes.length} risk${riskNotes.length === 1 ? "" : "s"}` : "No risks"}
-          >
-            <title>{hasRisks ? riskNotes.map((n) => n.content).join("\n") : "No risks"}</title>
-          </AlertTriangle>
-          <HelpCircle
-            className={`w-3.5 h-3.5 ${hasQuestions ? "" : "text-muted-foreground/35"}`}
-            style={hasQuestions ? { color: "#FDBA74" } : undefined}
-            aria-label={hasQuestions ? `${questionNotes.length} question${questionNotes.length === 1 ? "" : "s"}` : "No open questions"}
-          >
-            <title>{hasQuestions ? questionNotes.map((n) => n.content).join("\n") : "No open questions"}</title>
-          </HelpCircle>
+          <span title={hasRisks ? riskNotes.map((n) => n.content).join("\n") : "No risks"} className="inline-flex">
+            <AlertTriangle
+              className={`w-3.5 h-3.5 ${hasRisks ? "" : "text-muted-foreground/35"}`}
+              style={hasRisks ? { color: "#FDBA74" } : undefined}
+              aria-label={hasRisks ? `${riskNotes.length} risk${riskNotes.length === 1 ? "" : "s"}` : "No risks"}
+            />
+          </span>
+          <span title={hasQuestions ? questionNotes.map((n) => n.content).join("\n") : "No open questions"} className="inline-flex">
+            <HelpCircle
+              className={`w-3.5 h-3.5 ${hasQuestions ? "" : "text-muted-foreground/35"}`}
+              style={hasQuestions ? { color: "#93C5FD" } : undefined}
+              aria-label={hasQuestions ? `${questionNotes.length} question${questionNotes.length === 1 ? "" : "s"}` : "No open questions"}
+            />
+          </span>
         </div>
       </div>
 

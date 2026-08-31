@@ -517,7 +517,7 @@ describe("chatActions: OPEN_APP_SECTION", () => {
   it("bumps chatOpenSignal so a collapsed ChatBox reopens", async () => {
     const { useAppStore } = await import("./store.js");
     const before = useAppStore.getState().chatOpenSignal;
-    await executeAction("OPEN_APP_SECTION", { tab: "meetings" });
+    await executeAction("OPEN_APP_SECTION", { tab: "notifications" });
     expect(useAppStore.getState().chatOpenSignal).toBe(before + 1);
   });
 });
