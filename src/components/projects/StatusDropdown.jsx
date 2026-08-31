@@ -11,8 +11,9 @@ export const statusColor = (status) =>
 
 // Status dropdown rendered via Portal at document.body, positioned with fixed
 // coordinates from the trigger button so table rows can't clip it.
-// `variant="dot"` swaps the text pill for a bare colour dot (used in the
-// FocusFeed rows, where the description needs every pixel of width).
+// `variant`: "pill" (neutral text pill, the table default) · "dot" (bare
+// colour dot, the collapsed FocusFeed row) · "chip" (colour dot + label in
+// a tinted pill, the expanded FocusFeed editor).
 export default function StatusDropdown({ task, onStatusChange, statusOptions = DEFAULT_STATUSES, variant = "pill" }) {
   const { isOpen, coords, triggerRef, toggle, close } = usePositionedMenu();
 
@@ -38,6 +39,17 @@ export default function StatusDropdown({ task, onStatusChange, statusOptions = D
           className="shrink-0 w-3 h-3 rounded-full border border-black/10 dark:border-white/20"
           style={{ backgroundColor: statusColor(task.status) }}
         />
+      ) : variant === "chip" ? (
+        <button
+          ref={triggerRef}
+          onClick={toggle}
+          aria-label={`Status: ${label} — click to change`}
+          className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide px-2 py-1 rounded-full border border-border/60 capitalize whitespace-nowrap"
+          style={{ backgroundColor: `${statusColor(task.status)}22` }}
+        >
+          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColor(task.status) }} />
+          {label}
+        </button>
       ) : (
         <button
           ref={triggerRef}
