@@ -4,18 +4,15 @@ import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
-  { to: "/product", label: "Product" },
   { to: "/vaea-chat", label: "Vaea Chat" },
   { to: "/brain", label: "Vaea Brain" },
   { to: "/workplace", label: "Vaea Workplace" },
-  { to: "/self-hosting", label: "Self-hosting" },
-  { to: "/privacy", label: "Your info" },
+  { to: "/privacy", label: "Privacy" },
 ];
 
 // Transparent over the hero, gains a hairline + blur once the page scrolls.
-// Below lg the whole link set collapses into a full-height sheet (six
-// items is too many to sit inline on a tablet). Primary CTA stays visible at
-// every width.
+// Below lg the whole link set collapses into a full-height sheet. Primary
+// CTA stays visible at every width.
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);

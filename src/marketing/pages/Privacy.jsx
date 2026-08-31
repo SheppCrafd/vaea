@@ -1,9 +1,9 @@
 import { Link } from "react-router-dom";
-import { Container, Eyebrow, Reveal } from "../components/ui";
-import { ClosingCta } from "../components/blocks";
+import { Container, Eyebrow, Section, Reveal } from "../components/ui";
+import { Faq, ClosingCta } from "../components/blocks";
 import ParallaxBackdrop from "../components/ParallaxBackdrop";
-import { StorageTerminal } from "../components/visuals";
-import { SITE_MODIFIED } from "../seo";
+import { StorageTerminal, ClaudeCodeTerminal } from "../components/visuals";
+import { SITE_MODIFIED, SELFHOSTING_FAQ } from "../seo";
 
 // One source for "last updated" — the same constant the footer and the
 // structured data read, so the visible date can't drift. Parsed as local
@@ -17,7 +17,7 @@ const UPDATED = new Date(`${SITE_MODIFIED}T00:00:00`).toLocaleDateString("en-US"
 const LEAVES = [
   [
     "You ask Vaea Chat something",
-    "A copy of your current board goes to the AI service so it can understand your question. Just for that one question — it isn't saved anywhere afterward. If you run Vaea Chat on your own computer, even this stays local.",
+    "A copy of your current board goes to the AI service so it can understand your question. Just for that one question — it isn't saved anywhere afterward. In Local Mode, even this stays on your machine.",
   ],
   [
     "Vaea Chat looks something up or opens a link or file",
@@ -35,6 +35,16 @@ const LEAVES = [
     "You connect a calendar, email, or notes",
     "The keys that let Vaea reach those live on your computer. Reading your notes passes through Vaea's server only for the moment a read happens; saving a note goes straight from your browser to where the notes are kept.",
   ],
+];
+
+// Turning on Local Mode, end to end — folded in from the old /self-hosting
+// page, which now redirects here.
+const LOCAL_MODE_STEPS = [
+  ["Clone the repository", "The full source is public, and the hosted version runs this same code. Copy it down and you have the whole app."],
+  ["Run it on localhost", "Install and start it with two commands. Vaea now runs from your own machine, in your browser, with your project files on disk."],
+  ["Turn on Local Mode", "In Settings → AI Model, switch Vaea Chat to Local Mode and point it at a folder. From now on it writes each question to that folder instead of calling any service."],
+  ["Answer it with Claude Code", "Run Claude Code inside your working copy, pointed at that same folder. It picks up each pending message, answers as the model using its own tools, and writes the reply back."],
+  ["Keep it quick", "Run /local-relay to take one pending message. /l does the same thing with a shorter name, for when you're relaying all day."],
 ];
 
 function Block({ heading, children }) {
@@ -62,13 +72,13 @@ export default function Privacy() {
       >
         <Container>
           <div className="max-w-[46rem]">
-            <Eyebrow className="mb-4">where your information lives</Eyebrow>
+            <Eyebrow className="mb-4">privacy</Eyebrow>
             <h1 className="text-balance font-display text-[clamp(2.3rem,5.4vw,3.7rem)] font-semibold leading-[1.03] tracking-[-0.034em] text-foreground">
               On your computer by default. Here's every time anything leaves it.
             </h1>
             <p className="mt-5 max-w-[54ch] text-[1.05rem] leading-relaxed text-muted-foreground">
               No badges, no fine print — just the list. You can check every line of it in the app or
-              the public code. There's a{" "}
+              the public code, and you can run the whole thing with nothing leaving at all. There's a{" "}
               <Link
                 to="/privacy-policy"
                 className="text-foreground underline decoration-foreground/25 underline-offset-2 hover:decoration-foreground"
@@ -114,15 +124,6 @@ export default function Privacy() {
             </ul>
           </Reveal>
 
-          <Block heading="Running with nothing leaving at all">
-            <p>
-              You can point Vaea Chat at a model running on your own computer. Combined with
-              keeping your board in local files, the whole thing then works with nothing sent out —
-              no account, no internet needed. Private companies self-host the whole app for this
-              reason.
-            </p>
-          </Block>
-
           <Block heading="What the hosted side is for">
             <p>
               A hosted service handles signing in, keeps your past chats (not your board), runs the
@@ -149,6 +150,35 @@ export default function Privacy() {
          </div>
         </Container>
       </section>
+
+      <Section
+        eyebrow="local mode"
+        title="Run it with nothing leaving at all"
+        lede="Keep your board in local files and point Vaea Chat at a model on your own machine, and the whole thing works with no request leaving your network — no account, no internet needed. This is how private companies run it."
+      >
+        <Reveal className="mt-8">
+          <ol className="divide-y divide-foreground/[0.08] border-y border-foreground/[0.08]">
+            {LOCAL_MODE_STEPS.map(([t, d], i) => (
+              <li key={t} className="grid gap-2.5 py-4 sm:grid-cols-[auto_1fr] sm:gap-6">
+                <span className="font-mono text-[0.8rem] text-muted-foreground sm:pt-0.5">{String(i + 1).padStart(2, "0")}</span>
+                <div>
+                  <p className="text-[1rem] font-medium text-foreground">{t}</p>
+                  <p className="mt-1 max-w-[58ch] text-[0.95rem] leading-relaxed text-muted-foreground">{d}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </Reveal>
+        <Reveal delay={90} className="mt-10 max-w-xl">
+          <ClaudeCodeTerminal />
+        </Reveal>
+      </Section>
+
+      <Section id="faq" eyebrow="fair questions" title="What Local Mode does and doesn't involve">
+        <Reveal className="mt-8">
+          <Faq items={SELFHOSTING_FAQ} />
+        </Reveal>
+      </Section>
 
       <ClosingCta title="Keep your work where you can see it." note="On your computer · take it with you anytime" />
     </>

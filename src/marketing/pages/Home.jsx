@@ -81,7 +81,7 @@ export default function Home() {
         eyebrow="everything tucked inside something bigger"
         title="One board that shows where each thing sits"
         visual={<BoardDemo />}
-        cta={{ to: "/product", label: "Take the full tour" }}
+        cta={{ to: "/vaea-chat", label: "See Vaea Chat on the board" }}
       >
         <p>
           Group your work by the part of life it belongs to — Work, Home, a side project. Inside each,
@@ -139,7 +139,7 @@ export default function Home() {
         eyebrow="the way private companies run it"
         title="Clone it, run it on localhost, keep every request in-house"
         visual={<ClaudeCodeTerminal />}
-        cta={{ to: "/self-hosting", label: "The self-hosting walkthrough" }}
+        cta={{ to: "/privacy", label: "Local Mode, step by step" }}
       >
         <p>
           The source is public and the hosted version runs the same code. Copy the repository down,

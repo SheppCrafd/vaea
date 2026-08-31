@@ -5,13 +5,11 @@ const COLS = [
   {
     heading: "Product",
     links: [
-      { to: "/product", label: "Product tour" },
       { to: "/vaea-chat", label: "Vaea Chat" },
       { to: "/brain", label: "Vaea Brain" },
       { to: "/workplace", label: "Vaea Workplace" },
-      { to: "/self-hosting", label: "Self-hosting" },
       { to: "/compare", label: "Vaea vs. the usual setup" },
-      { to: "/privacy", label: "Where your info lives" },
+      { to: "/privacy", label: "Privacy" },
     ],
   },
   {

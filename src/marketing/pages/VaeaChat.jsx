@@ -76,7 +76,7 @@ export default function VaeaChat() {
         eyebrow="the setup private companies use"
         title="Answer Vaea Chat with Claude Code, on your own machine"
         visual={<ClaudeCodeTerminal />}
-        cta={{ to: "/self-hosting", label: "The full self-hosting walkthrough" }}
+        cta={{ to: "/privacy", label: "Local Mode, step by step" }}
       >
         <p>
           Clone the repository, run Vaea on localhost, and turn on Local Mode. Vaea Chat then writes

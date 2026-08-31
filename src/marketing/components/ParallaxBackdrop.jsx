@@ -3,9 +3,11 @@ import { cn } from "@/lib/utils";
 
 // A section background: one real photograph, held behind the content, that
 // drifts slowly against the scroll (a gentle counter-parallax — the image
-// eases up as the page moves down). The photo is over-sized so the drift
-// never exposes an edge, and a scrim in the page's own --background colour
-// keeps foreground text readable in both themes.
+// eases up as the page moves down). The photo is over-sized just enough
+// that the drift never exposes an edge — 180% (40% bleed each side), down
+// from an over-cropped 280%, so the scene reads at close to its real
+// framing instead of a hard zoom. A scrim in the page's own --background
+// colour keeps foreground text readable in both themes.
 //
 // SSR-safe: no window access at module or render time, and the markup is
 // complete without JS (the photo and scrim are plain CSS). The drift is set
@@ -77,7 +79,7 @@ export default function ParallaxBackdrop({
           decoding="async"
           loading={eager ? "eager" : "lazy"}
           style={{ objectPosition: position }}
-          className="absolute inset-x-0 -inset-y-[90%] h-[280%] w-full object-cover will-change-transform"
+          className="absolute inset-x-0 -inset-y-[40%] h-[180%] w-full object-cover will-change-transform"
         />
         <div
           className="absolute inset-0"

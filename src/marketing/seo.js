@@ -42,15 +42,6 @@ export const ROUTES = [
       "The calm place to organize every project you're juggling. An assistant does the sorting and shows you first, and your information stays on your own computer.",
   },
   {
-    path: "/product",
-    loc: "/product",
-    priority: "0.9",
-    changefreq: "monthly",
-    title: "What's in Vaea — board, Vaea Chat, Workplace, Brain | Vaea",
-    description:
-      "A walk through everything in Vaea: the board, Vaea Chat that works on it, Vaea Workplace for calendar and email, Vaea Brain for your notes, and where your files are kept.",
-  },
-  {
     path: "/vaea-chat",
     loc: "/vaea-chat",
     priority: "0.9",
@@ -78,22 +69,13 @@ export const ROUTES = [
       "Vaea Workplace brings your Google and Microsoft calendars into one agenda and your email into one place. Vaea Chat can draft, file, and schedule — showing you first.",
   },
   {
-    path: "/self-hosting",
-    loc: "/self-hosting",
-    priority: "0.8",
-    changefreq: "monthly",
-    title: "Run Vaea on your own machine — self-hosting | Vaea",
-    description:
-      "The way private companies run Vaea: clone the repo, run on localhost, turn on Local Mode, and answer Vaea Chat with Claude Code in your own working copy. Nothing leaves your network.",
-  },
-  {
     path: "/privacy",
     loc: "/privacy",
-    priority: "0.5",
-    changefreq: "yearly",
-    title: "Where your information lives — on your computer | Vaea",
+    priority: "0.7",
+    changefreq: "monthly",
+    title: "Privacy — where your information lives, and Local Mode | Vaea",
     description:
-      "Vaea keeps your projects and tasks on your own computer by default. This page lists every time anything leaves it, and what you can switch off.",
+      "Vaea keeps your projects and tasks on your own computer by default. Every time anything leaves it, what you can switch off, and how to run it with nothing leaving at all in Local Mode.",
   },
   {
     path: "/compare",
@@ -345,7 +327,7 @@ export function jsonLdFor(pathname) {
   if (pathname === "/workplace") {
     return [webPageLd(route, pathname), faqPageLd(WORKPLACE_FAQ)];
   }
-  if (pathname === "/self-hosting") {
+  if (pathname === "/privacy") {
     return [webPageLd(route, pathname), faqPageLd(SELFHOSTING_FAQ)];
   }
   if (pathname === "/about") {

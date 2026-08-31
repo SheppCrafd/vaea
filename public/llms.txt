@@ -62,13 +62,11 @@ a single-user tool today: no shared team spaces, roles or admin console.
 ## Pages
 
 - Home: https://vaea.base44.app/
-- Product tour: https://vaea.base44.app/product
 - Vaea Chat (the assistant): https://vaea.base44.app/vaea-chat
 - Vaea Brain (your own notes vault): https://vaea.base44.app/brain
 - Vaea Workplace (one calendar and inbox): https://vaea.base44.app/workplace
-- Self-hosting (clone the repo, run on localhost, Claude Code relay): https://vaea.base44.app/self-hosting
 - Vaea vs. the usual setup (honest comparison): https://vaea.base44.app/compare
-- Where your data lives (plain-language privacy): https://vaea.base44.app/privacy
+- Privacy (where your data lives, plus Local Mode — clone the repo, run on localhost, Claude Code relay): https://vaea.base44.app/privacy
 - Privacy Policy (formal): https://vaea.base44.app/privacy-policy
 - Terms of Use: https://vaea.base44.app/terms
 - Who makes Vaea: https://vaea.base44.app/about

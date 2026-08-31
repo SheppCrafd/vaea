@@ -45,10 +45,10 @@ export default function NotFound() {
               Home
             </Link>
             <Link
-              to="/product"
+              to="/vaea-chat"
               className="mkt-lift inline-flex items-center rounded-full border border-foreground/12 bg-card/60 px-6 py-3 text-sm font-medium text-foreground backdrop-blur hover:border-foreground/25"
             >
-              Product tour
+              Vaea Chat
             </Link>
             <Link
               to="/app"
