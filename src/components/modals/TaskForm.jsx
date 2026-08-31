@@ -11,9 +11,9 @@ import FormField from "@/components/shared/FormField";
 import { Select } from "@/components/ui/select";
 
 export default function TaskForm({ onDone, prefill = null }) {
-  const [description, setDescription] = useState("");
-  // Seeded from the card that opened this modal (the (+) on a project card),
-  // still fully editable in the dropdown below.
+  // description is seeded when the modal is opened from a Notepad row's
+  // "create a task"; project from the (+) on a project card. Both editable.
+  const [description, setDescription] = useState(prefill?.description || "");
   const [projectId, setProjectId] = useState(prefill?.project_id || "");
   const [quadrant, setQuadrant] = useState("");
   const [stakeholderIds, setStakeholderIds] = useState([]);

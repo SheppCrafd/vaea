@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { DndContext, DragOverlay, pointerWithin } from "@dnd-kit/core";
-import { Archive, Boxes, FolderKanban, Package, Plus, Filter, PanelLeft, PanelLeftClose, PanelRight, PanelRightClose } from "lucide-react";
+import { Archive, Boxes, FolderKanban, NotebookPen, Package, Plus, Filter, PanelLeft, PanelLeftClose, PanelRight, PanelRightClose } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Sidebar from "@/components/layout/Sidebar";
 import LeftSidebar from "@/components/layout/LeftSidebar";
 import ArchivePanel from "@/components/archive/ArchivePanel";
+import NotepadModal from "@/components/notes/NotepadModal";
 import FilterModal from "@/components/modals/FilterModal";
 import Avatar from "@/components/shared/Avatar";
 import { useGlobalDragEnd } from "@/hooks/useGlobalDragEnd";
@@ -32,6 +33,7 @@ import MobileSidebarDrawer from "@/components/shared/MobileSidebarDrawer";
 // (AreaModal, ProjectDetailModal, ProductDetailModal, etc.).
 export default function AppShell({ children }) {
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
+  const [isNotepadOpen, setIsNotepadOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeDragData, setActiveDragData] = useState(null);
   const isLeftSidebarOpen = useAppStore((s) => s.isLeftSidebarOpen);
@@ -215,6 +217,15 @@ export default function AppShell({ children }) {
           </>
         )}
 
+        {/* Notepad sits just above View Archive — a colourful accent pill so
+            it reads as the "capture" action, not another neutral utility. */}
+        <button
+          onClick={() => setIsNotepadOpen(true)}
+          className="fixed bottom-[5.25rem] left-6 z-40 flex items-center gap-2 px-5 py-3 rounded-full text-sm font-medium text-primary-foreground bg-gradient-to-br from-primary to-primary/70 shadow-[0_12px_32px_-12px_hsl(var(--primary)/0.7)] hover:shadow-[0_20px_44px_-14px_hsl(var(--primary)/0.8)] hover:-translate-y-1 transition-all duration-300"
+        >
+          <NotebookPen className="w-4 h-4" />
+          Notepad
+        </button>
         <button
           onClick={() => setIsArchiveOpen(true)}
           className="fixed bottom-6 left-6 z-40 flex items-center gap-2 px-5 py-3 rounded-full bg-card/85 backdrop-blur-xl shadow-[0_0_0_1px_hsl(var(--foreground)/0.06),0_12px_32px_-12px_hsl(200_30%_12%/0.35)] hover:shadow-[0_0_0_1px_hsl(var(--foreground)/0.07),0_20px_44px_-14px_hsl(200_30%_12%/0.45)] hover:-translate-y-1 transition-all duration-300 text-sm font-medium text-foreground"
@@ -222,6 +233,7 @@ export default function AppShell({ children }) {
           <Archive className="w-4 h-4" />
           View Archive
         </button>
+        {isNotepadOpen && <NotepadModal onClose={() => setIsNotepadOpen(false)} />}
         {isArchiveOpen && <ArchivePanel onClose={() => setIsArchiveOpen(false)} />}
         {isFilterOpen && <FilterModal onClose={() => setIsFilterOpen(false)} />}
       </div>

@@ -35,7 +35,7 @@ import { withKeyLock } from "@/lib/asyncKeyLock";
 // (see that module's own comment), not just this file's collections.
 export { isFileBackedModeAvailable };
 
-const COLLECTIONS = ["areas", "products", "projects", "tasks", "stakeholders", "departments", "projectNotes", "chatSessions", "chatMessages"];
+const COLLECTIONS = ["areas", "products", "projects", "tasks", "stakeholders", "departments", "projectNotes", "notes", "chatSessions", "chatMessages"];
 
 const FILE_API_PREFIX = "/__localdb/"; // collection reads/writes below still talk to this directly (array shape, not readKey/writeKey's single-object contract)
 

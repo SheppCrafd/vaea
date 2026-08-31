@@ -13,6 +13,7 @@ import { confirmThen, sortByPosition } from "@/lib/entityUtils";
 import EditableText from "@/components/shared/EditableText";
 import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
 import CustomFieldsSection from "@/components/shared/CustomFieldsSection";
+import ProductNotesSection from "@/components/products/ProductNotesSection";
 import ProjectCardFull from "@/components/projects/ProjectCardFull";
 
 export default function ProductDetailModal({ product, onClose }) {
@@ -112,6 +113,8 @@ export default function ProductDetailModal({ product, onClose }) {
             areaScopeLabel="All products in this area"
             entityScopeLabel="This product only"
           />
+
+          <ProductNotesSection product={product} projects={projects} onClose={onClose} />
 
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">Projects</p>
