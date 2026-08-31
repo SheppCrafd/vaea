@@ -9,8 +9,14 @@ import ProjectMiniStats from "@/components/projects/ProjectMiniStats";
 // carrying the same classes and the same fixture-derived stats. Both render
 // this identical markup, so the demo is the real card's DOM, not a
 // hand-drawn lookalike.
+// `overflow-hidden` + the `min-h-0` middle section (ProjectMiniStats' first
+// row) make the 112px square hard: `aspect-square` alone only sets a
+// *preferred* size, so on an engine whose font metrics run a hair larger
+// than Chromium's (reported in Edge) the header/quadrant/bar stack could
+// out-measure 112px and the tile grew into a taller rectangle. Now any
+// overflow is clipped and the quadrant row gives up the pixels instead.
 export const PROJECT_CARD_SHELL_CLASS =
-  "relative bg-card border border-border rounded-xl p-2 w-full aspect-square flex flex-col items-center transition-colors";
+  "relative bg-card border border-border rounded-xl p-2 w-full aspect-square overflow-hidden flex flex-col items-center transition-colors";
 
 export default function ProjectCardShell({
   rootRef,
@@ -36,7 +42,7 @@ export default function ProjectCardShell({
       {...rootProps}
       className={`${PROJECT_CARD_SHELL_CLASS} ${className}`}
     >
-      <div className="w-full flex items-start gap-0.5 z-20">
+      <div className="w-full shrink-0 flex items-start gap-0.5 z-20">
         {dragHandle}
         {title}
         <div className="shrink-0 flex items-center gap-0.5">

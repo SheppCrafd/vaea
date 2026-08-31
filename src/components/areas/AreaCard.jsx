@@ -133,7 +133,7 @@ function AreaCard({ area, products = [], orphanProjects = [], onExpand, stakehol
       productsGrid={
         products.length > 0 && (
         <div
-          className={`mt-2 grid items-start ${cardView === "mini" ? "-mx-5" : "gap-4"}`}
+          className={`mt-2 ${cardView === "mini" ? "grid items-start -mx-5" : ""}`}
           // Full Cards' project card is a fixed 420px, and a Product needs
           // room for at least one without clipping it (420 + this card's
           // own p-4 padding ≈ 452px) — a 460px floor for Full mode. Full
@@ -177,17 +177,28 @@ function AreaCard({ area, products = [], orphanProjects = [], onExpand, stakehol
           // Grid columns are shared across every row (not recomputed per
           // row), which is what makes row 2+ line up under row 1's columns
           // instead of re-centering as their own subset.
-          style={{
-            gridTemplateColumns:
-              cardView === "full"
-                ? `repeat(auto-fill, minmax(460px, 1fr))`
-                : `repeat(auto-fit, 248px)`,
-            ...(cardView === "mini" ? { justifyContent: "space-evenly" } : {}),
-          }}
+          style={
+            cardView === "full"
+              ? // Masonry (see ProjectsGrid.jsx): short products let the next
+                // one slide straight up underneath instead of waiting for the
+                // whole row, so "Measurement/Insights" no longer leaves dead
+                // space under it next to a tall "Team Management".
+                { columnWidth: "460px", columnGap: "16px" }
+              : {
+                  gridTemplateColumns: `repeat(auto-fit, 248px)`,
+                  justifyContent: "space-evenly",
+                }
+          }
         >
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
+          {products.map((product) =>
+            cardView === "full" ? (
+              <div key={product.id} style={{ breakInside: "avoid", marginBottom: "16px" }}>
+                <ProductCard product={product} />
+              </div>
+            ) : (
+              <ProductCard key={product.id} product={product} />
+            )
+          )}
         </div>
         )
       }

@@ -17,17 +17,17 @@ export default function TaskStatistics({ tasks = [] }) {
   const counts = getStatusCounts(tasks);
   const total = counts.reduce((sum, c) => sum + c.count, 0);
 
-  // Zero tasks still renders the bar — a faint empty track rather than
+  // Zero tasks still renders the bar — an outlined empty track rather than
   // absent, so cards keep a consistent footprint and "no tasks yet" reads
-  // at a glance. Uses the same hairline tokens as the rule above it
-  // (foreground/[0.06]) so it stays quiet in both themes instead of a
-  // hard black/white outline that reads as a broken element. The legend is
-  // skipped; there's nothing to itemize.
+  // at a glance. Per direct request it's the high-contrast treatment:
+  // `bg-background` + `border-foreground` = near-white fill / near-black
+  // outline in light, and the inverse in dark. The legend is skipped;
+  // there's nothing to itemize.
   if (total === 0) {
     return (
       <div className="mt-3 pt-3 border-t border-foreground/[0.06] w-full">
         <div
-          className="flex w-full h-2 rounded-full bg-foreground/[0.04] border border-foreground/[0.08]"
+          className="flex w-full h-2 rounded-full bg-background border border-foreground"
           title="No tasks yet"
         />
       </div>

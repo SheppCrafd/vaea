@@ -42,13 +42,22 @@ export default function ProjectsGrid({ projects, stakeholderIds, emptyMessage, g
   }
 
   if (cardView === "full") {
+    // Masonry, not a strict grid: a strict grid makes every row as tall as
+    // its tallest card and leaves dead space under the short ones. CSS
+    // multi-column packs each card straight up under the one above it in
+    // its column (`break-inside: avoid` keeps a card whole), and
+    // `column-width` still adds/removes columns responsively. Reading order
+    // becomes column-major — the trade the backlog's "tuck under the cards
+    // above" note accepts.
     return (
       <div
         className={className}
-        style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(420px, 1fr))`, alignItems: "start", gap: `${gap}px` }}
+        style={{ columnWidth: "420px", columnGap: `${gap}px` }}
       >
         {projects.map((project) => (
-          <ProjectCardFull key={project.id} project={project} stakeholderIds={stakeholderIds} />
+          <div key={project.id} style={{ breakInside: "avoid", marginBottom: `${gap}px` }}>
+            <ProjectCardFull project={project} stakeholderIds={stakeholderIds} />
+          </div>
         ))}
       </div>
     );
