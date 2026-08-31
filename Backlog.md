@@ -166,24 +166,30 @@ pipeline), and a few "revisit later" polish sub-items.
 - Right panel (`FocusFeed`):
   - [x] If a task is in Today's Top 3, it doesn't also appear in Weekly Focus
     - code: done — `weeklyFocus = tasks.filter(t => t.is_weekly_focus && !t.is_today_top_three)`.
-  - [ ] Allow editing tasks from this panel — discuss approach
-    - code: not done — each row has only a status `<Select>` plus move / archive /
-      delete buttons; no description or field editing.
+  - [x] Allow editing tasks from this panel
+    - code: done via the pencil below — the expanded row edits description, notes,
+      and status inline (`FocusTaskRow`), plus move / archive / delete.
   - [x] Allow moving a task from Weekly Focus to Top 3
     - code: done — up-arrow → `moveToTopThree` via the cap-aware `toggleTopThree`.
   - [x] Bar graph should show all tasks, not broken down by project — graph all Weekly
     Focus + Top 3 together
-    - code: done — new "Focus at a glance" `TaskStatistics` bar at the top of
-      `FocusFeed`, fed `[...topThree, ...weeklyFocus]` (one pooled set, no per-project
-      split). The Weekly Focus list below stays grouped by project as before.
+    - code: done — in the FocusFeed redesign this became a single slim primary
+      progress meter ("N / M done") over `[...topThree, ...weeklyFocus]`; the full
+      status distribution is the one "All tasks" chart below it, no longer doubled.
+      The list itself is now flat — no per-project sub-grouping in the rail.
   - [x] Replace the status dropdown with a colored status dot on the left of the task
     card (click the dot to change status). More room for the description.
     - code: done — `<StatusDropdown variant="dot">` on the left of each `FocusFeed`
       row: a `STATUS_COLORS`-tinted dot that opens the existing portal status picker
       (its rows now show swatches too). The `<Select>` is gone.
-  - [ ] Replace the three action buttons with one edit (pencil) button that exposes
+  - [x] Replace the three action buttons with one edit (pencil) button that exposes
     the task in a taller table-view-style layout so all notes are readable.
-    - code: not done — still three buttons (move / archive / delete), no pencil.
+    - code: done — `FocusTaskRow`: the move / archive / delete icon cluster is
+      replaced by one pencil (revealed on hover) that expands the row in place into
+      a full editor — colour status chip, description textarea, notes textarea,
+      move-between-lists, archive, delete. Part of the FocusFeed redesign that also
+      flattened the list, killed the duplicate stat bar, and stopped truncating the
+      task text mid-word.
 
 ## Add links
 
