@@ -129,7 +129,10 @@ pipeline), and a few "revisit later" polish sub-items.
   Create New modal for the object beneath it, with the relevant parent objects
   pre-populated in the dropdowns (e.g. plus on a Product card → Create New with
   Project selected and the Area/Product filled in).
-  - code: done — (+) beside the grip on Area / Product / Project cards (mini + full).
+  - code: done — (+) beside the grip on Area / Product cards and on the **full**
+    Project card. Dropped from the **mini** Project card in the /clean pass: a
+    112px tile can't seat grip + (+) + title + expand + delete and still show a
+    readable title. Adding a child from a mini card goes through Expand → detail.
     `store.openCreateModal(type, prefill)` → `CreateModal` passes `prefill` to
     `TaskForm`/`ProjectForm`/`ProductForm`, which seed their parent `<Select>`s from
     it. Area (+) → Product form (area filled); Product (+) → Project form (area +
