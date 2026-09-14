@@ -2,9 +2,10 @@
 // external) and scripts/prerender.mjs imports the result to turn each
 // marketing route into static HTML.
 import { renderToString } from "react-dom/server";
-// `/server.js` (not `/server`) so Node's strict ESM resolver finds it when
-// this bundle keeps react-router-dom external.
-import { StaticRouter } from "react-router-dom/server.js";
+// react-router-dom v7 dropped its own `/server` subpath — StaticRouter now
+// lives in the `react-router` package itself (react-router-dom v7 is a thin
+// DOM wrapper around it).
+import { StaticRouter } from "react-router";
 import MarketingApp from "../src/marketing/MarketingApp.jsx";
 import { ROUTES, headTagsFor } from "../src/marketing/seo.js";
 

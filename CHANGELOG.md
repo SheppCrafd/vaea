@@ -4,6 +4,30 @@ All notable changes to Vaea, in [Keep a Changelog](https://keepachangelog.com/en
 style. Vaea ships continuously rather than in numbered releases, so entries
 are grouped by date instead of a version number.
 
+## 2026-09-14 (later)
+
+### Fixed
+
+- Upgraded `react-router-dom` 6→7, closing a real open-redirect
+  vulnerability (`GHSA-wrjc-x8rr-h8h6`) and a deserialization issue
+  (`GHSA-337j-9hxr-rhxg`); `npm audit fix` closed the rest. **0 known
+  vulnerabilities**, down from 9.
+- `scripts/ssr-entry.jsx`: `StaticRouter` moved from
+  `react-router-dom/server.js` to the `react-router` package in v7 — fixed
+  the prerender import so all 10 marketing routes still build correctly.
+
+### Added
+
+- All GitHub Actions pinned to a verified commit SHA rather than a moving
+  tag (checked against the GitHub API before pinning), closing a real
+  supply-chain gap: two of the three tags already used (`ossf/scorecard-action@v2`,
+  `codeql-action@v3`) had been retired and the workflow was silently
+  failing on its first run until this was caught and fixed.
+- Dependabot (`.github/dependabot.yml`) for weekly npm and GitHub Actions
+  update checks.
+- A CodeQL static-analysis workflow (`.github/workflows/codeql.yml`) on
+  every push/PR to `main` and weekly on a schedule.
+
 ## 2026-09-14
 
 ### Added
