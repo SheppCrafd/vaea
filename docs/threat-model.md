@@ -104,6 +104,33 @@ AI features.
   browser profile could read the stored key, the same as any locally-held
   credential. Standard device hygiene applies.
 
+## Third-party data policies
+
+Entries 1 and 3 above depend on what Base44 and the AI providers do with
+data once it reaches them — outside Vaea's own code. Rather than
+paraphrasing that from memory, here are their own published policies,
+checked directly rather than taken from Vaea's (or any provider's)
+marketing copy:
+
+- **Base44** (hosted auth, and the default AI call path): [privacy
+  policy](https://base44.com/privacy-policy).
+- **Anthropic** (the built-in model, and available as a BYOK provider):
+  [Privacy Center](https://privacy.claude.com/). Anthropic's commercial API
+  terms state customer content sent via the API is not used to train
+  Anthropic's models, and is retained for a limited window (published as 30
+  days) for abuse monitoring, not indefinitely.
+- **OpenAI** (available as a BYOK / OpenAI-compatible provider): [API data
+  usage policies](https://openai.com/policies/api-data-usage-policies/).
+  OpenAI's published policy states API inputs and outputs are not used to
+  train OpenAI's models by default, and are retained for a limited window
+  for abuse monitoring.
+
+These are the providers' own statements, not something Vaea can verify or
+enforce — this section exists so a reviewer doesn't have to take Vaea's
+word for what happens after a request leaves this app. Policies change;
+check the linked pages directly for the current terms rather than trusting
+the summary above to stay current.
+
 ## What this doesn't cover
 
 Base44's own infrastructure security (hosting, its login system's internals)

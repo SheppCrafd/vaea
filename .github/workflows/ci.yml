@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev, perf-test]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+        env:
+          # Same public values as the gitignored .env.production (the app id
+          # and base URL are already visible in the deployed bundle and in
+          # every /api/apps/<id>/... request — not secrets, just kept out of
+          # git so each worktree doesn't need one committed). Without them
+          # Vite inlines "undefined" and every Base44 call breaks.
+          VITE_BASE44_APP_ID: 6a690716a9972b19ca60f096
+          VITE_BASE44_APP_BASE_URL: https://vaea.base44.app

@@ -2,6 +2,9 @@
 
 Repo: https://github.com/SheppCrafd/vaea
 
+[![CI](https://github.com/SheppCrafd/vaea/actions/workflows/ci.yml/badge.svg)](https://github.com/SheppCrafd/vaea/actions/workflows/ci.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/SheppCrafd/vaea/badge)](https://scorecard.dev/viewer/?uri=github.com/SheppCrafd/vaea)
+
 A dashboard for managing a portfolio of projects and products across your areas of responsibility — with task tracking, stakeholder visibility, a focus feed, and an AI chat assistant that can act on your data.
 
 This app has core app data (areas, products, projects, tasks, stakeholders, departments, notes) living locally by default instead of a hosted database — including everything the AI chat assistant reads and writes, since it acts on this exact same data (see "Architecture" below for how that works without a server ever storing it). Running the repo locally via `npm run dev`/`npm run preview`, that data is plain JSON files in a gitignored `data/` folder right in your clone. Anywhere else (the hosted preview, a production deploy, the standalone distributables), you choose on first run: a folder on your own device (or a manually exported/imported file, on browsers without a folder picker), or — opt-in, tied to your account — cloud storage, a real Base44-hosted record instead of your device. See "Local data storage" below. [Base44](https://base44.com) is retained for three things: making the LLM call itself (`aiChatStream`), gating the whole app behind login (Google/Microsoft/Apple/email, via Base44's hosted auth), and, only if you choose it, holding your project data in cloud storage mode — there's no custom login form, just Base44's own hosted sign-in page.

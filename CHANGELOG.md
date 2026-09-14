@@ -12,6 +12,16 @@ are grouped by date instead of a version number.
   (`docs/threat-model.md`) — the security controls in place, known
   limitations stated plainly, and how to report a problem.
 - `CHANGELOG.md` (this file).
+- CI (`.github/workflows/ci.yml`): lint, test, and build run on every push
+  to `main`/`dev`/`perf-test` and every PR into `main`.
+- An [OpenSSF Scorecard](https://scorecard.dev/) workflow, published
+  publicly and badged in the README — an independently-computed score, not
+  a self-report.
+- Cited the actual published data-retention policies of Base44, Anthropic,
+  and OpenAI in the threat model, rather than only Vaea's own summary of
+  what happens to a request after it leaves the app.
+- Tagged `2026-08-31` and `2026-09-14` at the commits matching those
+  changelog entries, as a starting point for a real release history.
 
 ## 2026-08-31
 
