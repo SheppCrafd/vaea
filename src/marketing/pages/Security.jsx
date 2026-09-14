@@ -60,11 +60,11 @@ export default function Security() {
     <>
       <ParallaxBackdrop
         as="section"
-        src="/img/marketing/privacy-hero.jpg"
+        src="/img/marketing/selfhosting-hero.jpg"
         eager
         strength={108}
-        scrim={0.78}
-        position="50% 40%"
+        scrim={0.8}
+        position="50% 32%"
         className="pt-12 pb-[calc(var(--mkt-section-y)*0.5)] sm:pt-16"
       >
         <Container>
