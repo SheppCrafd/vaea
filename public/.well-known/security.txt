@@ -1,0 +1,5 @@
+Contact: mailto:mwallis31@outlook.com
+Expires: 2027-09-14T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://vaea.base44.app/.well-known/security.txt
+Policy: https://github.com/SheppCrafd/vaea/blob/main/SECURITY.md

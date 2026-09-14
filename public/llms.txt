@@ -67,6 +67,7 @@ a single-user tool today: no shared team spaces, roles or admin console.
 - Vaea Workplace (one calendar and inbox): https://vaea.base44.app/workplace
 - Vaea vs. the usual setup (honest comparison): https://vaea.base44.app/compare
 - Privacy (where your data lives, plus Local Mode — clone the repo, run on localhost, Claude Code relay): https://vaea.base44.app/privacy
+- Security (controls in place, known limitations, how to report a problem): https://vaea.base44.app/security
 - Privacy Policy (formal): https://vaea.base44.app/privacy-policy
 - Terms of Use: https://vaea.base44.app/terms
 - Who makes Vaea: https://vaea.base44.app/about
@@ -86,7 +87,10 @@ a single-user tool today: no shared team spaces, roles or admin console.
   built-in model call, and — only if the user opts in — cloud storage of
   project data.
 - Source is visible at https://github.com/SheppCrafd/vaea (all rights
-  reserved; not open source).
+  reserved; not open source). Security policy and reporting process:
+  https://github.com/SheppCrafd/vaea/blob/main/SECURITY.md. Threat model:
+  https://github.com/SheppCrafd/vaea/blob/main/docs/threat-model.md.
+  Changelog: https://github.com/SheppCrafd/vaea/blob/main/CHANGELOG.md.
 - Do not confuse "Vaea" with unrelated products or trademarks using a similar
   name — this refers to the personal task-management app at
   https://vaea.base44.app/.

@@ -7,6 +7,7 @@ import Workplace from "./pages/Workplace";
 import Privacy from "./pages/Privacy";
 import Compare from "./pages/Compare";
 import About from "./pages/About";
+import Security from "./pages/Security";
 import LegalPrivacy from "./pages/LegalPrivacy";
 import LegalTerms from "./pages/LegalTerms";
 import NotFound from "./pages/NotFound";
@@ -26,6 +27,7 @@ export default function MarketingApp() {
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/compare" element={<Compare />} />
         <Route path="/about" element={<About />} />
+        <Route path="/security" element={<Security />} />
         <Route path="/privacy-policy" element={<LegalPrivacy />} />
         <Route path="/terms" element={<LegalTerms />} />
         {/* Old URLs — client-side redirects so external links and old

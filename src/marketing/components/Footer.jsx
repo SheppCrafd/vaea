@@ -14,8 +14,14 @@ const COLS = [
   },
   {
     heading: "Company",
-    links: [{ to: "/about", label: "Who makes Vaea" }],
-    external: [{ href: "https://github.com/SheppCrafd/vaea", label: "Source on GitHub" }],
+    links: [
+      { to: "/about", label: "Who makes Vaea" },
+      { to: "/security", label: "Security" },
+    ],
+    external: [
+      { href: "https://github.com/SheppCrafd/vaea", label: "Source on GitHub" },
+      { href: "https://github.com/SheppCrafd/vaea/blob/main/CHANGELOG.md", label: "Changelog" },
+    ],
   },
   {
     heading: "Get started",

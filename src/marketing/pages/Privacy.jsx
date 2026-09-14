@@ -85,7 +85,14 @@ export default function Privacy() {
               >
                 formal privacy policy
               </Link>{" "}
-              too, if you need the version in the usual shape.
+              too, if you need the version in the usual shape, and a{" "}
+              <Link
+                to="/security"
+                className="text-foreground underline decoration-foreground/25 underline-offset-2 hover:decoration-foreground"
+              >
+                security page
+              </Link>{" "}
+              covering what protects it.
             </p>
             <p className="mt-4 font-mono text-[0.72rem] tracking-tight text-muted-foreground">Last updated {UPDATED}</p>
           </div>

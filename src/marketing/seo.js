@@ -96,6 +96,15 @@ export const ROUTES = [
       "Vaea is built and maintained by one person — SheppCrafd. What that means for the project, how to get in touch, and where the code lives.",
   },
   {
+    path: "/security",
+    loc: "/security",
+    priority: "0.6",
+    changefreq: "monthly",
+    title: "Security | Vaea",
+    description:
+      "The security controls in place, what they don't cover, and how to report a problem — stated plainly, with a full threat model on the public source.",
+  },
+  {
     path: "/privacy-policy",
     loc: "/privacy-policy",
     priority: "0.3",
