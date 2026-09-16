@@ -290,3 +290,35 @@ pipeline), and a few "revisit later" polish sub-items.
     tagged to the product or one of its projects, plus every `ProjectNote` under it,
     in one list. "Summarize with Vaea" hands the whole set to chat asking for a
     grouped summary + risks / open questions / action items.
+
+---
+
+## 2026-09-14 — Dependabot's first-run backlog (held for a dedicated pass)
+
+After the trust-surface work got the OpenSSF Scorecard to 6.4/10, Dependabot's
+first scan opened 12 PRs against `dev`. Two are safe to merge as-is; the rest are
+real major-version bumps that need one-at-a-time upgrade + full lint/test/build/
+real-browser verification, the same way the react-router 6→7 upgrade was done
+(that one broke the SSR prerender import — `StaticRouter` moved packages — until
+caught and fixed). Don't batch these; stacking multiple majors at once makes any
+breakage hard to isolate.
+
+- [ ] `#1` `actions/checkout` 4→7 — low risk, GitHub's own action.
+- [ ] `#2` `actions/setup-node` 4→7 — low risk, GitHub's own action.
+- [ ] `#5` `tailwind-merge` bump — patch-shaped, low risk.
+- [ ] `#9` `@radix-ui/react-accordion` bump — patch-shaped, low risk.
+- [ ] `#10` `react-router` 7→**8** — one day after the 6→7 fix; check for another
+  SSR/StaticRouter-shaped break before merging.
+- [ ] `#7` `vitest` 4→**5** — test runner major, re-run the full suite after.
+- [ ] `#6` `@eslint/js` 9→**10** — may surface new lint rules; expect to fix real
+  findings, not just bump the config.
+- [ ] `#4` `@vitejs/plugin-react` 4→**6** — build-tool major, verify prod build +
+  prerender still produce all 10 routes.
+- [ ] `#12` `typescript` 5→**7** — major; check for new type errors if typecheck
+  is part of the build.
+- [ ] `#8` `zustand` 4→**5** — state-management major, real risk of a store-API
+  breaking change; needs an actual app smoke test, not just tests passing.
+- [ ] `#11` `lucide-react` 0.475→**1.42** — icon set major; check for renamed/
+  removed icons used in the app.
+- [ ] `#3` `base44` SDK 0.1.4→0.1.14 — pre-1.0, minor bumps can carry breaking
+  changes by semver convention; check the SDK's own changelog before merging.
