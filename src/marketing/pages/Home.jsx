@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Container, Eyebrow, Section, CtaRow, Reveal } from "../components/ui";
+import { Container, Eyebrow, Section, CtaRow, Reveal, Float } from "../components/ui";
 import { ShowBlock, ProofStrip, Manifesto, Marquee, Faq, ClosingCta } from "../components/blocks";
 import ParallaxBackdrop from "../components/ParallaxBackdrop";
 import BoardDemo from "../components/BoardDemo";
@@ -38,7 +38,9 @@ export default function Home() {
           </div>
 
           <Reveal delay={100} className="mkt-hero-rise mt-12 [--rise-delay:240ms]">
-            <BoardDemo hero />
+            <Float shadow>
+              <BoardDemo hero />
+            </Float>
           </Reveal>
         </Container>
       </ParallaxBackdrop>

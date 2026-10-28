@@ -1,4 +1,6 @@
+import { useRef } from "react";
 import { useLocation, Outlet, Link } from "react-router-dom";
+import { usePointerField } from "./usePointerField";
 import Nav from "./components/Nav";
 import Footer from "./components/Footer";
 import Ambience from "./components/Ambience";
@@ -17,8 +19,12 @@ export default function MarketingLayout() {
   // it just like inside the app. Read-only — the marketing site has no accent
   // picker of its own; it just applies whatever the app saved.
   useAccentTheme();
+  // The cursor position, as --mx/--my on this root, for every figure that
+  // leans toward the mouse (see usePointerField.js, marketing.css).
+  const rootRef = useRef(null);
+  usePointerField(rootRef);
   return (
-    <div className="mkt relative min-h-screen overflow-x-clip bg-background font-body text-foreground antialiased">
+    <div ref={rootRef} className="mkt relative min-h-screen overflow-x-clip bg-background font-body text-foreground antialiased">
       <SeoHead pathname={pathname} />
       <a
         href="#main"

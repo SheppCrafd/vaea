@@ -112,6 +112,28 @@ export function Panel({ className, children }) {
   );
 }
 
+// A figure that leans toward the mouse: a small 3D tilt plus a drift, driven
+// by the site-wide --mx/--my (usePointerField.js). `tilt` and `shift` scale
+// the effect (1 = the hero's full amount). `shadow` adds a soft contact
+// shadow that slides the opposite way, which is what sells the depth.
+// `interactive` flattens the figure while the cursor is on it, so something
+// you can drag holds still under your hand. Does nothing on touch or under
+// reduced motion — the figure just sits flat.
+export function Float({ tilt = 1, shift = 1, shadow = false, interactive = false, className, children }) {
+  return (
+    <div className={cn("relative isolate", className)}>
+      {shadow && <div aria-hidden="true" className="mkt-float-shadow" />}
+      <div
+        className="mkt-float"
+        data-interactive={interactive || undefined}
+        style={{ "--float-tilt": tilt, "--float-shift": shift }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 // A hairline between sections — 1px at low opacity, not a box.
 export function Rule({ className }) {
   return <div className={cn("mx-auto h-px max-w-[1140px] bg-foreground/[0.07]", className)} />;

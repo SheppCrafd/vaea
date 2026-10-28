@@ -1,4 +1,4 @@
-import { Container, Eyebrow, Section, CtaRow, Reveal } from "../components/ui";
+import { Container, Eyebrow, Section, CtaRow, Reveal, Float } from "../components/ui";
 import { ShowBlock, Faq, Marquee, ClosingCta } from "../components/blocks";
 import ParallaxBackdrop from "../components/ParallaxBackdrop";
 import { ChatDemo, LocalModeTerminal, ClaudeCodeTerminal } from "../components/visuals";
@@ -32,7 +32,9 @@ export default function VaeaChat() {
             </div>
           </div>
           <Reveal delay={90} className="mt-12">
-            <ChatDemo />
+            <Float shadow>
+              <ChatDemo />
+            </Float>
           </Reveal>
         </Container>
       </section>

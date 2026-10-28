@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Container, Eyebrow, Reveal, CtaRow } from "./ui";
+import { Container, Eyebrow, Reveal, CtaRow, Float } from "./ui";
 import ParallaxBackdrop from "./ParallaxBackdrop";
 
 // Larger recurring page blocks.
@@ -54,7 +54,9 @@ export function ShowBlock({ id, eyebrow, title, children, visual, flip, tone, ct
             )}
           </Reveal>
           <Reveal delay={70} className="min-w-0">
-            {visual}
+            <Float tilt={0.7} shift={0.6} shadow>
+              {visual}
+            </Float>
           </Reveal>
         </div>
       </Container>

@@ -109,6 +109,10 @@ function DemoProduct({ product, hero, showAdded, cycle, delay }) {
   const projects = withCard ? [...product.projects, BOARD.added] : product.projects;
   return (
     <div className="mkt-board-piece" style={{ "--piece-delay": `${delay}ms` }}>
+      {/* A layer above the area card: drifts a little further toward the
+          mouse than the board under it (marketing.css .mkt-depth). Its own
+          div because .mkt-board-piece's entrance holds the transform. */}
+      <div className="mkt-depth" style={{ "--depth": "7px" }}>
       <ProductCardShell
         dragHandle={
           <InertGrip className="absolute top-1.5 left-1.5 z-20 p-1.5" label="Drag to reorder product" />
@@ -165,6 +169,7 @@ function DemoProduct({ product, hero, showAdded, cycle, delay }) {
           />
         }
       />
+      </div>
     </div>
   );
 }
@@ -294,7 +299,12 @@ export default function BoardDemo({ hero = false, className }) {
           like the rest of the demo — the text types on a timer, nothing is
           focusable or clickable. */}
       {hero && (
-        <div className="mt-4 flex items-center gap-2 rounded-2xl border border-foreground/[0.06] bg-card p-3 shadow-sm">
+        // mkt-depth: the composer floats nearest the viewer, so it drifts
+        // furthest toward the mouse.
+        <div
+          className="mkt-depth mt-4 flex items-center gap-2 rounded-2xl border border-foreground/[0.06] bg-card p-3 shadow-sm"
+          style={{ "--depth": "18px" }}
+        >
           <span
             aria-hidden="true"
             className="shrink-0 p-2 text-muted-foreground rounded-md"

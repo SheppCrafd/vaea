@@ -1,4 +1,4 @@
-import { Container, Eyebrow, Section, CtaRow, Reveal } from "../components/ui";
+import { Container, Eyebrow, Section, CtaRow, Reveal, Float } from "../components/ui";
 import { ShowBlock, Faq, Marquee, ClosingCta } from "../components/blocks";
 import ParallaxBackdrop from "../components/ParallaxBackdrop";
 import { MindMapDemo, StorageTerminal } from "../components/visuals";
@@ -40,7 +40,9 @@ export default function Brain() {
             </div>
           </div>
           <Reveal delay={90} className="mt-12">
-            <MindMapDemo interactive />
+            <Float tilt={0.6} shift={0.7} shadow interactive>
+              <MindMapDemo interactive />
+            </Float>
           </Reveal>
         </Container>
       </ParallaxBackdrop>

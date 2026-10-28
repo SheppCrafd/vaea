@@ -49,7 +49,10 @@ export default function ParallaxBackdrop({
       // -1 (section still below the viewport) → +1 (section above it), 0 at centre.
       const progress = (rect.top + rect.height / 2 - vh / 2) / (vh / 2 + rect.height / 2);
       const clamped = Math.max(-1, Math.min(1, progress));
-      img.style.transform = `translate3d(0, ${(-clamped * strength).toFixed(2)}px, 0)`;
+      // The scroll drift, plus a small slide against the mouse (--mx/--my,
+      // set site-wide by usePointerField.js; 0 when there's no mouse), so
+      // the photo reads as the farthest layer behind the figures.
+      img.style.transform = `translate3d(calc(var(--mx, 0) * -22px), calc(${(-clamped * strength).toFixed(2)}px + var(--my, 0) * -14px), 0)`;
     };
     const onScroll = () => {
       if (!frame) frame = requestAnimationFrame(update);
@@ -79,7 +82,10 @@ export default function ParallaxBackdrop({
           decoding="async"
           loading={eager ? "eager" : "lazy"}
           style={{ objectPosition: position }}
-          className="absolute inset-x-0 -inset-y-[40%] h-[180%] w-full object-cover will-change-transform"
+          // 32px of side bleed so the mouse slide never shows an edge.
+          // max-w-none: Tailwind's base caps every img at 100% wide, which
+          // would silently cut the bleed off.
+          className="mkt-photo absolute -inset-x-8 -inset-y-[40%] h-[180%] w-[calc(100%+4rem)] max-w-none object-cover will-change-transform"
         />
         <div
           className="absolute inset-0"

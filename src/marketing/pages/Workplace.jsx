@@ -1,4 +1,4 @@
-import { Container, Eyebrow, Section, CtaRow, Reveal } from "../components/ui";
+import { Container, Eyebrow, Section, CtaRow, Reveal, Float } from "../components/ui";
 import { ShowBlock, Faq, Marquee, ClosingCta } from "../components/blocks";
 import { CalendarDemo, VmailDemo } from "../components/visuals";
 import { WORKPLACE_FAQ } from "../seo";
@@ -22,7 +22,9 @@ export default function Workplace() {
             </div>
           </div>
           <Reveal delay={90} className="mt-12">
-            <CalendarDemo />
+            <Float shadow>
+              <CalendarDemo />
+            </Float>
           </Reveal>
         </Container>
       </section>
