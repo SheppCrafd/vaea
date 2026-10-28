@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/toast";
 
 export function Toaster() {
-  const { toasts, remove } = useToast();
+  const { toasts } = useToast();
 
   return (
     <ToastProvider>
@@ -23,8 +23,9 @@ export function Toaster() {
               )}
             </div>
             {action}
-            {/* wire the close button to immediately remove and clear timeouts */}
-            <ToastClose onClick={() => remove(id)} />
+            {/* Radix closes it (open → false → onOpenChange → dismiss), so the
+                exit animation plays instead of the toast vanishing mid-frame. */}
+            <ToastClose />
           </Toast>
         );
       })}

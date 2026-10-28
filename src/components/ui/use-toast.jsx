@@ -1,8 +1,12 @@
 // Inspired by react-hot-toast library
 import { useState, useEffect } from "react";
 
-const TOAST_LIMIT = 20;
-const TOAST_REMOVE_DELAY = 1000000;
+// Radix (toast.jsx) closes each toast after its duration; this delay only
+// drops a closed toast from the list once its exit animation has finished.
+const TOAST_LIMIT = 3;
+const TOAST_REMOVE_DELAY = 1000;
+// Errors stay up longer than confirmations: they usually need reading.
+export const TOAST_DURATION = { default: 5000, destructive: 8000 };
 
 const actionTypes = {
   ADD_TOAST: "ADD_TOAST",
@@ -125,6 +129,7 @@ function toast({ ...props }) {
   dispatch({
     type: actionTypes.ADD_TOAST,
     toast: {
+      duration: TOAST_DURATION[props.variant] ?? TOAST_DURATION.default,
       ...props,
       id,
       open: true,
