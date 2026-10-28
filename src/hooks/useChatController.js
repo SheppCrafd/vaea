@@ -1083,9 +1083,12 @@ export function useChatController({ activeProjectId } = {}) {
         const completedSteps = error.completedSteps || [];
         const undos = completedSteps.map((r) => r.toolResult?.undo).filter(Boolean);
         if (undos.length) setActionHistory((prev) => [...prev, ...undos]);
+        // Plain lead-in, then the reason (which says what to do). Was a bare
+        // "Error:" prefix — reads like a crash, not a message.
+        const errorText = `⚠️ **Vaea Chat couldn't answer that.** ${error.message}`;
         const content = completedSteps.length
-          ? buildLoggedContent(`⚠️ Error: ${error.message}`, completedSteps.map(describeToolCall))
-          : `⚠️ Error: ${error.message}`;
+          ? buildLoggedContent(errorText, completedSteps.map(describeToolCall))
+          : errorText;
         await createMessage.mutateAsync(
           { session_id: sessionId, role: "assistant", content, ...(completedSteps.length ? { tool_log_detail: { steps: completedSteps } } : {}) },
           { onSuccess: (created) => markMessageNew(created.id) }
