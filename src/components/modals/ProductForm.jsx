@@ -3,7 +3,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAreas } from "@/hooks/useAreas";
 import { useCreateProduct } from "@/hooks/useProducts";
-import { useToast } from "@/components/ui/use-toast";
 import FormField from "@/components/shared/FormField";
 import { Select } from "@/components/ui/select";
 
@@ -14,23 +13,14 @@ export default function ProductForm({ onDone, prefill = null }) {
   const [areaId, setAreaId] = useState(prefill?.parent_area_id || "");
   const { data: areas = [] } = useAreas();
   const createProduct = useCreateProduct();
-  const { toast } = useToast();
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!title.trim() || !areaId || createProduct.isPending) return;
     createProduct.mutate(
       { parent_area_id: areaId, title, description },
-      {
-        onSuccess: () => onDone?.(),
-        onError: (err) => {
-          toast({
-            variant: "destructive",
-            title: "Couldn't create product",
-            description: err?.message || "Something went wrong — try again.",
-          });
-        },
-      }
+      // A failure is shown by the global mutation toast (query-client.js).
+      { onSuccess: () => onDone?.() }
     );
   };
 

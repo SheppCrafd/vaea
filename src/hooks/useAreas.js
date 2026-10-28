@@ -80,6 +80,7 @@ export function useCreateArea() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: createArea,
+    meta: { errorTitle: "Couldn't create area" },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["areas"] }),
   });
 }

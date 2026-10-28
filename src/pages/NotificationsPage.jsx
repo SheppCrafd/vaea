@@ -167,7 +167,7 @@ export default function NotificationsPage() {
         title="Notifications"
         subtitle="What needs your attention right now"
       />
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-8">
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-28">
         <div className="max-w-2xl mx-auto pt-4">
           {loading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>

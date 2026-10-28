@@ -35,7 +35,7 @@ export default function DeleteAccountDialog({ onClose }) {
       toast({
         variant: "destructive",
         title: "Couldn't delete account",
-        description: error.message || "Something went wrong. Please try again.",
+        description: error.message || "Your account is unchanged. Try again in a moment.",
       });
     }
   };

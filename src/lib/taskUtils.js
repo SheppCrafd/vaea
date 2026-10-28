@@ -46,6 +46,21 @@ export function getQuadrantCounts(tasks = [], highlights = []) {
   });
 }
 
+// The one name for each task status, everywhere it's shown: the status
+// pill and its menu, filters, chart legends, card stat bars. Stored values
+// stay the SCREAMING_CASE codes; nothing user-facing should print those.
+export const STATUS_LABELS = {
+  NOT_STARTED: "Not Started",
+  IN_PROGRESS: "In Progress",
+  PENDING_FEEDBACK: "Pending Feedback",
+  DELEGATED: "Delegated",
+  ON_HOLD: "On Hold",
+  BLOCKED: "Blocked",
+  DONE: "Done",
+  DELEGATED_DONE: "Done (Delegated)",
+};
+export const statusLabel = (status) => STATUS_LABELS[status || "NOT_STARTED"] || STATUS_LABELS.NOT_STARTED;
+
 // Single source of truth for the 7-way status breakdown used by both the
 // project-card stacked bar and the sidebar status chart. Each consumer owns
 // its own rendering; this only owns the categorization and display order.
@@ -90,12 +105,12 @@ export function getStatusCounts(tasks = []) {
 
 // 3-bucket collapse of the 7-way status breakdown, for the mini project-card
 // stats bar. ON_HOLD/BLOCKED/PENDING_FEEDBACK/DELEGATED all fold into
-// "In Prog" — they're all "not started" and "not done" in the coarse sense
+// "In Progress" — they're all "not started" and "not done" in the coarse sense
 // this compact view needs; the full 7-way breakdown is still one click away
 // via the project detail modal's task table.
 export const MINI_STATUS_BUCKETS = [
   { key: "NOT_STARTED", label: "Not Started", color: STATUS_COLORS.NOT_STARTED },
-  { key: "IN_PROGRESS", label: "In Prog", color: STATUS_COLORS.IN_PROGRESS },
+  { key: "IN_PROGRESS", label: "In Progress", color: STATUS_COLORS.IN_PROGRESS },
   { key: "DONE", label: "Done", color: STATUS_COLORS.DONE },
 ];
 

@@ -164,7 +164,7 @@ const AuthenticatedApp = () => {
                 <Route path="vmail" element={<VmailPage />} />
                 {/* Add your page Route elements here */}
                 <Route index element={<AppShell><Dashboard /></AppShell>} />
-                <Route path="*" element={<AppShell><PageNotFound /></AppShell>} />
+                <Route path="*" element={<PageNotFound />} />
               </Routes>
               {/* Floating popout, everywhere except /app/chat itself (already
                   a full page of chat — a second copy of it floating on top

@@ -84,15 +84,15 @@ export default function ProjectDetailModal({ project, onClose }) {
       panelClassName="bg-card border border-border rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
     >
           {/* Header */}
-          <div className="flex items-start justify-between p-6 border-b border-border bg-muted/30">
-            <div className="flex-1 mr-4">
+          <div className="flex items-start justify-between gap-2 p-4 sm:p-6 border-b border-border bg-muted/30">
+            <div className="flex-1 min-w-0 mr-2 sm:mr-4">
               <EditableText
                 value={project.title}
                 onSave={(val) => updateProject.mutate({ id: project.id, data: { title: val } })}
                 aria-label="Project title"
-                className="text-2xl font-bold font-heading mb-2 w-full"
+                className="text-xl sm:text-2xl font-bold font-heading mb-2 w-full"
               />
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <span className="font-medium">Owner:</span>
                   <EditableText
@@ -112,7 +112,7 @@ export default function ProjectDetailModal({ project, onClose }) {
                     value={project.due_date_status || "ESTIMATED"}
                     onChange={(e) => updateProject.mutate({ id: project.id, data: { due_date_status: e.target.value } })}
                     aria-label="Due date status"
-                    className="bg-transparent px-1.5 py-0.5 text-xs ml-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="w-auto shrink-0 bg-transparent px-1.5 py-0.5 text-xs ml-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     options={DUE_DATE_STATUS_SELECT_OPTIONS}
                     title="Estimate: a best guess. Committed: promised to someone, and shown on the calendar."
                   />
@@ -134,7 +134,8 @@ export default function ProjectDetailModal({ project, onClose }) {
               className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-border hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground shrink-0"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              Brief me
+              {/* Icon-only on a phone; the title needs the width. */}
+              <span className="hidden sm:inline">Brief me</span>
             </button>
             <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close" className="rounded-full shrink-0">
               <X className="w-5 h-5 text-muted-foreground" />
@@ -142,7 +143,7 @@ export default function ProjectDetailModal({ project, onClose }) {
           </div>
 
           {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-8">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col gap-8">
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
@@ -357,7 +358,7 @@ export default function ProjectDetailModal({ project, onClose }) {
                     onClose();
                   })
                 }
-                label="Delete project"
+                label="Delete Project"
                 showLabel
                 size="md"
               />

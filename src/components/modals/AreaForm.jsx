@@ -2,30 +2,20 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useCreateArea } from "@/hooks/useAreas";
-import { useToast } from "@/components/ui/use-toast";
 import FormField from "@/components/shared/FormField";
 
 export default function AreaForm({ onDone }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const createArea = useCreateArea();
-  const { toast } = useToast();
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!title.trim() || createArea.isPending) return;
     createArea.mutate(
       { title, description },
-      {
-        onSuccess: () => onDone?.(),
-        onError: (err) => {
-          toast({
-            variant: "destructive",
-            title: "Couldn't create area",
-            description: err?.message || "Something went wrong — try again.",
-          });
-        },
-      }
+      // A failure is shown by the global mutation toast (query-client.js).
+      { onSuccess: () => onDone?.() }
     );
   };
 

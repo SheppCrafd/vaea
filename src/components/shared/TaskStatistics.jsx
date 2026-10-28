@@ -1,17 +1,10 @@
 import React from "react";
-import { getStatusCounts, STATUS_COLORS } from "@/lib/taskUtils";
+import { getStatusCounts, STATUS_COLORS, STATUS_LABELS } from "@/lib/taskUtils";
 
-// Short legend labels per bucket — colors come from the shared
-// STATUS_COLORS (taskUtils.js) so every consumer uses the exact same hex.
-const BUCKET_LABEL = {
-  DONE: "Done",
-  DELEGATED: "Delegated",
-  IN_PROGRESS: "In Prog",
-  BLOCKED: "Blocked",
-  PENDING_FEEDBACK: "Feedback",
-  ON_HOLD: "On Hold",
-  NOT_STARTED: "Unstarted",
-};
+// Legend labels are the app-wide status names (STATUS_LABELS) — the same
+// words the status pill uses, so "Not Started" on a card and in a task row
+// are visibly the same thing. Colors come from the shared STATUS_COLORS.
+const BUCKET_LABEL = STATUS_LABELS;
 
 export default function TaskStatistics({ tasks = [] }) {
   const counts = getStatusCounts(tasks);

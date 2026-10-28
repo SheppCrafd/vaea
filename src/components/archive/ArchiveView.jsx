@@ -6,6 +6,8 @@ import QueryError from "@/components/shared/QueryError";
 import DateField from "@/components/shared/DateField";
 import Spinner from "@/components/shared/Spinner";
 import { QUADRANTS } from "@/lib/quadrants";
+import { useArchivedTaskGroups } from "@/hooks/useTasks";
+import ArchivedTaskList from "@/components/projects/ArchivedTaskList";
 
 // "Jun 1, 2026" — date-only strings ("2026-06-01") are read as local dates,
 // not UTC midnight, so they don't slip back a day west of Greenwich.
@@ -34,6 +36,7 @@ export default function ArchiveView() {
   const restoreProject = useRestoreProject();
   const { data: selectedProject } = useProject(selectedProjectId);
   const archivedProjects = data?.projects || [];
+  const { data: taskGroups = [], isLoading: taskGroupsLoading } = useArchivedTaskGroups();
 
   return (
     <div>
@@ -55,7 +58,8 @@ export default function ArchiveView() {
           : "Showing archived projects. Pick dates to see everything that was active in that window."}
       </p>
 
-      <div className="space-y-3 mt-4">
+      <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mt-4">Projects</h2>
+      <div className="space-y-3 mt-2">
         {isLoading ? (
           <div className="flex justify-center py-10"><Spinner className="w-6 h-6" /></div>
         ) : isError ? (
@@ -64,7 +68,7 @@ export default function ArchiveView() {
           <p className="text-sm text-muted-foreground">
             {startIso || endIso
               ? "No projects were active in that window."
-              : "Nothing archived yet. Archive a project from its expanded view and it moves here, where you can restore it any time."}
+              : "No archived projects. Archive a project from its expanded view and it moves here, where you can restore it any time."}
           </p>
         ) : (
           archivedProjects.map((item) => (
@@ -103,6 +107,30 @@ export default function ArchiveView() {
                 </button>
               )}
             </div>
+          ))
+        )}
+      </div>
+
+      {/* Archived tasks live with their projects (ArchivedTaskList in the
+          project's expanded view); they're gathered here too, so the one
+          place called Archive holds everything you've archived. Same
+          component, so restore/edit/delete work exactly as they do there. */}
+      <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mt-8">Tasks</h2>
+      <div className="space-y-4 mt-2">
+        {taskGroupsLoading ? (
+          <div className="flex justify-center py-6"><Spinner className="w-5 h-5" /></div>
+        ) : taskGroups.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No archived tasks. Archive a task from a project's task list (or use Clear Done) and it moves here.
+          </p>
+        ) : (
+          taskGroups.map(({ project, count }) => (
+            <section key={project.id} aria-label={`Archived tasks in ${project.title}`}>
+              <p className="text-sm font-medium mb-1.5">
+                {project.title} <span className="text-xs font-normal text-muted-foreground">· {count}</span>
+              </p>
+              <ArchivedTaskList projectId={project.id} />
+            </section>
           ))
         )}
       </div>

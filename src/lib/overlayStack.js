@@ -14,12 +14,23 @@
 // handlers only act if they're currently on top.
 let stack = [];
 
+// Mirrors "is any overlay open" onto <body data-overlay="open"> so plain CSS
+// can react — the floating chat button hides under it on a phone, where it
+// otherwise sits on top of a modal's footer buttons (ChatLauncherButton).
+function syncBodyFlag() {
+  if (typeof document === "undefined") return;
+  if (stack.length) document.body.dataset.overlay = "open";
+  else delete document.body.dataset.overlay;
+}
+
 export function pushOverlay(id) {
   stack.push(id);
+  syncBodyFlag();
 }
 
 export function popOverlay(id) {
   stack = stack.filter((x) => x !== id);
+  syncBodyFlag();
 }
 
 export function isTopOverlay(id) {

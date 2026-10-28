@@ -8,6 +8,12 @@ import { pushOverlay, popOverlay, isTopOverlay } from "@/lib/overlayStack";
 export const FOCUSABLE_SELECTOR =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+const TEXT_INPUT_TYPES = new Set(["", "text", "search", "email", "url", "tel", "number", "password"]);
+function isTextEntry(el) {
+  if (el.isContentEditable || el.tagName === "TEXTAREA") return true;
+  return el.tagName === "INPUT" && TEXT_INPUT_TYPES.has((el.getAttribute("type") || "").toLowerCase());
+}
+
 // Shared keyboard/focus behavior for any full-screen overlay that behaves
 // modally — a centered form modal, a full-screen detail view, or a
 // positioned popover with its own click-away backdrop. None of this app's
@@ -43,6 +49,18 @@ export function useDialogA11y({ isOpen, onClose, containerRef }) {
   }
   wasOpenRef.current = isOpen;
 
+  // The latest onClose, read at keypress time. It must NOT be an effect
+  // dependency: callers pass inline arrows, so it's a new function on every
+  // parent render, and re-running the effect below meant its cleanup
+  // (return focus to the trigger) and setup (focus the first control) fired
+  // mid-dialog. Every save behind an open modal re-renders the parent, so
+  // adding a task with Enter threw focus onto the Close button, and the next
+  // Enter closed the modal. It also re-pushed this dialog above any popover
+  // opened inside it, so Escape closed the wrong layer. The effect now runs
+  // once on open and once on close, which is what its cleanup assumes.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -62,14 +80,18 @@ export function useDialogA11y({ isOpen, onClose, containerRef }) {
       const root = containerRef.current;
       if (!root || root.contains(document.activeElement)) return; // an autoFocus input already claimed it
       const first = root.querySelector(FOCUSABLE_SELECTOR);
-      (first || root).focus();
+      // A text field nobody asked to autofocus (a detail modal's editable
+      // title) is the wrong first stop: on a phone it pops the keyboard the
+      // moment the modal opens, and it scrolls a long title to its end.
+      // Focus the panel instead (it's tabIndex=-1); Tab reaches the field.
+      (first && !isTextEntry(first) ? first : root).focus();
     });
 
     const handleKeyDown = (e) => {
       if (e.key === "Escape") {
         if (!isTopOverlay(id)) return; // a nested overlay is on top; let its own handler take this
         e.preventDefault();
-        onClose();
+        onCloseRef.current?.();
         return;
       }
       if (e.key !== "Tab") return;
@@ -79,6 +101,12 @@ export function useDialogA11y({ isOpen, onClose, containerRef }) {
       if (!focusables.length) return;
       const first = focusables[0];
       const last = focusables[focusables.length - 1];
+      // Focus is on the panel itself (see the initial-focus rule above).
+      if (document.activeElement === root) {
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+        return;
+      }
       if (e.shiftKey && document.activeElement === first) {
         e.preventDefault();
         last.focus();
@@ -98,5 +126,6 @@ export function useDialogA11y({ isOpen, onClose, containerRef }) {
       // removal happened to drop it (usually document.body).
       triggerRef.current?.focus?.();
     };
-  }, [isOpen, onClose, containerRef]);
+    // containerRef is a ref object (stable); onClose is read via onCloseRef.
+  }, [isOpen, containerRef]);
 }

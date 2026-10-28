@@ -175,6 +175,7 @@ export default function NotepadModal({ onClose }) {
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) addNote(); }}
           placeholder="Jot something down… (⌘/Ctrl + Enter to add)"
+          autoFocus
           rows={2}
           className="flex-1 text-sm bg-background border border-input rounded-md px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
         />

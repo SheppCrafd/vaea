@@ -49,8 +49,8 @@ export default function BackupRestoreSection() {
           // no way to tell what state the data was actually left in.
           toast({
             variant: "destructive",
-            title: "Restore failed",
-            description: error?.message || "Something went wrong restoring this backup — your data may be unchanged, but double-check before assuming the restore happened.",
+            title: "Backup not restored",
+            description: error?.message || "The restore stopped partway. Check your board before relying on it.",
           });
         } finally {
           setRestoringId(null);

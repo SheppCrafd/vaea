@@ -172,6 +172,7 @@ export function useCreateProject() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: createProject,
+    meta: { errorTitle: "Couldn't create project" },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["projects"] }),
   });
 }

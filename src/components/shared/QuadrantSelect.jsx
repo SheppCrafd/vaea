@@ -12,7 +12,9 @@ export default function QuadrantSelect({ value, onChange, ariaLabel, className =
     <Select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className={`text-[10px] px-1 py-0.5 ${className}`}
+      // Fixed width: compact everywhere (it filled whole cards in the archive
+      // list), and steady when the chosen option changes length.
+      className={`w-36 shrink-0 text-[10px] px-1 py-0.5 ${className}`}
       aria-label={ariaLabel}
     >
       <QuadrantOptions />

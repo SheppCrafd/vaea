@@ -120,7 +120,7 @@ export default function ProductDetailModal({ product, onClose }) {
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">Projects</p>
             {projects.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No projects yet.</p>
+              <p className="text-sm text-muted-foreground">No projects yet. Add one with the + on this product's card.</p>
             ) : (
               <div className="flex flex-col gap-3">
                 {projects.map((project) => (
@@ -141,7 +141,7 @@ export default function ProductDetailModal({ product, onClose }) {
                   }
                 )
               }
-              label="Delete product"
+              label="Delete Product"
               showLabel
               size="md"
               className="-mx-3"

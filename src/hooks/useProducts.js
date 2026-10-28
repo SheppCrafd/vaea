@@ -75,6 +75,7 @@ export function useCreateProduct() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: createProduct,
+    meta: { errorTitle: "Couldn't create product" },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["products"] }),
   });
 }

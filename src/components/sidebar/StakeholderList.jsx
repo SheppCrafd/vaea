@@ -24,7 +24,7 @@ function HighlightCheckbox({ category, count, isChecked, onToggle, stakeholderNa
   const label = category.charAt(0).toUpperCase() + category.slice(1);
   return (
     <label
-      className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border cursor-pointer select-none transition-colors ${
+      className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border cursor-pointer select-none transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-offset-1 ${
       isChecked ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border"}`
       }
       title={`Highlight ${category} ${stakeholderName} is on`}>

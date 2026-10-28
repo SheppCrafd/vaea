@@ -1,6 +1,5 @@
 import { useAllTasks, useUpdateTask, useToggleTopThree, useDeleteTask } from "@/hooks/useTasks";
 import { useProjects } from "@/hooks/useProjects";
-import { useToast } from "@/components/ui/use-toast";
 import { useHighlight } from "@/lib/HighlightContext";
 import { isHighlightMatch } from "@/hooks/useHighlightDim";
 import { confirmThen } from "@/lib/entityUtils";
@@ -28,7 +27,6 @@ export default function FocusFeed() {
   const updateTask = useUpdateTask();
   const toggleTopThree = useToggleTopThree();
   const deleteTask = useDeleteTask();
-  const { toast } = useToast();
   const { highlights } = useHighlight();
 
   if (tasksError) {
@@ -59,18 +57,8 @@ export default function FocusFeed() {
   // Promote: through the cap-aware toggle, so the 3-per-project limit holds
   // here the same as in the task table. The weekly flag stays set — if the
   // task later leaves Today, it falls back into This Week on its own.
-  const moveToToday = (task) =>
-    toggleTopThree.mutate(
-      { id: task.id, project_id: task.project_id },
-      {
-        onError: (err) =>
-          toast({
-            variant: "destructive",
-            title: "Can't add to Today",
-            description: err?.response?.data?.error || "Only 3 tasks can be pinned per project.",
-          }),
-      }
-    );
+  // A full Top 3 is reported by the global mutation toast (query-client.js).
+  const moveToToday = (task) => toggleTopThree.mutate({ id: task.id, project_id: task.project_id });
 
   const rowProps = (task) => ({
     task,
@@ -97,9 +85,11 @@ export default function FocusFeed() {
       )}
 
       <div>
-        <SectionHead label="Today" count={topThree.length} />
+        <SectionHead label="Top 3" count={topThree.length} />
         {topThree.length === 0 ? (
-          <p className="px-2 text-xs text-muted-foreground">Nothing pinned for today. Move something up from This Week.</p>
+          <p className="px-2 text-xs text-muted-foreground">
+            Your most important tasks for today, up to 3 per project. Move one up from This Week, or star it in a task list.
+          </p>
         ) : (
           <ul>
             {topThree.map((task) => (
@@ -118,7 +108,9 @@ export default function FocusFeed() {
       <div>
         <SectionHead label="This Week" count={weeklyFocus.length} />
         {weeklyFocus.length === 0 ? (
-          <p className="px-2 text-xs text-muted-foreground">No focus set for the week yet.</p>
+          <p className="px-2 text-xs text-muted-foreground">
+            What you mean to get to this week. Tick This Week on any task to add it here.
+          </p>
         ) : (
           <ul>
             {weeklyFocus.map((task) => (

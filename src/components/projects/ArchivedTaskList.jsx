@@ -22,7 +22,7 @@ export default function ArchivedTaskList({ projectId }) {
   const deleteTask = useDeleteTask();
 
   if (isLoading) return <div className="flex justify-center p-4"><Spinner className="w-5 h-5" /></div>;
-  if (tasks.length === 0) return <p className="text-xs text-muted-foreground p-2">No archived tasks.</p>;
+  if (tasks.length === 0) return <p className="text-xs text-muted-foreground p-2">No archived tasks. Archived tasks land here, where you can restore them.</p>;
 
   const handleDelete = (task) => {
     confirmThen(`Delete task "${task.description}"? This cannot be undone.`, () => deleteTask.mutate(task.id));
@@ -57,7 +57,7 @@ export default function ArchivedTaskList({ projectId }) {
               value={task.quadrant ?? ""}
               onChange={(v) => updateTask.mutate({ id: task.id, data: { quadrant: v === "" ? null : Number(v) } })}
               className="bg-transparent"
-              ariaLabel={`Quadrant for task ${task.id}`}
+              ariaLabel={`Quadrant for "${task.description || "untitled task"}"`}
             />
             <StakeholderAssigner
               currentStakeholderIds={task.stakeholder_ids || []}

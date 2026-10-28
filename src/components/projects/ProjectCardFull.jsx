@@ -154,6 +154,7 @@ function LinksCorner({ links, onSave }) {
           />
           <div className="flex items-center gap-1">
             <input
+              autoFocus
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://..."
@@ -324,10 +325,13 @@ function ProjectCardFull({ project, stakeholderIds = [] }) {
           the row's baseline. The quadrant box keeps its natural 64px square
           size rather than stretching to a tall rectangle: bottom-aligned only,
           never top-pinned (see the backlog regression note). */}
-      <div className="mt-2 flex items-end gap-3 pl-5 pr-1">
+      {/* flex-wrap + a floor on the notes column: on a narrow card (a phone,
+          or a product modal) the owner/date column drops onto its own line
+          instead of running off the card's right edge. */}
+      <div className="mt-2 flex flex-wrap items-end gap-3 pl-5 pr-1">
         <QuadrantGrid quadrants={quadrants} onOpen={() => setIsTableOpen(true)} size="full" />
 
-        <div className="flex-1 text-center min-w-0 flex flex-col gap-1">
+        <div className="flex-1 text-center min-w-[9rem] flex flex-col gap-1">
           <NoteBox
             title="Risks"
             notes={riskNotes}
@@ -348,7 +352,7 @@ function ProjectCardFull({ project, stakeholderIds = [] }) {
           </div>
         </div>
 
-        <div className="text-right shrink-0 min-w-[85px] select-none flex flex-col items-end justify-end gap-1">
+        <div className="ml-auto text-right shrink-0 min-w-[85px] select-none flex flex-col items-end justify-end gap-1">
           <EditableText
             value={project.owner_name}
             onSave={(v) => updateProject.mutate({ id: project.id, data: { owner_name: v } })}

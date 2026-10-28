@@ -5,7 +5,6 @@ import { useAreas } from "@/hooks/useAreas";
 import { useProducts } from "@/hooks/useProducts";
 import { useCreateProject } from "@/hooks/useProjects";
 import { useStakeholders } from "@/hooks/useStakeholders";
-import { useToast } from "@/components/ui/use-toast";
 import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
 import DateField from "@/components/shared/DateField";
 import FormField from "@/components/shared/FormField";
@@ -26,7 +25,6 @@ export default function ProjectForm({ onDone, prefill = null }) {
   const { data: products = [] } = useProducts();
   const { data: allStakeholders = [] } = useStakeholders();
   const createProject = useCreateProject();
-  const { toast } = useToast();
 
   const availableProducts = products.filter((p) => p.parent_area_id === areaId);
 
@@ -43,16 +41,8 @@ export default function ProjectForm({ onDone, prefill = null }) {
     if (ownerName.trim()) payload.owner_name = ownerName.trim();
     if (dueDate) payload.due_date = dueDate;
     if (stakeholderIds.length) payload.stakeholder_ids = stakeholderIds;
-    createProject.mutate(payload, {
-      onSuccess: () => onDone?.(),
-      onError: (err) => {
-        toast({
-          variant: "destructive",
-          title: "Couldn't create project",
-          description: err?.message || "Something went wrong — try again.",
-        });
-      },
-    });
+    // A failure is shown by the global mutation toast (query-client.js).
+    createProject.mutate(payload, { onSuccess: () => onDone?.() });
   };
 
   return (

@@ -19,7 +19,7 @@ export default function OAuthCallbackPage({ Icon, message, connect }) {
         await connect(new URLSearchParams(window.location.search));
         navigate("/app/settings", { replace: true });
       } catch (err) {
-        setError(err.message || "Something went wrong.");
+        setError(err.message || "The account wasn't connected. Go back to Settings and try connecting again.");
       }
     })();
     // `connect` is a per-page constant; re-running on identity changes would

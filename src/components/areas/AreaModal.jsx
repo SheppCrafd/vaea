@@ -62,7 +62,7 @@ export default function AreaModal({ area, onClose }) {
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close" className="shrink-0 -mr-1.5 -mt-1.5"><X className="w-5 h-5" /></Button>
         </div>
 
-        <div className="p-6 max-w-5xl mx-auto">
+        <div className="p-4 sm:p-6 max-w-5xl mx-auto">
           <div className="mb-6">
             <CustomFieldsSection
               entity={liveArea}
@@ -77,7 +77,9 @@ export default function AreaModal({ area, onClose }) {
               <p className="text-sm">No products or projects yet. Click "Create New" to add one to this area.</p>
             </div>
           ) : (
-            <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(420px, 1fr))" }}>
+            <div className="grid gap-5" // min(420px, 100%): one full-width column on a phone instead of a
+              // 420px column clipped by a 375px screen.
+              style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(420px, 100%), 1fr))" }}>
               {products.map((product) => (
                 <ProductCard key={product.id} product={product} forceFullProjects />
               ))}

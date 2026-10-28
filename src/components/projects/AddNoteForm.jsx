@@ -55,14 +55,15 @@ export default function AddNoteForm({ projectId, allStakeholders = [], defaultTy
           className="flex-1 text-xs px-2 py-1.5 bg-background border border-input rounded outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
       </div>
-      <div className="flex items-center gap-2">
+      {/* Wraps on a narrow screen: the three controls overlapped at phone width. */}
+      <div className="flex flex-wrap items-center gap-2">
         <input
           value={reporter}
           onChange={(e) => setReporter(e.target.value)}
           placeholder="Raised by (optional)"
           aria-label="Raised by"
           title="Who raised this. Optional."
-          className="flex-1 text-xs px-2 py-1.5 bg-background border border-input rounded outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex-1 min-w-[9rem] text-xs px-2 py-1.5 bg-background border border-input rounded outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
         <StakeholderAssigner
           currentStakeholderIds={stakeholderIds}

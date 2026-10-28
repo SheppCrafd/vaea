@@ -22,7 +22,7 @@ export default function FocusTaskRow({
 }) {
   const [open, setOpen] = useState(false);
 
-  const moveLabel = direction === "promote" ? "Move to Today" : "Move to This Week";
+  const moveLabel = direction === "promote" ? "Move to Top 3" : "Move to This Week";
   const MoveIcon = direction === "promote" ? ArrowUp : ArrowDown;
 
   return (

@@ -8,10 +8,11 @@ import { Select } from "@/components/ui/select";
 import { useTasks, useCreateTask, useUpdateTask, useToggleTopThree, useDeleteTask } from "@/hooks/useTasks";
 import { useStakeholders } from "@/hooks/useStakeholders";
 import { useToast } from "@/components/ui/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { useHighlight } from "@/lib/HighlightContext";
 import { isHighlightMatch } from "@/hooks/useHighlightDim";
 import { confirmThen } from "@/lib/entityUtils";
-import { isTaskDone, STATUS_COLORS } from "@/lib/taskUtils";
+import { isTaskDone, STATUS_COLORS, statusLabel } from "@/lib/taskUtils";
 import StatusDropdown, { DEFAULT_STATUSES } from "@/components/projects/StatusDropdown";
 import TaskAttachments from "@/components/projects/TaskAttachments";
 import EditableText from "@/components/shared/EditableText";
@@ -26,7 +27,7 @@ const QUADRANT_OPTIONS = [
   ...QUADRANTS.map((q) => ({ value: String(q.value), label: quadrantLabel(q.value) })),
   { value: "unassigned", label: "No quadrant" },
 ];
-const STATUS_FILTER_OPTIONS = DEFAULT_STATUSES.map((s) => ({ value: s, label: s.replace(/_/g, " ") }));
+const STATUS_FILTER_OPTIONS = DEFAULT_STATUSES.map((s) => ({ value: s, label: statusLabel(s) }));
 
 const EMPTY_FILTERS = {
   description: "",
@@ -133,7 +134,7 @@ function TaskDescriptionField({ task, navigate, updateTask }) {
   );
 }
 
-function TaskRow({ task, allStakeholders, isMatched, updateTask, onToggleTopThree, onDelete }) {
+function TaskRow({ task, allStakeholders, isMatched, updateTask, onToggleTopThree, onDelete, onArchive }) {
   const navigate = useNavigate();
   const { setNodeRef, isOver } = useDroppable({
     id: `task-drop-${task.id}`,
@@ -158,7 +159,8 @@ function TaskRow({ task, allStakeholders, isMatched, updateTask, onToggleTopThre
               into one label; the select + toggle buttons below are what edit
               those same two underlying fields (quadrant, H/Q flags). */}
           <span className="text-xs font-semibold tabular-nums w-6 shrink-0" title={`${quadrantLabel(task.quadrant)}${task.is_highly_important ? " · H = high importance" : ""}${task.is_quick_task ? " · Q = quick task" : ""}`}>
-            {task.quadrant ?? "—"}
+            {/* Blank, not "—", when unset: the select beside it already says "No quadrant". */}
+            {task.quadrant ?? ""}
             {task.is_highly_important ? "H" : ""}
             {task.is_quick_task ? "Q" : ""}
           </span>
@@ -166,7 +168,7 @@ function TaskRow({ task, allStakeholders, isMatched, updateTask, onToggleTopThre
             value={task.quadrant ?? ""}
             onChange={(v) => updateTask.mutate({ id: task.id, data: { quadrant: v === "" ? null : Number(v) } })}
             className="bg-transparent"
-            ariaLabel={`Quadrant for task ${task.id}`}
+            ariaLabel={`Quadrant for "${task.description || "untitled task"}"`}
           />
           <FlagToggleButton
             active={task.is_highly_important}
@@ -211,11 +213,17 @@ function TaskRow({ task, allStakeholders, isMatched, updateTask, onToggleTopThre
         <Checkbox
           checked={!!task.is_weekly_focus}
           onCheckedChange={(v) => updateTask.mutate({ id: task.id, data: { is_weekly_focus: v } })}
-          aria-label="Weekly focus"
+          aria-label="This Week"
+          title="Show on This Week in the focus list"
         />
       </td>
       <td className="p-2 text-center">
-        <button onClick={() => onToggleTopThree(task)} aria-label="Toggle top 3" className="p-1 -m-1 rounded hover:bg-accent transition-colors">
+        <button
+          onClick={() => onToggleTopThree(task)}
+          aria-label={task.is_today_top_three ? "Remove from Top 3" : "Add to Top 3"}
+          aria-pressed={!!task.is_today_top_three}
+          title={task.is_today_top_three ? "Remove from Top 3" : "Add to Top 3 (up to 3 per project)"}
+          className="p-1 -m-1 rounded hover:bg-accent transition-colors">
           <Star className={`w-4 h-4 ${task.is_today_top_three ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`} />
         </button>
       </td>
@@ -229,7 +237,7 @@ function TaskRow({ task, allStakeholders, isMatched, updateTask, onToggleTopThre
         >
           <Sparkles className="w-3.5 h-3.5" />
         </button>
-        <button onClick={() => updateTask.mutate({ id: task.id, data: { archived_at: new Date().toISOString() } })} aria-label="Archive task" className="p-1 -m-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+        <button onClick={() => onArchive(task)} aria-label="Archive task" title="Archive task (restore it from View Archive)" className="p-1 -m-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
           <Archive className="w-4 h-4" />
         </button>
         <DeleteButton onClick={() => onDelete(task)} label="Delete task" className="-m-1" />
@@ -251,6 +259,26 @@ export default function TaskTable({ project }) {
   const handleDelete = (task) => {
     confirmThen(`Delete task "${task.description}"? This cannot be undone.`, () => deleteTask.mutate(task.id));
   };
+
+  // Archiving takes the row out of the table, so say where it went and
+  // offer the one-click way back. Without this the row just vanished.
+  const archiveTasks = (list) => {
+    const at = new Date().toISOString();
+    list.forEach((t) => updateTask.mutate({ id: t.id, data: { archived_at: at } }));
+    toast({
+      title: list.length === 1 ? "Task archived" : `${list.length} tasks archived`,
+      description: list.length === 1 ? list[0].description : "Find them in View Archive.",
+      action: (
+        <ToastAction
+          altText={list.length === 1 ? "Undo archiving this task" : "Undo archiving these tasks"}
+          onClick={() => list.forEach((t) => updateTask.mutate({ id: t.id, data: { archived_at: null } }))}
+        >
+          Undo
+        </ToastAction>
+      ),
+    });
+  };
+  const handleArchive = (task) => archiveTasks([task]);
 
   // Default view is sorted by Quadrant, per direct user request.
   const [sortColumn, setSortColumn] = useState("quadrant");
@@ -319,8 +347,8 @@ export default function TaskTable({ project }) {
       if (topThreeCount >= 3) {
         toast({
           variant: "destructive",
-          title: "Can't add to Top 3",
-          description: "Only 3 top-three tasks are allowed per project — the task was created without it.",
+          title: "Top 3 is full",
+          description: "The task was added, but not to the Top 3. This project already has 3 there.",
         });
       } else {
         payload.is_today_top_three = true;
@@ -345,18 +373,8 @@ export default function TaskTable({ project }) {
   };
 
   const handleToggleTopThree = (task) => {
-    toggleTopThree.mutate(
-      { id: task.id, project_id: project.id },
-      {
-        onError: (err) => {
-          toast({
-            variant: "destructive",
-            title: "Can't add to Top 3",
-            description: err?.response?.data?.error || "Only 3 top-three tasks are allowed per project.",
-          });
-        },
-      }
-    );
+    // A full Top 3 is reported by the global mutation toast (query-client.js).
+    toggleTopThree.mutate({ id: task.id, project_id: project.id });
   };
 
   const isMatched = (task) => isHighlightMatch(highlights, "tasks", task.stakeholder_ids || []);
@@ -364,9 +382,9 @@ export default function TaskTable({ project }) {
   const doneTasks = tasks.filter((t) => isTaskDone(t) && !t.archived_at);
   const handleClearDone = () => {
     if (doneTasks.length === 0) return;
-    confirmThen(`Archive ${doneTasks.length} done task${doneTasks.length === 1 ? "" : "s"}? They'll still be viewable (and restorable) from Archived tasks.`, () => {
-      doneTasks.forEach((t) => updateTask.mutate({ id: t.id, data: { archived_at: new Date().toISOString() } }));
-    });
+    confirmThen(`Archive ${doneTasks.length} done task${doneTasks.length === 1 ? "" : "s"}? You can restore them from View Archive.`, () =>
+      archiveTasks(doneTasks),
+    );
   };
 
   return (
@@ -419,7 +437,7 @@ export default function TaskTable({ project }) {
             <ColumnHeader column="notes" label="Notes" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort}>
               <ColumnFilterMenu mode="text" text={filters.notes} onTextChange={(v) => setTextFilter("notes", v)} />
             </ColumnHeader>
-            <ColumnHeader column="weekly" label="Weekly" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort}>
+            <ColumnHeader column="weekly" label="This Week"sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort}>
               <ColumnFilterMenu mode="triState" triState={filters.weekly} onTriStateChange={(v) => setTriStateFilter("weekly", v)} />
             </ColumnHeader>
             <ColumnHeader column="top3" label="Top 3" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort}>
@@ -431,7 +449,11 @@ export default function TaskTable({ project }) {
         <tbody>
           {sortedTasks.length === 0 && (
             <tr>
-              <td className="p-2 text-muted-foreground text-center" colSpan={9}>No active tasks</td>
+              <td className="p-2 text-muted-foreground text-center" colSpan={9}>
+                {tasks.length > 0
+                  ? "No tasks match these filters. Clear a filter in the column headers to see them."
+                  : "No tasks yet. Type one in the row below and press Enter."}
+              </td>
             </tr>
           )}
           {(showAllRows ? sortedTasks : sortedTasks.slice(0, MAX_ROWS)).map((task) => (
@@ -443,6 +465,7 @@ export default function TaskTable({ project }) {
               updateTask={updateTask}
               onToggleTopThree={handleToggleTopThree}
               onDelete={handleDelete}
+              onArchive={handleArchive}
             />
           ))}
           {!showAllRows && sortedTasks.length > MAX_ROWS && (
@@ -480,12 +503,16 @@ export default function TaskTable({ project }) {
                 onChange={(e) => setNewStatus(e.target.value)}
                 className="text-[10px] px-1 py-0.5"
                 aria-label="Status for new task"
-                placeholder="—"
-                options={DEFAULT_STATUSES.map((s) => ({ value: s, label: s.replace(/_/g, " ") }))}
+                // Left empty, a new task starts as Not Started (createTask).
+                placeholder={statusLabel("NOT_STARTED")}
+                options={DEFAULT_STATUSES.map((s) => ({ value: s, label: statusLabel(s) }))}
               />
             </td>
             <td className="p-2">
-              <div className="flex items-center gap-1">
+              {/* Same layout as the rows above, including the code chip's
+                  w-6 slot, so the select and H/Q line up with theirs. */}
+              <div className="flex items-center justify-center gap-1">
+                <span className="w-6 shrink-0" aria-hidden="true" />
                 <QuadrantSelect
                   value={newQuadrant}
                   onChange={setNewQuadrant}
@@ -496,16 +523,16 @@ export default function TaskTable({ project }) {
                   active={newHighlyImportant}
                   onToggle={() => setNewHighlyImportant((v) => !v)}
                   label="H"
-                  title="Highly important"
-                  ariaLabel="Highly important for new task"
+                  title={`H: ${TASK_FLAGS.H.name}. ${TASK_FLAGS.H.hint}`}
+                  ariaLabel="Mark new task as high importance"
                   color="red"
                 />
                 <FlagToggleButton
                   active={newQuickTask}
                   onToggle={() => setNewQuickTask((v) => !v)}
                   label="Q"
-                  title="Quick task"
-                  ariaLabel="Quick task for new task"
+                  title={`Q: ${TASK_FLAGS.Q.name}. ${TASK_FLAGS.Q.hint}`}
+                  ariaLabel="Mark new task as a quick task"
                   color="blue"
                 />
               </div>
@@ -534,7 +561,7 @@ export default function TaskTable({ project }) {
               />
             </td>
             <td className="p-2 text-center">
-              <Checkbox checked={newWeekly} onCheckedChange={setNewWeekly} aria-label="Weekly focus for new task" />
+              <Checkbox checked={newWeekly} onCheckedChange={setNewWeekly} aria-label="This Week for new task" />
             </td>
             <td className="p-2 text-center">
               <button

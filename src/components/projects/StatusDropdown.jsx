@@ -1,6 +1,6 @@
 import { usePositionedMenu } from "@/hooks/usePositionedMenu";
 import PositionedPopover from "@/components/shared/PositionedPopover";
-import { STATUS_COLORS } from "@/lib/taskUtils";
+import { STATUS_COLORS, statusLabel } from "@/lib/taskUtils";
 
 export const DEFAULT_STATUSES = ["NOT_STARTED", "PENDING_FEEDBACK", "DELEGATED", "IN_PROGRESS", "ON_HOLD", "BLOCKED", "DONE", "DELEGATED_DONE"];
 
@@ -22,11 +22,10 @@ export default function StatusDropdown({ task, onStatusChange, statusOptions = D
     close();
   };
 
-  // Falls back for tasks created before createTask started defaulting status
-  // to NOT_STARTED — those existing records can still have status ===
-  // undefined, and .replace() on that crashed the whole app (no error
-  // boundary existed until this same investigation).
-  const label = (task.status || "NOT_STARTED").replace(/_/g, " ");
+  // statusLabel falls back to "Not Started" for records created before
+  // createTask defaulted a status (status === undefined).
+  const label = statusLabel(task.status);
+  const ariaLabel = `Status: ${label}. Change status`;
 
   return (
     <>
@@ -34,7 +33,7 @@ export default function StatusDropdown({ task, onStatusChange, statusOptions = D
         <button
           ref={triggerRef}
           onClick={toggle}
-          aria-label={`Status: ${label} — click to change`}
+          aria-label={ariaLabel}
           title={label}
           className="shrink-0 w-3 h-3 rounded-full border border-black/10 dark:border-white/20"
           style={{ backgroundColor: statusColor(task.status) }}
@@ -43,7 +42,7 @@ export default function StatusDropdown({ task, onStatusChange, statusOptions = D
         <button
           ref={triggerRef}
           onClick={toggle}
-          aria-label={`Status: ${label} — click to change`}
+          aria-label={ariaLabel}
           className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide px-2 py-1 rounded-full border border-border/60 capitalize whitespace-nowrap"
           style={{ backgroundColor: `${statusColor(task.status)}22` }}
         >
@@ -54,8 +53,14 @@ export default function StatusDropdown({ task, onStatusChange, statusOptions = D
         <button
           ref={triggerRef}
           onClick={toggle}
-          className="text-[10px] px-2 py-1 rounded-full bg-secondary text-secondary-foreground border border-border capitalize whitespace-nowrap"
+          aria-label={ariaLabel}
+          className="inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-full bg-secondary text-secondary-foreground border border-border whitespace-nowrap hover:bg-accent transition-colors"
         >
+          <span
+            aria-hidden="true"
+            className="w-2 h-2 rounded-full shrink-0 border border-black/10 dark:border-white/20"
+            style={{ backgroundColor: statusColor(task.status) }}
+          />
           {label}
         </button>
       )}
@@ -78,7 +83,7 @@ export default function StatusDropdown({ task, onStatusChange, statusOptions = D
               className="shrink-0 w-2.5 h-2.5 rounded-full border border-black/10 dark:border-white/20"
               style={{ backgroundColor: statusColor(status) }}
             />
-            {status.replace(/_/g, " ")}
+            {statusLabel(status)}
           </button>
         ))}
       </PositionedPopover>

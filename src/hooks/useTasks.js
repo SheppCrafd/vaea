@@ -47,6 +47,38 @@ export function useArchivedTasks(projectId) {
   });
 }
 
+// Archived tasks across every project that still exists, grouped by
+// project, for the global Archive view: [{ project: {id, title}, count }],
+// most recently archived first. Keyed under "archivedTasks" so
+// useUpdateTask's existing invalidation (archive, restore, edit) refreshes
+// it too.
+export async function fetchArchivedTaskGroups() {
+  const [tasks, projects] = await Promise.all([localDb.tasks.list(), localDb.projects.list()]);
+  const live = excludeSoftDeleted(projects);
+  const byId = new Map(live.map((p) => [p.id, p]));
+  const archived = requireLiveParent(
+    tasks.filter((t) => isTaskArchived(t) && !isTaskDeleted(t)),
+    "project_id",
+    new Set(byId.keys()),
+  );
+  const groups = new Map();
+  for (const t of archived) {
+    const g = groups.get(t.project_id) || { project: { id: t.project_id, title: byId.get(t.project_id)?.title || "Untitled project" }, count: 0, latest: "" };
+    g.count++;
+    if ((t.archived_at || "") > g.latest) g.latest = t.archived_at || "";
+    groups.set(t.project_id, g);
+  }
+  return [...groups.values()].sort((a, b) => (a.latest < b.latest ? 1 : -1));
+}
+
+export function useArchivedTaskGroups() {
+  return useQuery({
+    queryKey: ["archivedTasks", "all"],
+    queryFn: fetchArchivedTaskGroups,
+    staleTime: Infinity,
+  });
+}
+
 // A plain exported function, not just inlined in useAllTasks's queryFn below
 // — same reason createTask/deleteTask/etc. already are: directly testable
 // without needing to render the hook.
@@ -132,7 +164,11 @@ export async function toggleTopThree({ id }) {
     const projectTasks = await localDb.tasks.filter({ project_id: task.project_id, is_today_top_three: true });
     const otherTopThree = projectTasks.filter((t) => t.id !== id);
     if (otherTopThree.length >= 3) {
-      throw new Error('Only 3 "Top 3" tasks are allowed per project');
+      // `title` is picked up by the global mutation toast (query-client.js).
+      throw Object.assign(
+        new Error("This project already has 3 tasks in its Top 3. Take one out, then add this one."),
+        { title: "Top 3 is full" },
+      );
     }
   }
   return localDb.tasks.update(id, { is_today_top_three: nextValue });
@@ -142,6 +178,7 @@ export function useCreateTask() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: createTask,
+    meta: { errorTitle: "Couldn't add task" },
     onSuccess: (_, variables) => {
       // Invalidate both general task lists and the active project's tasks
       queryClient.invalidateQueries({ queryKey: ["tasks"] });

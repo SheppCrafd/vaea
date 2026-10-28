@@ -199,7 +199,7 @@ export default function VaultSetupGuidePage() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-6 py-10">
+      <div className="max-w-2xl mx-auto px-6 pt-10 pb-28">
         {/* Hero */}
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
           Optional · your own Obsidian + GitHub vault
