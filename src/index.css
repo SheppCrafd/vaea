@@ -346,5 +346,17 @@
   .chat-step-reveal {
     animation: none;
   }
+  /* Everything else (modal zoom-ins from tailwindcss-animate, spinners,
+     pulses, hover lifts) settles at once instead of moving. Near-zero
+     rather than none, so animationend/transitionend still fire and
+     anything waiting on them (Radix's exit animations) still finishes. */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 

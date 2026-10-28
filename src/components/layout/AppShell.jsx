@@ -217,23 +217,27 @@ export default function AppShell({ children }) {
           </>
         )}
 
-        {/* Notepad sits just above View Archive — a colourful accent pill so
+        {/* Icon-only below lg (tablets, 200% zoom): with labels the two pills
+            covered a real share of the board on a short screen.
+            Notepad sits just above View Archive — a colourful accent pill so
             it reads as the "capture" action, not another neutral utility. */}
         <button
           onClick={() => setIsNotepadOpen(true)}
           aria-label="Open notepad"
-          className="fixed bottom-[5.25rem] left-6 z-40 flex items-center gap-2 p-3.5 sm:px-5 sm:py-3 rounded-full text-sm font-medium text-primary-foreground bg-gradient-to-br from-primary to-primary/70 shadow-[0_12px_32px_-12px_hsl(var(--primary)/0.7)] hover:shadow-[0_20px_44px_-14px_hsl(var(--primary)/0.8)] hover:-translate-y-1 transition-all duration-300"
+          title="Notepad"
+          className="fixed bottom-[5.25rem] left-6 z-40 flex items-center gap-2 p-3.5 lg:px-5 lg:py-3 rounded-full text-sm font-medium text-primary-foreground bg-gradient-to-br from-primary to-primary/70 shadow-[0_12px_32px_-12px_hsl(var(--primary)/0.7)] hover:shadow-[0_20px_44px_-14px_hsl(var(--primary)/0.8)] hover:-translate-y-1 transition-all duration-300"
         >
           <NotebookPen className="w-4 h-4" aria-hidden="true" />
-          <span className="hidden sm:inline">Notepad</span>
+          <span className="hidden lg:inline">Notepad</span>
         </button>
         <button
           onClick={() => setIsArchiveOpen(true)}
           aria-label="View archive"
-          className="fixed bottom-6 left-6 z-40 flex items-center gap-2 p-3.5 sm:px-5 sm:py-3 rounded-full bg-card/85 backdrop-blur-xl shadow-[0_0_0_1px_hsl(var(--foreground)/0.06),0_12px_32px_-12px_hsl(200_30%_12%/0.35)] hover:shadow-[0_0_0_1px_hsl(var(--foreground)/0.07),0_20px_44px_-14px_hsl(200_30%_12%/0.45)] hover:-translate-y-1 transition-all duration-300 text-sm font-medium text-foreground"
+          title="View archive"
+          className="fixed bottom-6 left-6 z-40 flex items-center gap-2 p-3.5 lg:px-5 lg:py-3 rounded-full bg-card/85 backdrop-blur-xl shadow-[0_0_0_1px_hsl(var(--foreground)/0.06),0_12px_32px_-12px_hsl(200_30%_12%/0.35)] hover:shadow-[0_0_0_1px_hsl(var(--foreground)/0.07),0_20px_44px_-14px_hsl(200_30%_12%/0.45)] hover:-translate-y-1 transition-all duration-300 text-sm font-medium text-foreground"
         >
           <Archive className="w-4 h-4" aria-hidden="true" />
-          <span className="hidden sm:inline">View Archive</span>
+          <span className="hidden lg:inline">View Archive</span>
         </button>
         {isNotepadOpen && <NotepadModal onClose={() => setIsNotepadOpen(false)} />}
         {isArchiveOpen && <ArchivePanel onClose={() => setIsArchiveOpen(false)} />}

@@ -5,8 +5,10 @@ import { useState, useEffect } from "react";
 // drops a closed toast from the list once its exit animation has finished.
 const TOAST_LIMIT = 3;
 const TOAST_REMOVE_DELAY = 1000;
-// Errors stay up longer than confirmations: they usually need reading.
-export const TOAST_DURATION = { default: 5000, destructive: 8000 };
+// Errors stay up longer than confirmations: they usually need reading. A
+// toast with an action (Undo) stays longest: it has to be read, found and
+// clicked. Hovering or focusing any toast pauses its timer (Radix).
+export const TOAST_DURATION = { default: 5000, destructive: 8000, action: 10000 };
 
 const actionTypes = {
   ADD_TOAST: "ADD_TOAST",
@@ -129,7 +131,7 @@ function toast({ ...props }) {
   dispatch({
     type: actionTypes.ADD_TOAST,
     toast: {
-      duration: TOAST_DURATION[props.variant] ?? TOAST_DURATION.default,
+      duration: props.action ? TOAST_DURATION.action : TOAST_DURATION[props.variant] ?? TOAST_DURATION.default,
       ...props,
       id,
       open: true,

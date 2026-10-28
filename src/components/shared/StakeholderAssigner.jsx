@@ -22,6 +22,11 @@ export default function StakeholderAssigner({
   // Safe subset for rendering the mini-avatars
   const assigned = allStakeholders.filter(s => currentStakeholderIds.includes(s.id));
   const showAddIcon = forceAddIcon || assigned.length === 0;
+  // The face pile names who is on it; a bare "Assign Stakeholders" hid that
+  // from screen readers (and from the hover title) once people were assigned.
+  const triggerLabel = assigned.length
+    ? `Stakeholders: ${assigned.map((s) => s.name).join(", ")}. Change stakeholders`
+    : "Assign Stakeholders";
 
   return (
     <>
@@ -31,8 +36,8 @@ export default function StakeholderAssigner({
         ref={triggerRef}
         className="flex items-center cursor-pointer hover:opacity-80 transition-opacity min-h-[24px] min-w-[24px] bg-transparent border-0 p-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
         onClick={toggle}
-        title="Assign Stakeholders"
-        aria-label="Assign Stakeholders"
+        title={triggerLabel}
+        aria-label={triggerLabel}
         aria-haspopup="true"
         aria-expanded={isOpen}
       >

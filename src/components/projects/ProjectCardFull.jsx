@@ -266,6 +266,8 @@ function ProjectCardFull({ project, stakeholderIds = [] }) {
         <div
           {...attributes}
           {...listeners}
+          aria-label="Drag to reorder project"
+          title="Drag to reorder"
           className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground hover:bg-accent p-1.5 rounded-md transition-colors"
         >
           <GripVertical className="w-4 h-4" />

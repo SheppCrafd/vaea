@@ -95,6 +95,8 @@ function ProjectCard({ project, stakeholderIds = [] }) {
         <div
           {...attributes}
           {...listeners}
+          aria-label="Drag to reorder project"
+          title="Drag to reorder"
           className="shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-0.5"
         >
           <GripVertical className="w-3 h-3" />
