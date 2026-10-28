@@ -74,9 +74,9 @@ export default function CommandPalette() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, openPalette, closePalette]);
 
-  // Escape, Tab-trap, initial focus (lands on the search input — it's the
-  // panel's only focusable element until results render), and focus-restore
-  // on close are all handled by the same shared hook every Modal.jsx dialog
+  // Initial focus on the search input comes from its autoFocus (the hook
+  // deliberately won't put focus in a text field on its own). Escape,
+  // Tab-trap and focus-restore on close are all handled by the same shared hook every Modal.jsx dialog
   // uses, including registering on overlayStack so a nested Modal opened
   // from a quick action takes priority over this one.
   useDialogA11y({ isOpen, onClose: closePalette, containerRef: panelRef });
@@ -228,6 +228,7 @@ export default function CommandPalette() {
               aria-label="Search areas, products, projects, tasks, stakeholders — or run a quick action"
               className="flex-1 bg-transparent text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring rounded placeholder:text-muted-foreground"
               autoComplete="off"
+              autoFocus
             />
             <kbd className="shrink-0 text-[10px] font-mono text-muted-foreground border border-border rounded px-1.5 py-0.5">Esc</kbd>
           </div>

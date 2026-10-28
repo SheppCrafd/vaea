@@ -85,7 +85,9 @@ export default function FocusFeed() {
       )}
 
       <div>
-        <SectionHead label="Top 3" count={topThree.length} />
+        {/* "per project": the cap is 3 per project, so this list can hold
+            more than 3 — a bare "Top 3" over 6 tasks read as a bug. */}
+        <SectionHead label="Top 3 per project" count={topThree.length} />
         {topThree.length === 0 ? (
           <p className="px-2 text-xs text-muted-foreground">
             Your most important tasks for today, up to 3 per project. Move one up from This Week, or star it in a task list.

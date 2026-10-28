@@ -38,7 +38,15 @@ export default function CreateModal() {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={closeCreateModal} label="Create new" panelClassName="bg-card rounded-xl shadow-xl w-full max-w-md p-6">
+    // Top-anchored, not centred: the tabs hold forms of different heights,
+    // and a centred panel jumped up and down on every tab switch.
+    <Modal
+      isOpen={isOpen}
+      onClose={closeCreateModal}
+      label="Create new"
+      overlayClassName="fixed inset-0 bg-black/40 flex items-start justify-center p-4 pt-[12vh] z-50 overflow-y-auto"
+      panelClassName="bg-card rounded-xl shadow-xl w-full max-w-md p-6"
+    >
       <div className="flex items-center justify-between mb-4">
         <div className="flex gap-1.5 flex-wrap">
           {TYPES.map((t) => (
