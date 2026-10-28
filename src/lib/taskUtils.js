@@ -66,10 +66,10 @@ const STATUS_BUCKETS = [
 // surface-adaptive theme tokens. Shared so any consumer needing the same
 // color (e.g. a card face echoing "pending feedback" orange) has one source
 // of truth instead of a duplicated hex.
-// NOT_STARTED is the one exception: literal black is invisible against a
-// dark-mode card background, so it's the one bucket that does flip with the
-// theme, via the --status-not-started CSS var (black in :root, white in
-// .dark — see index.css) rather than a hardcoded hex.
+// NOT_STARTED is the one exception: a neutral grey (not black — a full black
+// bar read as "complete") that flips per theme so it stays visible on both
+// card surfaces, via the --status-not-started CSS var (light grey in :root,
+// darker grey in .dark — see index.css) rather than a hardcoded hex.
 export const STATUS_COLORS = {
   DONE: "#86E7B0",
   DELEGATED: "#93C5FD",

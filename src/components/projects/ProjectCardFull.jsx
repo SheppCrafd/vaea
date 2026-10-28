@@ -21,9 +21,10 @@ import { useHighlightMatch } from "@/hooks/useHighlightDim";
 import { useHighlight } from "@/lib/HighlightContext";
 import { useAppStore } from "@/lib/store";
 import { confirmThen, sanitizeHttpUrl } from "@/lib/entityUtils";
+import QuadrantGrid from "@/components/shared/QuadrantGrid";
 import EditableTitle from "@/components/shared/EditableTitle";
-import { filterActiveTasks, getQuadrantCounts, isTaskDone, STATUS_COLORS } from "@/lib/taskUtils";
-import { getDueDateColorClass, DUE_DATE_STATUS_OPTIONS } from "@/lib/projectUtils";
+import { filterActiveTasks, getQuadrantCounts, isTaskDone } from "@/lib/taskUtils";
+import { getDueDateColorClass, DUE_DATE_STATUS_SELECT_OPTIONS } from "@/lib/projectUtils";
 
 // Lazy: neither modal is needed until a user opens it from this card.
 const TaskTableModal = lazy(() => import("@/components/projects/TaskTableModal"));
@@ -324,48 +325,7 @@ function ProjectCardFull({ project, stakeholderIds = [] }) {
           size rather than stretching to a tall rectangle: bottom-aligned only,
           never top-pinned (see the backlog regression note). */}
       <div className="mt-2 flex items-end gap-3 pl-5 pr-1">
-        <button
-          onClick={() => setIsTableOpen(true)}
-          className="shrink-0 grid grid-cols-2 grid-rows-2 gap-1 border border-border rounded overflow-hidden w-16 h-16 text-sm z-20 select-none"
-          title="Open Task Table"
-          // The per-cell color coding (this week's focus vs. a highlighted
-          // stakeholder's task) has no other way to reach a screen reader —
-          // the whole quadrant grid is one button, not four — so its meaning
-          // gets folded into this one label rather than only living in color.
-          aria-label={`Open Task Table${
-            quadrants.some((q) => q.hasFocus) || quadrants.some((q) => q.hasHighlightedStakeholder)
-              ? ` — ${[
-                  quadrants.some((q) => q.hasFocus) && "includes this week's focus",
-                  quadrants.some((q) => q.hasHighlightedStakeholder) && "includes the highlighted stakeholder",
-                ]
-                  .filter(Boolean)
-                  .join(", ")}`
-              : ""
-          }`}
-        >
-          {quadrants.map((q) => (
-            <div
-              key={q.quadrant}
-              title={
-                q.hasHighlightedStakeholder
-                  ? "Includes the highlighted stakeholder"
-                  : q.hasFocus
-                  ? "Includes this week's focus"
-                  : undefined
-              }
-              className={`relative flex items-center justify-center transition-colors ${
-                q.hasHighlightedStakeholder
-                  ? "text-foreground font-bold"
-                  : q.hasFocus
-                  ? "bg-green-800 text-white font-bold"
-                  : "bg-muted/40 text-muted-foreground"
-              }`}
-              style={q.hasHighlightedStakeholder ? { backgroundColor: STATUS_COLORS.DONE } : undefined}
-            >
-              {q.count}
-            </div>
-          ))}
-        </button>
+        <QuadrantGrid quadrants={quadrants} onOpen={() => setIsTableOpen(true)} size="full" />
 
         <div className="flex-1 text-center min-w-0 flex flex-col gap-1">
           <NoteBox
@@ -410,7 +370,8 @@ function ProjectCardFull({ project, stakeholderIds = [] }) {
             onChange={(e) => updateProject.mutate({ id: project.id, data: { due_date_status: e.target.value } })}
             aria-label="Due date status"
             className="text-[9px] bg-transparent px-1 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            options={DUE_DATE_STATUS_OPTIONS.map((opt) => ({ value: opt, label: opt }))}
+            options={DUE_DATE_STATUS_SELECT_OPTIONS}
+            title="Estimate: a best guess. Committed: promised to someone, and shown on the calendar."
           />
           <StakeholderAssigner
             currentStakeholderIds={project.stakeholder_ids || []}

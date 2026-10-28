@@ -5,6 +5,14 @@ import ProjectDetailModal from "@/components/projects/ProjectDetailModal";
 import QueryError from "@/components/shared/QueryError";
 import DateField from "@/components/shared/DateField";
 import Spinner from "@/components/shared/Spinner";
+import { QUADRANTS } from "@/lib/quadrants";
+
+// "Jun 1, 2026" — date-only strings ("2026-06-01") are read as local dates,
+// not UTC midnight, so they don't slip back a day west of Greenwich.
+function formatDay(value) {
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00`) : new Date(value);
+  return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
 
 // Archive/history shell: ISO-8601 date range filter hitting the
 // archivedProjects function, which reconstructs every project whose active
@@ -41,11 +49,11 @@ export default function ArchiveView() {
           <DateField value={endDate} onSave={(v) => setEndDate(v || "")} className="bg-card rounded" />
         </div>
       </div>
-      {(startIso || endIso) && (
-        <p className="text-xs text-muted-foreground mb-4">
-          Filtering: {startIso || "…"} → {endIso || "…"}
-        </p>
-      )}
+      <p className="text-xs text-muted-foreground mb-4">
+        {startIso || endIso
+          ? `Showing every project active ${startDate ? `from ${formatDay(startDate)}` : ""}${startDate && endDate ? " " : ""}${endDate ? `until ${formatDay(endDate)}` : ""}, archived or not.`
+          : "Showing archived projects. Pick dates to see everything that was active in that window."}
+      </p>
 
       <div className="space-y-3 mt-4">
         {isLoading ? (
@@ -53,7 +61,11 @@ export default function ArchiveView() {
         ) : isError ? (
           <QueryError error={error} onRetry={refetch} label="Couldn't load the archive." />
         ) : archivedProjects.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No projects were active in that range.</p>
+          <p className="text-sm text-muted-foreground">
+            {startIso || endIso
+              ? "No projects were active in that window."
+              : "Nothing archived yet. Archive a project from its expanded view and it moves here, where you can restore it any time."}
+          </p>
         ) : (
           archivedProjects.map((item) => (
             <div
@@ -72,7 +84,10 @@ export default function ArchiveView() {
                   </span>
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Quadrants: {item.quadrant_counts?.join(" / ")} · last updated {item.updated_date?.slice(0, 10)}
+                  {(item.quadrant_counts || [])
+                    .map((n, i) => `${n} ${QUADRANTS[i]?.name.toLowerCase()}`)
+                    .join(" · ")}
+                  {item.updated_date ? ` · updated ${formatDay(item.updated_date)}` : ""}
                 </p>
               </div>
               {item.is_archived && (

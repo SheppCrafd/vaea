@@ -4,6 +4,12 @@ import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
 import { Select } from "@/components/ui/select";
 
 const TYPE_LABELS = { RISK: "Risk", QUESTION: "Open Question", NOTE: "Note" };
+// Each kind of note asks for what it actually is.
+const PLACEHOLDERS = {
+  RISK: "What could go wrong?",
+  QUESTION: "What's still unanswered?",
+  NOTE: "Add a note...",
+};
 
 // Small inline form for creating a ProjectNote with reporter + stakeholders,
 // used both for Risks/Open Questions and for the separate general Notes log.
@@ -44,8 +50,8 @@ export default function AddNoteForm({ projectId, allStakeholders = [], defaultTy
         <input
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder={type === "NOTE" ? "Add a note..." : "Describe the risk or question..."}
-          aria-label={type === "NOTE" ? "Note content" : "Risk or question description"}
+          placeholder={PLACEHOLDERS[type]}
+          aria-label={`${TYPE_LABELS[type]} text`}
           className="flex-1 text-xs px-2 py-1.5 bg-background border border-input rounded outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
       </div>
@@ -53,14 +59,16 @@ export default function AddNoteForm({ projectId, allStakeholders = [], defaultTy
         <input
           value={reporter}
           onChange={(e) => setReporter(e.target.value)}
-          placeholder="Reporter (optional)"
-          aria-label="Reporter"
+          placeholder="Raised by (optional)"
+          aria-label="Raised by"
+          title="Who raised this. Optional."
           className="flex-1 text-xs px-2 py-1.5 bg-background border border-input rounded outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
         <StakeholderAssigner
           currentStakeholderIds={stakeholderIds}
           allStakeholders={allStakeholders}
           onSave={setStakeholderIds}
+          label="Add Stakeholders"
         />
         <button
           type="submit"

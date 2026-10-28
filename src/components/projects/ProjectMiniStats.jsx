@@ -1,5 +1,5 @@
 import { AlertTriangle, HelpCircle } from "lucide-react";
-import { STATUS_COLORS } from "@/lib/taskUtils";
+import QuadrantGrid from "@/components/shared/QuadrantGrid";
 
 // The real mini-card's quadrant grid + risk/question flags + status bar —
 // split out of ProjectCard.jsx (the rest of that card is wired to
@@ -15,44 +15,7 @@ export default function ProjectMiniStats({ quadrants, riskNotes = [], questionNo
   return (
     <>
       <div className="flex-1 flex items-center justify-center gap-1 w-full min-h-0">
-        <button
-          onClick={onOpenTable}
-          className="shrink-0 grid grid-cols-2 gap-0.5 border border-border rounded overflow-hidden w-11 h-11 text-xs z-20 select-none"
-          title="Open Task Table"
-          aria-label={`Open Task Table${
-            quadrants.some((q) => q.hasFocus) || quadrants.some((q) => q.hasHighlightedStakeholder)
-              ? ` — ${[
-                  quadrants.some((q) => q.hasFocus) && "includes this week's focus",
-                  quadrants.some((q) => q.hasHighlightedStakeholder) && "includes the highlighted stakeholder",
-                ]
-                  .filter(Boolean)
-                  .join(", ")}`
-              : ""
-          }`}
-        >
-          {quadrants.map((q) => (
-            <div
-              key={q.quadrant}
-              title={
-                q.hasHighlightedStakeholder
-                  ? "Includes the highlighted stakeholder"
-                  : q.hasFocus
-                  ? "Includes this week's focus"
-                  : undefined
-              }
-              className={`relative flex items-center justify-center transition-colors ${
-                q.hasHighlightedStakeholder
-                  ? "text-foreground font-bold"
-                  : q.hasFocus
-                  ? "bg-green-800 text-white font-bold"
-                  : "bg-muted/40 text-muted-foreground"
-              }`}
-              style={q.hasHighlightedStakeholder ? { backgroundColor: STATUS_COLORS.DONE } : undefined}
-            >
-              {q.count}
-            </div>
-          ))}
-        </button>
+        <QuadrantGrid quadrants={quadrants} onOpen={onOpenTable} size="mini" />
 
         {/* Both flag icons render always, so the tile's composition never
             shifts as notes come and go — greyed out while there's nothing

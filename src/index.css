@@ -78,7 +78,7 @@
     --status-todo: #9e9e9e;
     --status-in-progress: #ff9800;
     --status-done: #4caf50;
-    --status-not-started: #000000;
+    --status-not-started: #A3ADB8;
 
     /* Shared timing/easing for non-chat motion (dashboard cards, table rows,
        modals, skeletons) — timing values, not colors, so they don't need a
@@ -139,7 +139,7 @@
     --status-todo: #9e9e9e;
     --status-in-progress: #ff9800;
     --status-done: #4caf50;
-    --status-not-started: #ffffff;
+    --status-not-started: #5E6B78;
   }
 
   /* Curated accent-theme presets — set via `data-accent` on <html> by

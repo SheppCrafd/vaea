@@ -96,6 +96,7 @@ export default function ProjectForm({ onDone, prefill = null }) {
       </div>
       <FormField label="Stakeholders (optional)">
         <StakeholderAssigner
+          label="Add Stakeholders"
           currentStakeholderIds={stakeholderIds}
           allStakeholders={allStakeholders}
           onSave={setStakeholderIds}

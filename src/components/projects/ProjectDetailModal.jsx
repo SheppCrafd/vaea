@@ -22,7 +22,7 @@ import Avatar from "@/components/shared/Avatar";
 import ProductAssigner from "@/components/shared/ProductAssigner";
 import CustomFieldsSection from "@/components/shared/CustomFieldsSection";
 import DateField from "@/components/shared/DateField";
-import { DUE_DATE_STATUS_OPTIONS, METRIC_FIELDS } from "@/lib/projectUtils";
+import { DUE_DATE_STATUS_SELECT_OPTIONS, METRIC_FIELDS } from "@/lib/projectUtils";
 import { Checkbox } from "@/components/ui/checkbox";
 
 export default function ProjectDetailModal({ project, onClose }) {
@@ -113,7 +113,8 @@ export default function ProjectDetailModal({ project, onClose }) {
                     onChange={(e) => updateProject.mutate({ id: project.id, data: { due_date_status: e.target.value } })}
                     aria-label="Due date status"
                     className="bg-transparent px-1.5 py-0.5 text-xs ml-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    options={DUE_DATE_STATUS_OPTIONS.map((opt) => ({ value: opt, label: opt }))}
+                    options={DUE_DATE_STATUS_SELECT_OPTIONS}
+                    title="Estimate: a best guess. Committed: promised to someone, and shown on the calendar."
                   />
                 </div>
               </div>

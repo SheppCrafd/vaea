@@ -87,6 +87,7 @@ export default function ProductDetailModal({ product, onClose }) {
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Stakeholders</p>
               <StakeholderAssigner
+                label="Add Stakeholders"
                 currentStakeholderIds={product.stakeholder_ids || []}
                 allStakeholders={allStakeholders}
                 onSave={(newIds) => updateProduct.mutate({ id: product.id, data: { stakeholder_ids: newIds } })}

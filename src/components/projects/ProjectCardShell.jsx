@@ -42,14 +42,17 @@ export default function ProjectCardShell({
       {...rootProps}
       className={`${PROJECT_CARD_SHELL_CLASS} ${className}`}
     >
-      <div className="w-full shrink-0 flex items-start gap-0.5 z-20">
+      {/* Controls get their own slim row so the title can use the tile's
+          full width: squeezed between four icons it had ~40px and broke
+          mid-word ("Fitme nt…"). Now it wraps to two lines, then ellipsis. */}
+      <div className="w-full h-4 shrink-0 flex items-center justify-between z-20">
         {dragHandle}
-        {title}
-        <div className="shrink-0 flex items-center gap-0.5">
+        <div className="flex items-center gap-0.5">
           {expandButton}
           {deleteButton}
         </div>
       </div>
+      <div className="w-full shrink-0 flex z-20 px-0.5">{title}</div>
 
       <ProjectMiniStats
         quadrants={quadrants}

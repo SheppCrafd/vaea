@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Search, X, Menu } from "lucide-react";
 import { useAppStore } from "@/lib/store";
@@ -42,6 +42,32 @@ export default function Header() {
     const active = navRef.current?.querySelector('[aria-current="page"]');
     active?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [location.pathname, openTabKeys]);
+
+  // Which edges have tabs scrolled past them — those edges fade out, so a
+  // half-visible tab reads as "more this way" instead of a rendering glitch.
+  const [tabEdges, setTabEdges] = useState({ left: false, right: false });
+  const updateTabEdges = useCallback(() => {
+    const el = navRef.current;
+    if (!el) return;
+    const left = el.scrollLeft > 1;
+    const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+    setTabEdges((prev) => (prev.left === left && prev.right === right ? prev : { left, right }));
+  }, []);
+  useEffect(() => {
+    updateTabEdges();
+    const el = navRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(updateTabEdges);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [updateTabEdges, openTabKeys]);
+  const tabMask =
+    tabEdges.left || tabEdges.right
+      ? {
+          maskImage: `linear-gradient(to right, ${tabEdges.left ? "transparent, black 28px" : "black"}, ${tabEdges.right ? "black calc(100% - 28px), transparent" : "black"})`,
+          WebkitMaskImage: `linear-gradient(to right, ${tabEdges.left ? "transparent, black 28px" : "black"}, ${tabEdges.right ? "black calc(100% - 28px), transparent" : "black"})`,
+        }
+      : undefined;
 
   // Below md, the header collapses to logo + this one hamburger — the tab
   // nav's own browser-tab metaphor (close buttons, only-open-tabs-shown)
@@ -88,7 +114,7 @@ export default function Header() {
             settings ≈ 240px), so 60vw keeps 6–7 typical tabs visible before
             the scroll engages. no-scrollbar hides the 10px chrome once it
             does; the effect above keeps the active tab scrolled into view. */}
-        <nav ref={navRef} className="hidden md:flex items-center gap-1 ml-2 overflow-x-auto no-scrollbar max-w-[60vw]">
+        <nav ref={navRef} onScroll={updateTabEdges} style={tabMask} className="hidden md:flex items-center gap-1 ml-2 overflow-x-auto no-scrollbar max-w-[60vw]">
           {openTabs.map((tab) => {
             const { key, label, to, Icon } = tab;
             const active = tab.isActive(location.pathname);

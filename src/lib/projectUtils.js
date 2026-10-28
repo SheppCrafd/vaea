@@ -1,4 +1,8 @@
 export const DUE_DATE_STATUS_OPTIONS = ["ESTIMATED", "COMMITTED"];
+// How sure the due date is: a guess, or a promise made to someone. Committed
+// dates are the ones that show on the calendar.
+export const DUE_DATE_STATUS_LABELS = { ESTIMATED: "Estimate", COMMITTED: "Committed" };
+export const DUE_DATE_STATUS_SELECT_OPTIONS = DUE_DATE_STATUS_OPTIONS.map((value) => ({ value, label: DUE_DATE_STATUS_LABELS[value] }));
 
 export const METRIC_FIELDS = [
   { key: "impact_forecast", label: "Impact (Forecast)" },

@@ -169,9 +169,14 @@ const AuthenticatedApp = () => {
               {/* Floating popout, everywhere except /app/chat itself (already
                   a full page of chat — a second copy of it floating on top
                   would be redundant, not additive). */}
+              {/* Its own boundary: ChatBox is lazy, and suspending the outer
+                  boundary while its chunk downloads would blank the whole
+                  page. The launcher stays on screen until chat is ready. */}
               {!location.pathname.startsWith('/app/chat') && (
                 isChatMounted ? (
-                  <ChatBox startOpen />
+                  <Suspense fallback={<ChatLauncherButton onOpen={() => {}} />}>
+                    <ChatBox startOpen />
+                  </Suspense>
                 ) : (
                   <ChatLauncherButton onOpen={mountChat} />
                 )

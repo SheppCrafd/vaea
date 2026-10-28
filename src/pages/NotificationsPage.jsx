@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, TriangleAlert, Clock, CircleCheck, Zap, Plus, X, Archive } from "lucide-react";
+import { Bell, TriangleAlert, Clock, CircleCheck, Zap, Plus, X } from "lucide-react";
 import { useProjects } from "@/hooks/useProjects";
 import { useAllTasks } from "@/hooks/useTasks";
 import { getProjectRiskLevel, formatDueDate } from "@/lib/projectUtils";
@@ -236,11 +236,6 @@ export default function NotificationsPage() {
             </div>
           )}
           {!loading && <RulesCard rules={rules} setRules={setRules} triggered={triggered} />}
-          {!loading && (
-            <p className="text-[11px] text-muted-foreground mt-4 flex items-center gap-1.5">
-              <Archive className="w-3 h-3" /> Auto-archive suggestions and stakeholder follow-up reminders land here in a later pass.
-            </p>
-          )}
         </div>
       </div>
     </div>

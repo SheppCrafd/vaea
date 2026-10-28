@@ -61,6 +61,7 @@ export default function TaskForm({ onDone, prefill = null }) {
       </FormField>
       <FormField label="Stakeholders (optional)">
         <StakeholderAssigner
+          label="Add Stakeholders"
           currentStakeholderIds={stakeholderIds}
           allStakeholders={allStakeholders}
           onSave={setStakeholderIds}

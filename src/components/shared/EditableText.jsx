@@ -44,7 +44,7 @@ export default function EditableText({ value, onSave, placeholder = "—", class
       // text with no way to expand in place, so hover is where the whole
       // objective/risk/question reads out (as plain text, never markup).
       title={text || undefined}
-      className={`bg-transparent outline-none focus:ring-1 focus:ring-primary/40 rounded w-full min-w-0 break-words ${multiline ? "resize-none" : ""} ${className}`}
+      className={`bg-transparent outline-none focus:ring-1 focus:ring-primary/40 rounded w-full min-w-0 break-words ${multiline ? "resize-none" : "text-ellipsis focus:text-clip"} ${className}`}
     />
   );
 }

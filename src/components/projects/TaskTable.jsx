@@ -18,15 +18,13 @@ import EditableText from "@/components/shared/EditableText";
 import StakeholderAssigner from "@/components/shared/StakeholderAssigner";
 import ColumnFilterMenu from "@/components/shared/ColumnFilterMenu";
 import QuadrantSelect from "@/components/shared/QuadrantSelect";
+import { QUADRANTS, quadrantLabel, TASK_FLAGS } from "@/lib/quadrants";
 import FlagToggleButton from "@/components/shared/FlagToggleButton";
 
 const MAX_ROWS = 20;
 const QUADRANT_OPTIONS = [
-  { value: "1", label: "1" },
-  { value: "2", label: "2" },
-  { value: "3", label: "3" },
-  { value: "4", label: "4" },
-  { value: "unassigned", label: "Unassigned" },
+  ...QUADRANTS.map((q) => ({ value: String(q.value), label: quadrantLabel(q.value) })),
+  { value: "unassigned", label: "No quadrant" },
 ];
 const STATUS_FILTER_OPTIONS = DEFAULT_STATUSES.map((s) => ({ value: s, label: s.replace(/_/g, " ") }));
 
@@ -159,7 +157,7 @@ function TaskRow({ task, allStakeholders, isMatched, updateTask, onToggleTopThre
           {/* The spec's actual display format — "1H", "2HQ", etc — combined
               into one label; the select + toggle buttons below are what edit
               those same two underlying fields (quadrant, H/Q flags). */}
-          <span className="text-xs font-semibold tabular-nums w-6 shrink-0" title="Quadrant notation">
+          <span className="text-xs font-semibold tabular-nums w-6 shrink-0" title={`${quadrantLabel(task.quadrant)}${task.is_highly_important ? " · H = high importance" : ""}${task.is_quick_task ? " · Q = quick task" : ""}`}>
             {task.quadrant ?? "—"}
             {task.is_highly_important ? "H" : ""}
             {task.is_quick_task ? "Q" : ""}
@@ -174,16 +172,16 @@ function TaskRow({ task, allStakeholders, isMatched, updateTask, onToggleTopThre
             active={task.is_highly_important}
             onToggle={() => updateTask.mutate({ id: task.id, data: { is_highly_important: !task.is_highly_important } })}
             label="H"
-            title="Highly important"
-            ariaLabel="Toggle highly important"
+            title={`H: ${TASK_FLAGS.H.name}. ${TASK_FLAGS.H.hint}`}
+            ariaLabel="Mark as high importance"
             color="red"
           />
           <FlagToggleButton
             active={task.is_quick_task}
             onToggle={() => updateTask.mutate({ id: task.id, data: { is_quick_task: !task.is_quick_task } })}
             label="Q"
-            title="Quick task"
-            ariaLabel="Toggle quick task"
+            title={`Q: ${TASK_FLAGS.Q.name}. ${TASK_FLAGS.Q.hint}`}
+            ariaLabel="Mark as a quick task"
             color="blue"
           />
         </div>
