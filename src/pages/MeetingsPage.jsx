@@ -6,7 +6,7 @@ import { NotebookPen, Loader2, TriangleAlert, Search, Settings as SettingsIcon, 
 import StandalonePageHeader from "@/components/shared/StandalonePageHeader";
 import { loadGranolaConnection, saveGranolaConnection, isGranolaConnected, isFreeGranolaPlan } from "@/lib/granolaConnection";
 import { callTool, resultText } from "@/lib/granolaMcp";
-import { parseMeetings, plainText, formatMeetingDate } from "@/lib/granolaMeetings";
+import { parseMeetings, plainText, formatMeetingDate, isGranolaUrl } from "@/lib/granolaMeetings";
 import { useProjects, useUpdateProject } from "@/hooks/useProjects";
 
 // Granola's own time ranges (list_meetings `time_range`).
@@ -16,9 +16,6 @@ const RANGES = [
   { key: "last_week", label: "Last week" },
   { key: "last_30_days", label: "Last 30 days" },
 ];
-
-// Only an https link from Granola is opened or saved onto a project.
-const isHttps = (url) => typeof url === "string" && url.startsWith("https://");
 
 // Runs one Granola tool and saves the connection if its token was refreshed.
 async function granola(connection, setConnection, name, args) {
@@ -30,14 +27,13 @@ async function granola(connection, setConnection, name, args) {
   return resultText(result);
 }
 
-// The meeting as plain text for Vaea Chat: what a person would paste.
-function meetingBrief(meeting, raw) {
-  const lines = [`Meeting: ${meeting.title}`];
-  if (meeting.date) lines.push(`When: ${formatMeetingDate(meeting.date)}`);
-  if (meeting.people.length) lines.push(`Attendees: ${meeting.people.join(", ")}`);
-  if (meeting.url) lines.push(`Granola note: ${meeting.url}`);
-  const body = [meeting.summary && `Summary:\n${meeting.summary}`, meeting.privateNotes && `My notes:\n${meeting.privateNotes}`].filter(Boolean).join("\n\n");
-  return `${lines.join("\n")}\n\n${body || plainText(raw)}`;
+// How a meeting is named in a message to Vaea Chat: its title (quotes
+// stripped) and Granola ID. The notes themselves are never pasted into the
+// user's message: anyone in the meeting can write them, so Vaea Chat reads
+// them with get_granola_meeting, where they arrive as data, not as the
+// user's own words.
+function meetingRef(meeting) {
+  return `my Granola meeting "${meeting.title.replace(/["“”]/g, "")}" (meeting ID ${meeting.id})`;
 }
 
 function NotConnected() {
@@ -85,24 +81,18 @@ function MeetingDetail({ meeting, raw, loading, error, plan, onBack, onTranscrip
   const navigate = useNavigate();
   const [projectId, setProjectId] = useState("");
   const project = projects.find((p) => p.id === projectId);
-  const brief = meeting ? meetingBrief(meeting, raw) : "";
-  const granolaUrl = isHttps(meeting?.url) ? meeting.url : "";
+  const granolaUrl = isGranolaUrl(meeting?.url) ? meeting.url : "";
 
-  // The chat box is one line and drops line breaks, which would run
-  // "Decisions" into "- Launch moves…". Mark each break with " / " instead.
-  const toChat = (instruction) =>
-    navigate("/app/chat", {
-      state: { initialMessage: `${instruction} Meeting notes: """${brief.split(/\s*\n+\s*/).filter(Boolean).join(" / ")}"""` },
-    });
+  const toChat = (message) => navigate("/app/chat", { state: { initialMessage: message } });
 
   const turnIntoTasks = () =>
     toChat(
       project
-        ? `Turn this meeting's action items into tasks in the project "${project.title}". One task per action item, with the owner and due date when the notes say them.`
-        : "Turn this meeting's action items into tasks. One task per action item, with the owner and due date when the notes say them, and propose which project each belongs to."
+        ? `Read ${meetingRef(meeting)} and turn its action items into tasks in the project "${project.title}". One task per action item, with the owner and due date when the notes say them.`
+        : `Read ${meetingRef(meeting)} and turn its action items into tasks. One task per action item, with the owner and due date when the notes say them, and propose which project each belongs to.`
     );
   const process = () =>
-    toChat("Process this meeting. Pull out the tasks, decisions, open questions and follow-ups, and propose where each should go.");
+    toChat(`Read ${meetingRef(meeting)}. Pull out the tasks, decisions, open questions and follow-ups, and propose where each should go.`);
 
   return (
     <div className="h-full overflow-auto px-4 sm:px-6 pb-8">
@@ -262,7 +252,7 @@ export default function MeetingsPage() {
   };
 
   const linkToProject = async (project, meeting) => {
-    if (!isHttps(meeting.url)) return;
+    if (!isGranolaUrl(meeting.url)) return;
     const links = project.links || [];
     if (!links.some((l) => l.url === meeting.url)) {
       await updateProject.mutateAsync({ id: project.id, data: { links: [...links, { label: `Granola: ${meeting.title}`, url: meeting.url }] } });

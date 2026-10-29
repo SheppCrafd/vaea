@@ -93,6 +93,17 @@ function person(node) {
   return name || text || email;
 }
 
+// True only for https links on granola.ai or one of its subdomains.
+export function isGranolaUrl(value) {
+  if (typeof value !== "string" || !value) return false;
+  try {
+    const u = new URL(value);
+    return u.protocol === "https:" && (u.hostname === "granola.ai" || u.hostname.endsWith(".granola.ai"));
+  } catch {
+    return false;
+  }
+}
+
 function isMeeting(node) {
   if (!MEETING_TAG.test(node.name) || NOT_A_MEETING.test(node.name)) return false;
   return Boolean(node.attrs.id || node.attrs.meeting_id || node.attrs.note_id || field(node, ["id"]));
@@ -104,7 +115,10 @@ function readMeeting(node) {
     const who = person(p);
     if (who && !people.includes(who)) people.push(who);
   }
-  const url = field(node, URL_FIELDS) || (textOf(node).match(/https:\/\/[^\s"<>)]*granola[^\s"<>)]*/) || [""])[0];
+  // Only a real Granola link: meeting text can be written by anyone in the
+  // meeting, so a look-alike URL must never become "Open in Granola".
+  const candidates = [field(node, URL_FIELDS), ...(textOf(node).match(/https:\/\/[^\s"<>)]+/g) || [])];
+  const url = candidates.find(isGranolaUrl) || "";
   return {
     id: node.attrs.id || node.attrs.meeting_id || node.attrs.note_id || field(node, ["id"]),
     title: field(node, TITLE) || "Untitled meeting",

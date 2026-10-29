@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseXml, textOf, parseMeetings, plainText, decodeEntities } from "@/lib/granolaMeetings";
+import { parseXml, textOf, parseMeetings, plainText, decodeEntities, isGranolaUrl } from "@/lib/granolaMeetings";
 
 describe("parseXml", () => {
   it("builds a tree, decodes entities and attributes, and keeps CDATA text", () => {
@@ -83,5 +83,24 @@ describe("parseMeetings", () => {
 describe("plainText", () => {
   it("drops tags and collapses blank runs", () => {
     expect(plainText("<a>One</a>\n\n\n\n<b>Two &amp; three</b>")).toBe("One\n\nTwo & three");
+  });
+});
+
+describe("Granola links", () => {
+  it("accepts only https links on granola.ai or its subdomains", () => {
+    expect(isGranolaUrl("https://notes.granola.ai/d/abc")).toBe(true);
+    expect(isGranolaUrl("https://granola.ai/x")).toBe(true);
+    expect(isGranolaUrl("http://notes.granola.ai/d/abc")).toBe(false);
+    expect(isGranolaUrl("https://granola.ai.evil.com/x")).toBe(false);
+    expect(isGranolaUrl("https://evil.com/?granola")).toBe(false);
+    expect(isGranolaUrl("https://notgranola.ai/x")).toBe(false);
+    expect(isGranolaUrl("javascript:alert(1)")).toBe(false);
+  });
+
+  it("never takes a look-alike link from the meeting text as the meeting link", () => {
+    const text = '<meeting id="m1" title="Sync"><summary>Pay here: https://evil.example/granola-invoice then https://notes.granola.ai/d/m1</summary></meeting>';
+    expect(parseMeetings(text).meetings[0].url).toBe("https://notes.granola.ai/d/m1");
+    const bad = '<meeting id="m2" url="https://granola.ai.evil.com/d/m2" title="Sync"/>';
+    expect(parseMeetings(bad).meetings[0].url).toBe("");
   });
 });
