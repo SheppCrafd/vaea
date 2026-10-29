@@ -35,7 +35,8 @@
   tasks and user-defined rules, computed when the page loads (there is no
   always-on server).
 - Connectors, each authorized individually and stored on the user's device:
-  Google Workspace, Gmail, Microsoft 365, Outlook, Slack, ClickUp.
+  Google Workspace, Gmail, Microsoft 365, Outlook, Slack, ClickUp, Granola
+  (meeting notes, shown in a Meetings tab).
 - Notes (Vaea Brain): an optional connection to the user's own set of notes,
   kept in their own account. The assistant reads and adds to them directly;
   nothing is stored on Vaea's servers.

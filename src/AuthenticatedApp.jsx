@@ -34,6 +34,8 @@ const ClickUpOAuthCallbackPage = lazy(() => import('@/pages/ClickUpOAuthCallback
 const GmailOAuthCallbackPage = lazy(() => import('@/pages/GmailOAuthCallbackPage'));
 const MicrosoftOAuthCallbackPage = lazy(() => import('@/pages/MicrosoftOAuthCallbackPage'));
 const OutlookOAuthCallbackPage = lazy(() => import('@/pages/OutlookOAuthCallbackPage'));
+const GranolaOAuthCallbackPage = lazy(() => import('@/pages/GranolaOAuthCallbackPage'));
+const MeetingsPage = lazy(() => import('@/pages/MeetingsPage'));
 const SlackOAuthCallbackPage = lazy(() => import('@/pages/SlackOAuthCallbackPage'));
 const VaeaCalendarPage = lazy(() => import('@/pages/VaeaCalendarPage'));
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
@@ -153,15 +155,15 @@ const AuthenticatedApp = () => {
                 <Route path="settings/microsoft-callback" element={<MicrosoftOAuthCallbackPage />} />
                 <Route path="settings/outlook-callback" element={<OutlookOAuthCallbackPage />} />
                 <Route path="settings/slack-callback" element={<SlackOAuthCallbackPage />} />
+                <Route path="settings/granola-callback" element={<GranolaOAuthCallbackPage />} />
                 <Route path="calendar" element={<VaeaCalendarPage />} />
-                {/* Vaea Meetings was removed — bounce any old link to the dashboard. */}
-                <Route path="meetings" element={<Navigate to="/app" replace />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 {/* Workflows folded into Mind Map as its second tab — keep the
                     old URL working for anyone with it bookmarked/linked. */}
                 <Route path="workflows" element={<Navigate to="/app/mindmap" replace />} />
                 <Route path="mindmap" element={<MindMapPage />} />
                 <Route path="vmail" element={<VmailPage />} />
+                <Route path="meetings" element={<MeetingsPage />} />
                 {/* Add your page Route elements here */}
                 <Route index element={<AppShell><Dashboard /></AppShell>} />
                 <Route path="*" element={<PageNotFound />} />

@@ -21,13 +21,13 @@ function base64UrlEncode(bytes) {
     .replace(/=+$/, "");
 }
 
-function randomString(byteLength) {
+export function randomString(byteLength) {
   const bytes = new Uint8Array(byteLength);
   crypto.getRandomValues(bytes);
   return base64UrlEncode(bytes);
 }
 
-async function sha256Base64Url(text) {
+export async function sha256Base64Url(text) {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
   return base64UrlEncode(new Uint8Array(digest));
 }

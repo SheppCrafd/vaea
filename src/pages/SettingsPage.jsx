@@ -14,6 +14,7 @@ import MicrosoftSection from "@/components/settings/MicrosoftSection";
 import OutlookSection from "@/components/settings/OutlookSection";
 import ClickUpSection from "@/components/settings/ClickUpSection";
 import SlackSection from "@/components/settings/SlackSection";
+import GranolaSection from "@/components/settings/GranolaSection";
 import ResourcesSection from "@/components/settings/ResourcesSection";
 import { useAppStore } from "@/lib/store";
 import { useIsMobile } from "@/hooks/useIsMobile";
@@ -34,6 +35,7 @@ const SECTIONS = [
   { key: "outlook", label: "Outlook Mail", Component: OutlookSection },
   { key: "clickup", label: "ClickUp", Component: ClickUpSection },
   { key: "slack", label: "Slack", Component: SlackSection },
+  { key: "granola", label: "Granola", Component: GranolaSection },
   { key: "resources", label: "Resources", Component: ResourcesSection },
 ];
 

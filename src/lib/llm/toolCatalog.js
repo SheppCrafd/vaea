@@ -920,6 +920,28 @@ export const TOOL_CATALOG = [
     },
   },
   {
+    name: "list_granola_meetings",
+    staged: false,
+    description: "List the user's Granola meeting notes in a time range (default: the last 7 days), newest first, with IDs, titles, dates and attendees (see [GRANOLA] below, also visible in the Meetings tab). Runs immediately and returns Granola's own text (XML). Use get_granola_meeting to read one. Granola holds past meetings only, not upcoming calendar events.",
+    parameters: {
+      type: "object",
+      properties: {
+        time_range: { type: "string", enum: ["last_7_days", "this_week", "last_week", "last_30_days"], description: "Defaults to last_7_days." },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "get_granola_meeting",
+    staged: false,
+    description: "Read one or more Granola meetings by ID: AI summary, the user's own notes, attendees and the note link. Get IDs from list_granola_meetings first; never guess one. Runs immediately.",
+    parameters: {
+      type: "object",
+      properties: { meeting_ids: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 5, description: "Meeting IDs from list_granola_meetings." } },
+      required: ["meeting_ids"],
+    },
+  },
+  {
     name: "list_gmail_messages",
     staged: false,
     description: "List recent messages in the connected Gmail inbox (see [GMAIL] below, also visible in the Vmail tab). Runs immediately and returns real data. Optional query uses Gmail's own search syntax (e.g. \"is:unread\", \"from:someone@example.com\").",
@@ -1452,10 +1474,10 @@ export const TOOL_CATALOG = [
     parameters: {
       type: "object",
       properties: {
-        tab: { type: "string", enum: ["dashboard", "chat", "calendar", "vmail", "notifications", "mindmap", "settings"], description: "Which tab to open. Workflows lives inside Mind Map now (mindmap_tab: \"workflows\") — there's no separate \"workflows\" tab." },
+        tab: { type: "string", enum: ["dashboard", "chat", "calendar", "vmail", "meetings", "notifications", "mindmap", "settings"], description: "Which tab to open. Workflows lives inside Mind Map now (mindmap_tab: \"workflows\") — there's no separate \"workflows\" tab." },
         settings_section: {
           type: "string",
-          enum: ["account", "appearance", "ai", "ai-model", "storage", "backup", "connector-health", "brain", "google-workspace", "gmail", "microsoft", "outlook", "clickup", "slack", "resources"],
+          enum: ["account", "appearance", "ai", "ai-model", "storage", "backup", "connector-health", "brain", "google-workspace", "gmail", "microsoft", "outlook", "clickup", "slack", "granola", "resources"],
           description: "Only used when tab is \"settings\" — which section to scroll to and highlight (e.g. \"outlook\" for the Outlook connector).",
         },
         mindmap_tab: {
@@ -1531,6 +1553,7 @@ export function validateToolInput(name, input) {
 // all: notification rules, agents, prompt templates, workflow cards, agent
 // behavior, backups).
 function toolConnectorGroup(name) {
+  if (/GRANOLA/i.test(name)) return "granola";
   if (/GMAIL/i.test(name)) return "gmail";
   // Outlook split into two independently-connected scopes: mail tools
   // (message/mail) feed the Vmail tab off outlookConnection.js, event

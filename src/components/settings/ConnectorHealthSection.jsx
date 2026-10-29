@@ -6,6 +6,7 @@ import { loadMicrosoftConnection, isMicrosoftConnected } from "@/lib/microsoftCo
 import { loadOutlookConnection, isOutlookConnected } from "@/lib/outlookConnection";
 import { loadClickUpConnection, isClickUpConnected } from "@/lib/clickupConnection";
 import { loadSlackConnection, isSlackConnected } from "@/lib/slackConnection";
+import { loadGranolaConnection, isGranolaConnected } from "@/lib/granolaConnection";
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
 import { SettingsCard } from "@/components/ui/settings-card";
 
@@ -16,6 +17,7 @@ const CONNECTORS = [
   { label: "Outlook Mail", load: loadOutlookConnection, isConnected: isOutlookConnected, section: "outlook" },
   { label: "ClickUp", load: loadClickUpConnection, isConnected: isClickUpConnected, section: "clickup" },
   { label: "Slack", load: loadSlackConnection, isConnected: isSlackConnected, section: "slack" },
+  { label: "Granola", load: loadGranolaConnection, isConnected: isGranolaConnected, section: "granola" },
   { label: "Vaea Brain", load: loadVaultConnection, isConnected: isVaultConnected, section: "brain" },
 ];
 

@@ -11,6 +11,7 @@ import { readNdjson, ROUND_BOUNDARY_MARKER } from "@/lib/llm/streamUtils";
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
 import { loadGoogleWorkspaceConnection as loadCalendarConnection } from "@/lib/googleWorkspaceConnection";
 import { loadGmailConnection } from "@/lib/gmailConnection";
+import { granolaForChat } from "@/lib/granolaChat";
 import { loadMicrosoftConnection } from "@/lib/microsoftConnection";
 import { loadOutlookConnection } from "@/lib/outlookConnection";
 import { saveSnippet, findSnippet } from "@/lib/snippetsStore";
@@ -425,6 +426,8 @@ export function useChatController({ activeProjectId } = {}) {
     // clickupConnection.js) — nothing to refresh-and-persist here, just a
     // plain read.
     const clickup = await loadClickUpConnection();
+    // Granola: refreshed here, access token only (see granolaChat.js).
+    const granola = await granolaForChat();
 
     // Settings -> AI Model: if the user brought their own provider key, the
     // plan is decided entirely client-side (src/lib/llm/byokChat.js) —
@@ -452,6 +455,7 @@ export function useChatController({ activeProjectId } = {}) {
           outlook,
           slack,
           clickup,
+          granola,
           areas: areas.filter((a) => !a.deleted_at),
           products: products.filter((p) => !p.deleted_at),
           projects: projectsActive,
@@ -495,6 +499,7 @@ export function useChatController({ activeProjectId } = {}) {
         outlook,
         slack,
         clickup,
+        granola,
         // Mirrors the CLI's own UserPromptSubmit hook (see protocolReminder.js) —
         // decided client-side from the user's own just-typed message, not
         // re-derived here.

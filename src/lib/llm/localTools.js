@@ -33,6 +33,8 @@ import { loadSlackConnection, isSlackConnected } from "@/lib/slackConnection";
 import { listChannels as listSlackChannels, listMessages as listSlackMessages } from "@/lib/slackApi";
 import { listEvents as listOutlookEvents, listMessages as listOutlookMessages, readMessage as readOutlookMessage } from "@/lib/microsoftGraphApi";
 import { loadClickUpConnection, isClickUpConnected } from "@/lib/clickupConnection";
+import { loadGranolaConnection, saveGranolaConnection, isGranolaConnected } from "@/lib/granolaConnection";
+import { callTool as callGranolaTool, resultText as granolaResultText } from "@/lib/granolaMcp";
 import { listSpaces, listLists, listTasks, listChannels, listMessages } from "@/lib/clickupApi";
 import { loadWorkflowCards } from "@/lib/workflowCanvasStore";
 import { listSnapshots } from "@/lib/backupSnapshots";
@@ -416,6 +418,24 @@ function gmailNotConnected() {
   return { connected: false, message: "No Gmail account connected. Tell the user to connect one in Settings -> Gmail before this can work." };
 }
 
+function granolaNotConnected() {
+  return { connected: false, message: "Granola isn't connected. Tell the user to connect it in Settings -> Granola." };
+}
+
+// Same calls as entry.ts's Granola tools, through granolaMcp.js; a refreshed
+// token is saved so the next call (and the next app load) uses it.
+async function granolaTool(name, args, label) {
+  const connection = await loadGranolaConnection();
+  if (!isGranolaConnected(connection)) return granolaNotConnected();
+  try {
+    const { result, connection: next } = await callGranolaTool(connection, name, args);
+    if (next.accessToken !== connection.accessToken) await saveGranolaConnection(next);
+    return { connected: true, meetings: granolaResultText(result) };
+  } catch (error) {
+    return { connected: true, error: `${label}: ${error.message}` };
+  }
+}
+
 async function listGmailMessagesTool(args) {
   const connection = await loadGmailConnection();
   if (!isGmailConnected(connection)) return gmailNotConnected();
@@ -626,6 +646,10 @@ export async function runLocalTool(name, args, { dataset, externalVault } = {}) 
       return listWorkflowCardsTool();
     case "list_backups":
       return listBackupsTool();
+    case "list_granola_meetings":
+      return granolaTool("list_meetings", { time_range: args.time_range || "last_7_days", max_participants: 10 }, "Couldn't list Granola meetings");
+    case "get_granola_meeting":
+      return granolaTool("get_meetings", { meeting_ids: args.meeting_ids, max_participants: 20, attachments: "none" }, "Couldn't read the Granola meeting");
     case "list_gmail_messages":
       return listGmailMessagesTool(args);
     case "read_gmail_message":
