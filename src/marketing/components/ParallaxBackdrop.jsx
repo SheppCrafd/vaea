@@ -49,10 +49,7 @@ export default function ParallaxBackdrop({
       // -1 (section still below the viewport) → +1 (section above it), 0 at centre.
       const progress = (rect.top + rect.height / 2 - vh / 2) / (vh / 2 + rect.height / 2);
       const clamped = Math.max(-1, Math.min(1, progress));
-      // The scroll drift, plus a small slide against the mouse (--mx/--my,
-      // set site-wide by usePointerField.js; 0 when there's no mouse), so
-      // the photo reads as the farthest layer behind the figures.
-      img.style.transform = `translate3d(calc(var(--mx, 0) * -22px), calc(${(-clamped * strength).toFixed(2)}px + var(--my, 0) * -14px), 0)`;
+      img.style.transform = `translate3d(0, ${(-clamped * strength).toFixed(2)}px, 0)`;
     };
     const onScroll = () => {
       if (!frame) frame = requestAnimationFrame(update);

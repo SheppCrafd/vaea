@@ -162,18 +162,14 @@
 }
 
 /* ---- pointer depth ---------------------------------------------------- */
-/* The main figures lean toward the mouse. --mx/--my (-1…1) are written on
-   each layer below by usePointerField.js, already smoothed, only for a fine pointer and
-   never under reduced motion; data-pointer="on" is what turns any of this on,
-   so touch devices never even get the transforms. Layers, back to front:
-     photo backdrops   drift against the cursor   (ParallaxBackdrop.jsx)
-     ambient blooms    drift against it, slower   (.mkt-ambient-drift)
-     figure shadow     slides against it          (.mkt-float-shadow)
-     the figure        tilts + drifts toward it   (.mkt-float)
-     inner layers      drift further toward it    (.mkt-depth)
-   Transform only, never layout, so nothing on the page resizes.
-   Non-inheriting, so writing them on a layer never restyles its children
-   (the board alone is hundreds of elements). */
+/* One thing follows the mouse: the main figure in each page's top panel
+   (<Float lead>). It tilts and drifts toward the cursor as a single piece;
+   everything else on the page stays still. --mx/--my (-1…1) are written on
+   that figure by usePointerField.js, already smoothed, only for a fine
+   pointer and never under reduced motion; data-pointer="on" is what turns
+   this on, so touch devices never get the transform. Transform only, never
+   layout, so nothing on the page resizes. Non-inheriting, so writing them
+   never restyles the figure's children (the board is hundreds of elements). */
 @property --mx {
   syntax: "<number>";
   inherits: false;
@@ -184,7 +180,7 @@
   inherits: false;
   initial-value: 0;
 }
-.mkt[data-pointer="on"] .mkt-float {
+.mkt[data-pointer="on"] .mkt-float[data-lead] {
   transform: perspective(1600px)
     rotateX(calc(var(--my, 0) * -5deg * var(--float-tilt, 1)))
     rotateY(calc(var(--mx, 0) * 7deg * var(--float-tilt, 1)))
@@ -196,18 +192,9 @@
   will-change: transform;
 }
 /* A figure you can drag (the notes map) settles flat while you're on it. */
-.mkt[data-pointer="on"] .mkt-float[data-interactive]:hover {
+.mkt[data-pointer="on"] .mkt-float[data-lead][data-interactive]:hover {
   transform: none;
   transition: transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-.mkt[data-pointer="on"] .mkt-float .mkt-depth {
-  transform: translate3d(
-    calc(var(--mx, 0) * var(--depth, 8px)),
-    calc(var(--my, 0) * var(--depth, 8px) * 0.7),
-    0
-  );
-  /* its own GPU layer, so a move slides it instead of repainting it */
-  will-change: transform;
 }
 .mkt-float-shadow {
   position: absolute;
@@ -221,18 +208,6 @@
 }
 .dark .mkt-float-shadow {
   background: hsl(0 0% 0% / 0.5);
-}
-.mkt[data-pointer="on"] .mkt-float-shadow {
-  transform: translate3d(calc(var(--mx, 0) * -30px), calc(22px + var(--my, 0) * -20px), 0);
-  will-change: transform;
-}
-.mkt[data-pointer="on"] .mkt-ambient-drift {
-  transform: translate3d(
-    calc(var(--mx, 0) * var(--drift, -40px)),
-    calc(var(--my, 0) * var(--drift, -40px) * 0.6),
-    0
-  );
-  will-change: transform;
 }
 
 /* ---- reduced motion: everything lands, nothing moves --------------- */

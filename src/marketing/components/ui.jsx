@@ -119,12 +119,15 @@ export function Panel({ className, children }) {
 // `interactive` flattens the figure while the cursor is on it, so something
 // you can drag holds still under your hand. Does nothing on touch or under
 // reduced motion — the figure just sits flat.
-export function Float({ tilt = 1, shift = 1, shadow = false, interactive = false, className, children }) {
+// `lead` marks the one figure per page that follows the mouse: the main
+// item in the top panel. Every other figure stays still.
+export function Float({ lead = false, tilt = 1, shift = 1, shadow = false, interactive = false, className, children }) {
   return (
     <div className={cn("relative isolate", className)}>
       {shadow && <div aria-hidden="true" className="mkt-float-shadow" />}
       <div
         className="mkt-float"
+        data-lead={lead || undefined}
         data-interactive={interactive || undefined}
         style={{ "--float-tilt": tilt, "--float-shift": shift }}
       >

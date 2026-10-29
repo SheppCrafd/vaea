@@ -38,7 +38,7 @@ export default function Home() {
           </div>
 
           <Reveal delay={100} className="mkt-hero-rise mt-12 [--rise-delay:240ms]">
-            <Float shadow>
+            <Float lead shadow>
               <BoardDemo hero />
             </Float>
           </Reveal>

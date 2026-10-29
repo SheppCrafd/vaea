@@ -40,7 +40,7 @@ export default function Brain() {
             </div>
           </div>
           <Reveal delay={90} className="mt-12">
-            <Float tilt={0.6} shift={0.7} shadow interactive>
+            <Float lead tilt={0.6} shift={0.7} shadow interactive>
               <MindMapDemo interactive />
             </Float>
           </Reveal>

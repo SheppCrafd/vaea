@@ -19,8 +19,8 @@ export default function MarketingLayout() {
   // it just like inside the app. Read-only — the marketing site has no accent
   // picker of its own; it just applies whatever the app saved.
   useAccentTheme();
-  // The cursor position, as --mx/--my on this root, for every figure that
-  // leans toward the mouse (see usePointerField.js, marketing.css).
+  // Turns on mouse-follow for the page's lead figure (the main item in the
+  // top panel; see usePointerField.js, marketing.css).
   const rootRef = useRef(null);
   usePointerField(rootRef);
   return (

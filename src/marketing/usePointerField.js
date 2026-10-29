@@ -1,14 +1,14 @@
 import { useEffect } from "react";
 
 // One pointer listener for the whole marketing site. It writes the cursor's
-// position as two CSS custom properties on each moving layer, smoothed with
-// a spring-like ease so nothing snaps:
+// position as two CSS custom properties on the page's lead figure (the main
+// item in the top panel, <Float lead>), smoothed with a spring-like ease so
+// nothing snaps:
 //   --mx  -1 (left edge) … 0 (centre) … +1 (right edge)
 //   --my  -1 (top edge)  … 0 (centre) … +1 (bottom edge)
-// Everything that reacts to the mouse (.mkt-float, .mkt-depth, the photo
-// backdrops, the ambient blooms) reads these in CSS, so there is one rAF loop
-// for the page, not one per figure. The loop stops as soon as the values
-// settle, so an idle page costs nothing.
+// Only that figure reads these (marketing.css); nothing else on the page
+// moves with the mouse. The loop stops as soon as the values settle, so an
+// idle page costs nothing.
 //
 // Only for a real mouse: touch and pen never set it, and neither does
 // prefers-reduced-motion. Without it the vars are unset, every consumer falls
@@ -121,5 +121,5 @@ export function usePointerField(ref) {
   }, [ref]);
 }
 
-// Every element that reads --mx/--my (marketing.css, ParallaxBackdrop.jsx).
-const LAYERS = ".mkt-float, .mkt-float-shadow, .mkt-depth, .mkt-ambient-drift, .mkt-photo";
+// The only element that reads --mx/--my (marketing.css).
+const LAYERS = ".mkt-float[data-lead]";
