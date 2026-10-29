@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useDroppable } from "@dnd-kit/core";
 import { Star, Plus, Archive, Sparkles } from "lucide-react";
 import { DeleteButton } from "@/components/ui/delete-button";
@@ -341,6 +341,9 @@ export default function TaskTable({ project }) {
     if (newAttachments.length) payload.attachments = newAttachments;
     if (newTopThree) payload.is_today_top_three = true;
     createTask.mutate(payload);
+    // Past MAX_ROWS the new row would land behind "Show N more" and look
+    // like nothing happened; show everything once you're adding.
+    setShowAllRows(true);
     setNewDescription("");
     setNewQuadrant("");
     setNewStatus("");
