@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { ArrowLeft, FolderOpen, RefreshCw, Cpu, ShieldCheck, FileJson, TerminalSquare, Settings, TriangleAlert } from "lucide-react";
 import TerminalBlock from "@/components/settings/TerminalBlock";
 import { BRIDGE_WATCHER_SCRIPT } from "@/lib/llm/bridgeWatcherKit";

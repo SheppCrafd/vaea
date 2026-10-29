@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { X, Archive, RotateCcw, ChevronDown, ChevronRight, Sparkles } from "lucide-react";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Select } from "@/components/ui/select";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import Modal from "@/components/shared/Modal";
 import { useProjectNotes } from "@/hooks/useProjectNotes";
 import { useStakeholders } from "@/hooks/useStakeholders";

@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router";
 import { LayoutDashboard } from "lucide-react";
 
 // The app's own 404 (anything under /app that isn't a route). Rendered on

@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { Container, Eyebrow, Reveal } from "./ui";
 import { SITE_MODIFIED } from "../seo";
 

@@ -1,5 +1,5 @@
 import { Video, Loader2, TriangleAlert, CalendarDays } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 
 // The real Vaea Calendar agenda/week rendering, split out of
 // VaeaCalendarPage.jsx so the marketing page can render this exact

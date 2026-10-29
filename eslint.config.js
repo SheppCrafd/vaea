@@ -37,7 +37,7 @@ export default [
         // Explicit, not "detect": eslint-plugin-react's detection calls
         // context.getFilename(), which ESLint 10 removed (crashes the
         // run). Keep in step with package.json's react.
-        version: "18.3",
+        version: "19.3",
       },
     },
     plugins: {

@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { cn } from "@/lib/utils";
 import { Container, Eyebrow, Reveal, CtaRow, Float } from "./ui";
 import ParallaxBackdrop from "./ParallaxBackdrop";

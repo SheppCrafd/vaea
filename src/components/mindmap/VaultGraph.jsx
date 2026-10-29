@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Network, Loader2, TriangleAlert, ZoomIn, ZoomOut, Maximize, X } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";
 import { auditVaultNotes, writeVaultFile, readVaultNoteContent } from "@/lib/githubApi";
 import { loadPhysics, savePhysics } from "@/lib/mindMapPhysics";

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useTheme } from "next-themes";
 import { Plus, SunMoon } from "lucide-react";
 import Portal from "@/lib/Portal";

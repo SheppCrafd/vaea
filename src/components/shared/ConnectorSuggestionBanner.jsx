@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router";
 import { X, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { suggestionForEmail, suggestionForProvider, isSuggestionDismissed, dismissSuggestion } from "@/lib/connectorSuggestion";

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { ArrowLeft, FolderOpen, GitBranch, Github, ArrowRight, KeyRound, Settings, Search, PenLine, Wrench, Check, Download, RefreshCw, Sparkles } from "lucide-react";
 import TerminalBlock from "@/components/settings/TerminalBlock";
 import { loadVaultConnection, isVaultConnected } from "@/lib/vaultConnection";

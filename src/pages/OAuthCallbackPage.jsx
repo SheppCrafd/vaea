@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { Loader2, TriangleAlert } from "lucide-react";
 
 // The shared shell behind every connector's OAuth redirect target. None of

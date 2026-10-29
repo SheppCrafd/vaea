@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { Container, Eyebrow, Section, CtaRow, Reveal, Float } from "../components/ui";
 import { ShowBlock, ProofStrip, Manifesto, Marquee, Faq, ClosingCta } from "../components/blocks";
 import ParallaxBackdrop from "../components/ParallaxBackdrop";

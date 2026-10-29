@@ -1,6 +1,6 @@
 import { Plus, Paperclip, Info, Settings, PanelLeft, PanelLeftClose } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation } from "react-router";
 import { useSharedChatController } from "@/lib/ChatControllerContext";
 import { useChatSessions } from "@/hooks/useChatSessions";
 import { useSlashCommand } from "@/hooks/useSlashCommand";

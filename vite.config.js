@@ -33,7 +33,7 @@ export default defineConfig({
           groups: [
             {
               name: "vendor",
-              test: /[\\/]node_modules[\\/](react|react-dom|scheduler|react-router|react-router-dom|@tanstack[\\/]react-query|@tanstack[\\/]query-core|zustand)[\\/]/,
+              test: /[\\/]node_modules[\\/](react|react-dom|scheduler|react-router|@tanstack[\\/]react-query|@tanstack[\\/]query-core|zustand)[\\/]/,
             },
           ],
         },

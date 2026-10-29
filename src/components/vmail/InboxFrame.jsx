@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { Inbox, Send, Archive, ShieldAlert, Trash2, ArchiveRestore, Loader2, TriangleAlert, Search, Settings as SettingsIcon } from "lucide-react";
 import { DeleteButton } from "@/components/ui/delete-button";
 

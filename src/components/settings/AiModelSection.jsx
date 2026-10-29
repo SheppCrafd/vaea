@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { Check, Eye, EyeOff, FolderCog, Loader2, RefreshCw, TriangleAlert, Unlink, ChevronRight } from "lucide-react";
 import { loadAiProviderConfig, saveAiProviderConfig, DEFAULTS as PROVIDER_DEFAULTS } from "@/lib/aiProviderConfig";
 import { PROVIDERS, PROVIDER_LIST } from "@/lib/llm/providers";

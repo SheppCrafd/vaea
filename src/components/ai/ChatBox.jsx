@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { X, Plus, ChevronLeft, Paperclip, Maximize2, Info, Settings } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { useSharedChatController } from "@/lib/ChatControllerContext";

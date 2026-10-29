@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { Check, Download, Upload } from "lucide-react";
 import { DEFAULTS as IDENTITY_DEFAULTS } from "@/lib/aiPreferences";
 import { useAiIdentity, useSaveAiIdentity } from "@/hooks/useAiIdentity";

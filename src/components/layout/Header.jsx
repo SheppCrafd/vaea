@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router";
 import { Search, X, Menu } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { TABS } from "@/lib/tabs";

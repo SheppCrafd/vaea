@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { Plus, Sparkles, ListPlus } from "lucide-react";
 import Modal from "@/components/shared/Modal";
 import { Button } from "@/components/ui/button";
