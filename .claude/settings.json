@@ -13,7 +13,7 @@
   },
   "permissions": {
     "allow": [
-      "Bash(npm run build; if \\($?\\) { base44 deploy -y; if \\($?\\) { base44 site deploy -y } })"
+      "Bash(npm run build; if \\($?\\) { base44 deploy -y --no-build; if \\($?\\) { base44 site deploy -y --no-build } })"
     ]
   }
 }
