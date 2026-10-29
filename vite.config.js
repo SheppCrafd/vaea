@@ -19,19 +19,22 @@ export default defineConfig({
     react(),
   ],
   build: {
-    rollupOptions: {
+    rolldownOptions: {
       output: {
         // Split the rarely-changing framework libs into their own chunk,
         // separate from app code (which changes on every release). Purely a
         // caching/parallel-download optimization — same code, same
         // behavior, just grouped differently across files.
-        manualChunks: {
-          vendor: [
-            "react",
-            "react-dom",
-            "react-router-dom",
-            "@tanstack/react-query",
-            "zustand",
+        // Vite 8 bundles with Rolldown, which has no Rollup-style
+        // `manualChunks` object; a codeSplitting group matched on package
+        // paths does the same (react-router, scheduler and query-core were
+        // pulled in implicitly by the old object form as dependencies).
+        codeSplitting: {
+          groups: [
+            {
+              name: "vendor",
+              test: /[\\/]node_modules[\\/](react|react-dom|scheduler|react-router|react-router-dom|@tanstack[\\/]react-query|@tanstack[\\/]query-core|zustand)[\\/]/,
+            },
           ],
         },
       },
