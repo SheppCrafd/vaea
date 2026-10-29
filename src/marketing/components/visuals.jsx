@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import TerminalBlock from "@/components/settings/TerminalBlock";
 import { useReveal, prefersReducedMotion } from "../useReveal";
+import { useScrollTyping } from "../useScrollTyping";
 import { CHAT_MESSAGES, VMAIL_MESSAGES, CALENDAR_GROUPS } from "../fixtures";
 
 // The demos render the REAL app components with fixture data. They're
@@ -60,10 +61,81 @@ function Deferred({ height = 320, children }) {
   );
 }
 
-// Loops: the reply re-types every ~9s. The stage height is fixed and the
-// message list scrolls internally, so nothing outside it resizes as the
-// text fills in or resets.
-export function ChatDemo({ onDark = false }) {
+const chatListProps = {
+  isComputing: false,
+  isPlanning: false,
+  liveSteps: [],
+  streamingText: "",
+  iconChoice: "terminal",
+  hasMore: false,
+  onLoadMore: noop,
+  resolvingId: null,
+  onConfirm: noop,
+  onCancel: noop,
+  onMessageTyped: noop,
+};
+
+// The demo reply split the way ChatMessageList splits it: the tool-log line
+// shows at once, the sentence after it types.
+const [CHAT_USER, CHAT_REPLY] = CHAT_MESSAGES;
+const REPLY_SPLIT = CHAT_REPLY.content.indexOf("```\n\n") + 5;
+const REPLY_PREFIX = CHAT_REPLY.content.slice(0, REPLY_SPLIT);
+const REPLY_TEXT = CHAT_REPLY.content.slice(REPLY_SPLIT);
+const CHAT_TOTAL = CHAT_USER.content.length + REPLY_TEXT.length;
+
+// The messages at `count` typed characters: Juan's line first, then the
+// reply; the confirm card appears once the reply is complete.
+function chatAt(count) {
+  const userShown = Math.min(count, CHAT_USER.content.length);
+  const replyShown = Math.max(0, count - CHAT_USER.content.length);
+  const out = [{ ...CHAT_USER, content: CHAT_USER.content.slice(0, userShown), typing: userShown < CHAT_USER.content.length }];
+  if (replyShown > 0) {
+    const done = count >= CHAT_TOTAL;
+    out.push({
+      ...CHAT_REPLY,
+      content: REPLY_PREFIX + REPLY_TEXT.slice(0, replyShown),
+      typing: !done,
+      pending_action: done ? CHAT_REPLY.pending_action : undefined,
+    });
+  }
+  return out;
+}
+
+// Below a page's hero: types as the visitor scrolls (useScrollTyping.js),
+// finishing when the demo's top reaches a quarter of the way down the
+// screen. The stage height is fixed and the list scrolls internally, so
+// nothing outside it resizes as the text fills in.
+function ScrollChatDemo({ onDark }) {
+  const [ref, shown] = useReveal();
+  // Timed from the demo window's visible top edge, not the message area
+  // under its label bar.
+  const frameRef = useRef(null);
+  const count = useScrollTyping(frameRef, CHAT_TOTAL);
+  return (
+    <div ref={frameRef}>
+    <DemoStage label="Juan’s chat" onDark={onDark}>
+      <div ref={ref} className="flex h-[360px] flex-col">
+        {shown ? (
+          <Suspense fallback={<div className="flex-1" />}>
+            <ChatMessageList messages={chatAt(count)} newMessageIds={EMPTY_SET} {...chatListProps} />
+          </Suspense>
+        ) : (
+          <div className="flex-1" />
+        )}
+      </div>
+    </DemoStage>
+    </div>
+  );
+}
+
+const EMPTY_SET = new Set();
+
+export function ChatDemo({ onDark = false, hero = false }) {
+  return hero ? <HeroChatDemo onDark={onDark} /> : <ScrollChatDemo onDark={onDark} />;
+}
+
+// A page's hero: loops on a timer, the reply re-typing every ~9s.
+function HeroChatDemo({ onDark }) {
   const [ref, shown] = useReveal();
   const [cycle, setCycle] = useState(0);
   const reduced = prefersReducedMotion();

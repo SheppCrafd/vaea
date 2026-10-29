@@ -34,7 +34,7 @@ export default function VaeaChat() {
           </div>
           <Reveal delay={90} className="mt-12">
             <Float lead shadow>
-              <ChatDemo />
+              <ChatDemo hero />
             </Float>
           </Reveal>
         </Container>

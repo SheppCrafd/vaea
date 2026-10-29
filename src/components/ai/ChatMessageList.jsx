@@ -5,6 +5,11 @@ import ChatIcon from "@/components/ai/ChatIcon";
 import ChatToolLogDetail, { humanizeAction } from "@/components/ai/ChatToolLogDetail";
 import { sanitizeUrl } from "@/lib/sanitizeUrl";
 import { ROUND_BOUNDARY_MARKER, stripLiveResponsePreview } from "@/lib/llm/streamUtils";
+import rehypeTypingCaret, { CARET_CLASSES } from "@/lib/rehypeTypingCaret";
+
+// Plugin lists kept stable across renders.
+const WITH_CARET = [rehypeTypingCaret];
+const NO_PLUGINS = [];
 
 // Fenced ```tool-log blocks are how useChatController.js encodes everything
 // real the assistant actually did this turn — every live (already-executed)
@@ -187,6 +192,10 @@ function useTypewriter(fullText, enabled, onFinish) {
     return () => cancelAnimationFrame(raf);
   }, [enabled, fullText]);
 
+  // Not typing (an old message, or one a caller reveals itself): always the
+  // whole current text. Slicing to the length from the first render cut off
+  // any message whose content grew after it mounted.
+  if (!startedRef.current) return { shown: fullText, isTyping: false };
   return { shown: fullText.slice(0, shownLength), isTyping: enabled && !finishedRef.current };
 }
 
@@ -203,10 +212,14 @@ function ChatAssistantMessage({ m, onOpenDetail, isNew, onFinishTyping }) {
   const { prefix, reply } = useMemo(() => splitToolLogPrefix(m.content), [m.content]);
   const handleFinishTyping = () => onFinishTyping?.(m.id);
   const { shown, isTyping } = useTypewriter(reply, isNew, handleFinishTyping);
+  // `m.typing`: a caller is revealing this message itself (the marketing
+  // demo, driven by scroll) and wants the caret shown while it does.
+  const caret = isTyping || m.typing;
   return (
     <div className="text-foreground">
-      <ReactMarkdown urlTransform={sanitizeUrl} components={components}>{prefix + shown}</ReactMarkdown>
-      {isTyping && <span className="inline-block w-[7px] h-[13px] bg-primary/70 align-middle ml-0.5 chat-cursor-blink" />}
+      <ReactMarkdown urlTransform={sanitizeUrl} components={components} rehypePlugins={caret ? WITH_CARET : NO_PLUGINS}>
+        {prefix + shown}
+      </ReactMarkdown>
     </div>
   );
 }
@@ -342,6 +355,7 @@ export default function ChatMessageList({ messages, isComputing, isLoading, isPl
           {m.role === "user" ? (
             <p className="text-foreground whitespace-pre-wrap">
               <span className="text-primary">{'>'}</span> {m.content}
+              {m.typing && <span aria-hidden="true" className={CARET_CLASSES.join(" ")} />}
             </p>
           ) : (
             <ChatAssistantMessage m={m} onOpenDetail={setOpenDetail} isNew={newMessageIds?.has(m.id) ?? false} onFinishTyping={onMessageTyped} />
@@ -418,8 +432,10 @@ export default function ChatMessageList({ messages, isComputing, isLoading, isPl
                     <ReactMarkdown urlTransform={sanitizeUrl} components={STREAM_MARKDOWN_COMPONENTS}>{past}</ReactMarkdown>
                   </div>
                 )}
+                {/* The caret follows the last streamed letter (see
+                    rehypeTypingCaret.js), not a line of its own below. */}
                 <div className="text-foreground">
-                  <ReactMarkdown urlTransform={sanitizeUrl} components={STREAM_MARKDOWN_COMPONENTS}>{current}</ReactMarkdown>
+                  <ReactMarkdown urlTransform={sanitizeUrl} components={STREAM_MARKDOWN_COMPONENTS} rehypePlugins={current ? WITH_CARET : NO_PLUGINS}>{current}</ReactMarkdown>
                 </div>
               </>
             );
@@ -434,7 +450,9 @@ export default function ChatMessageList({ messages, isComputing, isLoading, isPl
                 show instead. */}
             {isPlanning && !streamingText && !(liveSteps || []).length ? (
               <span className="text-muted-foreground text-xs italic">(planning...)</span>
-            ) : (
+            ) : stripLiveResponsePreview(streamingText || "").trim() ? null : (
+              // Waiting for the first words: the caret holds this line. Once
+              // text streams, it moves into the text instead.
               <span className="inline-block w-[7px] h-[13px] bg-primary/70 chat-cursor-blink" />
             )}
           </p>

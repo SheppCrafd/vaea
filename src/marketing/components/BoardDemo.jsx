@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { GripVertical, Expand, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DeleteButton } from "@/components/ui/delete-button";
@@ -55,17 +55,41 @@ function InertExpand({ className, iconClass = "w-4 h-4", title, label }) {
   );
 }
 
+// Grows or shrinks to fit its content over ~half a second instead of
+// jumping, so the Marketing card extends smoothly when the assistant's card
+// pops in. Clips while it animates (the tiles sit inside the grid's padding,
+// so their shadows aren't cut). Reduced motion: no transition.
+function SmoothHeight({ children }) {
+  const inner = useRef(null);
+  const [height, setHeight] = useState(null);
+  useLayoutEffect(() => {
+    const el = inner.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const measure = () => setHeight(el.offsetHeight);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const still = prefersReducedMotion();
+  return (
+    <div
+      style={height === null ? undefined : { height, overflow: "hidden", transition: still ? undefined : "height 520ms cubic-bezier(0.22, 1, 0.36, 1)" }}
+    >
+      <div ref={inner}>{children}</div>
+    </div>
+  );
+}
+
 // One project tile — the real ProjectCardShell, fed fixture-derived stats.
-// `addedCard` marks the "Harbor 2.0 launch" tile the assistant drops mid-demo; while
-// `pending` it's rendered but held at opacity 0 so its grid cell always
-// occupies space — the board never changes height across the loop.
-function DemoProject({ p, addedCard = false, pending = false, delay = 0 }) {
+// `addedCard` marks the "Harbor 2.0 launch" tile the assistant drops mid-demo.
+function DemoProject({ p, addedCard = false, delay = 0 }) {
   return (
     <ProjectCardShell
       style={!addedCard ? { "--piece-delay": `${delay}ms` } : undefined}
       className={cn(
         "shadow-sm",
-        addedCard ? (pending ? "opacity-0" : "mkt-just-added") : "mkt-board-piece",
+        addedCard ? "mkt-just-added" : "mkt-board-piece",
       )}
       dragHandle={<InertGrip className="shrink-0 p-0.5" iconClass="w-3 h-3" label="Drag to reorder project" />}
       title={
@@ -102,11 +126,12 @@ function DemoProject({ p, addedCard = false, pending = false, delay = 0 }) {
 // One product — the real ProductCardShell, its project grid replicating
 // ProjectsGrid's Mini-mode CSS grid exactly.
 function DemoProduct({ product, hero, showAdded, cycle, delay }) {
-  // Only the first product ever gets the assistant's added card. In the hero
-  // demo its cell is always present (invisible until `showAdded`) so the
-  // layout height is identical whether or not the card has "arrived".
+  // Only the first product (Marketing) gets the assistant's added card. It
+  // exists only once it has arrived; SmoothHeight below grows the card to
+  // fit it. The board reserves that extra row (see BoardDemo), so the page
+  // around the hero never moves.
   const withCard = hero && product === BOARD.products[0];
-  const projects = withCard ? [...product.projects, BOARD.added] : product.projects;
+  const projects = withCard && showAdded ? [...product.projects, BOARD.added] : product.projects;
   return (
     <div className="mkt-board-piece" style={{ "--piece-delay": `${delay}ms` }}>
       <div>
@@ -139,7 +164,9 @@ function DemoProduct({ product, hero, showAdded, cycle, delay }) {
           />
         }
         projectsGrid={
+          <SmoothHeight>
           <div
+            data-demo-grid
             className="relative z-[1] mt-4 min-h-[80px] rounded-lg -mx-4 p-2 transition-colors bg-transparent"
             style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, 112px)", alignItems: "start", gap: "8px" }}
           >
@@ -150,12 +177,12 @@ function DemoProduct({ product, hero, showAdded, cycle, delay }) {
                   key={isAdded ? `added-${cycle}` : proj.id}
                   p={proj}
                   addedCard={isAdded}
-                  pending={isAdded && !showAdded}
                   delay={140 + j * 55}
                 />
               );
             })}
           </div>
+          </SmoothHeight>
         }
         stats={<TaskStatistics tasks={tasksOfProduct(product, withCard && showAdded)} />}
         customFields={
@@ -176,6 +203,35 @@ export default function BoardDemo({ hero = false, className }) {
   const [added, setAdded] = useState(false);
   // Bumped once per loop; keys the product grid so every piece re-drops.
   const [cycle, setCycle] = useState(0);
+  // Hero only: a minimum height for the product grid that already includes
+  // the row Marketing gains, so growing to fit the added card never moves the page.
+  const productsRef = useRef(null);
+  const [reserve, setReserve] = useState(0);
+  // Measured at the start of every loop (the card isn't there yet): how much
+  // taller Marketing's row will be once Marketing gains a row of tiles. The
+  // row is as tall as its tallest card, so if another card in that row is
+  // already taller, less (or nothing) needs reserving.
+  useLayoutEffect(() => {
+    const grid = productsRef.current;
+    if (!hero || !grid || added) return;
+    const cards = [...grid.children];
+    const tile = grid.querySelector("[data-demo-grid] > *");
+    if (!cards.length || !tile) return;
+    const rowTop = cards[0].offsetTop;
+    const row = cards.filter((c) => c.offsetTop === rowTop).map((c) => c.offsetHeight);
+    const rowHeight = Math.max(...row);
+    const grown = cards[0].offsetHeight + tile.offsetHeight + 8;
+    // A floor for the whole product grid: its height now plus the extra the
+    // grown Marketing card needs. Marketing grows into space that's already
+    // there, so nothing outside the card moves.
+    // Natural height from the cards themselves (the grid's own height would
+    // include last loop's floor and creep up every loop).
+    const base = cards[0].offsetParent === grid ? 0 : grid.offsetTop;
+    const natural = Math.max(...cards.map((c) => c.offsetTop + c.offsetHeight)) - base;
+    setReserve(natural + Math.max(0, Math.max(grown, rowHeight) - rowHeight));
+    // `added` is read only to skip measuring the grown state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hero, cycle]);
 
   useEffect(() => {
     if (!hero) return;
@@ -256,8 +312,9 @@ export default function BoardDemo({ hero = false, className }) {
         productsGrid={
           <div
             key={hero ? cycle : "static"}
+            ref={productsRef}
             className="mt-2 grid items-start -mx-5"
-            style={{ gridTemplateColumns: "repeat(auto-fit, 248px)", justifyContent: "space-evenly" }}
+            style={{ gridTemplateColumns: "repeat(auto-fit, 248px)", justifyContent: "space-evenly", ...(hero && reserve ? { minHeight: reserve } : null) }}
           >
             {BOARD.products.map((prod, pi) => (
               <DemoProduct
