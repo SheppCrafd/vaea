@@ -30,7 +30,7 @@ export default function AccountSection() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-medium">You're not signed in</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Your dashboard data stays on this device either way — signing in only enables Vaea Chat.</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Your data stays on this device unless you turn on cloud storage. Signing in unlocks Vaea Chat.</p>
           </div>
           <Button variant="outline" onClick={navigateToLogin} className="gap-2 shrink-0">
             <LogIn className="w-4 h-4" />

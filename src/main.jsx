@@ -20,8 +20,10 @@ import '@fontsource/jetbrains-mono/600.css'
 import '@fontsource/jetbrains-mono/700.css'
 import '@/index.css'
 import { migrateLegacyStorageKeys } from '@/lib/migrateLegacyStorage'
+import { clearRetiredConnectorsWhenReady } from '@/lib/retiredConnectors'
 
 migrateLegacyStorageKeys()
+clearRetiredConnectorsWhenReady()
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <App />

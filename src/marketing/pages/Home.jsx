@@ -22,7 +22,7 @@ export default function Home() {
       >
         <Container>
           <div className="max-w-[54rem]">
-            <Eyebrow className="mkt-hero-rise mb-4">one board · an assistant that sorts · nothing leaves your computer</Eyebrow>
+            <Eyebrow className="mkt-hero-rise mb-4">one board · an assistant that sorts · on your computer by default</Eyebrow>
             {/* Not animated in — it's the LCP element; it must be final on
                 first paint. The lighter elements around it carry the entrance. */}
             <h1 className="text-balance font-display text-[clamp(2.9rem,8vw,5.8rem)] font-semibold leading-[1.0] tracking-[-0.04em] text-foreground">

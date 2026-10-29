@@ -186,6 +186,12 @@
     height: 100%;
   }
 
+  /* No one-word last lines in wrapped copy. The longhand on purpose: the
+     text-wrap shorthand would also reset white-space: nowrap (truncate). */
+  p {
+    text-wrap-style: pretty;
+  }
+
   /* The authenticated app's canvas sits a real step dimmer than the shared
      --background so the floating panels and cards read as lifted surfaces
      without needing any border to outline them — the Payflow-reference

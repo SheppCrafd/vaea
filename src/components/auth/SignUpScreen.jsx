@@ -119,7 +119,7 @@ export default function SignUpScreen() {
             </p>
             <p className="text-xs text-muted-foreground">
               {step === "details"
-                ? "Your workspace data stays on this device either way — signing up unlocks Vaea Chat."
+                ? "Your data stays on this device unless you turn on cloud storage. Signing up unlocks Vaea Chat."
                 : `We sent a code to ${email}.`}
             </p>
           </div>
@@ -229,7 +229,7 @@ export default function SignUpScreen() {
             Continue without signing in
           </button>
           <p className="text-[11px] text-muted-foreground/80">
-            You won't be able to use Vaea Chat until you sign in — everything else works either way.
+            Everything except Vaea Chat works without an account.
           </p>
         </div>
 

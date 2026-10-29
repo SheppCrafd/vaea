@@ -129,7 +129,7 @@ export default function AiPreferencesSection() {
     <SettingsCard>
       <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">AI Assistant</p>
       <p className="text-xs text-muted-foreground mb-4">
-        Write these by hand, or type <span className="font-mono">/setup</span> in chat and let it interview you instead. Sent as context with every message. There's no server storage for this (or any) app data, so it stays on this device — use Export/Import below to carry it to another one.
+        Write these by hand, or type <span className="font-mono">/setup</span> in chat and let it interview you instead. Vaea Chat reads them with every message. They're saved with the rest of your data. Without cloud storage, use Export and Import below to move them to another device.
       </p>
 
       <div className="flex flex-col gap-4">

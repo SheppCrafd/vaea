@@ -135,7 +135,7 @@ export default function ChatBox({ startOpen = false }) {
                 className="w-3.5 h-3.5 text-primary-foreground/70 cursor-help"
                 aria-label="Privacy notice"
               >
-                <title>Your board stays on this device. Vaea Chat is the one exception: to answer you, it sends your current board to an AI service for that one reply, and the board isn't kept. Web searches and attached files work the same way. Your past chats are saved so you can come back to them.</title>
+                <title>Your board is stored where you chose in Settings → Data Storage. To answer you, Vaea Chat sends your current board to an AI service. Vaea doesn't save that copy. Web searches and attached files work the same way. Your past chats are saved so you can come back to them.</title>
               </Info>
               <button
                 onClick={() => setIsSettingsOpen(true)}

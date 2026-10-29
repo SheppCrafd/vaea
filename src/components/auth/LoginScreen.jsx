@@ -95,7 +95,7 @@ export default function LoginScreen() {
           <div className="space-y-1">
             <p className="text-sm font-medium">Sign in to Vaea</p>
             <p className="text-xs text-muted-foreground">
-              Your workspace data stays on this device either way — signing in unlocks Vaea Chat.
+              Your data stays on this device unless you turn on cloud storage. Signing in unlocks Vaea Chat.
             </p>
           </div>
         </div>
@@ -160,7 +160,7 @@ export default function LoginScreen() {
             Continue without signing in
           </button>
           <p className="text-[11px] text-muted-foreground/80">
-            You won't be able to use Vaea Chat until you sign in — everything else works either way.
+            Everything except Vaea Chat works without an account.
           </p>
         </div>
 
