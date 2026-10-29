@@ -10,7 +10,7 @@ import ParallaxBackdrop from "../components/ParallaxBackdrop";
 
 const ROWS = [
   ["Where your work is stored", "Plain files on your own computer, by default", "On the vendor's server"],
-  ["Does the AI change things?", "Yes — it edits the board itself, after you approve each step", "Often suggests; you make the edit"],
+  ["Does the AI change things?", "Yes — it edits the board itself, and asks before removing anything", "Often suggests; you make the edit"],
   ["Cost", "You pay your own AI provider directly if you connect one", "Typically a per-seat subscription"],
   ["Works offline", "Yes — the board, and Vaea Chat too if you run a local model", "Usually not"],
   ["Team features (roles, shared spaces, admin)", "No — it's a single-person tool", "Usually yes"],
@@ -92,7 +92,7 @@ export default function Compare() {
               <ul className="mt-4 space-y-2.5 text-[0.98rem] leading-relaxed text-muted-foreground">
                 <li>You're managing your own portfolio of work, not a team's.</li>
                 <li>You want your projects in files on your machine, not a database you don't control.</li>
-                <li>You want Vaea Chat to do the edit — and to see it before it runs.</li>
+                <li>You want Vaea Chat to do the edit — and to ask before it removes anything.</li>
                 <li>You're fine bringing your own AI key instead of a per-seat subscription.</li>
               </ul>
             </Reveal>

@@ -89,6 +89,12 @@ export const DESTRUCTIVE_ACTIONS = new Set([
   "RESTORE_BACKUP",
   "DELETE_GMAIL_MESSAGE",
   "DELETE_OUTLOOK_MESSAGE",
+  // Not deletions, but just as final: a sent email or posted message can't
+  // be taken back, so they wait for "Yes, do it" like a delete does.
+  "SEND_GMAIL_MESSAGE",
+  "SEND_OUTLOOK_MESSAGE",
+  "SEND_SLACK_MESSAGE",
+  "SEND_CLICKUP_MESSAGE",
 ]);
 
 // UNDO_LAST_ACTION is a real tool the assistant can call, but it's handled

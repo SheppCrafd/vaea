@@ -3,8 +3,8 @@
 > Vaea is a local-first project portfolio dashboard with an AI assistant that
 > acts on the same data you see. You nest your work as areas → products →
 > projects → tasks on one board; the assistant (Vaea Chat) reads that board and
-> proposes concrete edits — create a project, add tasks, mark a focus item —
-> which you approve before anything runs. Project data is stored in files on
+> makes concrete edits — create a project, add tasks, mark a focus item — and
+> asks before removing anything or sending a message. Project data is stored in files on
 > your own device by default; there is no database holding it. Built and
 > maintained by one person.
 
@@ -18,17 +18,17 @@
   week's focus items. Selecting a stakeholder highlights every card and row
   they touch.
 - Vaea Chat: an AI assistant that creates, updates and completes items on the
-  board. It returns an ordered plan of edits; nothing is applied until the
-  user approves it. Destructive steps confirm again, and a snapshot is taken
-  before bulk changes. "undo" reverses the last action.
+  board. Removals and sent messages wait for the user's approval; other edits
+  apply right away and are listed step by step (an "Approve every action"
+  setting gates all of them). A snapshot is taken before multi-step changes.
 - Chat can also search the web, read an attached PDF/image/doc, follow a
   project's links, search and audit the whole workspace, and export entities
   to CSV.
 - Vaea Workplace: Vaea Calendar merges Google Workspace and Microsoft 365
   calendars (plus committed project due dates) into one agenda; Vmail is a
   native mail client over Gmail and Outlook. Chat can read and act across both,
-  approve-first. A Meetings surface exists but has no transcript connector yet
-  and says so.
+  approve-first. Meeting notes pasted into chat (/parse-notes) become tasks,
+  decisions, and follow-ups; Vaea does not record or transcribe meetings.
 - Mind Map: a live map of how a connected set of notes link to each other,
   plus a free-draw canvas for sketching out a process.
 - Notifications: a digest of overdue/unowned projects, done-but-unarchived
@@ -43,8 +43,8 @@
 
 ## How it differs
 
-- The assistant acts on the user's real workspace data (create/update/delete,
-  approve-first) rather than only describing what to do.
+- The assistant acts on the user's real workspace data (create/update/delete;
+  removals and sends need approval) rather than only describing what to do.
 - Project data is on the user's own device by default, not a vendor cloud.
   Cloud sync exists but is opt-in and reversible.
 - Chat can run on a built-in model, the user's own API key (Anthropic, OpenAI,

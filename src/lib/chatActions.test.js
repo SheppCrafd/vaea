@@ -458,6 +458,12 @@ describe("chatActions: destructive-action classification", () => {
     expect(DESTRUCTIVE_ACTIONS.has("ARCHIVE_DONE_TASKS")).toBe(true);
   });
 
+  it("waits for confirmation before anything that can't be taken back is sent", () => {
+    for (const a of ["SEND_GMAIL_MESSAGE", "SEND_OUTLOOK_MESSAGE", "SEND_SLACK_MESSAGE", "SEND_CLICKUP_MESSAGE"]) {
+      expect(DESTRUCTIVE_ACTIONS.has(a)).toBe(true);
+    }
+  });
+
   it("does not flag ordinary creates/updates as destructive", () => {
     expect(DESTRUCTIVE_ACTIONS.has("CREATE_TASK")).toBe(false);
     expect(DESTRUCTIVE_ACTIONS.has("UPDATE_PROJECT")).toBe(false);

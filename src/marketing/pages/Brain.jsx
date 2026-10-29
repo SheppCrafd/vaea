@@ -84,8 +84,8 @@ export default function Brain() {
           behind a call, the shape of a problem, the reference you had to dig for once already.
         </p>
         <p>
-          Every write is shown to you first, the same as a change to your board. Ask Vaea Chat to
-          "write this up" and you read the note before it's saved.
+          Ask Vaea Chat to "write this up" and it saves the note to your vault. Each write is a commit
+          in your own repository, so every earlier version stays in its history.
         </p>
       </ShowBlock>
 

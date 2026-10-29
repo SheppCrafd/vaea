@@ -24,7 +24,7 @@ const SECTIONS = [
   {
     heading: "The AI assistant",
     body: [
-      "The assistant proposes changes and acts only after you approve them. You are responsible for reviewing what it proposes before you say yes. AI output can be wrong; treat it as a draft, not an authority.",
+      "The assistant makes the changes you ask for. It asks for your approval before removing anything or sending a message, and you can require approval for every change in Settings. You are responsible for reviewing what it does and what you approve. AI output can be wrong; treat it as a draft, not an authority.",
       "When you use the built-in model, requests are subject to the underlying AI provider's terms. When you connect your own account, your agreement with that provider governs.",
     ],
   },

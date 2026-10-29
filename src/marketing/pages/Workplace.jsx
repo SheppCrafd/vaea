@@ -40,7 +40,7 @@ export default function Workplace() {
           actually holds.
         </p>
         <p>
-          Vaea Chat can add an event or move one, always showing you the change before it happens.
+          Vaea Chat can add an event or move one, and asks before it deletes one.
         </p>
       </ShowBlock>
 
@@ -57,27 +57,22 @@ export default function Workplace() {
         </p>
         <p>
           Ask Vaea Chat to draft a reply, file a message, or turn a long thread into tasks on your
-          board. It shows you first, every time.
+          board. Sending always waits for your yes.
         </p>
       </ShowBlock>
 
-      <Section
-        eyebrow="not ready yet"
-        title="Meetings — the surface is here, the connector isn't yet"
-      >
+      <Section eyebrow="after the call" title="Meeting notes become tasks">
         <Reveal className="mt-5 max-w-[46rem] space-y-3.5 text-[1.02rem] leading-relaxed text-muted-foreground">
           <p>
-            There's a place for meeting notes to land, but the transcript connector it needs isn't
-            available yet.
+            Paste your notes into Vaea Chat with{" "}
+            <code className="font-mono text-[0.9em]">/parse-notes</code>. It pulls out the tasks,
+            decisions, and follow-ups, and adds them to your board.
           </p>
-          <p>
-            The app says that plainly where you'd expect it to work, rather than looking finished and
-            failing quietly.
-          </p>
+          <p>Vaea doesn't record or transcribe meetings itself — bring the notes from wherever you keep them.</p>
         </Reveal>
       </Section>
 
-      <Marquee items={["one agenda", "one inbox", "Google and Microsoft", "drafted on approval", "next to the board"]} />
+      <Marquee items={["one agenda", "one inbox", "Google and Microsoft", "sent on your yes", "next to the board"]} />
 
       <Section id="faq" eyebrow="fair questions" title="How Vaea Workplace connects">
         <Reveal className="mt-8">

@@ -90,8 +90,15 @@ export const tasksOfBoard = (includeAdded = false) =>
 
 export const CHAT_PROMPT = "Set up “Q3 launch” under Marketing with three tasks";
 
+// The Vaea Chat demo's request. Not CHAT_PROMPT (the hero board's): by
+// default only plans that remove something or send a message stop for
+// "Yes, do it" (chatActions.js DESTRUCTIVE_ACTIONS), so a confirm card over a
+// plain create would show something the app doesn't do. Archiving done tasks
+// is gated, and a mixed plan is gated as a whole.
+export const CHAT_DEMO_PROMPT = "Clear the finished tasks out of Website relaunch and move it to next Friday";
+
 export const CHAT_MESSAGES = [
-  { id: "u1", role: "user", content: CHAT_PROMPT },
+  { id: "u1", role: "user", content: CHAT_DEMO_PROMPT },
   {
     id: "a1",
     role: "assistant",
@@ -100,15 +107,13 @@ export const CHAT_MESSAGES = [
     // list itself isn't re-typed here — pending_action.actions below is what
     // ChatMessageList renders as the confirm card, each with its target, so
     // the plan is stated once, not twice. The tool-log line is exactly
-    // chatActions.js describePlan() output for 1 project + 3 tasks.
+    // chatActions.js describePlan() output for these two steps.
     content:
-      "```tool-log\nplan · 4 steps across 1 project, 3 tasks\n```\n\nHere's a Q3 launch project mapped out under Marketing, with the three tasks you asked for. Nothing's been created yet — look it over and approve.",
+      "```tool-log\nplan · 2 steps across 1 project\n```\n\nThis will archive the 3 finished tasks in Website relaunch and move its due date to next Friday. Archived tasks stay in View Archive if you need them back.",
     pending_action: {
       actions: [
-        { action: "CREATE_PROJECT", args: { title: "Q3 launch" } },
-        { action: "CREATE_TASK", args: { title: "Draft the announcement" } },
-        { action: "CREATE_TASK", args: { title: "Brief the design review" } },
-        { action: "CREATE_TASK", args: { title: "Schedule the send" } },
+        { action: "ARCHIVE_DONE_TASKS", args: { title: "Website relaunch" } },
+        { action: "UPDATE_PROJECT", args: { title: "Website relaunch" } },
       ],
     },
   },

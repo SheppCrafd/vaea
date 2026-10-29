@@ -21,11 +21,12 @@ export default function VaeaChat() {
           <div className="max-w-[50rem]">
             <Eyebrow className="mb-4">Vaea Chat</Eyebrow>
             <h1 className="text-balance font-display text-[clamp(2.5rem,6.4vw,4.6rem)] font-semibold leading-[1.01] tracking-[-0.039em] text-foreground">
-              It makes the change. You get to see it first.
+              It makes the change. Anything final waits for your yes.
             </h1>
             <p className="mt-6 max-w-[40rem] text-[1.08rem] leading-relaxed text-muted-foreground">
               Vaea Chat isn't a chat box stuck onto an app. It works on the exact board you're looking
-              at — adding, updating, and finishing things — and shows you every step before it runs.
+              at — adding, updating, and finishing things — and lists every step it takes. Anything that
+              removes something or sends a message stops for your yes first.
             </p>
             <div className="mt-7">
               <CtaRow primaryLabel="Turn on Vaea Chat" note="Signing in turns on Vaea Chat — the board works without it." />
@@ -40,7 +41,7 @@ export default function VaeaChat() {
       </section>
 
       <ParallaxBackdrop src="/img/marketing/vaeachat-band.jpg" strength={132} scrim={0.88} position="50% 50%">
-        <Section eyebrow="how a change happens" title="Five steps — and you control the two that matter">
+        <Section eyebrow="how a change happens" title="Five steps, with a stop before anything final">
           <Reveal className="mt-8">
             <ol className="divide-y divide-foreground/[0.08] border-y border-foreground/[0.08]">
               {ASSISTANT_STEPS.map(([t, d], i) => (
@@ -111,11 +112,12 @@ export default function VaeaChat() {
         </p>
         <p>
           Ask it to check your board and it will flag what's overdue, what has no owner, and where
-          you've got near-duplicates — then offer the fixes as a plan you approve.
+          you've got near-duplicates — then make the fixes, stopping for your yes before it removes
+          anything.
         </p>
       </ShowBlock>
 
-      <Marquee items={["you ask", "it shows the plan", "you approve", "it makes the change", "you can undo"]} />
+      <Marquee items={["you ask", "it makes the change", "it lists every step", "removals wait for you", "a backup before big changes"]} />
 
       <Section id="faq" eyebrow="the fair questions" title="What it sends, and what it can't do">
         <Reveal className="mt-8">
@@ -123,7 +125,7 @@ export default function VaeaChat() {
         </Reveal>
       </Section>
 
-      <ClosingCta title="Tell it what changed. Approve the plan." note="Your own account or your own computer, if you'd rather" />
+      <ClosingCta title="Tell it what changed. It does the rest." note="Your own account or your own computer, if you'd rather" />
     </>
   );
 }

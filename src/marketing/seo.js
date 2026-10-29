@@ -39,16 +39,16 @@ export const ROUTES = [
     changefreq: "weekly",
     title: "Vaea — one calm board for everything you're carrying",
     description:
-      "The calm place to organize every project you're juggling. An assistant does the sorting and shows you first, and your information stays on your own computer.",
+      "The calm place to organize every project you're juggling. An assistant does the sorting and asks before it removes anything, and your information stays on your own computer.",
   },
   {
     path: "/vaea-chat",
     loc: "/vaea-chat",
     priority: "0.9",
     changefreq: "monthly",
-    title: "Vaea Chat — see every change before it happens | Vaea",
+    title: "Vaea Chat — it makes the change, and asks before removing anything | Vaea",
     description:
-      "Ask in plain words. Vaea Chat reads your board, shows what it would change, and waits for your yes. Built-in model, your own AI account, or Claude Code on your own machine.",
+      "Ask in plain words. Vaea Chat reads your board, makes the change, and asks before it removes or sends anything. Built-in model, your own AI account, or Claude Code on your own machine.",
   },
   {
     path: "/brain",
@@ -141,7 +141,7 @@ export const HOME_FAQ = [
   },
   {
     q: "Does Vaea Chat actually change things, or just talk?",
-    a: "It changes things. You ask in plain words, it shows you exactly what it's about to do, and nothing happens until you say yes. You can undo the last thing with one word.",
+    a: "It changes things. You ask in plain words, it makes the change, and it lists each step it took. Anything that removes something or sends a message waits for your yes first. To approve every change before it happens, turn on “Approve every action” in Settings.",
   },
   {
     q: "Where is my information kept?",
@@ -164,7 +164,7 @@ export const ASSISTANT_FAQ = [
   },
   {
     q: "Could it do something I didn't want?",
-    a: "It can't act on its own. Every change is shown to you first and waits for your yes. Removing things asks a second time, and a backup is saved before anything large — so a mistake is easy to walk back.",
+    a: "It acts when you ask, or when an agent you set up runs on its schedule. It never removes or sends anything without your yes, and a backup of your whole board is saved before any multi-step change, so a mistake is easy to walk back from Settings → Backup & Restore. Want every change to wait for you? Turn on “Approve every action”.",
   },
   {
     q: "Does it watch how I work?",
@@ -179,9 +179,9 @@ export const ASSISTANT_FAQ = [
 export const ASSISTANT_STEPS = [
   ["You ask", "Type it the way you'd say it — “move everything that's stuck waiting on the vendor to the top and flag it for this week.”"],
   ["It looks at your board", "Your current board is sent along so it can see what's actually there. Just for that one question — nothing is kept."],
-  ["It shows you the plan", "You get a short list of exactly what it would change. Nothing has changed yet."],
-  ["You approve", "It makes the changes. Anything that removes something asks again, and a backup is saved before big changes."],
-  ["You can undo", "Say “undo” to take back the last change, or restore a backup."],
+  ["It makes the change", "It works through the steps and lists each one as it goes, so you can see exactly what changed."],
+  ["Removals wait for you", "Anything that deletes something or sends a message stops for your “Yes, do it” first. Want every change to wait? Turn on “Approve every action” in Settings."],
+  ["You can walk it back", "A backup of your whole board is saved before any multi-step change. Restore it from Settings → Backup & Restore."],
 ];
 
 export const BRAIN_FAQ = [
@@ -191,7 +191,7 @@ export const BRAIN_FAQ = [
   },
   {
     q: "What can Vaea Chat do with them?",
-    a: "Pull a note in for context while it answers, and add or update notes when you ask — logging a decision, writing up a session, filing a reference. Every write is shown to you first, the same as changes to your board.",
+    a: "Pull a note in for context while it answers, and add or update notes when you ask — logging a decision, writing up a session, filing a reference. Each write is a commit in your own repository, so every earlier version stays in its history.",
   },
   {
     q: "Do I have to use it?",
@@ -206,11 +206,11 @@ export const WORKPLACE_FAQ = [
   },
   {
     q: "Can Vaea Chat act on my email and calendar?",
-    a: "Yes — draft a reply, file a message, add an event, turn a long thread into tasks. As everywhere else, it shows you the change first and waits for your yes.",
+    a: "Yes — draft a reply, file a message, add an event, turn a long thread into tasks. Sending an email waits for your yes; a drafted reply stays a draft until you send it.",
   },
   {
     q: "What about meeting notes?",
-    a: "The Meetings surface exists but the transcript connector it needs isn't available yet, and the app says so directly rather than pretending otherwise.",
+    a: "Paste them into Vaea Chat with /parse-notes and it pulls out the tasks, decisions, and follow-ups, and adds them to your board. Vaea doesn't record or transcribe meetings itself.",
   },
 ];
 
@@ -268,7 +268,7 @@ export function organizationLd() {
     logo: `${SITE_URL}/android-chrome-512x512.png`,
     founder: PERSON,
     sameAs: [SITE_REPO],
-    description: "Vaea is a one-person project, with your information kept on your own computer by default.",
+    description: "Vaea is built and maintained by one person. Your information stays on your own computer by default.",
   };
 }
 
@@ -302,7 +302,7 @@ export function softwareApplicationLd() {
       "One board for projects and tasks, grouped by area of your life",
       "A short list of today's top three and this week's focus",
       "See the people attached to any project or task",
-      "Vaea Chat adds and changes things after you approve",
+      "Vaea Chat makes changes on your board, and asks before removing or sending anything",
       "Use the built-in model, your own AI account, or Claude Code on your own machine",
       "Vaea Workplace: one calendar view and one inbox across connected accounts",
       "Vaea Brain: your own notes vault, read and written by Vaea Chat",

@@ -60,19 +60,20 @@ export default function Home() {
       <ShowBlock
         id="vaea-chat"
         tone="dark"
-        eyebrow="it shows you first · you say yes"
+        eyebrow="it does the work · it asks before removing anything"
         title="Vaea Chat does the change, it doesn't just describe it"
         visual={<ChatDemo onDark />}
         cta={{ to: "/vaea-chat", label: "See how Vaea Chat works" }}
       >
         <p>
-          Say “set up a Q3 launch project under Marketing with three tasks,” and it reads your board,
-          then lays out the exact steps it would take. You read them and approve — or don't.
+          Say “set up a Q3 launch project under Marketing with three tasks,” and it builds it on your
+          board, listing each step as it goes. Ask it to clear something out or send an email, and it
+          lays out the plan and waits for your yes.
         </p>
         <p>
           It works on the same board you're looking at: adding and updating projects and tasks, noting
-          risks, flagging what to focus on this week, pulling everything into a spreadsheet. Say
-          “undo” to take back the last step.
+          risks, flagging what to focus on this week, pulling everything into a spreadsheet. A backup
+          of the whole board is saved before any multi-step change, so you can always go back.
         </p>
       </ShowBlock>
 
@@ -158,7 +159,7 @@ export default function Home() {
       <Marquee
         items={[
           "your work, at sea level",
-          "it shows you before it acts",
+          "it asks before it removes anything",
           "your information stays with you",
           "works offline",
           "every feature included",
