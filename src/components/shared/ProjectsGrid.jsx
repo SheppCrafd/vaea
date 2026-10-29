@@ -1,6 +1,7 @@
 import { useCardView } from "@/lib/CardViewContext";
 import ProjectCard from "@/components/projects/ProjectCard";
 import ProjectCardFull from "@/components/projects/ProjectCardFull";
+import MiniProjectsGrid from "@/components/shared/MiniProjectsGrid";
 
 // Projects fill whatever space their parent (a Product, or an Area's own
 // "Direct Projects" zone) gives them, but the two card views want opposite
@@ -64,13 +65,10 @@ export default function ProjectsGrid({ projects, stakeholderIds, emptyMessage, g
   }
 
   return (
-    <div
-      className={className}
-      style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, 112px)`, alignItems: "start", gap: `${gap}px` }}
-    >
+    <MiniProjectsGrid className={className} gap={gap}>
       {projects.map((project) => (
         <ProjectCard key={project.id} project={project} stakeholderIds={stakeholderIds} />
       ))}
-    </div>
+    </MiniProjectsGrid>
   );
 }

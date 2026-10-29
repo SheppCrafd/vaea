@@ -6,6 +6,8 @@ import AreaCardShell from "@/components/areas/AreaCardShell";
 import ProductCardShell from "@/components/products/ProductCardShell";
 import ProjectCardShell from "@/components/projects/ProjectCardShell";
 import TaskStatistics from "@/components/shared/TaskStatistics";
+import MiniProjectsGrid from "@/components/shared/MiniProjectsGrid";
+import AreaProductsGrid from "@/components/shared/AreaProductsGrid";
 import CardCustomFields from "@/components/shared/CardCustomFields";
 import EditableText from "@/components/shared/EditableText";
 import EditableTitle from "@/components/shared/EditableTitle";
@@ -55,32 +57,6 @@ function InertExpand({ className, iconClass = "w-4 h-4", title, label }) {
   );
 }
 
-// Grows or shrinks to fit its content over ~half a second instead of
-// jumping, so the Marketing card extends smoothly when the assistant's card
-// pops in. Clips while it animates (the tiles sit inside the grid's padding,
-// so their shadows aren't cut). Reduced motion: no transition.
-function SmoothHeight({ children }) {
-  const inner = useRef(null);
-  const [height, setHeight] = useState(null);
-  useLayoutEffect(() => {
-    const el = inner.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
-    const measure = () => setHeight(el.offsetHeight);
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-  const still = prefersReducedMotion();
-  return (
-    <div
-      style={height === null ? undefined : { height, overflow: "hidden", transition: still ? undefined : "height 520ms cubic-bezier(0.22, 1, 0.36, 1)" }}
-    >
-      <div ref={inner}>{children}</div>
-    </div>
-  );
-}
-
 // One project tile — the real ProjectCardShell, fed fixture-derived stats.
 // `addedCard` marks the "Harbor 2.0 launch" tile the assistant drops mid-demo.
 function DemoProject({ p, addedCard = false, delay = 0 }) {
@@ -123,78 +99,65 @@ function DemoProject({ p, addedCard = false, delay = 0 }) {
   );
 }
 
-// One product — the real ProductCardShell, its project grid replicating
-// ProjectsGrid's Mini-mode CSS grid exactly.
+// One product — the real ProductCardShell, with the app's own
+// MiniProjectsGrid (the component ProjectsGrid renders), so the tiles and
+// their spacing are the app's code, not a copy of it.
 function DemoProduct({ product, hero, showAdded, cycle, delay }) {
   // Only the first product (Marketing) gets the assistant's added card. It
-  // exists only once it has arrived; SmoothHeight below grows the card to
-  // fit it. The board reserves that extra row (see BoardDemo), so the page
-  // around the hero never moves.
+  // exists only once it has arrived; MiniProjectsGrid grows the card to fit
+  // it, as it does in the app. BoardDemo reserves the extra height on its
+  // own frame, so the page around the hero never moves.
   const withCard = hero && product === BOARD.products[0];
   const projects = withCard && showAdded ? [...product.projects, BOARD.added] : product.projects;
   return (
-    <div className="mkt-board-piece" style={{ "--piece-delay": `${delay}ms` }}>
-      <div>
-      <ProductCardShell
-        dragHandle={
-          <InertGrip className="absolute top-1.5 left-1.5 z-20 p-1.5" label="Drag to reorder product" />
-        }
-        expandButton={
-          <InertExpand
-            className="text-muted-foreground hover:text-foreground hover:bg-card p-1.5 rounded-md transition-colors"
-            title="Expand Product"
-            label="Expand product"
-          />
-        }
-        deleteButton={<DeleteButton onClick={noop} label="Delete product" size="md" className="p-1.5 rounded-md" />}
-        title={
-          <EditableTitle
-            as="div"
-            value={product.name}
-            className="font-heading font-semibold min-w-0 cursor-text"
-            tooltip={product.name}
-          />
-        }
-        description={
-          <EditableText
-            value={product.description}
-            onSave={noop}
-            placeholder="Add a description..."
-            className="text-xs text-muted-foreground break-words"
-          />
-        }
-        projectsGrid={
-          <SmoothHeight>
-          <div
-            data-demo-grid
-            className="relative z-[1] mt-4 min-h-[80px] rounded-lg -mx-4 p-2 transition-colors bg-transparent"
-            style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, 112px)", alignItems: "start", gap: "8px" }}
-          >
-            {projects.map((proj, j) => {
-              const isAdded = proj === BOARD.added;
-              return (
-                <DemoProject
-                  key={isAdded ? `added-${cycle}` : proj.id}
-                  p={proj}
-                  addedCard={isAdded}
-                  delay={140 + j * 55}
-                />
-              );
-            })}
-          </div>
-          </SmoothHeight>
-        }
-        stats={<TaskStatistics tasks={tasksOfProduct(product, withCard && showAdded)} />}
-        customFields={
-          <CardCustomFields
-            entity={product}
-            onUpdateEntity={noop}
-            className="relative z-[1] mt-3 pt-3 border-t border-foreground/[0.06] flex flex-wrap gap-x-3 gap-y-1"
-          />
-        }
-      />
-      </div>
-    </div>
+    <ProductCardShell
+      className="mkt-board-piece"
+      style={{ "--piece-delay": `${delay}ms` }}
+      dragHandle={
+        <InertGrip className="absolute top-1.5 left-1.5 z-20 p-1.5" label="Drag to reorder product" />
+      }
+      expandButton={
+        <InertExpand
+          className="text-muted-foreground hover:text-foreground hover:bg-card p-1.5 rounded-md transition-colors"
+          title="Expand Product"
+          label="Expand product"
+        />
+      }
+      deleteButton={<DeleteButton onClick={noop} label="Delete product" size="md" className="p-1.5 rounded-md" />}
+      title={
+        <EditableTitle
+          as="div"
+          value={product.name}
+          className="font-heading font-semibold min-w-0 cursor-text"
+          tooltip={product.name}
+        />
+      }
+      description={
+        <EditableText
+          value={product.description}
+          onSave={noop}
+          placeholder="Add a description..."
+          className="text-xs text-muted-foreground break-words"
+        />
+      }
+      projectsGrid={
+        // ProductCard's own className for this grid, at rest (not a drop target).
+        <MiniProjectsGrid gap={8} className="relative z-[1] mt-4 min-h-[80px] rounded-lg -mx-4 p-2 transition-colors bg-transparent">
+          {projects.map((proj, j) => {
+            const isAdded = proj === BOARD.added;
+            return <DemoProject key={isAdded ? `added-${cycle}` : proj.id} p={proj} addedCard={isAdded} delay={140 + j * 55} />;
+          })}
+        </MiniProjectsGrid>
+      }
+      stats={<TaskStatistics tasks={tasksOfProduct(product, withCard && showAdded)} />}
+      customFields={
+        <CardCustomFields
+          entity={product}
+          onUpdateEntity={noop}
+          className="relative z-[1] mt-3 pt-3 border-t border-foreground/[0.06] flex flex-wrap gap-x-3 gap-y-1"
+        />
+      }
+    />
   );
 }
 
@@ -203,32 +166,26 @@ export default function BoardDemo({ hero = false, className }) {
   const [added, setAdded] = useState(false);
   // Bumped once per loop; keys the product grid so every piece re-drops.
   const [cycle, setCycle] = useState(0);
-  // Hero only: a minimum height for the product grid that already includes
-  // the row Marketing gains, so growing to fit the added card never moves the page.
+  // Hero only: the demo frame keeps a minimum height that already includes
+  // the row Marketing gains, so the card growing to fit the added project
+  // never moves the page. Set on the demo's own frame, not on app markup.
+  // Measured at the start of every loop, before the card arrives.
+  const frameRef = useRef(null);
   const productsRef = useRef(null);
-  const [reserve, setReserve] = useState(0);
-  // Measured at the start of every loop (the card isn't there yet): how much
-  // taller Marketing's row will be once Marketing gains a row of tiles. The
-  // row is as tall as its tallest card, so if another card in that row is
-  // already taller, less (or nothing) needs reserving.
   useLayoutEffect(() => {
+    const frame = frameRef.current;
     const grid = productsRef.current;
-    if (!hero || !grid || added) return;
+    if (!hero || !frame || !grid || added) return;
+    frame.style.minHeight = "";
     const cards = [...grid.children];
-    const tile = grid.querySelector("[data-demo-grid] > *");
+    const tile = grid.querySelector("[style*='112px'] > *");
     if (!cards.length || !tile) return;
+    // Marketing's row is as tall as its tallest card, so if another card in
+    // that row is already taller, less (or nothing) needs reserving.
     const rowTop = cards[0].offsetTop;
-    const row = cards.filter((c) => c.offsetTop === rowTop).map((c) => c.offsetHeight);
-    const rowHeight = Math.max(...row);
+    const rowHeight = Math.max(...cards.filter((c) => c.offsetTop === rowTop).map((c) => c.offsetHeight));
     const grown = cards[0].offsetHeight + tile.offsetHeight + 8;
-    // A floor for the whole product grid: its height now plus the extra the
-    // grown Marketing card needs. Marketing grows into space that's already
-    // there, so nothing outside the card moves.
-    // Natural height from the cards themselves (the grid's own height would
-    // include last loop's floor and creep up every loop).
-    const base = cards[0].offsetParent === grid ? 0 : grid.offsetTop;
-    const natural = Math.max(...cards.map((c) => c.offsetTop + c.offsetHeight)) - base;
-    setReserve(natural + Math.max(0, Math.max(grown, rowHeight) - rowHeight));
+    frame.style.minHeight = `${frame.offsetHeight + Math.max(0, grown - rowHeight)}px`;
     // `added` is read only to skip measuring the grown state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hero, cycle]);
@@ -271,11 +228,10 @@ export default function BoardDemo({ hero = false, className }) {
     };
   }, [hero]);
 
-  const lockRef = useRef(null);
-  useDemoLock(lockRef);
+  useDemoLock(frameRef);
   return (
     <div
-      ref={lockRef}
+      ref={frameRef}
       aria-hidden="true"
       className={cn(
         "mkt-demo mx-auto w-full",
@@ -313,23 +269,11 @@ export default function BoardDemo({ hero = false, className }) {
           />
         }
         productsGrid={
-          <div
-            key={hero ? cycle : "static"}
-            ref={productsRef}
-            className="mt-2 grid items-start -mx-5"
-            style={{ gridTemplateColumns: "repeat(auto-fit, 248px)", justifyContent: "space-evenly", ...(hero && reserve ? { minHeight: reserve } : null) }}
-          >
+          <AreaProductsGrid key={hero ? cycle : "static"} ref={productsRef} cardView="mini">
             {BOARD.products.map((prod, pi) => (
-              <DemoProduct
-                key={prod.id}
-                product={prod}
-                hero={hero}
-                showAdded={added}
-                cycle={cycle}
-                delay={80 + pi * 60}
-              />
+              <DemoProduct key={prod.id} product={prod} hero={hero} showAdded={added} cycle={cycle} delay={80 + pi * 60} />
             ))}
-          </div>
+          </AreaProductsGrid>
         }
         // The real Area card has a "Direct Projects" drop zone here; it's a
         // drag target with instructional text ("Drop a project here…") that
