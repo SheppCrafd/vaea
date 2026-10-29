@@ -66,7 +66,7 @@ export default function Home() {
         cta={{ to: "/vaea-chat", label: "See how Vaea Chat works" }}
       >
         <p>
-          Say “set up a Q3 launch project under Marketing with three tasks,” and it builds it on your
+          Say “set up a Harbor 2.0 launch project under Marketing with three tasks,” and it builds it on your
           board, listing each step as it goes. Ask it to clear something out or send an email, and it
           lays out the plan and waits for your yes.
         </p>

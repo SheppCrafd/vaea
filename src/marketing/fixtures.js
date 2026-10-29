@@ -3,6 +3,15 @@
 // the exact same computed shapes the product uses — not hand-drawn
 // lookalikes. Nothing here is interactive (see DemoStage) and nothing here
 // is persisted.
+//
+// Every demo shows one invented user's week, so they agree with each other:
+// Juan Morales, head of product at Harborline, a small software company
+// that makes the Harbor app. His people: Dana Kim (design lead), Lee Park
+// (engineer on Auth rework), Priya Shah at Lumen Studio (the launch vendor)
+// and Marta Ruiz (Finance). The board, inbox, calendar, chat and notes map
+// (VaultGraph.jsx DEMO_GRAPH) all refer to the same projects and people;
+// change one and check the others still line up. Juan is a sample user,
+// never presented as a customer or quoted.
 
 import { getQuadrantCounts, getMiniStatusCounts } from "@/lib/taskUtils";
 
@@ -17,15 +26,16 @@ const T = (quadrant, status, focus = false) => ({
 
 // One fixture project. Keeps its raw `tasks` (what the real TaskStatistics
 // bar reads) alongside the ProjectMiniStats props, derived the same way
-// ProjectCard.jsx derives them. `notes` mirrors the real useProjectNotes
-// shape so risk/question flags light up exactly as they do in-app.
+// ProjectCard.jsx derives them. `risks`/`questions` are the note texts, in
+// the real useProjectNotes shape, so the flags and their hover text behave
+// exactly as they do in-app.
 let seq = 0;
-function project(title, tasks, { risks = 0, questions = 0 } = {}) {
+function project(title, tasks, { risks = [], questions = [] } = {}) {
   const quadrants = getQuadrantCounts(tasks, []);
   const miniStats = getMiniStatusCounts(tasks);
   const miniTotal = miniStats.reduce((s, c) => s + c.count, 0);
-  const riskNotes = Array.from({ length: risks }, (_, i) => ({ type: "RISK", content: `Risk ${i + 1}` }));
-  const questionNotes = Array.from({ length: questions }, (_, i) => ({ type: "QUESTION", content: `Open question ${i + 1}` }));
+  const riskNotes = risks.map((content) => ({ type: "RISK", content }));
+  const questionNotes = questions.map((content) => ({ type: "QUESTION", content }));
   return {
     id: `demo-project-${++seq}`,
     title,
@@ -49,15 +59,19 @@ const MARKETING = {
   ...entity("demo-product-marketing", "Launches, brand, and the site"),
   name: "Marketing",
   projects: [
-    project("Website relaunch", [T(1, "IN_PROGRESS", true), T(1, "NOT_STARTED"), T(2, "IN_PROGRESS"), T(2, "DONE"), T(3, "DONE"), T(4, "NOT_STARTED"), T(4, "DONE")], { risks: 1 }),
+    project("Website relaunch", [T(1, "IN_PROGRESS", true), T(1, "NOT_STARTED"), T(2, "IN_PROGRESS"), T(2, "DONE"), T(3, "DONE"), T(4, "NOT_STARTED"), T(4, "DONE")], {
+      risks: ["Dana's final QA pass could push the launch past Nov 14"],
+    }),
     project("Brand refresh", [T(2, "NOT_STARTED"), T(2, "IN_PROGRESS"), T(3, "NOT_STARTED"), T(4, "DONE")]),
   ],
 };
 const PLATFORM = {
-  ...entity("demo-product-platform", "The app itself and its APIs"),
+  ...entity("demo-product-platform", "The Harbor app and its APIs"),
   name: "Platform",
   projects: [
-    project("Auth rework", [T(1, "BLOCKED"), T(1, "IN_PROGRESS", true), T(2, "IN_PROGRESS"), T(3, "DONE"), T(4, "NOT_STARTED"), T(4, "DONE")], { questions: 2 }),
+    project("Auth rework", [T(1, "BLOCKED"), T(1, "IN_PROGRESS", true), T(2, "IN_PROGRESS"), T(3, "DONE"), T(4, "NOT_STARTED"), T(4, "DONE")], {
+      questions: ["Do staff accounts get passkeys too, or only customers?", "Who signs off on keeping SMS codes as a fallback?"],
+    }),
     project("API v2", [T(1, "NOT_STARTED"), T(1, "IN_PROGRESS"), T(2, "NOT_STARTED"), T(4, "DONE"), T(4, "NOT_STARTED"), T(4, "NOT_STARTED")]),
   ],
 };
@@ -66,11 +80,14 @@ const OPS = {
   name: "Ops",
   projects: [
     project("Onboarding refresh", [T(1, "DONE"), T(2, "DONE"), T(2, "IN_PROGRESS"), T(3, "DONE"), T(4, "DONE")]),
-    project("Vendor review", [T(1, "NOT_STARTED", true), T(2, "NOT_STARTED"), T(4, "NOT_STARTED")], { risks: 1, questions: 1 }),
+    project("Vendor review", [T(1, "NOT_STARTED", true), T(2, "NOT_STARTED"), T(4, "NOT_STARTED")], {
+      risks: ["Lumen Studio's first quote came in over budget"],
+      questions: ["Can Marta approve the revised quote before Friday?"],
+    }),
   ],
 };
 
-const ADDED = project("Q3 launch", [T(2, "NOT_STARTED"), T(1, "NOT_STARTED"), T(3, "NOT_STARTED")]);
+const ADDED = project("Harbor 2.0 launch", [T(2, "NOT_STARTED"), T(1, "NOT_STARTED"), T(3, "NOT_STARTED")]);
 
 export const BOARD = {
   ...entity("demo-area-work", "Everything I'm on the hook for"),
@@ -88,7 +105,7 @@ export const tasksOfProduct = (product, includeAdded = false) =>
 export const tasksOfBoard = (includeAdded = false) =>
   BOARD.products.flatMap((p) => tasksOfProduct(p, includeAdded));
 
-export const CHAT_PROMPT = "Set up “Q3 launch” under Marketing with three tasks";
+export const CHAT_PROMPT = "Set up “Harbor 2.0 launch” under Marketing with three tasks";
 
 // The Vaea Chat demo's request. Not CHAT_PROMPT (the hero board's): by
 // default only plans that remove something or send a message stop for
@@ -122,10 +139,10 @@ export const CHAT_MESSAGES = [
 // InboxFrame message shape.
 const now = Date.now();
 export const VMAIL_MESSAGES = [
-  { provider: "gmail", id: "m1", unread: true, label: "Gmail", from: "Priya (vendor)", subject: "Re: Q3 launch quote — revised", date: new Date(now - 22 * 60000).toISOString() },
-  { provider: "outlook", id: "m2", unread: true, label: "Outlook", from: "Design review", subject: "Launch thread (4 new)", date: new Date(now - 95 * 60000).toISOString() },
-  { provider: "gmail", id: "m3", unread: false, label: "Gmail", from: "Weekly report", subject: "Portfolio status — week of the 24th", date: new Date(now - 5 * 3600000).toISOString() },
-  { provider: "outlook", id: "m4", unread: false, label: "Outlook", from: "Finance", subject: "PO approved", date: new Date(now - 26 * 3600000).toISOString() },
+  { provider: "gmail", id: "m1", unread: true, label: "Gmail", from: "Priya Shah", subject: "Juan, revised quote for the Harbor 2.0 launch", date: new Date(now - 22 * 60000).toISOString() },
+  { provider: "outlook", id: "m2", unread: true, label: "Outlook", from: "Dana Kim", subject: "Launch designs, round 2 (4 new)", date: new Date(now - 95 * 60000).toISOString() },
+  { provider: "gmail", id: "m3", unread: false, label: "Gmail", from: "Lee Park", subject: "Auth rework: passkeys PR is ready for review", date: new Date(now - 5 * 3600000).toISOString() },
+  { provider: "outlook", id: "m4", unread: false, label: "Outlook", from: "Marta Ruiz", subject: "Re: Lumen Studio budget. Send me the revised quote", date: new Date(now - 26 * 3600000).toISOString() },
 ];
 
 // CalendarView `groups`: [dayKey, items[]] with item.date a real Date.
@@ -149,12 +166,13 @@ function day(offset, items) {
 export const CALENDAR_GROUPS = [
   day(0, [
     { h: 9, title: "Standup", source: "Google", meet: true },
-    { h: 13, title: "Design review — Q3 launch", source: "Microsoft 365", meet: true },
+    { h: 13, title: "Design review with Dana: Harbor 2.0 launch", source: "Microsoft 365", meet: true },
     { h: 16, title: "Due: API v2", source: "Vaea" },
   ]),
   day(1, [
-    { h: 11, title: "Vendor call — Priya", source: "Google", meet: true },
-    { h: 15, title: "Focus block", source: "Google" },
+    { h: 11, title: "Vendor call: Priya, Lumen Studio", source: "Google", meet: true },
+    { h: 14, title: "1:1 with Lee: Auth rework", source: "Google", meet: true },
+    { h: 16, title: "Focus block", source: "Google" },
   ]),
   day(3, [{ h: 10, title: "Due: Website relaunch", source: "Vaea" }]),
 ];

@@ -26,7 +26,7 @@ import { BOARD, CHAT_PROMPT, tasksOfProduct, tasksOfBoard } from "../fixtures";
 // cursor:default on every descendant, so nothing is hoverable or clickable
 // and the pointer stays an arrow.
 //
-// hero=true types the assistant prompt line and drops the "Q3 launch" card
+// hero=true types the assistant prompt line and drops the "Harbor 2.0 launch" card
 // into Marketing mid-demo. Reduced motion → the final state, static.
 
 const noop = () => {};
@@ -56,7 +56,7 @@ function InertExpand({ className, iconClass = "w-4 h-4", title, label }) {
 }
 
 // One project tile — the real ProjectCardShell, fed fixture-derived stats.
-// `addedCard` marks the "Q3 launch" tile the assistant drops mid-demo; while
+// `addedCard` marks the "Harbor 2.0 launch" tile the assistant drops mid-demo; while
 // `pending` it's rendered but held at opacity 0 so its grid cell always
 // occupies space — the board never changes height across the loop.
 function DemoProject({ p, addedCard = false, pending = false, delay = 0 }) {

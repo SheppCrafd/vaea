@@ -75,7 +75,7 @@ export function ChatDemo({ onDark = false }) {
   }, [shown, reduced]);
 
   return (
-    <DemoStage label="Vaea Chat" onDark={onDark}>
+    <DemoStage label="Juan’s chat" onDark={onDark}>
       <div ref={ref} className="flex h-[360px] flex-col">
         {shown ? (
           <Suspense fallback={<div className="flex-1" />}>
@@ -118,7 +118,7 @@ export function VmailDemo({ onDark = false }) {
 
 export function CalendarDemo() {
   return (
-    <DemoStage label="One calendar">
+    <DemoStage label="Juan’s calendar">
       <Deferred height={340}>
         <div className="overflow-hidden p-4">
           <CalendarView demo groups={CALENDAR_GROUPS} anyConnected />
@@ -156,7 +156,7 @@ export function MindMapDemo({ interactive = false }) {
     );
   }
   return (
-    <DemoStage label="Notes map">
+    <DemoStage label="Juan’s notes">
       <Deferred height={320}>
         <VaultGraph demo />
       </Deferred>

@@ -125,30 +125,32 @@ function tagHue(tag) {
 // content (a marketing site can't read a real visitor's vault), rendered by
 // the exact same draw/layout code path as the live app so the animation is
 // never lying about what the real UI looks like.
+// The notes belong to the marketing site's sample user, Juan Morales at
+// Harborline: the same projects and people as src/marketing/fixtures.js.
 const DEMO_GRAPH = {
   links: [
-    { from: "Decisions/Auth Architecture.md", to: "Projects/Vaea.md" },
-    { from: "Decisions/Session Storage.md", to: "Projects/Vaea.md" },
-    { from: "Decisions/Local-First Sync.md", to: "Projects/Vaea.md" },
-    { from: "Decisions/Local-First Sync.md", to: "Decisions/Session Storage.md" },
-    { from: "Daily/2026-08-14.md", to: "Decisions/Auth Architecture.md" },
-    { from: "Daily/2026-08-19.md", to: "Decisions/Local-First Sync.md" },
-    { from: "Daily/2026-08-19.md", to: "Reference/Deploy Runbook.md" },
-    { from: "Projects/Vaea.md", to: "People/Priya.md" },
-    { from: "Projects/Vaea.md", to: "Areas/Work.md" },
-    { from: "Projects/Zmanim Today.md", to: "Areas/Work.md" },
-    { from: "Projects/Zmanim Today.md", to: "Decisions/Local-First Sync.md" },
-    { from: "MOC/Engineering.md", to: "Decisions/Auth Architecture.md" },
-    { from: "MOC/Engineering.md", to: "Decisions/Session Storage.md" },
-    { from: "MOC/Engineering.md", to: "Reference/Deploy Runbook.md" },
-    { from: "Knowledge/React Query.md", to: "Projects/Vaea.md" },
-    { from: "Knowledge/Obsidian Git.md", to: "MOC/Engineering.md" },
-    { from: "Ideas/Offline Mode.md", to: "Decisions/Local-First Sync.md" },
-    { from: "Reference/Deploy Runbook.md", to: "Projects/Vaea.md" },
+    { from: "Decisions/Passkeys Over SMS Codes.md", to: "Projects/Auth Rework.md" },
+    { from: "Decisions/Launch on Nov 14.md", to: "Projects/Website Relaunch.md" },
+    { from: "Decisions/Launch on Nov 14.md", to: "Projects/Harbor 2.0 Launch.md" },
+    { from: "Decisions/Lumen Studio for Print.md", to: "Projects/Vendor Review.md" },
+    { from: "Daily/2026-10-26.md", to: "Decisions/Passkeys Over SMS Codes.md" },
+    { from: "Daily/2026-10-28.md", to: "Decisions/Launch on Nov 14.md" },
+    { from: "Daily/2026-10-28.md", to: "Meetings/Design Review.md" },
+    { from: "Meetings/Design Review.md", to: "People/Dana Kim.md" },
+    { from: "Meetings/Design Review.md", to: "Projects/Harbor 2.0 Launch.md" },
+    { from: "Projects/Website Relaunch.md", to: "People/Dana Kim.md" },
+    { from: "Projects/Auth Rework.md", to: "People/Lee Park.md" },
+    { from: "Projects/Vendor Review.md", to: "People/Priya Shah.md" },
+    { from: "Projects/Vendor Review.md", to: "People/Marta Ruiz.md" },
+    { from: "MOC/Harborline.md", to: "Projects/Website Relaunch.md" },
+    { from: "MOC/Harborline.md", to: "Projects/Auth Rework.md" },
+    { from: "MOC/Harborline.md", to: "Projects/Vendor Review.md" },
+    { from: "MOC/Harborline.md", to: "Projects/Harbor 2.0 Launch.md" },
+    { from: "Reference/Launch Checklist.md", to: "Projects/Harbor 2.0 Launch.md" },
   ],
   suggested_links: [
-    { a: "Decisions/Auth Architecture.md", b: "Decisions/Session Storage.md" },
-    { a: "Ideas/Offline Mode.md", b: "Decisions/Session Storage.md" },
+    { a: "Reference/Launch Checklist.md", b: "Projects/Website Relaunch.md" },
+    { a: "Decisions/Lumen Studio for Print.md", b: "Projects/Harbor 2.0 Launch.md" },
   ],
   tags: {},
 };
