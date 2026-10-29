@@ -50,7 +50,7 @@ export default function Brain() {
 
       <StoryRegion>
       <StoryIntro time="6:10 PM">
-        Before he logs off, Juan writes down why the launch moved to Nov 14, so nobody has to ask again
+        Before he logs off, Bob writes down why the launch moved to Nov 14, so nobody has to ask again
         next week.
       </StoryIntro>
 
@@ -76,7 +76,7 @@ export default function Brain() {
         flip
         tone="dark"
         time="6:30 PM"
-        story="The decision isn't a task, so it doesn't belong on the board. It belongs with the rest of what Juan has worked out."
+        story="The decision isn't a task, so it doesn't belong on the board. It belongs with the rest of what Bob has worked out."
         title="A place for the things that aren't tasks"
         visual={
           <ul className="divide-y divide-white/10 border-y border-white/10">

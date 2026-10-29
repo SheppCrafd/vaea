@@ -11,7 +11,7 @@ vi.mock("@/lib/granolaOAuth", () => ({ refreshGranolaTokens: refresh }));
 
 import { granolaForChat } from "@/lib/granolaChat";
 
-const base = { clientId: "c", accessToken: "a1", refreshToken: "r1", emailAddress: "juan@example.com", plan: "free" };
+const base = { clientId: "c", accessToken: "a1", refreshToken: "r1", emailAddress: "bob@example.com", plan: "free" };
 
 describe("granolaForChat", () => {
   beforeEach(() => { store.saved = []; refresh.mockReset(); });
@@ -19,7 +19,7 @@ describe("granolaForChat", () => {
   it("sends only the access token, email and plan, never the refresh token", async () => {
     store.value = { ...base, expiresAt: Date.now() + 3600e3 };
     const out = await granolaForChat();
-    expect(out).toEqual({ accessToken: "a1", emailAddress: "juan@example.com", plan: "free" });
+    expect(out).toEqual({ accessToken: "a1", emailAddress: "bob@example.com", plan: "free" });
     expect(refresh).not.toHaveBeenCalled();
   });
 

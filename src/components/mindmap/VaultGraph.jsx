@@ -125,7 +125,7 @@ function tagHue(tag) {
 // content (a marketing site can't read a real visitor's vault), rendered by
 // the exact same draw/layout code path as the live app so the animation is
 // never lying about what the real UI looks like.
-// The notes belong to the marketing site's sample user, Juan Morales at
+// The notes belong to the marketing site's sample user, Bob Bobson at
 // Harborline: the same projects and people as src/marketing/fixtures.js.
 const DEMO_GRAPH = {
   links: [

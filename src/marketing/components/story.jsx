@@ -3,15 +3,15 @@ import { Link } from "react-router";
 import { cn } from "@/lib/utils";
 import { Container, Reveal } from "./ui";
 
-// The marketing site tells one sample user's day: Juan Morales, head of
+// The marketing site tells one sample user's day: Bob Bobson, head of
 // product at Harborline (see fixtures.js). Each page is one part of that
 // day and stands on its own; the pages link to each other in no set order.
-// Every beat pairs a moment in Juan's day with the real feature beside it.
+// Every beat pairs a moment in Bob's day with the real feature beside it.
 export const CHAPTERS = [
-  { path: "/", time: "8:40 AM", title: "Juan sets it all down", line: "Three products, six projects, and a launch nobody has planned yet." },
-  { path: "/vaea-chat", time: "12:10 PM", title: "Lee asks how the changes happened", line: "What happens between Juan's request and his yes, and where it runs." },
+  { path: "/", time: "8:40 AM", title: "Bob sets it all down", line: "Three products, six projects, and a launch nobody has planned yet." },
+  { path: "/vaea-chat", time: "12:10 PM", title: "Lee asks how the changes happened", line: "What happens between Bob's request and his yes, and where it runs." },
   { path: "/workplace", time: "1:00 PM", title: "The review, the quote, the 1:1", line: "Dana's designs, Priya's quote and Lee's PR, in one view." },
-  { path: "/brain", time: "6:10 PM", title: "Juan writes down why", line: "Why the launch moved to Nov 14, kept where his notes already are." },
+  { path: "/brain", time: "6:10 PM", title: "Bob writes down why", line: "Why the launch moved to Nov 14, kept where his notes already are." },
 ];
 
 import { toMinutes, timeAtLine, hourLabel } from "./storyTime";
@@ -23,7 +23,7 @@ const READ_LINE = 0.45; // where on the screen the reader is: the "now" line
 // down the left edge: a tick every minute, longer ones every 15 and 30
 // minutes, the longest every hour with its label. A "now" line sits at the
 // reading height, and the timeline slides under it as the visitor scrolls,
-// so Juan's day passes beat by beat. Beats are elements carrying
+// so Bob's day passes beat by beat. Beats are elements carrying
 // data-story-time. Outside the story the timeline isn't shown.
 //
 // The scroll handler writes the timeline's position straight to the DOM
@@ -132,20 +132,31 @@ export function StoryRegion({ children }) {
   );
 }
 
-// The opening beat of a page's part of the day: where Juan is, in a couple
-// of sentences. `note` says plainly that Juan is an example.
-export function StoryIntro({ time, children, note = true }) {
+// The opening beat of a page's part of the day: where Bob is, in a couple
+// of sentences. `note` says plainly that Bob is an example.
+// `title` (Home's "Meet Bob."): a heading above the paragraph, which then
+// reads at body size beneath it.
+export function StoryIntro({ time, title, children, note = true }) {
   return (
     <section data-story-time={time} className="scroll-mt-24 pt-[calc(var(--mkt-section-y)*0.75)] pb-[calc(var(--mkt-section-y)*0.35)]">
       <Container>
         <Reveal className="max-w-[46rem]">
           <p className="font-mono text-[0.78rem] tabular-nums text-muted-foreground">{time}</p>
-          <p className="mt-3 text-balance font-display text-[clamp(1.5rem,2.8vw,2.15rem)] font-medium leading-[1.2] tracking-[-0.02em] text-foreground">
-            {children}
-          </p>
+          {title ? (
+            <>
+              <h2 className="mt-3 text-balance font-display text-[clamp(1.9rem,3.6vw,2.9rem)] font-semibold leading-[1.06] tracking-[-0.03em] text-foreground">
+                {title}
+              </h2>
+              <p className="mt-4 max-w-[40rem] text-pretty text-[1.12rem] leading-relaxed text-foreground">{children}</p>
+            </>
+          ) : (
+            <p className="mt-3 text-balance font-display text-[clamp(1.5rem,2.8vw,2.15rem)] font-medium leading-[1.2] tracking-[-0.02em] text-foreground">
+              {children}
+            </p>
+          )}
           {note && (
             <p className="mt-4 text-[0.92rem] text-muted-foreground">
-              Juan is an example. Everything he does on these pages is the real Vaea.
+              Bob is an example. Everything he does on these pages is the real Vaea.
             </p>
           )}
         </Reveal>
@@ -154,7 +165,7 @@ export function StoryIntro({ time, children, note = true }) {
   );
 }
 
-// The rest of Juan's day, linked in any order. Plain page content, not app
+// The rest of Bob's day, linked in any order. Plain page content, not app
 // UI: a list of moments.
 export function Elsewhere({ current }) {
   const others = CHAPTERS.filter((c) => c.path !== current);
@@ -163,7 +174,7 @@ export function Elsewhere({ current }) {
       <Container>
         <Reveal>
           <h2 className="font-display text-[clamp(1.4rem,2.4vw,1.8rem)] font-semibold tracking-[-0.02em] text-foreground">
-            Elsewhere in Juan’s day
+            Elsewhere in Bob’s day
           </h2>
           <ul className="mt-6 divide-y divide-foreground/[0.08] border-y border-foreground/[0.08]">
             {others.map((c) => (

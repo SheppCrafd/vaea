@@ -5,12 +5,12 @@
 // is persisted.
 //
 // Every demo shows one invented user's week, so they agree with each other:
-// Juan Morales, head of product at Harborline, a small software company
+// Bob Bobson, head of product at Harborline, a small software company
 // that makes the Harbor app. His people: Dana Kim (design lead), Lee Park
 // (engineer on Auth rework), Priya Shah at Lumen Studio (the launch vendor)
 // and Marta Ruiz (Finance). The board, inbox, calendar, chat and notes map
 // (VaultGraph.jsx DEMO_GRAPH) all refer to the same projects and people;
-// change one and check the others still line up. Juan is a sample user,
+// change one and check the others still line up. Bob is a sample user,
 // never presented as a customer or quoted.
 
 import { getQuadrantCounts, getMiniStatusCounts } from "@/lib/taskUtils";
@@ -136,14 +136,49 @@ export const CHAT_MESSAGES = [
   },
 ];
 
-// InboxFrame message shape.
+// InboxFrame message shape, one list per folder, so every tab a visitor can
+// open shows Bob's mail. Matches what VmailPage.jsx puts in `from`: Gmail
+// rows show the sender's name, Outlook rows show their address.
 const now = Date.now();
-export const VMAIL_MESSAGES = [
-  { provider: "gmail", id: "m1", unread: true, label: "Gmail", from: "Priya Shah", subject: "Juan, revised quote for the Harbor 2.0 launch", date: new Date(now - 22 * 60000).toISOString() },
-  { provider: "outlook", id: "m2", unread: true, label: "Outlook", from: "Dana Kim", subject: "Launch designs, round 2 (4 new)", date: new Date(now - 95 * 60000).toISOString() },
-  { provider: "gmail", id: "m3", unread: false, label: "Gmail", from: "Lee Park", subject: "Auth rework: passkeys PR is ready for review", date: new Date(now - 5 * 3600000).toISOString() },
-  { provider: "outlook", id: "m4", unread: false, label: "Outlook", from: "Marta Ruiz", subject: "Re: Lumen Studio budget. Send me the revised quote", date: new Date(now - 26 * 3600000).toISOString() },
-];
+const ago = (minutes) => new Date(now - minutes * 60000).toISOString();
+const mail = (provider, id, from, subject, minutes, unread = false) => ({
+  provider,
+  id,
+  unread,
+  label: provider === "gmail" ? "Gmail" : "Outlook",
+  from,
+  subject,
+  date: ago(minutes),
+});
+
+export const VMAIL_FOLDERS = {
+  inbox: [
+    mail("gmail", "m1", "Priya Shah", "Bob, revised quote for the Harbor 2.0 launch", 22, true),
+    mail("outlook", "m2", "dana@harborline.com", "Launch designs, round 2 (4 new)", 95, true),
+    mail("gmail", "m3", "Lee Park", "Auth rework: passkeys PR is ready for review", 5 * 60),
+    mail("outlook", "m4", "marta@harborline.com", "Re: Lumen Studio budget. Send me the revised quote", 26 * 60),
+  ],
+  sent: [
+    mail("outlook", "s1", "bob@harborline.com", "Fwd: Lumen Studio revised quote, for approval", 12),
+    mail("gmail", "s2", "Bob Bobson", "Re: Revised quote for the Harbor 2.0 launch", 15),
+    mail("gmail", "s3", "Bob Bobson", "Re: Auth rework: passkeys PR is ready for review", 4 * 60),
+    mail("outlook", "s4", "bob@harborline.com", "Website relaunch moves to Nov 14", 2 * 24 * 60),
+  ],
+  archive: [
+    mail("outlook", "a1", "dana@harborline.com", "Launch designs, round 1", 3 * 24 * 60),
+    mail("gmail", "a2", "Priya Shah", "Lumen Studio: first quote for the launch", 4 * 24 * 60),
+    mail("outlook", "a3", "lee@harborline.com", "Auth rework: the plan for passkeys", 6 * 24 * 60),
+  ],
+  junk: [
+    mail("outlook", "j1", "billing@lumen-studlo.co", "Urgent: new bank details for your invoice", 20 * 60),
+    mail("gmail", "j2", "Prize Desk", "You've been chosen for a free cruise", 2 * 24 * 60),
+  ],
+  trash: [
+    mail("outlook", "t1", "calendar@harborline.com", "Canceled: Vendor review prep", 2 * 24 * 60),
+    mail("gmail", "t2", "Harborline Weekly", "This week at Harborline: 12 updates", 5 * 24 * 60),
+  ],
+};
+
 
 // CalendarView `groups`: [dayKey, items[]] with item.date a real Date.
 function day(offset, items) {

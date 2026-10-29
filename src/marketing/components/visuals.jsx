@@ -4,7 +4,7 @@ import TerminalBlock from "@/components/settings/TerminalBlock";
 import { useReveal, prefersReducedMotion } from "../useReveal";
 import { useScrollTyping } from "../useScrollTyping";
 import { useDemoLock } from "../useDemoLock";
-import { CHAT_MESSAGES, VMAIL_MESSAGES, CALENDAR_GROUPS } from "../fixtures";
+import { CHAT_MESSAGES, VMAIL_FOLDERS, CALENDAR_GROUPS } from "../fixtures";
 
 // The demos render the REAL app components with fixture data. They're
 // lazy-loaded and only mounted once their block scrolls into view, so:
@@ -88,7 +88,7 @@ const REPLY_PREFIX = CHAT_REPLY.content.slice(0, REPLY_SPLIT);
 const REPLY_TEXT = CHAT_REPLY.content.slice(REPLY_SPLIT);
 const CHAT_TOTAL = CHAT_USER.content.length + REPLY_TEXT.length;
 
-// The messages at `count` typed characters: Juan's line first, then the
+// The messages at `count` typed characters: Bob's line first, then the
 // reply; the confirm card appears once the reply is complete.
 function chatAt(count) {
   const userShown = Math.min(count, CHAT_USER.content.length);
@@ -118,7 +118,7 @@ function ScrollChatDemo({ onDark }) {
   const count = useScrollTyping(frameRef, CHAT_TOTAL);
   return (
     <div ref={frameRef}>
-    <DemoStage label="Juan’s chat" onDark={onDark}>
+    <DemoStage label="Bob’s chat" onDark={onDark}>
       <div ref={ref} className="flex h-[360px] flex-col">
         {shown ? (
           <Suspense fallback={<div className="flex-1" />}>
@@ -152,7 +152,7 @@ function HeroChatDemo({ onDark }) {
   }, [shown, reduced]);
 
   return (
-    <DemoStage label="Juan’s chat" onDark={onDark}>
+    <DemoStage label="Bob’s chat" onDark={onDark}>
       <div ref={ref} className="flex h-[360px] flex-col">
         {shown ? (
           <Suspense fallback={<div className="flex-1" />}>
@@ -181,15 +181,14 @@ function HeroChatDemo({ onDark }) {
   );
 }
 
-// The folder tabs really switch: Juan's sample mail is all in the inbox, so
-// the other folders show as empty, exactly as the app shows an empty folder.
+// The folder tabs really switch, and every folder has Bob's mail in it.
 export function VmailDemo({ onDark = false }) {
   const [folder, setFolder] = useState("inbox");
   return (
     <DemoStage onDark={onDark}>
       <Deferred height={320}>
         <div className="flex flex-1 flex-col pt-1">
-          <InboxFrame demo folder={folder} onFolderChange={setFolder} anyConnected messages={folder === "inbox" ? VMAIL_MESSAGES : []} />
+          <InboxFrame demo folder={folder} onFolderChange={setFolder} anyConnected messages={VMAIL_FOLDERS[folder] || []} />
         </div>
       </Deferred>
     </DemoStage>
@@ -198,7 +197,7 @@ export function VmailDemo({ onDark = false }) {
 
 export function CalendarDemo() {
   return (
-    <DemoStage label="Juan’s calendar">
+    <DemoStage label="Bob’s calendar">
       <Deferred height={340}>
         <div className="overflow-hidden p-4">
           <CalendarView demo groups={CALENDAR_GROUPS} anyConnected />
@@ -236,7 +235,7 @@ export function MindMapDemo({ interactive = false }) {
     );
   }
   return (
-    <DemoStage label="Juan’s notes">
+    <DemoStage label="Bob’s notes">
       <Deferred height={320}>
         <VaultGraph demo interactive />
       </Deferred>

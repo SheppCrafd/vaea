@@ -50,11 +50,11 @@ export default function Home() {
         items={["Source is public", "Works with no internet", "No sign-up needed to try the board", "Every feature included"]}
       />
 
-      {/* The story: Juan's morning. Each block below is a moment in his day
+      {/* The story: Bob's morning. Each block below is a moment in his day
           beside the real feature it shows (see components/story.jsx). */}
       <StoryRegion>
-      <StoryIntro time="8:40 AM">
-        Juan Morales runs product at Harborline: three products, six projects, and a launch nobody has
+      <StoryIntro time="8:40 AM" title="Meet Bob.">
+        Bob Bobson runs product at Harborline: three products, six projects, and a launch nobody has
         planned yet. He starts by asking Vaea to set up the Harbor 2.0 launch.
       </StoryIntro>
 
@@ -63,7 +63,7 @@ export default function Home() {
         id="vaea-chat"
         tone="dark"
         time="8:52 AM"
-        story="Website relaunch has three finished tasks in the way and a due date that won't hold. Juan asks Vaea Chat to clear them and move the date. Archiving removes something, so it lists the plan and waits for his yes."
+        story="Website relaunch has three finished tasks in the way and a due date that won't hold. Bob asks Vaea Chat to clear them and move the date. Archiving removes something, so it lists the plan and waits for his yes."
         title="Vaea Chat does the change, it doesn't just describe it"
         visual={<ChatDemo onDark />}
         cta={{ to: "/vaea-chat", label: "See how Vaea Chat works" }}
@@ -80,7 +80,7 @@ export default function Home() {
         id="board"
         flip
         time="9:05 AM"
-        story="Before standup, Juan reads the board. Auth rework has a blocked task and two open questions. Vendor review has a budget risk."
+        story="Before standup, Bob reads the board. Auth rework has a blocked task and two open questions. Vendor review has a budget risk."
         title="One board that shows where each thing sits"
         visual={<BoardDemo />}
         cta={{ to: "/vaea-chat", label: "See Vaea Chat on the board" }}
@@ -122,7 +122,7 @@ export default function Home() {
         id="yours"
         flip
         time="9:30 AM"
-        story="Everything Juan has touched this morning is saved in a folder on his laptop."
+        story="Everything Bob has touched this morning is saved in a folder on his laptop."
         title="Your information stays on your computer"
         visual={<StorageTerminal />}
         cta={{ to: "/privacy", label: "Exactly what leaves, and when" }}

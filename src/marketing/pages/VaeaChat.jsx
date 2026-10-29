@@ -43,12 +43,12 @@ export default function VaeaChat() {
 
       <StoryRegion>
       <StoryIntro time="12:10 PM">
-        Lunch is Juan's first quiet stretch. Lee wants to know how this morning's changes happened, and
+        Lunch is Bob's first quiet stretch. Lee wants to know how this morning's changes happened, and
         where the conversation went.
       </StoryIntro>
 
       <ParallaxBackdrop src="/img/marketing/vaeachat-band.jpg" strength={132} scrim={0.88} position="50% 50%">
-        <Section time="12:15 PM" title="Five steps, with a stop before anything final" lede="What happened between Juan's request at 8:52 and his yes.">
+        <Section time="12:15 PM" title="Five steps, with a stop before anything final" lede="What happened between Bob's request at 8:52 and his yes.">
           <Reveal className="mt-8">
             <ol className="divide-y divide-foreground/[0.08] border-y border-foreground/[0.08]">
               {ASSISTANT_STEPS.map(([t, d], i) => (
@@ -69,7 +69,7 @@ export default function VaeaChat() {
         flip
         tone="dark"
         time="12:30 PM"
-        story="Harborline's security lead asks where the conversation goes. Juan has three answers."
+        story="Harborline's security lead asks where the conversation goes. Bob has three answers."
         title="Run it however you're comfortable"
         visual={<LocalModeTerminal />}
       >
@@ -104,7 +104,7 @@ export default function VaeaChat() {
 
       <ShowBlock
         time="12:55 PM"
-        story="Before the 1:00 review, Juan asks Vaea Chat to check the whole board for anything that slipped."
+        story="Before the 1:00 review, Bob asks Vaea Chat to check the whole board for anything that slipped."
         title="It can reach past your task list"
         visual={
           <ul className="divide-y divide-foreground/[0.08] border-y border-foreground/[0.08]">

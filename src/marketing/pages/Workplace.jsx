@@ -32,13 +32,13 @@ export default function Workplace() {
 
       <StoryRegion>
       <StoryIntro time="1:00 PM">
-        Juan's afternoon belongs to other people: Dana's design review now, Priya's quote waiting, and
+        Bob's afternoon belongs to other people: Dana's design review now, Priya's quote waiting, and
         a 1:1 with Lee tomorrow.
       </StoryIntro>
 
       <ShowBlock
         time="1:05 PM"
-        story="Juan's calendars and his project due dates sit in one agenda. The review has started, and API v2 is due at 4."
+        story="Bob's calendars and his project due dates sit in one agenda. The review has started, and API v2 is due at 4."
         title="Every calendar, and your due dates, in one view"
         visual={<CalendarDemo />}
       >
@@ -70,7 +70,7 @@ export default function Workplace() {
         </p>
       </ShowBlock>
 
-      <Section time="3:15 PM" title="Meeting notes become tasks" lede="After the review, Dana's notes become tasks on Juan's board.">
+      <Section time="3:15 PM" title="Meeting notes become tasks" lede="After the review, Dana's notes become tasks on Bob's board.">
         <Reveal className="mt-5 max-w-[46rem] space-y-3.5 text-[1.02rem] leading-relaxed text-muted-foreground">
           <p>
             Paste your notes into Vaea Chat with{" "}

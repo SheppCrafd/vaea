@@ -7,7 +7,7 @@ import ParallaxBackdrop from "./ParallaxBackdrop";
 
 // Alternating claim + real-component demo. `flip` puts the demo on the
 // left. `tone="dark"` drops the block onto a near-black stage for register
-// contrast. In a page's story (story.jsx), `time` is the moment in Juan's
+// contrast. In a page's story (story.jsx), `time` is the moment in Bob's
 // day (shown in place of the eyebrow) and `story` is the line saying what
 // he's doing in the demo beside it.
 export function ShowBlock({ id, eyebrow, title, children, visual, flip, tone, cta, time, story }) {
