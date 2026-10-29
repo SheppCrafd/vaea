@@ -10,6 +10,7 @@ import CardCustomFields from "@/components/shared/CardCustomFields";
 import EditableText from "@/components/shared/EditableText";
 import EditableTitle from "@/components/shared/EditableTitle";
 import { prefersReducedMotion } from "../useReveal";
+import { useDemoLock } from "../useDemoLock";
 import { BOARD, CHAT_PROMPT, tasksOfProduct, tasksOfBoard } from "../fixtures";
 
 // The board demo renders the REAL dashboard cards — the exact markup
@@ -19,12 +20,11 @@ import { BOARD, CHAT_PROMPT, tasksOfProduct, tasksOfBoard } from "../fixtures";
 // EditableTitle. The only things not passed straight through are the drag
 // handle and the expand button: the real drag handle spreads @dnd-kit
 // listeners (needs a DndContext) and the real expand button's onClick opens
-// a modal — neither can exist in an inert demo. Their stand-ins here carry
-// the *identical* class list, title and aria-label as the real elements, so
-// the rendered DOM matches; they just omit the listeners / onClick. The
-// whole thing is pointer-events:none + aria-hidden and marketing.css forces
-// cursor:default on every descendant, so nothing is hoverable or clickable
-// and the pointer stays an arrow.
+// a modal. Their stand-ins here carry the *identical* class list, title and
+// aria-label as the real elements, so the rendered DOM matches; they just
+// omit the listeners / onClick. Visitors can hover the board (the cards'
+// hover states, the risk and question flags' hover text) but can't change
+// it: titles aren't editable and nothing saves (useDemoLock.js).
 //
 // hero=true types the assistant prompt line and drops the "Harbor 2.0 launch" card
 // into Marketing mid-demo. Reduced motion → the final state, static.
@@ -271,11 +271,14 @@ export default function BoardDemo({ hero = false, className }) {
     };
   }, [hero]);
 
+  const lockRef = useRef(null);
+  useDemoLock(lockRef);
   return (
     <div
+      ref={lockRef}
       aria-hidden="true"
       className={cn(
-        "mkt-demo pointer-events-none mx-auto w-full select-none",
+        "mkt-demo mx-auto w-full",
         // The hero demo carries the first screen — give it real width so it
         // reads as the product, not a narrow strip floating in the margin.
         hero ? "max-w-[920px]" : "max-w-[560px]",

@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import TerminalBlock from "@/components/settings/TerminalBlock";
 import { useReveal, prefersReducedMotion } from "../useReveal";
 import { useScrollTyping } from "../useScrollTyping";
+import { useDemoLock } from "../useDemoLock";
 import { CHAT_MESSAGES, VMAIL_MESSAGES, CALENDAR_GROUPS } from "../fixtures";
 
 // The demos render the REAL app components with fixture data. They're
@@ -17,15 +18,19 @@ const VaultGraph = lazy(() => import("@/components/mindmap/VaultGraph"));
 
 const noop = () => {};
 
-// Inert wrapper: aria-hidden, pointer-events-none (pointer stays a default
-// arrow, nothing is clickable), select-none. Component-internal animation
-// (the chat typewriter, the notes-map motion) still runs.
+// The frame around a demo. Demos are the real app components with sample
+// data: visitors can hover, switch views and scroll in them, but nothing
+// changes the data (useDemoLock.js: read-only fields, out of the Tab order,
+// aria-hidden; each demo wires its data-changing buttons to do nothing).
 export function DemoStage({ label, className, onDark = false, children }) {
+  const ref = useRef(null);
+  useDemoLock(ref);
   return (
     <div
+      ref={ref}
       aria-hidden="true"
       className={cn(
-        "mkt-demo pointer-events-none select-none overflow-hidden rounded-2xl border shadow-[0_1px_3px_0_hsl(200_30%_12%/0.1),0_36px_72px_-34px_hsl(200_30%_12%/0.34)]",
+        "mkt-demo overflow-hidden rounded-2xl border shadow-[0_1px_3px_0_hsl(200_30%_12%/0.1),0_36px_72px_-34px_hsl(200_30%_12%/0.34)]",
         // On a light section: a frosted, translucent card. On a dark
         // section (tone="dark" ShowBlock) that same treatment turns milky
         // grey, so switch to a crisp opaque white card instead — and pin the
@@ -176,12 +181,15 @@ function HeroChatDemo({ onDark }) {
   );
 }
 
+// The folder tabs really switch: Juan's sample mail is all in the inbox, so
+// the other folders show as empty, exactly as the app shows an empty folder.
 export function VmailDemo({ onDark = false }) {
+  const [folder, setFolder] = useState("inbox");
   return (
     <DemoStage onDark={onDark}>
       <Deferred height={320}>
         <div className="flex flex-1 flex-col pt-1">
-          <InboxFrame demo folder="inbox" onFolderChange={noop} anyConnected messages={VMAIL_MESSAGES} />
+          <InboxFrame demo folder={folder} onFolderChange={setFolder} anyConnected messages={folder === "inbox" ? VMAIL_MESSAGES : []} />
         </div>
       </Deferred>
     </DemoStage>
@@ -230,7 +238,7 @@ export function MindMapDemo({ interactive = false }) {
   return (
     <DemoStage label="Juan’s notes">
       <Deferred height={320}>
-        <VaultGraph demo />
+        <VaultGraph demo interactive />
       </Deferred>
     </DemoStage>
   );

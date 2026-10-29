@@ -43,13 +43,18 @@ export function Reveal({ as: Tag = "div", delay = 0, className, children, ...res
 
 // A titled section: mono eyebrow + <h2> + optional lede, all revealing
 // together. `id` doubles as the scroll anchor for in-page nav.
-export function Section({ id, eyebrow, title, lede, className, headingClassName, children }) {
+// `time` (story.jsx): the moment in Juan's day, shown in place of the eyebrow.
+export function Section({ id, eyebrow, title, lede, className, headingClassName, children, time }) {
   return (
-    <section id={id} className={cn("scroll-mt-24 py-[calc(var(--mkt-section-y)*0.75)]", className)}>
+    <section id={id} data-story-time={time} className={cn("scroll-mt-24 py-[calc(var(--mkt-section-y)*0.75)]", className)}>
       <Container>
         {(eyebrow || title || lede) && (
           <Reveal className="max-w-[46rem]">
-            {eyebrow && <Eyebrow className="mb-4">{eyebrow}</Eyebrow>}
+            {time ? (
+              <p className="mb-4 font-mono text-[0.78rem] tabular-nums text-muted-foreground">{time}</p>
+            ) : (
+              eyebrow && <Eyebrow className="mb-4">{eyebrow}</Eyebrow>
+            )}
             {title && (
               <h2
                 className={cn(

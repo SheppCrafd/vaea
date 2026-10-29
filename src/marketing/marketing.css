@@ -16,12 +16,13 @@
   --mkt-section-y: clamp(3.25rem, 6.5vw, 5.5rem);
 }
 
-/* Demos render real, interactive app components — force them fully inert:
-   no pointer events (so the cursor stays a default arrow and nothing is
-   clickable) and no text selection. Internal JS animation still runs. */
-.mkt-demo,
-.mkt-demo * {
-  cursor: default !important;
+/* Demos render the real app components and stay usable with a pointer
+   (hover, view switching, scrolling); useDemoLock.js keeps their data from
+   changing. Text in an editable field reads as plain text, not a field. */
+.mkt-demo [contenteditable="false"],
+.mkt-demo input[readonly],
+.mkt-demo textarea[readonly] {
+  cursor: default;
 }
 
 /* Designed keyboard-focus ring for every interactive element on the

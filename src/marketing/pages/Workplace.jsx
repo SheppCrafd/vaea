@@ -1,6 +1,7 @@
 import { Container, Eyebrow, Section, CtaRow, Reveal, Float } from "../components/ui";
 import { ShowBlock, Faq, Marquee, ClosingCta } from "../components/blocks";
 import { CalendarDemo, VmailDemo } from "../components/visuals";
+import { StoryRegion, StoryIntro, Elsewhere } from "../components/story";
 import { WORKPLACE_FAQ } from "../seo";
 
 export default function Workplace() {
@@ -29,8 +30,15 @@ export default function Workplace() {
         </Container>
       </section>
 
+      <StoryRegion>
+      <StoryIntro time="1:00 PM">
+        Juan's afternoon belongs to other people: Dana's design review now, Priya's quote waiting, and
+        a 1:1 with Lee tomorrow.
+      </StoryIntro>
+
       <ShowBlock
-        eyebrow="one agenda"
+        time="1:05 PM"
+        story="Juan's calendars and his project due dates sit in one agenda. The review has started, and API v2 is due at 4."
         title="Every calendar, and your due dates, in one view"
         visual={<CalendarDemo />}
       >
@@ -47,7 +55,8 @@ export default function Workplace() {
       <ShowBlock
         flip
         tone="dark"
-        eyebrow="one inbox"
+        time="2:30 PM"
+        story="Priya's revised quote lands, right above Marta's note asking for it."
         title="Gmail and Outlook, read and written in one client"
         visual={<VmailDemo onDark />}
       >
@@ -61,7 +70,7 @@ export default function Workplace() {
         </p>
       </ShowBlock>
 
-      <Section eyebrow="after the call" title="Meeting notes become tasks">
+      <Section time="3:15 PM" title="Meeting notes become tasks" lede="After the review, Dana's notes become tasks on Juan's board.">
         <Reveal className="mt-5 max-w-[46rem] space-y-3.5 text-[1.02rem] leading-relaxed text-muted-foreground">
           <p>
             Paste your notes into Vaea Chat with{" "}
@@ -71,6 +80,9 @@ export default function Workplace() {
           <p>Vaea doesn't record or transcribe meetings itself — bring the notes from wherever you keep them.</p>
         </Reveal>
       </Section>
+
+      <Elsewhere current="/workplace" />
+      </StoryRegion>
 
       <Marquee items={["one agenda", "one inbox", "Google and Microsoft", "sent on your yes", "next to the board"]} />
 

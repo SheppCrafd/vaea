@@ -7,12 +7,15 @@ import ParallaxBackdrop from "./ParallaxBackdrop";
 
 // Alternating claim + real-component demo. `flip` puts the demo on the
 // left. `tone="dark"` drops the block onto a near-black stage for register
-// contrast.
-export function ShowBlock({ id, eyebrow, title, children, visual, flip, tone, cta }) {
+// contrast. In a page's story (story.jsx), `time` is the moment in Juan's
+// day (shown in place of the eyebrow) and `story` is the line saying what
+// he's doing in the demo beside it.
+export function ShowBlock({ id, eyebrow, title, children, visual, flip, tone, cta, time, story }) {
   const dark = tone === "dark";
   return (
     <section
       id={id}
+      data-story-time={time}
       className={cn(
         "scroll-mt-24 py-[calc(var(--mkt-section-y)*0.85)]",
         dark && "bg-primary text-primary-foreground",
@@ -21,8 +24,10 @@ export function ShowBlock({ id, eyebrow, title, children, visual, flip, tone, ct
       <Container>
         <div className={cn("grid items-center gap-8 md:grid-cols-2 md:gap-14", flip && "md:[&>*:first-child]:order-2")}>
           <Reveal>
-            {eyebrow && (
-              <Eyebrow className={cn("mb-3", dark && "text-primary-foreground/60")}>{eyebrow}</Eyebrow>
+            {time ? (
+              <p className={cn("mb-3 font-mono text-[0.78rem] tabular-nums", dark ? "text-primary-foreground/60" : "text-muted-foreground")}>{time}</p>
+            ) : (
+              eyebrow && <Eyebrow className={cn("mb-3", dark && "text-primary-foreground/60")}>{eyebrow}</Eyebrow>
             )}
             <h2
               className={cn(
@@ -38,6 +43,7 @@ export function ShowBlock({ id, eyebrow, title, children, visual, flip, tone, ct
                 dark ? "text-primary-foreground/75" : "text-muted-foreground",
               )}
             >
+              {story && <p className={dark ? "text-primary-foreground" : "text-foreground"}>{story}</p>}
               {children}
             </div>
             {cta && (

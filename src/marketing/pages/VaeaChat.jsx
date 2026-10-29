@@ -2,6 +2,7 @@ import { Container, Eyebrow, Section, CtaRow, Reveal, Float } from "../component
 import { ShowBlock, Faq, Marquee, ClosingCta } from "../components/blocks";
 import ParallaxBackdrop from "../components/ParallaxBackdrop";
 import { ChatDemo, LocalModeTerminal, ClaudeCodeTerminal } from "../components/visuals";
+import { StoryRegion, StoryIntro, Elsewhere } from "../components/story";
 import { ASSISTANT_FAQ, ASSISTANT_STEPS } from "../seo";
 
 const CAN = [
@@ -40,8 +41,14 @@ export default function VaeaChat() {
         </Container>
       </section>
 
+      <StoryRegion>
+      <StoryIntro time="12:10 PM">
+        Lunch is Juan's first quiet stretch. Lee wants to know how this morning's changes happened, and
+        where the conversation went.
+      </StoryIntro>
+
       <ParallaxBackdrop src="/img/marketing/vaeachat-band.jpg" strength={132} scrim={0.88} position="50% 50%">
-        <Section eyebrow="how a change happens" title="Five steps, with a stop before anything final">
+        <Section time="12:15 PM" title="Five steps, with a stop before anything final" lede="What happened between Juan's request at 8:52 and his yes.">
           <Reveal className="mt-8">
             <ol className="divide-y divide-foreground/[0.08] border-y border-foreground/[0.08]">
               {ASSISTANT_STEPS.map(([t, d], i) => (
@@ -61,7 +68,8 @@ export default function VaeaChat() {
       <ShowBlock
         flip
         tone="dark"
-        eyebrow="built in · your account · your computer"
+        time="12:30 PM"
+        story="Harborline's security lead asks where the conversation goes. Juan has three answers."
         title="Run it however you're comfortable"
         visual={<LocalModeTerminal />}
       >
@@ -76,7 +84,8 @@ export default function VaeaChat() {
       </ShowBlock>
 
       <ShowBlock
-        eyebrow="the setup private companies use"
+        time="12:40 PM"
+        story="Lee sets up the in-house version on his own machine."
         title="Answer Vaea Chat with Claude Code, on your own machine"
         visual={<ClaudeCodeTerminal />}
         cta={{ to: "/privacy", label: "Local Mode, step by step" }}
@@ -94,7 +103,8 @@ export default function VaeaChat() {
       </ShowBlock>
 
       <ShowBlock
-        eyebrow="more than the board"
+        time="12:55 PM"
+        story="Before the 1:00 review, Juan asks Vaea Chat to check the whole board for anything that slipped."
         title="It can reach past your task list"
         visual={
           <ul className="divide-y divide-foreground/[0.08] border-y border-foreground/[0.08]">
@@ -114,6 +124,9 @@ export default function VaeaChat() {
           Ask it to check your board and it flags what's overdue, what has no owner, and where you have near-duplicates. Then it makes the fixes, stopping for your yes before it removes anything.
         </p>
       </ShowBlock>
+
+      <Elsewhere current="/vaea-chat" />
+      </StoryRegion>
 
       <Marquee items={["you ask", "it makes the change", "it lists every step", "removals wait for you", "a backup before big changes"]} />
 

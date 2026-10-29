@@ -1,7 +1,8 @@
 import { Container, Eyebrow, Section, CtaRow, Reveal, Float } from "../components/ui";
 import { ShowBlock, Faq, Marquee, ClosingCta } from "../components/blocks";
 import ParallaxBackdrop from "../components/ParallaxBackdrop";
-import { MindMapDemo, StorageTerminal } from "../components/visuals";
+import { MindMapDemo } from "../components/visuals";
+import { StoryRegion, StoryIntro, Elsewhere } from "../components/story";
 import { BRAIN_FAQ } from "../seo";
 
 const USES = [
@@ -47,10 +48,17 @@ export default function Brain() {
         </Container>
       </ParallaxBackdrop>
 
+      <StoryRegion>
+      <StoryIntro time="6:10 PM">
+        Before he logs off, Juan writes down why the launch moved to Nov 14, so nobody has to ask again
+        next week.
+      </StoryIntro>
+
       <ShowBlock
-        eyebrow="it stays in your account"
+        time="6:15 PM"
+        story="He asks Vaea Chat to write it up. The note lands in his own notes, linked to the two projects the new date changes."
         title="A vault Vaea connects to, not one it holds"
-        visual={<StorageTerminal />}
+        visual={<MindMapDemo />}
         cta={{ to: "/privacy", label: "Exactly what leaves, and when" }}
       >
         <p>
@@ -67,7 +75,8 @@ export default function Brain() {
       <ShowBlock
         flip
         tone="dark"
-        eyebrow="what you'd use it for"
+        time="6:30 PM"
+        story="The decision isn't a task, so it doesn't belong on the board. It belongs with the rest of what Juan has worked out."
         title="A place for the things that aren't tasks"
         visual={
           <ul className="divide-y divide-white/10 border-y border-white/10">
@@ -88,6 +97,9 @@ export default function Brain() {
           in your own repository, so every earlier version stays in its history.
         </p>
       </ShowBlock>
+
+      <Elsewhere current="/brain" />
+      </StoryRegion>
 
       <Marquee items={["your account, not ours", "read for context", "written on approval", "see it as a map", "disconnect anytime"]} />
 

@@ -4,6 +4,7 @@ import { ShowBlock, ProofStrip, Manifesto, Marquee, Faq, ClosingCta } from "../c
 import ParallaxBackdrop from "../components/ParallaxBackdrop";
 import BoardDemo from "../components/BoardDemo";
 import { ChatDemo, VmailDemo, StorageTerminal, ClaudeCodeTerminal } from "../components/visuals";
+import { StoryRegion, StoryIntro, Elsewhere } from "../components/story";
 import { HOME_FAQ } from "../seo";
 
 export default function Home() {
@@ -49,27 +50,24 @@ export default function Home() {
         items={["Source is public", "Works with no internet", "No sign-up needed to try the board", "Every feature included"]}
       />
 
-      <ParallaxBackdrop src="/img/marketing/interlude-wave.jpg" strength={162} scrim={0.5} position="50% 58%">
-        <Manifesto>
-          A tool for your own work shouldn't need a company's server. Every project stays in plain files
-          on your computer — and Vaea Chat can run there too, with nothing sent out.
-        </Manifesto>
-      </ParallaxBackdrop>
+      {/* The story: Juan's morning. Each block below is a moment in his day
+          beside the real feature it shows (see components/story.jsx). */}
+      <StoryRegion>
+      <StoryIntro time="8:40 AM">
+        Juan Morales runs product at Harborline: three products, six projects, and a launch nobody has
+        planned yet. He starts by asking Vaea to set up the Harbor 2.0 launch.
+      </StoryIntro>
 
       {/* SHOW A — flagship, dark stage */}
       <ShowBlock
         id="vaea-chat"
         tone="dark"
-        eyebrow="it does the work · it asks before removing anything"
+        time="8:52 AM"
+        story="Website relaunch has three finished tasks in the way and a due date that won't hold. Juan asks Vaea Chat to clear them and move the date. Archiving removes something, so it lists the plan and waits for his yes."
         title="Vaea Chat does the change, it doesn't just describe it"
         visual={<ChatDemo onDark />}
         cta={{ to: "/vaea-chat", label: "See how Vaea Chat works" }}
       >
-        <p>
-          Say “set up a Harbor 2.0 launch project under Marketing with three tasks,” and it builds it on your
-          board, listing each step as it goes. Ask it to clear something out or send an email, and it
-          lays out the plan and waits for your yes.
-        </p>
         <p>
           It works on the same board you're looking at: adding and updating projects and tasks, noting
           risks, flagging what to focus on this week, pulling everything into a spreadsheet. A backup
@@ -81,7 +79,8 @@ export default function Home() {
       <ShowBlock
         id="board"
         flip
-        eyebrow="everything tucked inside something bigger"
+        time="9:05 AM"
+        story="Before standup, Juan reads the board. Auth rework has a blocked task and two open questions. Vendor review has a budget risk."
         title="One board that shows where each thing sits"
         visual={<BoardDemo />}
         cta={{ to: "/vaea-chat", label: "See Vaea Chat on the board" }}
@@ -100,7 +99,8 @@ export default function Home() {
       {/* SHOW C — Workplace + Brain fold in */}
       <ShowBlock
         id="connected"
-        eyebrow="once you connect them"
+        time="9:20 AM"
+        story="Priya's revised quote is in his inbox, and Dana's design review is at 1:00. Both sit next to the board."
         title="Your calendar, email, and notes — under the same Vaea Chat"
         visual={<VmailDemo />}
         cta={{ to: "/workplace", label: "See Vaea Workplace" }}
@@ -121,7 +121,8 @@ export default function Home() {
       <ShowBlock
         id="yours"
         flip
-        eyebrow="the starting point, not a setting to find"
+        time="9:30 AM"
+        story="Everything Juan has touched this morning is saved in a folder on his laptop."
         title="Your information stays on your computer"
         visual={<StorageTerminal />}
         cta={{ to: "/privacy", label: "Exactly what leaves, and when" }}
@@ -139,7 +140,8 @@ export default function Home() {
       {/* SHOW E — self-hosting, the private-company path */}
       <ShowBlock
         id="self-hosting"
-        eyebrow="the way private companies run it"
+        time="9:45 AM"
+        story="Harborline's IT team wants nothing to leave the office network, so their copy of Vaea runs in-house."
         title="Clone it, run it on localhost, keep every request in-house"
         visual={<ClaudeCodeTerminal />}
         cta={{ to: "/privacy", label: "Local Mode, step by step" }}
@@ -155,6 +157,16 @@ export default function Home() {
           leaves your network.
         </p>
       </ShowBlock>
+
+      <Elsewhere current="/" />
+      </StoryRegion>
+
+      <ParallaxBackdrop src="/img/marketing/interlude-wave.jpg" strength={162} scrim={0.5} position="50% 58%">
+        <Manifesto>
+          A tool for your own work shouldn't need a company's server. Every project stays in plain files
+          on your computer — and Vaea Chat can run there too, with nothing sent out.
+        </Manifesto>
+      </ParallaxBackdrop>
 
       <Marquee
         items={[
