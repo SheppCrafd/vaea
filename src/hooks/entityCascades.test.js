@@ -17,7 +17,7 @@ const { localDb } = await import("@/lib/localDb.js");
 const { createArea, deleteArea } = await import("./useAreas.js");
 const { createProduct, updateProduct, deleteProduct, fetchActiveProducts } = await import("./useProducts.js");
 const { createProject, updateProject, moveProject, deleteProject, archiveProject, fetchActiveProjects } = await import("./useProjects.js");
-const { createTask, updateTask, fetchAllActiveTasks } = await import("./useTasks.js");
+const { createTask, updateTask, fetchAllActiveTasks, toggleTopThree } = await import("./useTasks.js");
 const { createStakeholder, deleteStakeholder } = await import("./useStakeholders.js");
 
 beforeEach(() => {
@@ -216,5 +216,19 @@ describe("deleteStakeholder cascades — scrubs stakeholder_ids off Products/Pro
     await deleteStakeholder(stakeholder2.id);
 
     expect((await localDb.projects.get(project.id)).stakeholder_ids).toEqual([stakeholder1.id]);
+  });
+});
+
+describe("Top 3 has no cap (lifted 2026-10-28)", () => {
+  it("lets a project star more than three tasks, and toggles back off", async () => {
+    const area = await createArea({ title: "Area", description: "" });
+    const project = await createProject({ parent_area_id: area.id, title: "Project" });
+    const tasks = [];
+    for (let i = 0; i < 5; i++) tasks.push(await createTask({ project_id: project.id, description: `Task ${i}` }));
+    for (const t of tasks) await toggleTopThree({ id: t.id });
+    const starred = (await localDb.tasks.list()).filter((t) => t.is_today_top_three);
+    expect(starred).toHaveLength(5);
+    await toggleTopThree({ id: tasks[0].id });
+    expect((await localDb.tasks.get(tasks[0].id)).is_today_top_three).toBe(false);
   });
 });

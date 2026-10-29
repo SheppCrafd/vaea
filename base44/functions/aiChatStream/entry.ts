@@ -747,7 +747,7 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCal
       execute: queue('TOGGLE_WEEKLY_FOCUS'),
     }),
     TOGGLE_TOP_THREE: tool({
-      description: "Toggle whether a task is one of today's top 3 (max 3 per project — errors if exceeded).",
+      description: "Toggle whether a task is in today's Top 3 focus list (no limit on how many).",
       inputSchema: z.object({ task_id: id('Task') }),
       execute: queue('TOGGLE_TOP_THREE'),
     }),

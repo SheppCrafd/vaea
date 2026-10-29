@@ -57,7 +57,6 @@ export default function FocusFeed() {
   // Promote: through the cap-aware toggle, so the 3-per-project limit holds
   // here the same as in the task table. The weekly flag stays set — if the
   // task later leaves Today, it falls back into This Week on its own.
-  // A full Top 3 is reported by the global mutation toast (query-client.js).
   const moveToToday = (task) => toggleTopThree.mutate({ id: task.id, project_id: task.project_id });
 
   const rowProps = (task) => ({
@@ -85,12 +84,11 @@ export default function FocusFeed() {
       )}
 
       <div>
-        {/* "per project": the cap is 3 per project, so this list can hold
-            more than 3 — a bare "Top 3" over 6 tasks read as a bug. */}
-        <SectionHead label="Top 3 per project" count={topThree.length} />
+        {/* "Top 3" is the list's name, not a limit: it holds as many as you star. */}
+        <SectionHead label="Top 3" count={topThree.length} />
         {topThree.length === 0 ? (
           <p className="px-2 text-xs text-muted-foreground">
-            Your most important tasks for today, up to 3 per project. Move one up from This Week, or star it in a task list.
+            Your most important tasks for today. Move one up from This Week, or star it in a task list.
           </p>
         ) : (
           <ul>

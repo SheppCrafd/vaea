@@ -339,7 +339,7 @@ export const TOOL_CATALOG = [
   {
     name: "TOGGLE_TOP_THREE",
     staged: true,
-    description: "Toggle whether a task is one of today's top 3 (max 3 per project — errors if exceeded).",
+    description: "Toggle whether a task is in today's Top 3 focus list (no limit on how many).",
     parameters: { type: "object", properties: { task_id: { type: "string", description: idDesc("Task") } }, required: ["task_id"] },
   },
   {

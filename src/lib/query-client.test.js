@@ -14,10 +14,10 @@ describe("global mutation error toast", () => {
   beforeEach(() => toast.mockClear());
 
   it("uses the error's own title first", async () => {
-    const err = Object.assign(new Error("Take one out, then add this one."), { title: "Top 3 is full" });
+    const err = Object.assign(new Error("Reconnect it in Settings, then try again."), { title: "Couldn't reach your vault" });
     await fail({ mutationFn: () => Promise.reject(err), meta: { errorTitle: "Couldn't add task" } });
     expect(toast).toHaveBeenCalledTimes(1);
-    expect(toast.mock.calls[0][0]).toMatchObject({ title: "Top 3 is full", description: "Take one out, then add this one." });
+    expect(toast.mock.calls[0][0]).toMatchObject({ title: "Couldn't reach your vault", description: "Reconnect it in Settings, then try again." });
   });
 
   it("falls back to the hook's meta.errorTitle, then a generic title", async () => {

@@ -153,25 +153,14 @@ export async function updateTask({ id, data }) {
 // 6. DELETE TASK (SOFT DELETE VIA DELETED_AT TIMESTAMP)
 export const deleteTask = (id) => localDb.tasks.update(id, { deleted_at: new Date().toISOString() });
 
-// 7. TOGGLE TASK PRIORITY IN TOP THREE FOCUS LIST — max 3 per project.
-// Exported as a plain function so the chat assistant's action executor
-// shares this exact cap-checking logic with the UI's own mutation hook.
+// 7. TOGGLE A TASK IN OR OUT OF THE TOP 3 FOCUS LIST. No cap: "Top 3" is
+// the list's name, not a limit (the 3-per-project cap was lifted at the
+// user's request, 2026-10-28). Exported as a plain function so the chat
+// assistant's action executor shares this with the UI's mutation hook.
 export async function toggleTopThree({ id }) {
   const task = await localDb.tasks.get(id);
   if (!task) throw new Error("Task not found");
-  const nextValue = !task.is_today_top_three;
-  if (nextValue) {
-    const projectTasks = await localDb.tasks.filter({ project_id: task.project_id, is_today_top_three: true });
-    const otherTopThree = projectTasks.filter((t) => t.id !== id);
-    if (otherTopThree.length >= 3) {
-      // `title` is picked up by the global mutation toast (query-client.js).
-      throw Object.assign(
-        new Error("This project already has 3 tasks in its Top 3. Take one out, then add this one."),
-        { title: "Top 3 is full" },
-      );
-    }
-  }
-  return localDb.tasks.update(id, { is_today_top_three: nextValue });
+  return localDb.tasks.update(id, { is_today_top_three: !task.is_today_top_three });
 }
 
 export function useCreateTask() {

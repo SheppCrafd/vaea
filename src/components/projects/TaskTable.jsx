@@ -222,7 +222,7 @@ function TaskRow({ task, allStakeholders, isMatched, updateTask, onToggleTopThre
           onClick={() => onToggleTopThree(task)}
           aria-label={task.is_today_top_three ? "Remove from Top 3" : "Add to Top 3"}
           aria-pressed={!!task.is_today_top_three}
-          title={task.is_today_top_three ? "Remove from Top 3" : "Add to Top 3 (up to 3 per project)"}
+          title={task.is_today_top_three ? "Remove from Top 3" : "Add to Top 3"}
           className="p-1 -m-1 rounded hover:bg-accent transition-colors">
           <Star className={`w-4 h-4 ${task.is_today_top_three ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`} />
         </button>
@@ -339,21 +339,7 @@ export default function TaskTable({ project }) {
     if (newHighlyImportant) payload.is_highly_important = true;
     if (newQuickTask) payload.is_quick_task = true;
     if (newAttachments.length) payload.attachments = newAttachments;
-    if (newTopThree) {
-      // Same 3-per-project cap useToggleTopThree enforces — creating with
-      // the star pre-set mustn't be a way around it. The task itself is
-      // still created; only the flag is dropped, with the reason surfaced.
-      const topThreeCount = tasks.filter((t) => t.is_today_top_three).length;
-      if (topThreeCount >= 3) {
-        toast({
-          variant: "destructive",
-          title: "Top 3 is full",
-          description: "The task was added, but not to the Top 3. This project already has 3 there.",
-        });
-      } else {
-        payload.is_today_top_three = true;
-      }
-    }
+    if (newTopThree) payload.is_today_top_three = true;
     createTask.mutate(payload);
     setNewDescription("");
     setNewQuadrant("");
@@ -373,7 +359,6 @@ export default function TaskTable({ project }) {
   };
 
   const handleToggleTopThree = (task) => {
-    // A full Top 3 is reported by the global mutation toast (query-client.js).
     toggleTopThree.mutate({ id: task.id, project_id: project.id });
   };
 

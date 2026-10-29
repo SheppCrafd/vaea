@@ -25,7 +25,7 @@ export const queryClientInstance = new QueryClient({
 	// handlers). Instead:
 	//   - a hook names what failed with `meta: { errorTitle: "Couldn't create area" }`
 	//   - an error that knows the fix carries its own `title` (and says the
-	//     fix in its message), e.g. toggleTopThree's "Top 3 is full"
+	//     fix in its message), e.g. "Couldn't reach your vault" + how to reconnect
 	// A hook that handles its own errors in useMutation({ onError }) is skipped.
 	mutationCache: new MutationCache({
 		onError: (error, _variables, _context, mutation) => {

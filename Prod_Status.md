@@ -182,7 +182,7 @@ Files: `src/components/projects/TaskTable.jsx`, `TaskTableModal.jsx`
 - [x] Shows stakeholders on the task (`StakeholderAssigner`)
 - [x] Shows attachments on the task (`TaskAttachments`)
 - [x] User can mark a task as a focus item (weekly-focus checkbox)
-- [x] User can mark a task as one of today's top 3 (star toggle, server-side max-3-per-project guard)
+- [x] User can mark a task as one of today's top 3 (star toggle; no cap since 2026-10-28, per user request)
 - [x] Bottom row says "New Task" with a plus sign on the left
 - [x] ~~"Blue row" for New Task rendered as grayscale — `bg-primary/10` resolves to near-black (light mode) / near-white (dark mode) in this theme, not blue.~~ **Fixed** — literal `bg-blue-500/10` + blue text/icon accents.
 - [x] ~~A task could be created with only a quadrant and a blank description, contradicting "a task can be created with any field but description blank" (read as: everything else may be blank, description may not) and the entity schema, which already declares `description` required.~~ **Fixed** — creation now requires a non-empty description; quadrant/type/stakeholders remain optional and settable afterward from the row.
