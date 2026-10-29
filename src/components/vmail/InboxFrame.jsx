@@ -37,7 +37,6 @@ export default function InboxFrame({
   onSearchSubmit,
   anyConnected = true,
   errors = [],
-  appleConnected = false,
   loading = false,
   messages = [],
   busyId = null,
@@ -88,7 +87,7 @@ export default function InboxFrame({
               <Inbox className="w-6 h-6 text-muted-foreground mx-auto mb-3" />
               <p className="text-sm font-medium">Nothing connected yet</p>
               <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-                Connect Gmail, Outlook, or Apple Mail in Settings and your inbox shows up here.
+                Connect Gmail or Outlook in Settings and your inbox shows up here.
               </p>
               {!demo && (
                 <Link
@@ -107,11 +106,6 @@ export default function InboxFrame({
                 <TriangleAlert className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {e}
               </p>
             ))}
-            {appleConnected && (
-              <p className="text-xs text-muted-foreground bg-card border border-foreground/[0.04] rounded-xl px-4 py-3 mt-4">
-                Apple Mail is connected, but Vmail doesn't show its messages yet.
-              </p>
-            )}
             {loading && messages.length === 0 ? (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground py-8 justify-center">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading…

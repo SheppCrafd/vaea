@@ -42,7 +42,7 @@ function RecentMessages({ connection, onTokenRefreshed }) {
 // covers Calendar + Teams only) so a user can grant mail access without
 // also granting calendar access. Same shared Azure app, a narrower
 // Mail.Read/Mail.Send-only consent — see outlookOAuthPkce.js. Feeds the
-// Vmail tab alongside Gmail and Apple Mail.
+// Vmail tab alongside Gmail.
 export default function OutlookSection() {
   const [connection, setConnection] = useState(DEFAULTS);
   const [connecting, setConnecting] = useState(false);

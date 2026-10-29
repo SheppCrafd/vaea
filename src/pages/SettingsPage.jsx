@@ -12,7 +12,6 @@ import GoogleWorkspaceSection from "@/components/settings/GoogleWorkspaceSection
 import GmailSection from "@/components/settings/GmailSection";
 import MicrosoftSection from "@/components/settings/MicrosoftSection";
 import OutlookSection from "@/components/settings/OutlookSection";
-import AppleMailSection from "@/components/settings/AppleMailSection";
 import ClickUpSection from "@/components/settings/ClickUpSection";
 import SlackSection from "@/components/settings/SlackSection";
 import ResourcesSection from "@/components/settings/ResourcesSection";
@@ -33,7 +32,6 @@ const SECTIONS = [
   { key: "gmail", label: "Gmail", Component: GmailSection },
   { key: "microsoft", label: "Microsoft 365 Calendar", Component: MicrosoftSection },
   { key: "outlook", label: "Outlook Mail", Component: OutlookSection },
-  { key: "apple-mail", label: "Apple Mail", Component: AppleMailSection },
   { key: "clickup", label: "ClickUp", Component: ClickUpSection },
   { key: "slack", label: "Slack", Component: SlackSection },
   { key: "resources", label: "Resources", Component: ResourcesSection },

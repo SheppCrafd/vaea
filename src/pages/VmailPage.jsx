@@ -7,10 +7,9 @@ import { loadGmailConnection, saveGmailConnection, isGmailConnected } from "@/li
 import { listMessages as listGmailMessages, sendMessage as sendGmailMessage, archiveMessage as archiveGmailMessage, trashMessage as trashGmailMessage, untrashMessage as untrashGmailMessage, markSpam as markGmailSpam } from "@/lib/gmailApi";
 import { loadOutlookConnection, saveOutlookConnection, isOutlookConnected } from "@/lib/outlookConnection";
 import { listMessages as listOutlookMessages, sendMessage as sendOutlookMessage, archiveMessage as archiveOutlookMessage, deleteMessage as deleteOutlookMessage, restoreMessage as restoreOutlookMessage, markSpam as markOutlookSpam } from "@/lib/microsoftGraphApi";
-import { loadAppleMailConnection, isAppleMailConnected } from "@/lib/appleMailConnection";
 
 // Vmail: one native email client aggregating every connected account
-// (Gmail, Outlook, Apple Mail) — folders, search, and compose, same as any
+// (Gmail, Outlook) — folders, search, and compose, same as any
 // real inbox — but every action here is a thin wrapper over the exact same
 // provider calls the chat tools use (gmailApi.js/microsoftGraphApi.js), so
 // what a person does by hand and what they ask the assistant to do act on
@@ -123,22 +122,20 @@ export default function VmailPage() {
   const [loading, setLoading] = useState(true);
   const [messages, setMessages] = useState([]);
   const [errors, setErrors] = useState([]);
-  const [appleConnected, setAppleConnected] = useState(false);
   const [accounts, setAccounts] = useState([]);
   const [composeOpen, setComposeOpen] = useState(false);
   const [busyId, setBusyId] = useState(null);
 
-  const anyConnected = accounts.length > 0 || appleConnected;
+  const anyConnected = accounts.length > 0;
 
   const load = async () => {
     setLoading(true);
     const nextErrors = [];
     const all = [];
 
-    const [gmail, outlook, apple] = await Promise.all([loadGmailConnection(), loadOutlookConnection(), loadAppleMailConnection()]);
+    const [gmail, outlook] = await Promise.all([loadGmailConnection(), loadOutlookConnection()]);
     const gmailOn = isGmailConnected(gmail);
     const outlookOn = isOutlookConnected(outlook);
-    setAppleConnected(isAppleMailConnected(apple));
 
     const nextAccounts = [];
     if (gmailOn) nextAccounts.push({ key: "gmail", label: "Gmail", connection: gmail, emailAddress: gmail.emailAddress });
@@ -243,7 +240,6 @@ export default function VmailPage() {
         onSearchSubmit={handleSearchSubmit}
         anyConnected={anyConnected}
         errors={errors}
-        appleConnected={appleConnected}
         loading={loading}
         messages={messages}
         busyId={busyId}

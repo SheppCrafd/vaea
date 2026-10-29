@@ -1455,8 +1455,8 @@ export const TOOL_CATALOG = [
         tab: { type: "string", enum: ["dashboard", "chat", "calendar", "vmail", "notifications", "mindmap", "settings"], description: "Which tab to open. Workflows lives inside Mind Map now (mindmap_tab: \"workflows\") — there's no separate \"workflows\" tab." },
         settings_section: {
           type: "string",
-          enum: ["account", "appearance", "ai", "ai-model", "storage", "backup", "connector-health", "brain", "google-workspace", "gmail", "microsoft", "outlook", "apple-mail", "clickup", "slack", "resources"],
-          description: "Only used when tab is \"settings\" — which section to scroll to and highlight (e.g. \"outlook\" for the Outlook connector, \"apple-mail\" for Apple Mail).",
+          enum: ["account", "appearance", "ai", "ai-model", "storage", "backup", "connector-health", "brain", "google-workspace", "gmail", "microsoft", "outlook", "clickup", "slack", "resources"],
+          description: "Only used when tab is \"settings\" — which section to scroll to and highlight (e.g. \"outlook\" for the Outlook connector).",
         },
         mindmap_tab: {
           type: "string",

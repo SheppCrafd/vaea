@@ -7,20 +7,15 @@ import { loadGmailConnection, isGmailConnected } from "@/lib/gmailConnection";
 import { loadOutlookConnection, isOutlookConnected } from "@/lib/outlookConnection";
 import { loadGoogleWorkspaceConnection, isGoogleWorkspaceConnected } from "@/lib/googleWorkspaceConnection";
 import { loadMicrosoftConnection, isMicrosoftConnected } from "@/lib/microsoftConnection";
-import { loadAppleMailConnection, isAppleMailConnected } from "@/lib/appleMailConnection";
 import { buildAuthorizationUrl as buildGmailUrl } from "@/lib/gmailOAuthPkce";
 import { buildAuthorizationUrl as buildOutlookUrl } from "@/lib/outlookOAuthPkce";
 import { buildAuthorizationUrl as buildGoogleWorkspaceUrl } from "@/lib/googleWorkspaceOAuthPkce";
 import { buildAuthorizationUrl as buildMicrosoftUrl } from "@/lib/microsoftOAuthPkce";
-import { useAppStore } from "@/lib/store";
 
 // One real OAuth trigger per connector key — the exact same
 // buildAuthorizationUrl() + window.location.assign() pair each Settings
 // section's own "Connect" button already calls, not a second
-// implementation of the handshake. Apple Mail has no entry here on purpose:
-// iCloud has no public OAuth API (see appleMailConnection.js), so its own
-// Settings section is an app-specific-password form instead — "Connect"
-// for that one just navigates there rather than starting a redirect.
+// implementation of the handshake.
 const CONNECTOR_URL_BUILDERS = {
   gmail: buildGmailUrl,
   outlook: buildOutlookUrl,
@@ -33,7 +28,6 @@ const CONNECTOR_CHECKS = {
   outlook: async () => isOutlookConnected(await loadOutlookConnection()),
   googleWorkspace: async () => isGoogleWorkspaceConnected(await loadGoogleWorkspaceConnection()),
   microsoft: async () => isMicrosoftConnected(await loadMicrosoftConnection()),
-  appleMail: async () => isAppleMailConnected(await loadAppleMailConnection()),
 };
 
 // A one-time, dismissible suggestion — never a silent auto-connect (see
@@ -45,7 +39,6 @@ export default function ConnectorSuggestionBanner() {
   const [suggestion, setSuggestion] = useState(null);
   const [connecting, setConnecting] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
-  const openAppSection = useAppStore((s) => s.openAppSection);
 
   useEffect(() => {
     if (!isAuthenticated || !user?.email) { setSuggestion(null); return; }
@@ -88,16 +81,9 @@ export default function ConnectorSuggestionBanner() {
     try {
       // First not-yet-connected one in the pair — the OAuth redirect
       // leaves this page, so only one connect happens per click; the
-      // banner (still not dismissed) offers the other on return. Apple
-      // Mail has no OAuth URL to redirect to at all (see
-      // CONNECTOR_URL_BUILDERS's own comment) — send the user to its
-      // Settings section instead, same as clicking "Connect" there would.
+      // banner (still not dismissed) offers the other on return.
       for (const key of suggestion.connectors) {
         if (await CONNECTOR_CHECKS[key]()) continue;
-        if (key === "appleMail") {
-          openAppSection("/app/settings", "settings:apple-mail");
-          return;
-        }
         window.location.assign(await CONNECTOR_URL_BUILDERS[key]());
         return;
       }

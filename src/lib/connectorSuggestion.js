@@ -14,12 +14,6 @@ const DISMISSED_KEY = "vaea_connector_suggestion_dismissed";
 const GOOGLE_SUGGESTION = { connectors: ["gmail", "googleWorkspace"], label: "Gmail and Google Workspace" };
 const MICROSOFT_DOMAINS = new Set(["outlook.com", "hotmail.com", "live.com", "msn.com"]);
 const MICROSOFT_SUGGESTION = { connectors: ["outlook", "microsoft"], label: "Outlook and Microsoft 365" };
-// No domain heuristic for Apple — an Apple ID's email can be any domain at
-// all, and "Hide My Email" relay addresses are actively designed to look
-// like nothing (an opaque @privaterelay.appleid.com string), so provider-
-// based detection (suggestionForProvider below) is the only way this one
-// can ever fire.
-const APPLE_SUGGESTION = { connectors: ["appleMail"], label: "Apple Mail" };
 
 export function suggestionForEmail(email) {
   if (!email || typeof email !== "string") return null;
@@ -33,11 +27,11 @@ export function suggestionForEmail(email) {
 // Keyed off which "Continue with ___" button was actually clicked (see
 // LoginScreen.jsx/SignUpScreen.jsx's own `signin_provider` param) — a
 // stronger, provider-name-based signal than guessing from the signed-in
-// email's domain, and the only signal that works for Apple at all.
+// email's domain. Apple sign-in suggests nothing while the Apple Mail
+// connector is hidden (it can't show mail yet; see appleMailConnection.js).
 export function suggestionForProvider(provider) {
   if (provider === "google") return GOOGLE_SUGGESTION;
   if (provider === "microsoft") return MICROSOFT_SUGGESTION;
-  if (provider === "apple") return APPLE_SUGGESTION;
   return null;
 }
 
