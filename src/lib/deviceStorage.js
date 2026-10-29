@@ -237,9 +237,9 @@ export async function connectFolder() {
 // call requires a user gesture.
 export async function reconnectFolder() {
   const stored = await getStoredHandle();
-  if (!stored) throw new Error("No remembered folder to reconnect to.");
+  if (!stored) throw new Error("There's no saved folder to reconnect. Choose your data folder again.");
   const granted = await ensurePermission(stored);
-  if (!granted) throw new Error("Permission to the folder was not granted.");
+  if (!granted) throw new Error("Vaea needs permission to use that folder. Choose it again and select Allow.");
   dirHandle = stored;
   notify();
   return stored;
@@ -322,7 +322,7 @@ async function fileHandleFor(key, { create }) {
 // which is no good mid-switch).
 export async function readDeviceKey(key) {
   if (supportsFileSystemAccess) {
-    if (!dirHandle) throw new Error("Device folder not connected.");
+    if (!dirHandle) throw new Error("Your data folder isn't connected. Reconnect it in Settings → Data Storage.");
     try {
       const fh = await fileHandleFor(key, { create: false });
       const file = await fh.getFile();
@@ -369,7 +369,7 @@ export async function withFsaRetry(fn, { attempts = FSA_WRITE_MAX_ATTEMPTS, dela
 
 export async function writeDeviceKey(key, value) {
   if (supportsFileSystemAccess) {
-    if (!dirHandle) throw new Error("Device folder not connected.");
+    if (!dirHandle) throw new Error("Your data folder isn't connected. Reconnect it in Settings → Data Storage.");
     const body = JSON.stringify(value, null, 2);
     return withFsaRetry(async () => {
       const fh = await fileHandleFor(key, { create: true });
@@ -397,7 +397,7 @@ export async function writeKey(key, value) {
 
 async function removeDeviceKey(key) {
   if (supportsFileSystemAccess) {
-    if (!dirHandle) throw new Error("Device folder not connected.");
+    if (!dirHandle) throw new Error("Your data folder isn't connected. Reconnect it in Settings → Data Storage.");
     try {
       await dirHandle.removeEntry(`${key}.json`);
     } catch (err) {

@@ -103,13 +103,10 @@ export default function GoogleWorkspaceSection() {
         )}
       </div>
       <p className="text-xs text-muted-foreground mb-1">
-        One connection covers {INCLUDED_PRODUCTS.join(", ")} — the assistant can look things up or make changes
-        across all of them when you ask, with the same confirm step any other destructive or outgoing action goes
-        through. Gmail is separate (see below), so you can grant inbox access independently.
+        One connection covers {INCLUDED_PRODUCTS.join(", ")}. Vaea Chat can look things up or make changes in any of them when you ask, and waits for your yes before deleting anything. Gmail is a separate connection (below), so inbox access is your choice.
       </p>
       <p className="text-xs text-muted-foreground mb-4">
-        Nothing about this account sits on Vaea's servers: the connection lives on this device, and is only ever
-        sent along transiently, for the moment a request actually needs it.
+        The connection is stored on this device, not on Vaea's servers.
       </p>
 
       {!connected ? (

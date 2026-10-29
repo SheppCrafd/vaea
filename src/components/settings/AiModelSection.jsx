@@ -70,12 +70,7 @@ export default function AiModelSection() {
         )}
       </div>
       <p className="text-xs text-muted-foreground mb-4">
-        Vaea Chat answers using its own built-in model by default. Bring your own API key instead to use Claude,
-        ChatGPT, Gemini, or Grok directly — your key is sent from this browser straight to that provider, never
-        through Vaea's own servers. Pick Local HTTP to call a model server already running on this device (Ollama,
-        LM Studio, etc.) directly — no folder, no script, nothing for IT policy to block. Or pick Local Mode to
-        route every prompt through a folder on this device instead — no network call at all, for fully air-gapped
-        setups.
+        Vaea Chat uses its built-in model unless you choose another. With your own API key it talks to Claude, ChatGPT, Gemini, or Grok directly from this browser, never through Vaea's servers. Local HTTP uses a model server already running on this device, such as Ollama or LM Studio. Local Mode passes every prompt through a folder on this device, with no network call at all.
       </p>
 
       <div className="flex flex-col gap-3">
@@ -206,7 +201,7 @@ const LOCAL_CONNECTORS = [
   { id: "lmstudio", label: "LM Studio", needsModel: true, modelPlaceholder: "the model name shown in LM Studio" },
   { id: "gpt4all", label: "GPT4All", needsModel: true, modelPlaceholder: "the model name shown in GPT4All" },
   { id: "textgen", label: "text-generation-webui / llama.cpp server", needsModel: true, modelPlaceholder: "the model name it's serving" },
-  { id: "anthropic", label: "Real Claude API", needsModel: true, modelPlaceholder: "claude-sonnet-5" },
+  { id: "anthropic", label: "Claude API", needsModel: true, modelPlaceholder: "claude-sonnet-5" },
   { id: "claude-code", label: "Claude Code CLI (already open on this device)", needsModel: false },
   { id: "custom", label: "Custom endpoint (advanced)", needsModel: false },
 ];

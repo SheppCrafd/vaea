@@ -56,13 +56,13 @@ export default function ProjectForm({ onDone, prefill = null }) {
           options={areas.map((a) => ({ value: a.id, label: a.title }))}
         />
       </FormField>
-      <FormField label="Product (optional — leave blank for standalone)" htmlFor="project-product">
+      <FormField label="Product (optional)" htmlFor="project-product">
         <Select
           id="project-product"
           value={productId}
           onChange={(e) => setProductId(e.target.value)}
           disabled={!areaId}
-          placeholder="No product (standalone)"
+          placeholder="No product"
           options={availableProducts.map((p) => ({ value: p.id, label: p.title }))}
         />
       </FormField>

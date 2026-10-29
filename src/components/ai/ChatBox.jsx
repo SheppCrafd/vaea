@@ -135,7 +135,7 @@ export default function ChatBox({ startOpen = false }) {
                 className="w-3.5 h-3.5 text-primary-foreground/70 cursor-help"
                 aria-label="Privacy notice"
               >
-                <title>Everything else in this app stays on your device. Chat is the one exception: your current data is sent to an AI service to answer you, only for that one exchange — nothing is stored on a server. If you ask it to, chat can also search the web or read an attached file's contents — same one-exchange rule, nothing persists.</title>
+                <title>Your board stays on this device. Vaea Chat is the one exception: to answer you, it sends your current board to an AI service for that one reply, and the board isn't kept. Web searches and attached files work the same way. Your past chats are saved so you can come back to them.</title>
               </Info>
               <button
                 onClick={() => setIsSettingsOpen(true)}
@@ -171,7 +171,7 @@ export default function ChatBox({ startOpen = false }) {
               onClick={chat.openReflectionSession}
               className="px-3 py-1.5 bg-primary/10 hover:bg-primary/15 text-primary text-xs font-medium text-left transition-colors"
             >
-              Vaea started a new conversation — view it
+              Vaea started a new chat — view it
             </button>
           )}
 

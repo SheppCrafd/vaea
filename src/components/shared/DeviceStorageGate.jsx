@@ -260,8 +260,7 @@ export default function DeviceStorageGate({ children }) {
           <>
             <p className="text-sm font-medium">Where should your data live?</p>
             <p className="text-xs text-muted-foreground">
-              Either way, your chat conversations stay with your account's login provider — this choice is just for
-              your areas, products, projects, and tasks.
+              Either way, your chats are kept with the account you sign in with. This choice covers your areas, products, projects, and tasks.
             </p>
             <div className="flex flex-col gap-2.5 pt-1 text-left">
               <button
@@ -335,7 +334,7 @@ export default function DeviceStorageGate({ children }) {
               Choose a folder
             </button>
             <p className="text-[11px] text-muted-foreground/70">
-              One exception: your chat conversations themselves stay with your account's login provider, not in this folder.
+              One exception: your chats are kept with the account you sign in with, not in this folder.
             </p>
           </>
         )}

@@ -209,7 +209,9 @@ function createCollection(name) {
     update: async (id, patch) => withCollectionLock(name, async () => {
       const items = await readCollection(name);
       const index = items.findIndex((item) => item.id === id);
-      if (index === -1) throw new Error(`${name} record ${id} not found`);
+      // Plain words for the toast; the id stays in the console-visible
+      // `cause` for debugging, not the message a person reads.
+      if (index === -1) throw new Error("That item no longer exists. It may have been deleted somewhere else.", { cause: `${name} ${id}` });
       const updated = { ...items[index], ...patch, updated_date: new Date().toISOString() };
       items[index] = updated;
       await writeCollection(name, items);

@@ -9,12 +9,12 @@ function authHeaders(accessToken) {
 
 async function slackFetch(endpoint, accessToken, init = {}) {
   const res = await fetch(`${API}/${endpoint}`, { ...init, headers: { ...authHeaders(accessToken), ...init.headers } });
-  if (!res.ok) throw new Error(`Slack network error (${res.status}).`);
+  if (!res.ok) throw new Error(`Couldn't reach Slack. Try again in a minute. (Slack error ${res.status})`);
   const data = await res.json();
   if (!data.ok) {
-    if (data.error === "invalid_auth" || data.error === "token_revoked") throw new Error("Slack rejected that token — try reconnecting.");
-    if (data.error === "missing_scope") throw new Error(`Missing Slack permission: ${data.needed}. Try reconnecting.`);
-    throw new Error(`Slack error: ${data.error}`);
+    if (data.error === "invalid_auth" || data.error === "token_revoked") throw new Error("Slack signed this connection out. Reconnect Slack in Settings.");
+    if (data.error === "missing_scope") throw new Error(`Slack needs one more permission for this (${data.needed}). Reconnect Slack in Settings to grant it.`);
+    throw new Error(`Slack couldn't do that. Try again, or reconnect Slack in Settings. (Slack error: ${data.error})`);
   }
   return data;
 }

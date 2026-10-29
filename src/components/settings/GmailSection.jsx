@@ -86,10 +86,7 @@ export default function GmailSection() {
         )}
       </div>
       <p className="text-xs text-muted-foreground mb-4">
-        Connect Gmail and the assistant can check what's in your inbox or send a message when you ask — sending
-        always goes through the same confirm step any other outgoing action does. Nothing about this account sits
-        on Vaea's servers: the connection lives on this device, sent along transiently only for the moment a
-        request actually needs it.
+        Connect Gmail and Vaea Chat can check your inbox or send a message when you ask. Sending always waits for your yes. The connection is stored on this device, not on Vaea's servers.
       </p>
 
       {!connected ? (

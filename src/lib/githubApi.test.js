@@ -32,12 +32,12 @@ describe("githubApi: testVaultConnection", () => {
 
   it("throws a clear error on 404", async () => {
     globalThis.fetch.mockResolvedValue({ ok: false, status: 404 });
-    await expect(testVaultConnection({ owner: "me", repo: "nope", token: "t" })).rejects.toThrow(/not found/i);
+    await expect(testVaultConnection({ owner: "me", repo: "nope", token: "t" })).rejects.toThrow(/couldn't find that repository/i);
   });
 
   it("throws a clear error on 401", async () => {
     globalThis.fetch.mockResolvedValue({ ok: false, status: 401 });
-    await expect(testVaultConnection({ owner: "me", repo: "vault", token: "bad" })).rejects.toThrow(/rejected/i);
+    await expect(testVaultConnection({ owner: "me", repo: "vault", token: "bad" })).rejects.toThrow(/didn't accept that token/i);
   });
 });
 

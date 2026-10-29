@@ -55,16 +55,14 @@ export default function ChatReflectionConsent() {
       <div className="flex items-start gap-2.5">
         <Sparkles className="w-3.5 h-3.5 shrink-0 mt-0.5 text-muted-foreground" />
         <p className="flex-1 text-muted-foreground leading-relaxed">
-          Vaea Chat can check in on its own. If you're away 3+ hours, opening chat may show a message it started —
-          based on a read-only look at your own tasks and projects.{" "}
+          Vaea Chat can check in on its own. If you've been away 3 hours or more, it may greet you with a check-in it wrote by reading your tasks and projects.{" "}
           {vaultConnected ? (
             <>
-              It can also keep its own notes in your Vaea Brain and log what happened while you were gone — those
-              save automatically. Everything else still needs your okay first.
+              It can also save its own notes to your Vaea Brain and log what happened while you were gone. A check-in never changes your board.
             </>
           ) : (
             <>
-              It can never change anything without asking you first.{" "}
+              A check-in only reads your board; it never changes anything.{" "}
               <Link to="/app/settings/vault-setup" className="underline underline-offset-2 hover:text-foreground">
                 Connect Vaea Brain
               </Link>{" "}
@@ -82,9 +80,7 @@ export default function ChatReflectionConsent() {
           responding — that's always about ITS replies, not you, unless the
           checkbox below is checked. */}
       <p className="text-[11px] text-muted-foreground/80 pl-6">
-        Roughly once a day it also looks back at its own replies from your real conversations — not just workspace
-        facts — to notice what worked and what didn't, and get better at responding. That's always about its own
-        replies, not you: it still never analyzes your tone, habits, or personality unless you check the box below.
+        About once a day, it also reviews its own recent replies to learn what worked and what didn't. That review is about its replies, not you: it doesn't analyze your tone, habits, or personality unless you check the box below.
       </p>
       <div className="flex items-start gap-2 pl-6 text-[11px] text-muted-foreground/80">
         <Checkbox checked={userAnalysisOptIn} onCheckedChange={setUserAnalysisOptIn} aria-label="Also notice patterns in how I communicate or work" className="mt-0.5" />

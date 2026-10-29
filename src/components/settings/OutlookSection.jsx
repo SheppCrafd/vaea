@@ -88,11 +88,7 @@ export default function OutlookSection() {
         )}
       </div>
       <p className="text-xs text-muted-foreground mb-4">
-        Connect Outlook/Exchange mail and it shows up in the Vmail tab alongside any other connected account — the
-        assistant can check your inbox or send a message when you ask, always through the same confirm step any
-        other outgoing action does. Works with both a Microsoft 365 work account and a personal Outlook.com account.
-        Nothing about this account sits on Vaea's servers: the connection lives on this device, sent along
-        transiently only for the moment a request actually needs it.
+        Connect Outlook mail from a Microsoft 365 or Outlook.com account and it appears in Vmail with your other inboxes. Vaea Chat can check it or send a message when you ask; sending always waits for your yes. The connection is stored on this device, not on Vaea's servers.
       </p>
 
       {!connected ? (

@@ -688,7 +688,7 @@ export default function VaultGraph({ demo = false, interactive = false }) {
             <Network className="w-6 h-6 text-muted-foreground mx-auto mb-3" />
             <p className="text-sm font-medium">Connect your Vaea Brain first</p>
             <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-              The map is built from how your real notes link to each other.
+              The map shows how your notes link to each other.
             </p>
             <Link
               to="/app/settings"

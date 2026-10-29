@@ -357,9 +357,9 @@ export async function fetchVaultOverview({ owner, repo, branch, token }) {
 export async function testVaultConnection({ owner, repo, token }) {
   const res = await fetch(`${API_BASE}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`, { headers: headers(token) });
   if (!res.ok) {
-    if (res.status === 404) throw new Error("Repo not found — check the owner/repo names, and that this token can see it.");
-    if (res.status === 401) throw new Error("GitHub rejected that token.");
-    throw new Error(`GitHub error (${res.status}).`);
+    if (res.status === 404) throw new Error("Couldn't find that repository. Check the username and repository name, and that this token has access to it.");
+    if (res.status === 401) throw new Error("GitHub didn't accept that token. It may have expired — create a new one and paste it in.");
+    throw new Error(`GitHub didn't respond as expected. Try again in a minute. (GitHub error ${res.status})`);
   }
   const data = await res.json();
   return { defaultBranch: data.default_branch };

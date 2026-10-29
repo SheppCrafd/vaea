@@ -87,12 +87,7 @@ export default function MicrosoftSection() {
         )}
       </div>
       <p className="text-xs text-muted-foreground mb-4">
-        Connect your Microsoft/Outlook calendar and the assistant can look up what's on it, add events, or cancel
-        them (with a real Teams link if you want one) — cancelling always goes through the same confirm step any
-        other destructive change does. Works with both a Microsoft 365 work account and a personal Outlook.com
-        account. This is calendar only — connect Outlook mail separately below to feed the Vmail tab. Nothing about
-        this account sits on Vaea's servers: the connection lives on this device, sent along transiently only for
-        the moment a request actually needs it.
+        Connect a Microsoft 365 or Outlook.com calendar and Vaea Chat can check what's on it, add events (with a Teams link if you want one), or cancel them. Cancelling waits for your yes. This covers the calendar only; connect Outlook Mail below to see your email in Vmail. The connection is stored on this device, not on Vaea's servers.
       </p>
 
       {!connected ? (

@@ -164,7 +164,7 @@ export const ASSISTANT_FAQ = [
   },
   {
     q: "Could it do something I didn't want?",
-    a: "It acts when you ask, or when an agent you set up runs on its schedule. It never removes or sends anything without your yes, and a backup of your whole board is saved before any multi-step change, so a mistake is easy to walk back from Settings → Backup & Restore. Want every change to wait for you? Turn on “Approve every action”.",
+    a: "It acts when you ask, or when an agent you set up runs on its schedule. It never removes or sends anything without your yes. A backup of your whole board is saved before any multi-step change, so a mistake is easy to walk back from Settings → Backup & Restore. Want every change to wait for you? Turn on “Approve every action”.",
   },
   {
     q: "Does it watch how I work?",

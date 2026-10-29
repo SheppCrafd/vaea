@@ -173,16 +173,14 @@ export default function AiPreferencesSection() {
         <div>
           <p id="proactive-checkins-label" className="text-sm font-medium">Proactive check-ins</p>
           <p className="text-xs text-muted-foreground mt-0.5 max-w-md">
-            If you're away 3+ hours, opening Vaea Chat may show a message it started on its own — based on a
-            read-only look at your own tasks and projects.{" "}
+            If you've been away 3 hours or more, Vaea Chat may greet you with a check-in it wrote by reading your tasks and projects.{" "}
             {vaultConnected ? (
               <>
-                It also keeps its own notes in your Vaea Brain and logs what happened while you were gone — those
-                save automatically. Everything else still needs your okay first.
+                It also saves its own notes to your Vaea Brain and logs what happened while you were gone. A check-in never changes your board.
               </>
             ) : (
               <>
-                It can never change anything without asking you first.{" "}
+                A check-in only reads your board; it never changes anything.{" "}
                 <Link to="/app/settings/vault-setup" className="underline underline-offset-2 hover:text-foreground">
                   Connect Vaea Brain
                 </Link>{" "}
@@ -191,10 +189,7 @@ export default function AiPreferencesSection() {
             )}
           </p>
           <p className="text-xs text-muted-foreground mt-1.5 max-w-md">
-            Roughly once a day it also looks back at its own replies from your real conversations — not just
-            workspace facts — to notice what worked and what didn't, and get better at responding. That's always
-            about its own replies, not you: it still never analyzes your tone, habits, or personality unless the
-            toggle below is on.
+            About once a day, it also reviews its own recent replies to learn what worked and what didn't. That review is about its replies, not you: it doesn't analyze your tone, habits, or personality unless you turn on the setting below.
           </p>
         </div>
         <Switch
@@ -210,8 +205,7 @@ export default function AiPreferencesSection() {
           <div>
             <p id="notice-patterns-label" className="text-sm font-medium">Notice patterns in how I communicate</p>
             <p className="text-xs text-muted-foreground mt-0.5 max-w-md">
-              Its daily look-back can also save what it notices about how you write and work, not just its own
-              replies. Off by default — nothing about you is analyzed unless this is on.
+              Lets the daily review also save what it notices about how you write and work. Off by default; nothing about you is analyzed unless you turn this on.
             </p>
           </div>
           <Switch
@@ -226,10 +220,9 @@ export default function AiPreferencesSection() {
         <>
           <div className="flex items-start justify-between gap-4 mt-4 pt-4 border-t border-border">
             <div>
-              <p id="approval-queue-label" className="text-sm font-medium">Approve every action, not just destructive ones</p>
+              <p id="approval-queue-label" className="text-sm font-medium">Approve every action</p>
               <p className="text-xs text-muted-foreground mt-0.5 max-w-md">
-                Normally only deletes and other destructive changes need a confirm click. Turn this on and
-                everything the assistant wants to do waits for your Yes first.
+                By default, Vaea Chat asks before it removes anything or sends a message, and makes other changes right away. Turn this on and every change waits for your “Yes, do it”.
               </p>
             </div>
             <Switch
@@ -243,7 +236,7 @@ export default function AiPreferencesSection() {
             <div>
               <p id="auto-scheduling-label" className="text-sm font-medium">Let Vaea Calendar auto-schedule tasks</p>
               <p className="text-xs text-muted-foreground mt-0.5 max-w-md">
-                Give a task a duration and Vaea Calendar finds and blocks real time for it on its own. Off by
+                Give a task a duration and Vaea Calendar finds and blocks time for it on its own. Off by
                 default — your calendar only changes when you ask.
               </p>
             </div>

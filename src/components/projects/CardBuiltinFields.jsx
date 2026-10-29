@@ -29,7 +29,7 @@ export default function CardBuiltinFields({ project, onUpdate, className = "" })
           <EditableText
             value={project.problem_statement}
             onSave={(v) => onUpdate({ problem_statement: v })}
-            placeholder="No problem statement set"
+            placeholder="Add a problem statement"
             className="text-[10px] text-muted-foreground"
             multiline
           />

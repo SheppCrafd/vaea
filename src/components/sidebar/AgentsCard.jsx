@@ -90,7 +90,7 @@ export default function AgentsCard() {
         <AccordionTrigger className="text-sm px-1">Agents</AccordionTrigger>
         <AccordionContent className="px-1 pb-2">
           {agents.length === 0 && !adding && (
-            <p className="text-xs text-muted-foreground px-2 py-1.5">No agents yet.</p>
+            <p className="text-xs text-muted-foreground px-2 py-1.5">No agents yet. Use New agent to have Vaea run a prompt for you on a schedule.</p>
           )}
 
           {runError && <p className="text-[11px] text-destructive px-2 pb-1.5">{runError}</p>}

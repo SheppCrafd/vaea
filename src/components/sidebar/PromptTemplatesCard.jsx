@@ -57,7 +57,7 @@ export default function PromptTemplatesCard({ onUse }) {
         <AccordionTrigger className="text-sm px-1">Prompt Templates</AccordionTrigger>
         <AccordionContent className="px-1 pb-2">
           {templates.length === 0 && !adding && (
-            <p className="text-xs text-muted-foreground px-2 py-1.5">No templates saved yet.</p>
+            <p className="text-xs text-muted-foreground px-2 py-1.5">No templates yet. Use New template to save a prompt you reuse, then drop it into chat in one click.</p>
           )}
 
           {templates.map((template) =>

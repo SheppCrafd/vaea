@@ -1,27 +1,36 @@
-import React from 'react';
+import { useAuth } from "@/lib/AuthContext";
 
+// Shown when someone signs in with an account this Vaea app doesn't know.
+// Vaea works without an account (only Vaea Chat needs one), so the two real
+// ways forward are offered as buttons rather than described.
 const UserNotRegisteredError = () => {
+  const { logout, continueAsGuest } = useAuth();
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background px-4">
-      <div className="max-w-md w-full p-8 bg-card rounded-xl shadow-sm border border-border">
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 mb-6 rounded-full bg-orange-100 dark:bg-orange-950">
-            <svg className="w-8 h-8 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-          <h1 className="font-heading text-3xl font-bold text-foreground mb-4">Access Restricted</h1>
-          <p className="text-muted-foreground mb-8">
-            You are not registered to use this application. Please contact the app administrator to request access.
-          </p>
-          <div className="p-4 bg-secondary/40 rounded-md text-sm text-muted-foreground text-left">
-            <p>If you believe this is an error, you can:</p>
-            <ul className="list-disc list-inside mt-2 space-y-1">
-              <li>Verify you are logged in with the correct account</li>
-              <li>Contact the app administrator for access</li>
-              <li>Try logging out and back in again</li>
-            </ul>
-          </div>
+      <div className="max-w-md w-full p-8 bg-card rounded-xl shadow-sm border border-border text-center">
+        <h1 className="font-heading text-2xl font-semibold text-foreground mb-3">
+          This account can't sign in to Vaea
+        </h1>
+        <p className="text-muted-foreground mb-6">
+          It isn't set up for this Vaea app. Try a different account, or keep using Vaea without
+          signing in — everything except Vaea Chat works the same.
+        </p>
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => logout()}
+            className="w-full px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+          >
+            Sign in with a different account
+          </button>
+          <button
+            type="button"
+            onClick={continueAsGuest}
+            className="w-full px-4 py-2 rounded-md border border-border text-sm font-medium hover:bg-accent transition-colors"
+          >
+            Continue without signing in
+          </button>
         </div>
       </div>
     </div>

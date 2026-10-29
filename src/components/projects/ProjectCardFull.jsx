@@ -312,7 +312,7 @@ function ProjectCardFull({ project, stakeholderIds = [] }) {
         <EditableText
           value={project.objective}
           onSave={(v) => updateProject.mutate({ id: project.id, data: { objective: v } })}
-          placeholder="No objective set"
+          placeholder="Add an objective"
           className="text-[11px] text-muted-foreground text-center"
         />
       </div>

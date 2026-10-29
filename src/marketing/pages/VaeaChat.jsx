@@ -111,9 +111,7 @@ export default function VaeaChat() {
           a file or behind a link — and use them in the same answer.
         </p>
         <p>
-          Ask it to check your board and it will flag what's overdue, what has no owner, and where
-          you've got near-duplicates — then make the fixes, stopping for your yes before it removes
-          anything.
+          Ask it to check your board and it flags what's overdue, what has no owner, and where you have near-duplicates. Then it makes the fixes, stopping for your yes before it removes anything.
         </p>
       </ShowBlock>
 

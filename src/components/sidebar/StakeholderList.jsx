@@ -308,7 +308,7 @@ export default function StakeholderList() {
       }
 
       {departments.length === 0 && unassignedStakeholders.length === 0 &&
-      <p className="text-xs text-muted-foreground">No stakeholders added.</p>
+      <p className="text-xs text-muted-foreground">No stakeholders yet. Use Add Stakeholder above to add the people your work involves.</p>
       }
 
       <Accordion type="multiple" className="w-full space-y-1">

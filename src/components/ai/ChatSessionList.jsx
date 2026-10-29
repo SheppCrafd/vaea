@@ -37,7 +37,7 @@ export default function ChatSessionList({ activeSessionId, onSelect, onNewChat, 
             </button>
           </div>
           {sessions.length === 0 ? (
-            <p className="text-xs text-muted-foreground p-2">No previous sessions yet.</p>
+            <p className="text-xs text-muted-foreground p-2">No past chats yet. Start one with New chat.</p>
           ) : (
             <div className="flex flex-col gap-0.5">
               {sessions.map((s) => (

@@ -45,7 +45,7 @@ function ComposeModal({ accounts, onClose, onSent }) {
     e.preventDefault();
     setError("");
     if (!to.trim() || !subject.trim() || !body.trim()) {
-      setError("To, subject, and body are all required.");
+      setError("Add a recipient, a subject, and a message to send.");
       return;
     }
     const account = accounts.find((a) => a.key === from);

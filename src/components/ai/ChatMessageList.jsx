@@ -332,7 +332,7 @@ export default function ChatMessageList({ messages, isComputing, isLoading, isPl
             <span className="text-primary">{'>'}</span> ready when you are
           </p>
           <p className="text-muted-foreground text-xs max-w-[30ch]">
-            Ask it to search, plan, or take real action across your workspace — or type "/" for commands.
+            Ask it to find something, plan, or change your board. Type "/" for commands.
           </p>
         </div>
       )}

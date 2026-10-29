@@ -21,7 +21,7 @@ describe("slackApi: listChannels", () => {
 
   it("throws a clear error on token rejection", async () => {
     globalThis.fetch.mockResolvedValue({ ok: true, json: async () => ({ ok: false, error: "invalid_auth" }) });
-    await expect(listChannels(CONNECTION)).rejects.toThrow(/reconnecting/);
+    await expect(listChannels(CONNECTION)).rejects.toThrow(/Reconnect Slack in Settings/);
   });
 });
 

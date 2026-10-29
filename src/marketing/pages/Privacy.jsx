@@ -133,9 +133,7 @@ export default function Privacy() {
 
           <Block heading="What the hosted side is for">
             <p>
-              A hosted service handles signing in, keeps your past chats (not your board), runs the
-              built-in model for Vaea Chat, and — only if you choose sync — holds your board so it's there on
-              your other devices. Each of those is either needed to sign in or something you turned on.
+              A hosted service handles signing in, keeps your past chats (not your board), and runs the built-in model for Vaea Chat. If you turn on sync, it also holds your board so it's there on your other devices. Each of those is either needed to sign in or something you turned on.
             </p>
           </Block>
 

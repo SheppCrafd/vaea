@@ -41,7 +41,7 @@ export default function ConnectorHealthSection() {
   return (
     <SettingsCard>
       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Connector Health</p>
-      <p className="text-xs text-muted-foreground mb-4">Every connector's real status, at a glance.</p>
+      <p className="text-xs text-muted-foreground mb-4">Whether each connected account is working right now.</p>
       {!statuses ? (
         <p className="text-xs text-muted-foreground">Checking…</p>
       ) : (

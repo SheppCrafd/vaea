@@ -156,7 +156,7 @@ function VaultSearchBar({ connection }) {
     <div className="mt-6 pt-6 border-t border-border">
       <p className="text-sm font-medium mb-1">Search your vault</p>
       <p className="text-xs text-muted-foreground mb-3">
-        A plain keyword search over your note content — for a real synthesized answer, ask Vaea Chat instead.
+        A plain keyword search over your note content — for an answer drawn from your notes, ask Vaea Chat.
       </p>
       <form onSubmit={handleSearch} className="flex items-center gap-2">
         <div className="flex-1 flex items-center gap-2 bg-background border border-input rounded-md px-3 py-2 focus-within:ring-1 focus-within:ring-primary/50">
@@ -310,11 +310,7 @@ export default function ExternalVaultSection() {
             className="bg-background font-terminal"
           />
           <p className="text-xs text-muted-foreground mt-1.5">
-            Needs read/write access to the one repo above (a fine-grained token scoped to just it is safest).
-            Stored on this device only. It's sent to Vaea's backend for the moment an on-demand read happens
-            mid-conversation, so the assistant can act on what it finds, the same way your workspace data already
-            is — but the once-per-session overview above is fetched directly from this browser to GitHub instead,
-            never touching Vaea's backend at all.
+            Needs read and write access to the repository above; a fine-grained token limited to that one repository is safest. It's stored on this device only. When Vaea Chat reads a note mid-conversation, the token is sent to Vaea's server for that one request. The overview loaded at the start of each chat goes straight from this browser to GitHub.
           </p>
         </div>
       </div>
@@ -352,7 +348,7 @@ export default function ExternalVaultSection() {
             connection={connection}
             path={SELF_NOTE_PATH}
             maxChars={SELF_NOTE_TARGET_MAX_CHARS}
-            description="What the assistant has written about itself — what it's learned working in this workspace, corrections to how it operates. It updates this on its own during a check-in; you can read or correct it here anytime."
+            description="What Vaea Chat has learned about working with you, including corrections to how it works. It updates this during check-ins. Read or correct it here anytime."
             placeholder="Nothing written yet — this fills in the first time it checks in."
             commitMessage="Update Vaea Self.md (manual edit)"
           />
@@ -360,7 +356,7 @@ export default function ExternalVaultSection() {
             connection={connection}
             path={MEMORY_NOTE_PATH}
             maxChars={MEMORY_NOTE_TARGET_MAX_CHARS}
-            description="Durable facts about you and your work — never how the assistant should act, just things worth not re-explaining every conversation. It writes here on its own as facts come up in chat, organized by project; you can read or correct it here anytime."
+            description="Facts about you and your work that you shouldn't have to explain twice, sorted by project. Vaea Chat adds to it as they come up. Read or correct it here anytime."
             placeholder="Nothing written yet — this fills in as facts come up in chat."
             commitMessage="Update Vaea Memory.md (manual edit)"
           />

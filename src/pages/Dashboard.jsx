@@ -175,7 +175,7 @@ export default function Dashboard() {
             <div className="flex flex-col gap-1.5 max-w-sm">
               <h2 className="font-heading font-semibold text-lg text-foreground">Start with your first area</h2>
               <p className="text-sm text-muted-foreground">
-                Areas of responsibility hold the products and projects you're tracking. Create one to get going.
+                An area is a part of your work or life — Work, Home, a side project. It holds your products and projects. Create one to start.
               </p>
             </div>
             <Button onClick={() => openCreateModal("area")} className="gap-2 rounded-full px-5 mt-1">

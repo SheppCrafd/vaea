@@ -13,7 +13,7 @@ const TYPES = [
   { key: "project", label: "Project" },
   { key: "product", label: "Product" },
   { key: "area", label: "Area" },
-  { key: "csv", label: "Via .csv" },
+  { key: "csv", label: "Import CSV" },
 ];
 
 // Polymorphic create modal — switches between the four object forms based on createModalType.

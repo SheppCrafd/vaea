@@ -229,7 +229,7 @@ export default function NotificationsPage() {
                     Icon={Clock}
                     tone="info"
                     title={`${notStartedCount} task${notStartedCount === 1 ? "" : "s"} not started yet`}
-                    meta="No due-date pressure — just here so nothing's forgotten"
+                    meta="Not urgent. Listed so nothing gets forgotten."
                   />
                 </div>
               )}

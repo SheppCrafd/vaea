@@ -103,7 +103,7 @@ const USES = [
   {
     Icon: PenLine,
     title: "/vault-log",
-    body: "Writes a session summary to Daily/<today>.md as a real commit — Decisions too, if one came up.",
+    body: "Writes a session summary to Daily/<today>.md as a commit — Decisions too, if one came up.",
   },
   {
     Icon: Wrench,
@@ -321,7 +321,7 @@ git push -u origin main`}
         </div>
 
         <p className="text-sm text-muted-foreground leading-relaxed mt-12 pt-8 border-t border-border">
-          A real personal vault, and an assistant that reads and writes it.
+          Your own notes vault, and an assistant that reads and writes it.
         </p>
       </div>
     </div>

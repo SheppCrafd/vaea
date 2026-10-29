@@ -109,7 +109,7 @@ export default function InboxFrame({
             ))}
             {appleConnected && (
               <p className="text-xs text-muted-foreground bg-card border border-foreground/[0.04] rounded-xl px-4 py-3 mt-4">
-                Apple Mail is connected — message sync for it is still being built, so its messages aren't in the list below yet.
+                Apple Mail is connected, but Vmail doesn't show its messages yet.
               </p>
             )}
             {loading && messages.length === 0 ? (
@@ -117,7 +117,7 @@ export default function InboxFrame({
                 <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading…
               </div>
             ) : messages.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-16">Nothing here.</p>
+              <p className="text-sm text-muted-foreground text-center py-16">No messages in this folder.</p>
             ) : (
               <ul className="flex flex-col gap-1.5 mt-4">
                 {messages.map((m) => (

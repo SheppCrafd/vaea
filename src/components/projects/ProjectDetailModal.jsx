@@ -152,7 +152,7 @@ export default function ProjectDetailModal({ project, onClose }) {
                   id="project-detail-objective"
                   value={project.objective}
                   onSave={(val) => updateProject.mutate({ id: project.id, data: { objective: val } })}
-                  placeholder="No objective set"
+                  placeholder="Add an objective"
                   className="text-sm"
                   multiline
                 />
@@ -166,7 +166,7 @@ export default function ProjectDetailModal({ project, onClose }) {
                   id="project-detail-problem-statement"
                   value={project.problem_statement}
                   onSave={(val) => updateProject.mutate({ id: project.id, data: { problem_statement: val } })}
-                  placeholder="No problem statement set"
+                  placeholder="Add a problem statement"
                   className="text-sm"
                   multiline
                 />

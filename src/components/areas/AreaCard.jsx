@@ -208,7 +208,7 @@ function AreaCard({ area, products = [], orphanProjects = [], onExpand, stakehol
           className={`mt-2 p-4 rounded-xl transition-all ${isOver ? "bg-primary/10 shadow-[inset_0_0_0_2px_hsl(var(--primary)/0.6)]" : "bg-muted/40 shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.035)]"}`}
         >
           <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-            Direct Projects
+            Projects not in a product
           </h4>
           <ProjectsGrid
             projects={orphanProjects}

@@ -73,7 +73,7 @@ export async function listSnapshots() {
 // restoring is itself undoable instead of a one-way door.
 export async function restoreSnapshot(id) {
   const data = await readKey(SNAPSHOT_PREFIX + id);
-  if (!data) throw new Error("Backup not found — it may have been pruned.");
+  if (!data) throw new Error("That backup no longer exists. Vaea keeps the 8 most recent and removes older ones automatically.");
 
   await createSnapshot("Before restore (auto)");
 

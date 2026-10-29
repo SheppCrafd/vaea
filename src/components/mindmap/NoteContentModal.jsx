@@ -131,7 +131,7 @@ export default function NoteContentModal({ path, connection, onClose, onSaved })
               onChange={(e) => setDraft(e.target.value)}
               autoFocus
               className="w-full h-full min-h-[50vh] font-terminal text-sm leading-relaxed bg-transparent outline-none resize-none"
-              placeholder="Note content — plain markdown, same as the real file."
+              placeholder="Note content, in the same plain-text format as the file in your vault."
             />
             {saveError && (
               <p className="flex items-start gap-1.5 text-xs text-destructive mt-2">

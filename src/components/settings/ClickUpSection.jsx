@@ -139,11 +139,7 @@ export default function ClickUpSection() {
         )}
       </div>
       <p className="text-xs text-muted-foreground mb-4">
-        Connect ClickUp and the assistant can look up or add tasks in a list you pick, and read or post to your
-        ClickUp Chat channels — moving or deleting anything always goes through the same confirm step any other
-        destructive change does. The connection lives on this device; ClickUp's own token exchange is the one step
-        that has to pass through Vaea's backend (ClickUp requires a real client secret to complete it, unlike Google
-        Calendar's fully local flow) — nothing about your workspace itself is stored there afterward.
+        Connect ClickUp and Vaea Chat can find or add tasks in a list you pick, and read or post in your ClickUp Chat channels. Deleting a task or posting a message waits for your yes. The connection is stored on this device. Signing in passes once through Vaea's server, because ClickUp requires it; nothing about your workspace is kept there.
       </p>
 
       {!connected ? (

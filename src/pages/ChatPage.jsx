@@ -37,7 +37,7 @@ function ChatHistoryPanelContent({ chat, sessions }) {
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-2">
         {sessions.length === 0 ? (
-          <p className="text-xs text-muted-foreground p-2">No previous sessions yet.</p>
+          <p className="text-xs text-muted-foreground p-2">No past chats yet. Start one with New chat.</p>
         ) : (
           <div className="flex flex-col gap-0.5">
             {sessions.map((s) => (
@@ -167,7 +167,7 @@ export default function ChatPage() {
             className="w-4 h-4 text-muted-foreground cursor-help ml-auto"
             aria-label="Privacy notice"
           >
-            <title>Everything else in this app stays on your device. Chat is the one exception: your current data is sent to an AI service to answer you, only for that one exchange — nothing is stored on a server. If you ask it to, chat can also search the web or read an attached file's contents — same one-exchange rule, nothing persists.</title>
+            <title>Your board stays on this device. Vaea Chat is the one exception: to answer you, it sends your current board to an AI service for that one reply, and the board isn't kept. Web searches and attached files work the same way. Your past chats are saved so you can come back to them.</title>
           </Info>
           <button
             onClick={() => setIsSettingsOpen(true)}
@@ -187,7 +187,7 @@ export default function ChatPage() {
               onClick={chat.openReflectionSession}
               className="px-4 py-2 bg-primary/10 hover:bg-primary/15 text-primary text-sm font-medium text-left transition-colors"
             >
-              Vaea started a new conversation — view it
+              Vaea started a new chat — view it
             </button>
           )}
 

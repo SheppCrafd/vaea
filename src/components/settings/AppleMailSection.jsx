@@ -30,7 +30,7 @@ export default function AppleMailSection() {
     e.preventDefault();
     setError("");
     if (!emailAddress.trim() || !appSpecificPassword.trim()) {
-      setError("Both fields are required.");
+      setError("Enter both your iCloud address and the app-specific password.");
       return;
     }
     setSaving(true);
@@ -61,10 +61,9 @@ export default function AppleMailSection() {
         )}
       </div>
       <p className="text-xs text-muted-foreground mb-4">
-        Connect an iCloud Mail address using an app-specific password (generate one at appleid.apple.com under
-        Sign-In and Security). It'll show up in the Vmail tab alongside Gmail and Outlook. Nothing about this
-        account sits on Vaea's servers: it's stored on this device only. Note: message sync is still being built —
-        connecting saves the credential now, and Vmail will start showing real Apple Mail messages once that lands.
+        Connect an iCloud Mail address using an app-specific password (create one at appleid.apple.com, under
+        Sign-In and Security). It's stored on this device only, never on Vaea's servers. Vmail doesn't show Apple
+        Mail messages yet; your connection is saved for when it does.
       </p>
 
       {!connected ? (
