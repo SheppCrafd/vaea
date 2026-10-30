@@ -33,7 +33,7 @@ function headers(token) {
 function encodePath(path) {
   const segments = path.split("/");
   if (segments.some((s) => s === "" || s === "." || s === "..")) {
-    throw new Error(`Invalid vault path "${path}"`);
+    throw new Error(`The note path "${path}" has an empty, "." or ".." part, so Vaea won't use it. Use a path like Daily/2026-10-30.md.`);
   }
   return segments.map(encodeURIComponent).join("/");
 }

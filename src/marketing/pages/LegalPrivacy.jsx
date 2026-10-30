@@ -10,8 +10,8 @@ const SECTIONS = [
   {
     heading: "Summary",
     body: [
-      "Your project data — areas, products, projects, tasks, stakeholders, and notes — is stored on your own device by default, in files you control. It is not transmitted to or held on a server unless you enable sync.",
-      "A limited set of features rely on a server: authentication, storage of your chat history, operation of the built-in AI assistant, and — only where you enable it — sync of your board across devices. Each is described below.",
+      "Your project data — areas, products, projects, tasks, stakeholders, and notes — is stored on your own device by default, in files you control. It is held on a server only if you turn on cloud storage. When you use the AI assistant, a copy is sent for that one request, as described under \"The AI assistant\" below.",
+      "A limited set of features rely on a server: authentication, storage of your chat history, operation of the built-in AI assistant, and — only where you turn it on — cloud storage of your board. Each is described below.",
       "There are no advertising trackers, and no personal information is sold or shared for marketing. The platform Vaea is hosted on may collect basic operational telemetry, such as error and uptime data, in the course of running the service.",
     ],
   },
@@ -43,9 +43,9 @@ const SECTIONS = [
     ],
   },
   {
-    heading: "Optional sync",
+    heading: "Optional cloud storage",
     body: [
-      "If you enable sync, your board is copied to a hosted record associated with your account so that you can open it on another device. It is disabled unless you enable it, and you may disable it again at any time. Disabling sync does not delete the local copy on your device.",
+      "If you turn on cloud storage, your board is copied to a hosted record associated with your account so that you can open it on another device. It is off unless you turn it on, and you may turn it off again at any time. Turning it off does not delete the copy on your device.",
     ],
   },
   {
@@ -63,7 +63,7 @@ const SECTIONS = [
   {
     heading: "Your rights",
     body: [
-      "Because your data resides on your device, you already have direct access to export or delete most of it. For anything held by the hosted service — chat history, a synced board, your account — you can delete your account from the settings screen, which clears it. You may also contact us (see the About page) with any request concerning your data.",
+      "Because your data resides on your device, you already have direct access to export or delete most of it. For anything held by the hosted service — chat history, a board in cloud storage, your account — you can delete your account from the settings screen, which clears it. You may also contact us (see the About page) with any request concerning your data.",
       "Depending on your jurisdiction, you may have rights under laws such as the GDPR or CCPA to access, correct, or delete personal data, and to object to processing. We honour these requests; email is the route.",
     ],
   },

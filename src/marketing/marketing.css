@@ -234,3 +234,13 @@
     transform: none !important;
   }
 }
+
+/* Text set on a photo. Muted grey over a partly visible photo measured
+   2–3.5:1, under the 4.5:1 body-text minimum, in both themes. Page copy on a
+   photo uses the full text colour and a soft halo in the page's background
+   colour instead; the photo stays as it is. App demos keep the app's own
+   colours (they must match the app exactly), so they're left out. */
+.mkt-on-photo .text-muted-foreground:not(.mkt-demo, .mkt-demo *) {
+  color: hsl(var(--foreground));
+  text-shadow: 0 0 14px hsl(var(--background) / 0.9), 0 0 4px hsl(var(--background) / 0.6);
+}

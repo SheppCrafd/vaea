@@ -133,8 +133,8 @@ export default function Home() {
         </p>
         <p>
           When you ask Vaea Chat something, a copy of your board goes to the AI service for that
-          one answer, and isn't kept afterward. If you'd rather sync across devices, you can switch
-          that on, and back off. You can also run Vaea Chat entirely on your own computer, with
+          one answer, and isn't kept afterward. If you'd rather have your board on every device, turn on
+          cloud storage, and turn it back off any time. You can also run Vaea Chat entirely on your own computer, with
           nothing sent out at all.
         </p>
       </ShowBlock>

@@ -119,7 +119,7 @@ export default function SignUpScreen() {
             </p>
             <p className="text-xs text-muted-foreground">
               {step === "details"
-                ? "Your data stays on this device unless you turn on cloud storage. Signing up unlocks Vaea Chat."
+                ? "Your board is saved on this device unless you turn on cloud storage. An account lets you use Vaea Chat."
                 : `We sent a code to ${email}.`}
             </p>
           </div>

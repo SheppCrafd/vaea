@@ -95,7 +95,7 @@ export default function LoginScreen() {
           <div className="space-y-1">
             <p className="text-sm font-medium">Sign in to Vaea</p>
             <p className="text-xs text-muted-foreground">
-              Your data stays on this device unless you turn on cloud storage. Signing in unlocks Vaea Chat.
+              Your board is saved on this device unless you turn on cloud storage. Sign in to use Vaea Chat.
             </p>
           </div>
         </div>

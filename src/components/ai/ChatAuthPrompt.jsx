@@ -12,7 +12,7 @@ export default function ChatAuthPrompt({ onSignIn, onDismiss }) {
   return (
     <div className="px-3 py-2.5 bg-secondary/60 border-t border-border flex items-center gap-2.5 text-xs">
       <LogIn className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
-      <span className="flex-1 text-muted-foreground">Chat needs you signed in — your dashboard data stays local either way.</span>
+      <span className="flex-1 text-muted-foreground">Sign in to use Vaea Chat. Your board stays saved on this device either way.</span>
       <button
         onClick={onSignIn}
         className="shrink-0 px-2.5 py-1 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md transition-colors"

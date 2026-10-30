@@ -271,7 +271,7 @@ export default function DeviceStorageGate({ children }) {
                 <span>
                   <span className="block text-sm font-medium">Save on cloud</span>
                   <span className="block text-xs text-muted-foreground mt-0.5">
-                    Synced to your account, available on any device you sign into.
+                    Saved to your account, so it's there on any device you sign in to.
                   </span>
                 </span>
               </button>

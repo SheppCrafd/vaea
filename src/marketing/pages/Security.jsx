@@ -19,7 +19,7 @@ const CONTROLS = [
     "Kept in files on your own device. There's no company database holding it, so there's nothing on a server to breach.",
   ],
   [
-    "Project data, if you opt into sync",
+    "Project data, if you turn on cloud storage",
     "Stored on Base44's hosted infrastructure, scoped to your account with row-level security — no other user's session can reach it.",
   ],
   [
@@ -39,7 +39,7 @@ const CONTROLS = [
 const LIMITATIONS = [
   [
     "No server means no server-side backup",
-    "Device-local project data lives only on that device unless you turn on sync or export it yourself. Losing the device without a backup means losing the data — see the threat model for the full tradeoff.",
+    "Device-local project data lives only on that device unless you turn on cloud storage or export it yourself. Losing the device without a backup means losing the data — see the threat model for the full tradeoff.",
   ],
   [
     "Sign-in security is inherited, not custom-built",
@@ -165,7 +165,7 @@ export default function Security() {
 
       <Section
         eyebrow="related"
-        title="See where your data actually lives"
+        title="See where your data lives"
         lede="This page covers what protects it. /privacy covers where it lives, what leaves your computer and when, and how to run Vaea with nothing leaving at all."
       />
 

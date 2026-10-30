@@ -14,7 +14,7 @@ export const OG_IMAGE = `${SITE_URL}/og-image.png`;
 export const SITE_REPO = "https://github.com/SheppCrafd/vaea";
 // Bump when page copy materially changes. Surfaced visibly in the footer and
 // as `dateModified` in structured data (a freshness signal for search + AI).
-export const SITE_MODIFIED = "2026-09-14";
+export const SITE_MODIFIED = "2026-10-30";
 
 // The person behind the project. Real, public identity (the GitHub + Gravatar
 // are already public) — used for the /about card, the footer, and the
@@ -40,25 +40,25 @@ export const ROUTES = [
     changefreq: "weekly",
     title: "Vaea — one calm board for everything you're carrying",
     description:
-      "The calm place to organize every project you're juggling. An assistant does the sorting and asks before it removes anything, and your work is saved on your own computer by default.",
+      "One calm board for every project you're juggling. An assistant sorts it and asks before it removes anything. Your work is saved on your computer by default.",
   },
   {
     path: "/vaea-chat",
     loc: "/vaea-chat",
     priority: "0.9",
     changefreq: "monthly",
-    title: "Vaea Chat — it makes the change, and asks before removing anything | Vaea",
+    title: "Vaea Chat — makes the change, asks before removing | Vaea",
     description:
-      "Ask in plain words. Vaea Chat reads your board, makes the change, and asks before it removes or sends anything. Built-in model, your own AI account, or Claude Code on your own machine.",
+      "Ask in plain words. Vaea Chat reads your board, makes the change, and asks before it removes or sends anything. Use the built-in model or your own.",
   },
   {
     path: "/brain",
     loc: "/brain",
     priority: "0.7",
     changefreq: "monthly",
-    title: "Vaea Brain — your own notes, read and written by Vaea Chat | Vaea",
+    title: "Vaea Brain — your notes, read and kept by Vaea Chat | Vaea",
     description:
-      "Connect a personal notes vault kept in your own account. Vaea Chat reads and adds to it directly, see it as a map, and nothing is stored on Vaea's servers.",
+      "Connect a notes vault kept in your own account. Vaea Chat reads it and adds to it, you can see it as a map, and nothing is stored on Vaea's servers.",
   },
   {
     path: "/workplace",
@@ -67,16 +67,18 @@ export const ROUTES = [
     changefreq: "monthly",
     title: "Vaea Workplace — one calendar, one inbox | Vaea",
     description:
-      "Vaea Workplace brings your Google and Microsoft calendars into one agenda and your email into one place. Vaea Chat can draft, file, and schedule — showing you first.",
+      ANY_CALENDAR_AVAILABLE || ANY_MAIL_AVAILABLE
+        ? "Vaea Workplace puts your Google and Microsoft calendars in one agenda and your email in one place. Vaea Chat drafts, files and schedules, showing you first."
+        : "Vaea Workplace shows your project due dates as one agenda next to the board. Google and Microsoft calendar and email connections are coming soon.",
   },
   {
     path: "/privacy",
     loc: "/privacy",
     priority: "0.7",
     changefreq: "monthly",
-    title: "Privacy — where your information lives, and Local Mode | Vaea",
+    title: "Privacy — where your data lives, and Local Mode | Vaea",
     description:
-      "Vaea keeps your projects and tasks on your own computer by default. Every time anything leaves it, what you can switch off, and how to run it with nothing leaving at all in Local Mode.",
+      "Vaea keeps your projects on your computer by default. Here is every time anything leaves it, what you can switch off, and how Local Mode sends nothing.",
   },
   {
     path: "/compare",
@@ -192,7 +194,7 @@ export const BRAIN_FAQ = [
   },
   {
     q: "What can Vaea Chat do with them?",
-    a: "Pull a note in for context while it answers, and add or update notes when you ask — logging a decision, writing up a session, filing a reference. Each write is a commit in your own repository, so every earlier version stays in its history.",
+    a: "Pull a note in for context while it answers, and add or update notes when you ask — logging a decision, writing up a session, filing a reference. Every change is saved as a new version in your own GitHub repository, so earlier versions are never lost.",
   },
   {
     q: "Do I have to use it?",
@@ -309,7 +311,7 @@ export function softwareApplicationLd() {
       "Use the built-in model, your own AI account, or Claude Code on your own machine",
       "Vaea Workplace: one calendar view and one inbox across connected accounts",
       "Vaea Brain: your own notes vault, read and written by Vaea Chat",
-      "Files kept on your computer, with optional sync you can turn off",
+      "Files kept on your computer, with optional cloud storage you can turn off",
       "Self-host: clone the repo, run on localhost, keep every request on your network",
     ],
   };

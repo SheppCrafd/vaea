@@ -68,7 +68,7 @@ export default function ParallaxBackdrop({
   const mid = Math.max(0, scrim - 0.22).toFixed(2);
 
   return (
-    <Tag ref={wrapRef} className={cn("relative isolate overflow-hidden", className)}>
+    <Tag ref={wrapRef} className={cn("mkt-on-photo relative isolate overflow-hidden", className)}>
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
         <img
           ref={imgRef}

@@ -24,7 +24,7 @@ const LEAVES = [
     "That one lookup goes out for that one question, and the result is used in the answer. Same rule — nothing is kept.",
   ],
   [
-    "You turn on sync across devices",
+    "You turn on cloud storage",
     "Your board is saved to an account instead of only on your computer, so you can open it elsewhere. It's off unless you switch it on, and you can switch it back — your information comes with you either way.",
   ],
   [
@@ -133,14 +133,14 @@ export default function Privacy() {
 
           <Block heading="What the hosted side is for">
             <p>
-              A hosted service handles signing in, keeps your past chats (not your board), and runs the built-in model for Vaea Chat. If you turn on sync, it also holds your board so it's there on your other devices. Each of those is either needed to sign in or something you turned on.
+              A hosted service handles signing in, keeps your past chats (not your board), and runs the built-in model for Vaea Chat. If you turn on cloud storage, it also holds your board so it's there on your other devices. Each of those is either needed to sign in or something you turned on.
             </p>
           </Block>
 
           <Block heading="What you can do">
             <p>
               Pull anything into a spreadsheet at any time. Save your settings as a small file to move
-              to another device. Switch sync on or off without losing anything. Delete your account
+              to another device. Switch cloud storage on or off without losing anything. Delete your account
               from the settings screen, which clears the hosted side.
             </p>
           </Block>
@@ -148,8 +148,8 @@ export default function Privacy() {
           <Block heading="The limits">
             <p>
               This is a tool for one person on one computer today — no shared team spaces, no roles,
-              no admin screen. If your workplace needs a guarantee that nothing is ever synced, treat
-              that switch as one to leave off and check, not assume.
+              no admin screen. If your workplace needs a guarantee that your board never leaves this computer, leave
+              cloud storage off and check that it stays off.
             </p>
           </Block>
          </div>
