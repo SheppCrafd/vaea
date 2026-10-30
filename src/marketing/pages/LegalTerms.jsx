@@ -32,7 +32,7 @@ const SECTIONS = [
     heading: "No warranty",
     body: [
       "Vaea is provided “as is” and “as available”, without warranties of any kind, express or implied — including fitness for a particular purpose, reliability, or that it will be uninterrupted or error-free.",
-      "Keep your own backups. The app includes a same-day snapshot safety net, but it is not a substitute for backups you control.",
+      "Keep your own backups. The app keeps checkpoints of your eight most recent large changes, but they are not a substitute for backups you control.",
     ],
   },
   {

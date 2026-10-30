@@ -128,7 +128,7 @@ export default function VaeaChat() {
       <Elsewhere current="/vaea-chat" />
       </StoryRegion>
 
-      <Marquee items={["you ask", "it makes the change", "it lists every step", "removals wait for you", "a backup before big changes"]} />
+      <Marquee items={["you ask", "it makes the change", "it lists every step", "removals wait for you", "a checkpoint before big changes"]} />
 
       <Section id="faq" eyebrow="the fair questions" title="What it sends, and what it can't do">
         <Reveal className="mt-8">

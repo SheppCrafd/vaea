@@ -147,7 +147,7 @@ export function reviewPlan(actions, data, { waitingActions } = {}) {
   }
 
   if (removed > AUTO_APPROVE_MAX_REMOVED) {
-    problems.push(`It removes ${removed} items at once, more than auto-approve allows (${AUTO_APPROVE_MAX_REMOVED}).`);
+    problems.push(`It removes ${removed} items at once, and the limit is ${AUTO_APPROVE_MAX_REMOVED}.`);
   }
 
   const ok = problems.length === 0;

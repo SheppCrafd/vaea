@@ -1452,7 +1452,7 @@ export const TOOL_CATALOG = [
   {
     name: "CREATE_BACKUP",
     staged: true,
-    description: "Create a manual backup snapshot of the whole workspace — the same thing the user can do in Settings -> Checkpoints. A snapshot is also always taken automatically before any risky multi-step plan, so this is for an on-demand extra one.",
+    description: "Save a checkpoint of the whole board on request; it appears in Settings -> Checkpoints. Call it a checkpoint when talking to the user. One is also saved automatically before any risky multi-step plan, so this is for an extra one on demand.",
     parameters: { type: "object", properties: { label: { type: "string", description: "Optional label, e.g. \"before reorg\"." } }, required: [] },
   },
   {
@@ -1464,7 +1464,7 @@ export const TOOL_CATALOG = [
   {
     name: "RESTORE_BACKUP",
     staged: true,
-    description: "Restore the workspace from a backup snapshot — the same \"Restore\" button in Settings -> Checkpoints. Get snapshot_id from list_backups first; never guess one. Destructive (overwrites current data) — goes through the normal confirm-before-destructive step.",
+    description: "Restore the board from a checkpoint — the same \"Restore\" button in Settings -> Checkpoints. Get snapshot_id from list_backups first; never guess one. Destructive (overwrites current data) — goes through the normal confirm-before-destructive step.",
     parameters: { type: "object", properties: { snapshot_id: { type: "string" } }, required: ["snapshot_id"] },
   },
   {

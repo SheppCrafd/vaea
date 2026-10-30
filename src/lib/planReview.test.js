@@ -45,7 +45,7 @@ describe("reviewPlan", () => {
     const tasks = Array.from({ length: AUTO_APPROVE_MAX_REMOVED + 1 }, (_, i) => ({ id: `x${i}`, project_id: "j1" }));
     const review = reviewPlan([{ action: "DELETE_PROJECT", args: { project_id: "j1" } }], { ...data, tasks });
     expect(review.ok).toBe(false);
-    expect(review.summary).toMatch(/more than auto-approve allows/);
+    expect(review.summary).toMatch(/and the limit is 50/);
   });
 
   it("checks only the steps that would wait", () => {

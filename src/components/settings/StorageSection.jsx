@@ -52,7 +52,7 @@ export default function StorageSection() {
           // cloud storage) — copyAllKeys itself has no such check, it just
           // overwrites every key unconditionally. See storageMigration.js.
           if (await destinationHasData({ read: cloudStorage.readKey })) {
-            setError("Your cloud storage already has data in it — switching would overwrite it. Back it up first (Settings → Checkpoints), or clear the cloud data before switching.");
+            setError("Your account already has a board saved in the cloud, probably from another device. Switching would replace it with this device's board, so Vaea stopped and changed nothing.");
             setBusy(false);
             return;
           }
@@ -77,7 +77,7 @@ export default function StorageSection() {
           if (supportsFileSystemAccess) {
             await connectFolder(); // user-gesture-gated folder picker — can pick ANY folder, including one already full of real data from a previous device-storage session
             if (await destinationHasData({ read: readDeviceKey })) {
-              setError("That folder already has Vaea data in it — switching would overwrite it. Choose an empty folder, or back up this folder's data first before reusing it.");
+              setError("That folder already has a Vaea board in it, and switching would replace it, so Vaea stopped and changed nothing. Choose an empty folder, or copy that folder's files somewhere safe first.");
               setBusy(false);
               return;
             }
