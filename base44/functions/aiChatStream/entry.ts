@@ -2464,7 +2464,13 @@ Deno.serve(async (req) => {
     } = body;
     if (!message) return Response.json({ error: 'message is required' }, { status: 400 });
 
-    const { baseURL, token } = base44.aiGateway.connection();
+    // Base44's AI Gateway only accepts the app's service-role token now
+    // ("AI gateway requests must be made server-side using the app's
+    // service role"); a user's token is rejected. The user is still checked
+    // above before anything runs, and every data read and write below keeps
+    // using the user's own client and permissions; only the gateway token
+    // comes from the service role.
+    const { baseURL, token } = base44.asServiceRole.aiGateway.connection();
     const models = createOpenAICompatible({ name: 'base44', baseURL, apiKey: token });
 
     const plan = [];
