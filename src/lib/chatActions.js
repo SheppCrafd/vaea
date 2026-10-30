@@ -1342,8 +1342,9 @@ export function stripToolLog(content) {
 // after what the plan does and where (checkpointNames.js); `source: "csv"`
 // words it as an import. `onCheckpoint` gets { id, label } once saved.
 export async function executeActionSequence(actions, { onStep, checkpoint = false, source, onCheckpoint } = {}) {
+  let saved = null;
   if (checkpoint || planNeedsSnapshot(actions)) {
-    const saved = await createSnapshot((data) => nameCheckpoint(actions, data, { source }));
+    saved = await createSnapshot((data) => nameCheckpoint(actions, data, { source }));
     if (saved) onCheckpoint?.(saved);
   }
 
@@ -1371,6 +1372,8 @@ export async function executeActionSequence(actions, { onStep, checkpoint = fals
           : err.message
       );
       partialError.completedSteps = steps;
+      // So the error message can offer Revert for the steps that did run.
+      partialError.checkpoint = saved;
       partialError.failedStep = { action: step.action, args: resolvedArgs };
       partialError.cause = err;
       throw partialError;

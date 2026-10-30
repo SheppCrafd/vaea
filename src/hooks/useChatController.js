@@ -18,6 +18,7 @@ import { saveSnippet, findSnippet } from "@/lib/snippetsStore";
 import { loadAgentBehavior } from "@/lib/agentBehaviorSettings";
 import { connectorHoldReason, reviewPlan } from "@/lib/planReview";
 import { loadBoardData, restoreSnapshot } from "@/lib/backupSnapshots";
+import { confirmThen } from "@/lib/entityUtils";
 import { loadSlackConnection } from "@/lib/slackConnection";
 import { loadClickUpConnection } from "@/lib/clickupConnection";
 import { fetchVaultOverview, SELF_NOTE_PATH } from "@/lib/githubApi";
@@ -1124,7 +1125,7 @@ export function useChatController({ activeProjectId } = {}) {
           ? buildLoggedContent(errorText, completedSteps.map(describeToolCall))
           : errorText;
         await createMessage.mutateAsync(
-          { session_id: sessionId, role: "assistant", content, ...(completedSteps.length ? { tool_log_detail: { steps: completedSteps } } : {}) },
+          { session_id: sessionId, role: "assistant", content, ...(completedSteps.length ? { tool_log_detail: { steps: completedSteps, ...(error.checkpoint ? { checkpoint: error.checkpoint } : {}) } } : {}) },
           { onSuccess: (created) => markMessageNew(created.id) }
         );
       }
@@ -1196,7 +1197,7 @@ export function useChatController({ activeProjectId } = {}) {
         ? buildLoggedContent(`⚠️ Couldn't complete that: ${error.message}`, completedSteps.map(describeToolCall))
         : `⚠️ Couldn't complete that: ${error.message}`;
       await createMessage.mutateAsync(
-        { session_id: message.session_id, role: "assistant", content, ...(completedSteps.length ? { tool_log_detail: { steps: completedSteps } } : {}) },
+        { session_id: message.session_id, role: "assistant", content, ...(completedSteps.length ? { tool_log_detail: { steps: completedSteps, ...(error.checkpoint ? { checkpoint: error.checkpoint } : {}) } } : {}) },
         { onSuccess: (created) => markMessageNew(created.id) }
       );
     } finally {
@@ -1224,9 +1225,18 @@ export function useChatController({ activeProjectId } = {}) {
   // change (restoreSnapshot saves a checkpoint of the current board first,
   // so a revert can itself be undone from Backups). Marks the message so
   // its Revert button turns into "Reverted".
-  const handleRevert = async (message) => {
+  // Asks first, like Settings -> Checkpoints does: restoring puts back the
+  // whole board, so anything changed since this message is undone too.
+  const handleRevert = (message) => {
     const checkpoint = message.tool_log_detail?.checkpoint;
     if (!checkpoint?.id) return;
+    confirmThen(
+      `Put your board back to how it was before "${checkpoint.label}"? Anything changed after it is undone too. Vaea saves a checkpoint of the board as it is now first, so you can undo this.`,
+      () => revertTo(message, checkpoint)
+    );
+  };
+
+  const revertTo = async (message, checkpoint) => {
     setResolvingId(message.id);
     try {
       await restoreSnapshot(checkpoint.id);

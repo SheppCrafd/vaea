@@ -103,7 +103,25 @@ describe("backupSnapshots: wired into chatActions' executeActionSequence", () =>
     ]);
     const snapshots = await listSnapshots();
     expect(snapshots).toHaveLength(1);
-    expect(snapshots[0].label).toBe('Added task "T1" to "Project"');
+    expect(snapshots[0].label).toBe('Added task "T1" to Project');
+  });
+
+  it("a plan that fails partway carries its checkpoint, and restoring it undoes the steps that ran", async () => {
+    const { toolResult: { area } } = await executeAction("CREATE_AREA", { title: "Keep", description: "" });
+    let error;
+    try {
+      await executeActionSequence([
+        { action: "CREATE_PRODUCT", args: { parent_area_id: area.id, title: "Ran" } },
+        { action: "CREATE_PRODUCT", args: { parent_area_id: "no-such-area", title: "Fails" } },
+      ]);
+    } catch (e) {
+      error = e;
+    }
+    expect(error.completedSteps).toHaveLength(1);
+    expect(error.checkpoint.label).toBe("Added 2 products");
+    expect((await localDb.products.list()).map((p) => p.title)).toEqual(["Ran"]);
+    await restoreSnapshot(error.checkpoint.id);
+    expect(await localDb.products.list()).toHaveLength(0);
   });
 
   it("does not snapshot a single ordinary action", async () => {

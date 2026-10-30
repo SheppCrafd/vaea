@@ -1,7 +1,7 @@
 // Names a checkpoint after what the change did and where, from the plan's
 // own steps and the board as it was just before they ran, e.g.
 //   Deleted project "Q1 Newsletter" from Marketing
-//   Added 3 tasks to "Launch plan"
+//   Added 3 tasks to Launch plan
 //   Added 2 projects and 4 tasks, deleted 1 task in Marketing
 // instead of "Before 3-step plan". Pure: takes the plan and the board data,
 // so it's tested without storage (checkpointNames.test.js).
@@ -87,7 +87,7 @@ function placeOf(type, entity, find) {
   if (!entity) return { where: "", area: "" };
   if (type === "task" || type === "note") {
     const project = find("project", entity.project_id);
-    return { where: project ? `"${short(project.title)}"` : "", area: placeOf("project", project, find).area };
+    return { where: project ? short(project.title) : "", area: placeOf("project", project, find).area };
   }
   if (type === "project") {
     const product = find("product", entity.parent_product_id);
@@ -168,13 +168,13 @@ function phraseOne(f, { skipVerb = false, skipWhere = false } = {}) {
 }
 
 // Two or three different changes, each named: "Added task "Brief" to
-// "Launch" and deleted task "Old brief"". Null when it would run too long.
+// Launch and deleted task "Old brief"". Null when it would run too long.
 function phraseFew(facts) {
   const named = new Set();
   // One shared place goes once, at the end.
   const shared = facts.length > 1 ? sameValue(facts, "where") : "";
   const parts = facts.map((f, i) => {
-    const bare = String(f.where).replace(/^"|"$/g, "");
+    const bare = f.where;
     const skipVerb = i > 0 && facts[i - 1].verb === f.verb;
     const phrase = phraseOne(f, { skipVerb, skipWhere: !!shared || named.has(bare) });
     if (f.name) named.add(f.name);
@@ -205,7 +205,7 @@ export function nameCheckpoint(actions, data, { source } = {}) {
     types.set(f.type, (types.get(f.type) || 0) + 1);
   }
 
-  // One verb, one type: "Added 3 tasks to "Launch plan"".
+  // One verb, one type: "Added 3 tasks to Launch plan".
   if (groups.size === 1 && [...groups.values()][0].size === 1) {
     const f = facts[0];
     if (f.verb === "marked") {

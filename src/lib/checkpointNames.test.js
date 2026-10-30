@@ -38,7 +38,7 @@ describe("nameCheckpoint", () => {
       { action: "CREATE_TASK", args: { project_id: "j2", description: "Pick images" } },
       { action: "CREATE_TASK", args: { project_id: "j2", description: "Send for review" } },
     ];
-    expect(nameCheckpoint(plan, data)).toBe('Added 3 tasks to "Launch plan"');
+    expect(nameCheckpoint(plan, data)).toBe('Added 3 tasks to Launch plan');
   });
 
   it("falls back to the shared area when the places differ", () => {
@@ -56,7 +56,7 @@ describe("nameCheckpoint", () => {
       { action: "CREATE_TASK", args: { project_id: "j2", description: "New brief" } },
       { action: "DELETE_TASK", args: { task_id: "t1" } },
     ];
-    expect(nameCheckpoint(plan, data)).toBe('Added task "New brief" and deleted task "Write the brief" in "Launch plan"');
+    expect(nameCheckpoint(plan, data)).toBe('Added task "New brief" and deleted task "Write the brief" in Launch plan');
   });
 
   it("follows temp ids to things made earlier in the same plan", () => {
@@ -69,12 +69,12 @@ describe("nameCheckpoint", () => {
 
   it("expands bulk steps into what they touch", () => {
     const plan = [{ action: "BULK_DELETE", args: { entity_type: "task", ids: ["t1", "t2"] } }];
-    expect(nameCheckpoint(plan, data)).toBe('Deleted 2 tasks from "Launch plan"');
+    expect(nameCheckpoint(plan, data)).toBe('Deleted 2 tasks from Launch plan');
   });
 
   it("uses the app's status names", () => {
     expect(nameCheckpoint([{ action: "UPDATE_TASK_STATUS", args: { task_id: "t3", status: "DONE" } }], data)).toBe(
-      'Marked task "Ship the endpoint" Done in "API v2"'
+      'Marked task "Ship the endpoint" Done in API v2'
     );
   });
 

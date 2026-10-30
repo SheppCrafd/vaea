@@ -236,7 +236,7 @@ export default function AiPreferencesSection() {
             <div>
               <p id="auto-approve-label" className="text-sm font-medium">Auto-approve after a review</p>
               <p className="text-xs text-muted-foreground mt-0.5 max-w-md">
-                Removals and restores run without asking, once Vaea checks them against your board and saves a checkpoint named after the change. Undo any of them with Revert in the chat or under Backups. Sent messages and changes in connected apps still wait for your “Yes, do it”, because a checkpoint can't undo them.
+                Removals and restores run without asking once Vaea checks them against your board and saves a checkpoint named after the change. Undo one with Revert in the chat, or from Checkpoints. Sent messages and deletions in your other apps still wait for your “Yes, do it”: a checkpoint can't undo them.
               </p>
             </div>
             <Switch
