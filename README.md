@@ -120,7 +120,7 @@ None of this is a true background job — there's no server holding chat or vaul
 
 ### Backups
 
-Since there's no server database, there's also no server-side version history to fall back on if a bulk change goes wrong. A snapshot of every collection is taken automatically (via the same device/cloud storage backend described above, not browser `localStorage`) before any multi-step AI plan, bulk create/delete, or CSV import runs — capped at the 8 most recent. **Settings → Backups** lists them (timestamp + what's in each) and lets you restore one; restoring itself snapshots the current state first, so it's never a one-way door. This is separate from saying "undo" in chat, which only reverts the single most recent action and doesn't survive a page reload.
+Since there's no server database, there's also no server-side version history to fall back on if a bulk change goes wrong. A checkpoint of every collection is saved automatically (via the same device/cloud storage backend described above, not browser `localStorage`) before any multi-step AI plan, any auto-approved removal, or a CSV import runs, named after the change and capped at the 8 most recent. **Settings → Checkpoints** lists them and lets you restore one, and Revert under a chat reply undoes that reply's change; restoring itself saves a checkpoint of the current state first, so it's never a one-way door. With **Auto-approve after a review** on, a removal runs without asking only if it passes the review rules in `src/lib/planReview.js` (edit them with `/rules` in chat). This is separate from saying "undo" in chat, which only reverts the single most recent action and doesn't survive a page reload.
 
 ## How it works
 

@@ -8,7 +8,7 @@ enterprise buyer's IT team, or a curious user. Plain-language companion at
 Vaea's architecture already removes a category of risk other tools carry:
 project data lives in files on the user's own device by default, so there is
 no company database of everyone's work to steal. The entries below cover
-what's left — the hosted pieces (sign-in, chat, opt-in cloud sync) and the
+what's left — the hosted pieces (sign-in, chat, opt-in cloud storage) and the
 AI features.
 
 ## 1. Compromised Base44 account
@@ -75,15 +75,16 @@ AI features.
 
 - **Threat:** Project data lives only in files on one device by default.
   If that device is lost, stolen, or its disk fails, the data goes with it.
-- **Impact:** Total loss of project data for a user who never enabled cloud
-  sync or took their own backup.
+- **Impact:** Total loss of project data for a user who never turned on cloud
+  storage or took their own backup.
 - **Likelihood:** Moderate over a long enough time horizon — this is the
   direct tradeoff of "no server holding your data."
-- **Mitigation:** `backupSnapshots.js` keeps same-day local rollback
-  snapshots (capped at 8) for undo safety, not disaster recovery. CSV
-  export is available at any time. Cloud sync is offered as an explicit,
-  reversible opt-in for users who want off-device redundancy.
-- **Residual risk:** A device-local user who never exports or syncs is
+- **Mitigation:** `backupSnapshots.js` keeps checkpoints of the 8 most
+  recent large changes for undo, not disaster recovery. CSV export is
+  available at any time. Cloud storage is an explicit, reversible opt-in for
+  users who want off-device redundancy; switching when both places already
+  hold a board downloads a copy of the one being replaced first.
+- **Residual risk:** A device-local user who never exports or uses cloud storage is
   trusting their own device's reliability. This is disclosed plainly on
   `/privacy` rather than hidden behind a false sense of "it's saved
   somewhere."
@@ -98,11 +99,39 @@ AI features.
   own device.
 - **Mitigation:** BYOK keys are stored via `deviceStorage.js`, the same
   local-only storage pattern as project data — never sent to Vaea's own
-  servers, never included in the cloud-sync payload. The browser talks to
+  servers, never included in what cloud storage saves. The browser talks to
   the provider directly (`anthropicAdapter.js` / `openaiCompatibleAdapter.js`).
 - **Residual risk:** Malware or another user with access to the same
   browser profile could read the stored key, the same as any locally-held
   credential. Standard device hygiene applies.
+
+## 6. Auto-approve running a change the user didn't want
+
+- **Threat:** With "Auto-approve after a review" on, a removal or restore
+  runs without a yes. A confused model, or instructions planted in an email,
+  a Slack thread, a web page or meeting notes the chat read, could produce a
+  plan that deletes the wrong things. An agent the assistant created could do
+  the same on a schedule.
+- **Impact:** Board items removed without the user asking.
+- **Likelihood:** Low: auto-approve is off by default, and every plan passes
+  through the reviewer first.
+- **Mitigation:** `src/lib/planReview.js` is a fixed rulebook in the app's
+  own code, not a model, and judges every plan the same way whichever model
+  wrote it (hosted, bring-your-own-key, Local Mode). A plan runs only if the
+  user's latest message asks for a removal, names each item it deletes, and
+  matches any number given; it changes only the board, so a checkpoint can
+  undo it; it stays under the removal limit and share of the board; and it
+  didn't come from a turn that read outside content, unless the user named
+  the items themselves. Two rules can't be switched off: board-only (nothing
+  sent, nothing changed in another app) and from-you (plans from agents and
+  check-ins always wait). A checkpoint named after the change is saved
+  before it runs, with Revert under the reply. The assistant has no tool that
+  changes the rules. `planReview.fuzz.test.js` runs 4,000 random plans
+  against these promises.
+- **Residual risk:** The reviewer matches words, not meaning. A user who
+  names an item by mistake gets that item removed, recoverable from the
+  checkpoint. Users who switch rules off in the Review Rules panel accept
+  less checking.
 
 ## Third-party data policies
 
@@ -137,4 +166,4 @@ Base44's own infrastructure security (hosting, its login system's internals)
 is out of scope here — see `SECURITY.md` for what's in scope for reports to
 this project specifically.
 
-_Last updated 2026-09-14._
+_Last updated 2026-10-30._

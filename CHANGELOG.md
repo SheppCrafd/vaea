@@ -4,6 +4,47 @@ All notable changes to Vaea, in [Keep a Changelog](https://keepachangelog.com/en
 style. Vaea ships continuously rather than in numbered releases, so entries
 are grouped by date instead of a version number.
 
+## 2026-10-30
+
+### Added
+
+- **Auto-approve after a review** (Settings → AI Preferences, off by default):
+  a removal or restore runs without asking only if it passes the review
+  rules — fixed rules in the app's own code, applied the same way to every
+  AI model, Local Mode included. The rules check that your last message asks
+  for it, names each item it deletes and matches any number you gave, that
+  every step is a board change a checkpoint can undo, and that it stays
+  under a removal limit and a share of the board. Plans from agents and
+  check-ins always wait.
+- **Review Rules panel**: type `/rules` in chat, or use Edit Rules on a held
+  plan, to switch rules on or off and set their limits.
+- A held plan now says why, marks the step it held, and keeps the usual
+  Yes, do it and Cancel buttons.
+- **Checkpoints named after the change** ("Deleted project Q1 Newsletter
+  from Marketing"), with Revert under the chat reply that made it.
+- **Granola** meeting notes: a Meetings tab, chat tools, and a Settings card.
+- ClickUp connects with a personal API token.
+- Switching storage when the cloud or a folder already holds a board now
+  offers a choice: use that board, or replace it after downloading a copy.
+
+### Changed
+
+- Connectors without a registered app (Google Workspace, Gmail, Microsoft
+  365, Outlook, Slack) show as Coming soon instead of failing on connect.
+- Turns that read outside content (email, Slack, meeting notes, web pages)
+  hold changes to connected apps for your yes.
+- Privacy Policy: "Optional sync" is now "Optional cloud storage", and the
+  summary says plainly that a copy of your board goes to the AI provider for
+  each chat request. "Sync" is "cloud storage" across the site, matching
+  the app.
+- Text on photo backgrounds on the marketing site now meets 4.5:1 contrast
+  in light and dark themes, and off switches in the app are clearly visible.
+
+### Fixed
+
+- Vaea Chat failed with "AI gateway requests must be made server-side";
+  the chat function now uses the app's own service credentials.
+
 ## 2026-09-14 (later)
 
 ### Fixed
