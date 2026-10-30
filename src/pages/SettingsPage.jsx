@@ -19,6 +19,8 @@ import ResourcesSection from "@/components/settings/ResourcesSection";
 import { useAppStore } from "@/lib/store";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import MobileSidebarDrawer from "@/components/shared/MobileSidebarDrawer";
+import ComingSoon from "@/components/shared/ComingSoon";
+import { CONNECTOR_AVAILABLE } from "@/lib/connectorAvailability";
 
 const SECTIONS = [
   { key: "account", label: "Account", Component: AccountSection },
@@ -26,7 +28,7 @@ const SECTIONS = [
   { key: "ai", label: "AI Preferences", Component: AiPreferencesSection },
   { key: "ai-model", label: "AI Model", Component: AiModelSection },
   { key: "storage", label: "Data Storage", Component: StorageSection },
-  { key: "backup", label: "Backup & Restore", Component: BackupRestoreSection },
+  { key: "backup", label: "Checkpoints", Component: BackupRestoreSection },
   { key: "connector-health", label: "Connector Health", Component: ConnectorHealthSection },
   { key: "brain", label: "Vaea Brain", Component: ExternalVaultSection },
   { key: "google-workspace", label: "Google Workspace", Component: GoogleWorkspaceSection },
@@ -50,7 +52,8 @@ function SectionNavContent({ activeSection, onSelect }) {
           key={key}
           onClick={() => onSelect(key)}
           aria-current={activeSection === key ? "true" : undefined}
-          className={`text-left text-sm px-3 py-2 rounded-md transition-colors ${activeSection === key ? "bg-secondary text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"}`}
+          title={CONNECTOR_AVAILABLE[key] === false ? "Coming soon" : undefined}
+          className={`text-left text-sm px-3 py-2 rounded-md transition-colors ${activeSection === key ? "bg-secondary text-foreground font-medium" : CONNECTOR_AVAILABLE[key] === false ? "text-muted-foreground/50 hover:text-muted-foreground hover:bg-secondary/60" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"}`}
         >
           {label}
         </button>
@@ -199,7 +202,15 @@ export default function SettingsPage() {
                 ref={(el) => { sectionRefs.current[key] = el; }}
                 className={pulseKey === key ? "ring-2 ring-primary ring-offset-2 ring-offset-background animate-pulse rounded-2xl transition-shadow" : ""}
               >
-                <Component />
+                {/* A connector whose sign-in app isn't registered yet stays
+                    listed, greyed out, with "Coming soon" on hover. */}
+                {CONNECTOR_AVAILABLE[key] === false ? (
+                  <ComingSoon placement="corner" className="block">
+                    <Component />
+                  </ComingSoon>
+                ) : (
+                  <Component />
+                )}
               </div>
             ))}
           </div>

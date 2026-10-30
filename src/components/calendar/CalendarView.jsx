@@ -1,5 +1,7 @@
 import { Video, Loader2, TriangleAlert, CalendarDays } from "lucide-react";
 import { Link } from "react-router";
+import ComingSoon from "@/components/shared/ComingSoon";
+import { ANY_CALENDAR_AVAILABLE } from "@/lib/connectorAvailability";
 
 // The real Vaea Calendar agenda/week rendering, split out of
 // VaeaCalendarPage.jsx so the marketing page can render this exact
@@ -54,17 +56,24 @@ export default function CalendarView({
           <CalendarDays className="w-6 h-6 text-muted-foreground mx-auto mb-3" />
           <p className="text-sm font-medium">No calendar connected yet</p>
           <p className="text-xs text-muted-foreground mt-1">
-            Connect Google Workspace or Microsoft 365 in Settings and this page fills in automatically —
-            nothing else to configure here.
+            {ANY_CALENDAR_AVAILABLE
+              ? "Connect Google Workspace or Microsoft 365 in Settings and this page fills in automatically. There's nothing else to set up here."
+              : "Google and Microsoft 365 calendars are coming soon. Until then, this page shows your projects' due dates."}
           </p>
-          {!demo && (
+          {!demo && (ANY_CALENDAR_AVAILABLE ? (
             <Link
               to="/app/settings"
               className="inline-flex items-center gap-1.5 text-sm mt-4 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md transition-colors shadow-sm"
             >
               Go to Settings
             </Link>
-          )}
+          ) : (
+            <ComingSoon className="mt-4">
+              <span className="inline-flex items-center gap-1.5 text-sm px-4 py-2 bg-primary text-primary-foreground font-medium rounded-md shadow-sm">
+                Connect a Calendar
+              </span>
+            </ComingSoon>
+          ))}
         </div>
       ) : (
         <>
@@ -76,7 +85,8 @@ export default function CalendarView({
           {!anyConnected && groups.length > 0 && (
             <p className="text-xs text-muted-foreground mb-4">
               No calendar connected yet — showing your committed project due dates only.{" "}
-              {!demo && (
+              {!demo && !ANY_CALENDAR_AVAILABLE && "Google and Microsoft 365 calendars are coming soon."}
+              {!demo && ANY_CALENDAR_AVAILABLE && (
                 <Link to="/app/settings" className="underline underline-offset-2 hover:text-foreground">
                   Connect Google Workspace or Microsoft 365
                 </Link>

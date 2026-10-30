@@ -15,6 +15,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, resolve, join } from "node:path";
 import { readFile, writeFile, mkdir, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
+import { loadEnv } from "vite";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
@@ -75,6 +76,10 @@ async function main() {
     // run during renderToString.
     banner: {
       js: [
+        // The same VITE_* values the client bundle was built with, so code
+        // that reads import.meta.env (connectorAvailability.js) renders the
+        // same thing here as it does after hydration.
+        `globalThis.__VAEA_ENV__=${JSON.stringify(loadEnv("production", ROOT, "VITE_"))};`,
         "globalThis.window=globalThis.window||{};",
         "globalThis.self=globalThis.self||globalThis;",
         "globalThis.document=globalThis.document||{createElement:()=>({style:{},setAttribute(){}}),head:{appendChild(){}},documentElement:{classList:{add(){},remove(){}}}};",

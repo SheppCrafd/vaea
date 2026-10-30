@@ -2,6 +2,7 @@ import { Container, Eyebrow, Section, CtaRow, Reveal, Float } from "../component
 import { ShowBlock, Faq, Marquee, ClosingCta } from "../components/blocks";
 import { CalendarDemo, VmailDemo } from "../components/visuals";
 import { StoryRegion, StoryIntro, Elsewhere } from "../components/story";
+import { ANY_CALENDAR_AVAILABLE, ANY_MAIL_AVAILABLE } from "@/lib/connectorAvailability";
 import { WORKPLACE_FAQ } from "../seo";
 
 export default function Workplace() {
@@ -19,7 +20,13 @@ export default function Workplace() {
               into one inbox — next to the board they relate to, and handled by the same Vaea Chat.
             </p>
             <div className="mt-7">
-              <CtaRow note="Connect an account when you're ready — the board works without it." />
+              <CtaRow
+                note={
+                  ANY_CALENDAR_AVAILABLE
+                    ? "Connect an account when you're ready — the board works without it."
+                    : "Google and Microsoft connections are coming soon. The board works without them."
+                }
+              />
             </div>
           </div>
           <Reveal delay={90} className="mt-12">
@@ -40,6 +47,7 @@ export default function Workplace() {
         time="1:05 PM"
         story="Bob's calendars and his project due dates sit in one agenda. The review has started, and API v2 is due at 4."
         title="Every calendar, and your due dates, in one view"
+        soon={ANY_CALENDAR_AVAILABLE ? undefined : "Google and Microsoft calendar connections are coming soon. Your project due dates already show in the agenda."}
         visual={<CalendarDemo />}
       >
         <p>
@@ -58,6 +66,7 @@ export default function Workplace() {
         time="2:30 PM"
         story="Priya's revised quote lands, right above Marta's note asking for it."
         title="Gmail and Outlook, read and written in one client"
+        soon={ANY_MAIL_AVAILABLE ? undefined : "Gmail and Outlook connections are coming soon."}
         visual={<VmailDemo onDark />}
       >
         <p>

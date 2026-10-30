@@ -6,6 +6,7 @@ import { Select } from "@/components/ui/select";
 import { loadGmailConnection, saveGmailConnection, isGmailConnected } from "@/lib/gmailConnection";
 import { listMessages as listGmailMessages, sendMessage as sendGmailMessage, archiveMessage as archiveGmailMessage, trashMessage as trashGmailMessage, untrashMessage as untrashGmailMessage, markSpam as markGmailSpam } from "@/lib/gmailApi";
 import { loadOutlookConnection, saveOutlookConnection, isOutlookConnected } from "@/lib/outlookConnection";
+import { ANY_MAIL_AVAILABLE } from "@/lib/connectorAvailability";
 import { listMessages as listOutlookMessages, sendMessage as sendOutlookMessage, archiveMessage as archiveOutlookMessage, deleteMessage as deleteOutlookMessage, restoreMessage as restoreOutlookMessage, markSpam as markOutlookSpam } from "@/lib/microsoftGraphApi";
 
 // Vmail: one native email client aggregating every connected account
@@ -224,7 +225,7 @@ export default function VmailPage() {
               onClick={() => setComposeOpen(true)}
               disabled={accounts.length === 0}
               className="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md transition-colors shadow-sm disabled:opacity-50"
-              title={accounts.length === 0 ? "Connect Gmail or Outlook in Settings to compose" : undefined}
+              title={accounts.length === 0 ? (ANY_MAIL_AVAILABLE ? "Connect Gmail or Outlook in Settings to compose" : "Coming soon") : undefined}
             >
               <PenSquare className="w-3.5 h-3.5" /> Compose
             </button>

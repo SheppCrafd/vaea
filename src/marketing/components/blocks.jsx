@@ -9,8 +9,26 @@ import ParallaxBackdrop from "./ParallaxBackdrop";
 // left. `tone="dark"` drops the block onto a near-black stage for register
 // contrast. In a page's story (story.jsx), `time` is the moment in Bob's
 // day (shown in place of the eyebrow) and `story` is the line saying what
-// he's doing in the demo beside it.
-export function ShowBlock({ id, eyebrow, title, children, visual, flip, tone, cta, time, story }) {
+// he's doing in the demo beside it. `soon` (a sentence) marks a feature
+// that can't connect yet: a "Coming soon" pill beside the title, with the
+// sentence on hover.
+export function SoonPill({ note, dark }) {
+  return (
+    <span
+      tabIndex={0}
+      title={note}
+      aria-label={`Coming soon. ${note}`}
+      className={cn(
+        "ml-3 inline-block translate-y-[-0.35em] cursor-help whitespace-nowrap rounded-full border px-2.5 py-0.5 align-middle font-sans text-[0.72rem] font-medium tracking-normal outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        dark ? "border-primary-foreground/25 text-primary-foreground/70" : "border-foreground/15 text-muted-foreground",
+      )}
+    >
+      Coming soon
+    </span>
+  );
+}
+
+export function ShowBlock({ id, eyebrow, title, children, visual, flip, tone, cta, time, story, soon }) {
   const dark = tone === "dark";
   return (
     <section
@@ -36,6 +54,7 @@ export function ShowBlock({ id, eyebrow, title, children, visual, flip, tone, ct
               )}
             >
               {title}
+              {soon && <SoonPill note={soon} dark={dark} />}
             </h2>
             <div
               className={cn(

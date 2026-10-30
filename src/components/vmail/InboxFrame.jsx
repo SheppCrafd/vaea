@@ -1,6 +1,8 @@
 import { Link } from "react-router";
 import { Inbox, Send, Archive, ShieldAlert, Trash2, ArchiveRestore, Loader2, TriangleAlert, Search, Settings as SettingsIcon } from "lucide-react";
 import { DeleteButton } from "@/components/ui/delete-button";
+import ComingSoon from "@/components/shared/ComingSoon";
+import { ANY_MAIL_AVAILABLE } from "@/lib/connectorAvailability";
 
 // The real Vmail folder-nav + search bar + message list, split out of
 // VmailPage.jsx so the marketing page can render this exact component
@@ -87,9 +89,18 @@ export default function InboxFrame({
               <Inbox className="w-6 h-6 text-muted-foreground mx-auto mb-3" />
               <p className="text-sm font-medium">Nothing connected yet</p>
               <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-                Connect Gmail or Outlook in Settings and your inbox shows up here.
+                {ANY_MAIL_AVAILABLE
+                  ? "Connect Gmail or Outlook in Settings and your inbox shows up here."
+                  : "Gmail and Outlook are coming soon. Once they're here, your inbox shows up on this page."}
               </p>
-              {!demo && (
+              {!demo && !ANY_MAIL_AVAILABLE && (
+                <ComingSoon className="mt-4">
+                  <span className="inline-flex items-center gap-1.5 text-sm px-4 py-2 bg-primary text-primary-foreground font-medium rounded-md shadow-sm">
+                    <Inbox className="w-3.5 h-3.5" /> Connect Mail
+                  </span>
+                </ComingSoon>
+              )}
+              {!demo && ANY_MAIL_AVAILABLE && (
                 <Link
                   to="/app/settings"
                   className="inline-flex items-center gap-1.5 text-sm mt-4 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md transition-colors shadow-sm"

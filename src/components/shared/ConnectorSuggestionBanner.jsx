@@ -11,6 +11,10 @@ import { buildAuthorizationUrl as buildGmailUrl } from "@/lib/gmailOAuthPkce";
 import { buildAuthorizationUrl as buildOutlookUrl } from "@/lib/outlookOAuthPkce";
 import { buildAuthorizationUrl as buildGoogleWorkspaceUrl } from "@/lib/googleWorkspaceOAuthPkce";
 import { buildAuthorizationUrl as buildMicrosoftUrl } from "@/lib/microsoftOAuthPkce";
+import { CONNECTOR_AVAILABLE } from "@/lib/connectorAvailability";
+
+// The banner's keys, mapped to the keys connectorAvailability.js uses.
+const AVAILABILITY_KEY = { gmail: "gmail", googleWorkspace: "google-workspace", outlook: "outlook", microsoft: "microsoft" };
 
 // One real OAuth trigger per connector key — the exact same
 // buildAuthorizationUrl() + window.location.assign() pair each Settings
@@ -56,7 +60,10 @@ export default function ConnectorSuggestionBanner() {
       next.delete("signin_provider");
       setSearchParams(next, { replace: true });
     }
-    if (!match || isSuggestionDismissed(user.email)) { setSuggestion(null); return; }
+    // Never suggest a connector that can't connect yet ("Coming soon" in
+    // Settings): the button would only lead to an error page.
+    const available = match && match.connectors.every((key) => CONNECTOR_AVAILABLE[AVAILABILITY_KEY[key]]);
+    if (!available || isSuggestionDismissed(user.email)) { setSuggestion(null); return; }
     let cancelled = false;
     (async () => {
       const alreadyConnected = await Promise.all(match.connectors.map((key) => CONNECTOR_CHECKS[key]()));

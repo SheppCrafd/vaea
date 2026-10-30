@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Check, X } from "lucide-react";
+import { Check, Clock, X } from "lucide-react";
+import { isConnectorAvailable } from "@/lib/connectorAvailability";
 import { loadGoogleWorkspaceConnection, isGoogleWorkspaceConnected } from "@/lib/googleWorkspaceConnection";
 import { loadGmailConnection, isGmailConnected } from "@/lib/gmailConnection";
 import { loadMicrosoftConnection, isMicrosoftConnected } from "@/lib/microsoftConnection";
@@ -48,8 +49,12 @@ export default function ConnectorHealthSection() {
         <div className="flex flex-col divide-y divide-border">
           {statuses.map((c) => (
             <div key={c.label} className="flex items-center justify-between py-2.5">
-              <span className="text-sm">{c.label}</span>
-              {c.connected ? (
+              <span className={`text-sm ${!c.connected && !isConnectorAvailable(c.section) ? "text-muted-foreground/60" : ""}`}>{c.label}</span>
+              {!c.connected && !isConnectorAvailable(c.section) ? (
+                <span className="flex items-center gap-1 text-[11px] text-muted-foreground/60">
+                  <Clock className="w-3.5 h-3.5" /> Coming soon
+                </span>
+              ) : c.connected ? (
                 <span className="flex items-center gap-1 text-[11px] text-primary font-medium">
                   <Check className="w-3.5 h-3.5" /> Connected
                 </span>
