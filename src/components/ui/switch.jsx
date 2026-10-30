@@ -22,7 +22,9 @@ const Switch = React.forwardRef(
         className={cn(
           "shrink-0 relative rounded-full transition-colors disabled:opacity-50 disabled:pointer-events-none",
           dims.track,
-          checked ? "bg-primary" : "bg-muted",
+          // Off uses the input-border slate, not muted grey: a muted track on a
+          // white card was about 1.1:1 and the switch all but vanished.
+          checked ? "bg-primary" : "bg-input",
           className
         )}
         {...props}

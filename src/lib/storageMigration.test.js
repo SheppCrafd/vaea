@@ -52,7 +52,16 @@ describe("copyAllKeys — unchanged behavior, still unconditionally overwrites (
 });
 
 describe("replaceAllKeys — the Replace choice when both places already hold a board", () => {
-  it("makes the destination an exact copy, removing keys the source doesn't have", async () => {
+  it("keeps the destination's settings when the source has none", async () => {
+    const dest = { areas: [{ id: "old" }], vaea_ai_identity: { name: "Ada" }, vaea_external_vault: { repo: "me/notes" } };
+    const read = vi.fn(async (key) => (key === "areas" ? [{ id: "a1" }] : null));
+    const write = vi.fn(async (key, value) => { dest[key] = value; });
+    const remove = vi.fn(async (key) => { delete dest[key]; });
+    await replaceAllKeys({ read, write, remove });
+    expect(dest).toEqual({ areas: [{ id: "a1" }], vaea_ai_identity: { name: "Ada" }, vaea_external_vault: { repo: "me/notes" } });
+  });
+
+  it("makes the destination's board an exact copy, removing collections the source doesn't have", async () => {
     const dest = { areas: [{ id: "old" }], stakeholders: [{ id: "cloud-only" }] };
     const read = vi.fn(async (key) => (key === "areas" ? [{ id: "a1" }] : null));
     const write = vi.fn(async (key, value) => { dest[key] = value; });

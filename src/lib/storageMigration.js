@@ -22,15 +22,20 @@ export async function copyAllKeys({ read, write }) {
   }
 }
 
-// Makes the destination an exact copy of the source: every key the source
-// has is written, and every key it lacks is removed. copyAllKeys alone would
-// leave the destination's own extra collections behind (say, the cloud
-// board's people when this device has none), mixing two boards into one.
+// Makes the destination's board an exact copy of the source's: every board
+// collection the source has is written, and every one it lacks is removed.
+// copyAllKeys alone would leave the destination's own extra collections
+// behind (say, the cloud board's people when this device has none), mixing
+// two boards into one. Settings (the AI identity, the Vaea Brain connection)
+// aren't the board: they're copied when the source has them and otherwise
+// left as they are.
+const BOARD_KEYS = new Set(Object.keys(localDb));
+
 export async function replaceAllKeys({ read, write, remove }) {
   for (const key of ALL_KEYS) {
     const value = await read(key);
     if (value != null) await write(key, value);
-    else await remove(key);
+    else if (BOARD_KEYS.has(key)) await remove(key);
   }
 }
 

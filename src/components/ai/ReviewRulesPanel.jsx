@@ -32,9 +32,12 @@ function ReviewRulesPanel({ focusRule, onClose }) {
     return () => { live = false; off(); };
   }, []);
 
+  // Scroll to the rule that held the plan once, when the rules first load,
+  // not again on every save while the user edits other rules.
+  const loaded = !!settings;
   useEffect(() => {
-    if (settings && focusRef.current) focusRef.current.scrollIntoView({ block: "nearest" });
-  }, [settings]);
+    if (loaded && focusRef.current) focusRef.current.scrollIntoView({ block: "nearest" });
+  }, [loaded]);
 
   useEffect(() => {
     if (!saved) return undefined;
