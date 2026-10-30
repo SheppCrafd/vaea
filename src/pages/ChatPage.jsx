@@ -18,6 +18,7 @@ import ChatReflectionConsent from "@/components/ai/ChatReflectionConsent";
 import MobileSidebarDrawer from "@/components/shared/MobileSidebarDrawer";
 import AgentsCard from "@/components/sidebar/AgentsCard";
 import PromptTemplatesCard from "@/components/sidebar/PromptTemplatesCard";
+import ChatComposer from "@/components/ai/ChatComposer";
 
 // The session list's own content (New chat button + the list itself), plus
 // the Agents and Prompt Templates cards below it — factored out so the
@@ -221,42 +222,24 @@ export default function ChatPage() {
               <ChatAuthPrompt onSignIn={chat.signInForChat} onDismiss={chat.dismissAuthPrompt} />
             </div>
           ) : (
-            <form onSubmit={chat.handleSend} className="p-4 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => chat.fileInputRef.current?.click()}
-                disabled={chat.isUploadingAttachment}
-                aria-label="Add attachment"
-                className="shrink-0 p-2.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-secondary transition-colors disabled:opacity-50"
-              >
-                <Plus className="w-5 h-5" />
-              </button>
-              <input ref={chat.fileInputRef} type="file" onChange={chat.handleFileChange} className="hidden" />
-              <div className="flex-1 min-w-0 flex items-center gap-2 bg-card rounded-2xl px-4 py-3 shadow-[0_0_0_1px_hsl(var(--foreground)/0.05),0_2px_10px_-4px_hsl(200_30%_12%/0.15)] focus-within:ring-2 focus-within:ring-primary/40 transition-all">
-                <span className="font-terminal text-primary text-sm select-none">{'>'}</span>
-                <input
-                  ref={messageInputRef}
-                  value={chat.input}
-                  onChange={(e) => chat.setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    slashCommand.handleKeyDown(e);
-                    if (!e.defaultPrevented) inputHistory.handleKeyDown(e);
-                  }}
-                  placeholder={`Message ${chat.aiIdentity.name || "Vaea Chat"}...`}
-                  aria-label={`Message ${chat.aiIdentity.name || "Vaea Chat"}`}
-                  className="flex-1 min-w-0 font-terminal text-sm bg-transparent outline-none"
-                  disabled={chat.isComputing}
-                  autoComplete="off"
-                  autoFocus
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={chat.isComputing}
-                className="shrink-0 text-sm px-5 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-full transition-all shadow-[0_8px_20px_-10px_hsl(var(--primary)/0.7)] disabled:opacity-50"
-              >
-                Send
-              </button>
+            <ChatComposer
+              variant="page"
+              onSubmit={chat.handleSend}
+              onAttach={() => chat.fileInputRef.current?.click()}
+              attachDisabled={chat.isUploadingAttachment}
+              fileInput={<input ref={chat.fileInputRef} type="file" onChange={chat.handleFileChange} className="hidden" />}
+              inputRef={messageInputRef}
+              value={chat.input}
+              onChange={(e) => chat.setInput(e.target.value)}
+              onKeyDown={(e) => {
+                slashCommand.handleKeyDown(e);
+                if (!e.defaultPrevented) inputHistory.handleKeyDown(e);
+              }}
+              placeholder={`Message ${chat.aiIdentity.name || "Vaea Chat"}...`}
+              ariaLabel={`Message ${chat.aiIdentity.name || "Vaea Chat"}`}
+              disabled={chat.isComputing}
+              autoFocus
+            >
               {slashCommand.isOpen && (
                 <ChatCommandMenu
                   inputRef={messageInputRef}
@@ -266,7 +249,7 @@ export default function ChatPage() {
                   onSelect={slashCommand.applyCommand}
                 />
               )}
-            </form>
+            </ChatComposer>
           )}
         </div>
       </div>

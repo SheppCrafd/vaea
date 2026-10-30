@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { X, Plus, ChevronLeft, Paperclip, Maximize2, Info, Settings } from "lucide-react";
+import { X, ChevronLeft, Paperclip, Maximize2, Info, Settings } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { useSharedChatController } from "@/lib/ChatControllerContext";
 import { useWindowGeometry } from "@/hooks/useWindowGeometry";
@@ -15,6 +15,7 @@ import ChatCommandMenu from "@/components/ai/ChatCommandMenu";
 import ChatSettingsModal from "@/components/ai/ChatSettingsModal";
 import ChatAuthPrompt from "@/components/ai/ChatAuthPrompt";
 import ChatReflectionConsent from "@/components/ai/ChatReflectionConsent";
+import ChatComposer from "@/components/ai/ChatComposer";
 
 // Floating quick-access chat widget. All the actual chat behavior (sessions,
 // sending, confirm/undo, icon persistence, attachments) lives in the one
@@ -204,37 +205,23 @@ export default function ChatBox({ startOpen = false }) {
           {chat.authPromptVisible ? (
             <ChatAuthPrompt onSignIn={chat.signInForChat} onDismiss={chat.dismissAuthPrompt} />
           ) : (
-            <form onSubmit={chat.handleSend} className="p-3 bg-card border-t border-foreground/[0.06] flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => chat.fileInputRef.current?.click()}
-                disabled={chat.isUploadingAttachment}
-                aria-label="Add attachment"
-                className="shrink-0 p-2 text-muted-foreground hover:text-foreground rounded-md hover:bg-secondary transition-colors disabled:opacity-50"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-              <input ref={chat.fileInputRef} type="file" onChange={chat.handleFileChange} className="hidden" />
-              <div className="flex-1 flex items-center gap-1.5 bg-muted/50 rounded-xl px-3 py-2 shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.04)] focus-within:ring-1 focus-within:ring-primary/50 transition-all">
-                <span className="font-terminal text-primary text-sm select-none">{'>'}</span>
-                <input
-                  ref={messageInputRef}
-                  value={chat.input}
-                  onChange={(e) => chat.setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    slashCommand.handleKeyDown(e);
-                    if (!e.defaultPrevented) inputHistory.handleKeyDown(e);
-                  }}
-                  placeholder="Ask Vaea to change the board…"
-                  aria-label={`Message ${chat.aiIdentity?.name || "Vaea Chat"}`}
-                  className="flex-1 min-w-0 font-terminal text-sm bg-transparent outline-none"
-                  disabled={chat.isComputing}
-                  autoComplete="off"
-                />
-              </div>
-              <button type="submit" disabled={chat.isComputing} className="shrink-0 text-sm px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md transition-colors shadow-sm disabled:opacity-50">
-                Send
-              </button>
+            <ChatComposer
+              variant="panel"
+              onSubmit={chat.handleSend}
+              onAttach={() => chat.fileInputRef.current?.click()}
+              attachDisabled={chat.isUploadingAttachment}
+              fileInput={<input ref={chat.fileInputRef} type="file" onChange={chat.handleFileChange} className="hidden" />}
+              inputRef={messageInputRef}
+              value={chat.input}
+              onChange={(e) => chat.setInput(e.target.value)}
+              onKeyDown={(e) => {
+                slashCommand.handleKeyDown(e);
+                if (!e.defaultPrevented) inputHistory.handleKeyDown(e);
+              }}
+              placeholder="Ask Vaea to change the board…"
+              ariaLabel={`Message ${chat.aiIdentity?.name || "Vaea Chat"}`}
+              disabled={chat.isComputing}
+            >
               {slashCommand.isOpen && (
                 <ChatCommandMenu
                   inputRef={messageInputRef}
@@ -244,7 +231,7 @@ export default function ChatBox({ startOpen = false }) {
                   onSelect={slashCommand.applyCommand}
                 />
               )}
-            </form>
+            </ChatComposer>
           )}
         </div>
 

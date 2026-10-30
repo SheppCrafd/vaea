@@ -1,5 +1,4 @@
 import { memo, useMemo } from "react";
-import { Expand, GripVertical, Plus } from "lucide-react";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { useAppStore } from "@/lib/store";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
@@ -16,6 +15,7 @@ import AreaProductsGrid from "@/components/shared/AreaProductsGrid";
 import ProjectsGrid from "@/components/shared/ProjectsGrid";
 import TaskStatistics from "@/components/shared/TaskStatistics";
 import AreaCardShell from "@/components/areas/AreaCardShell";
+import { CornerHandle, ExpandButton } from "@/components/shared/CardControls";
 
 // `stakeholderIds` (the full aggregated subtree, from Dashboard.jsx) is only
 // used here to pass down to orphan ProjectCards as their empty-project
@@ -80,37 +80,9 @@ function AreaCard({ area, products = [], orphanProjects = [], onExpand, stakehol
       style={{ opacity: isDragging ? 0.4 : 1 }}
       className={isCardOver ? "ring-2 ring-primary ring-offset-1 border-primary" : "border-foreground/[0.04]"}
       dragHandle={
-        <div className="absolute top-0 left-0 z-20 flex items-center">
-          <div
-            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1.5"
-            aria-label="Drag to reorder area"
-            title="Drag to reorder"
-            {...attributes}
-            {...listeners}
-          >
-            <GripVertical className="w-4 h-4" />
-          </div>
-          <button
-            type="button"
-            onClick={() => openCreateModal("product", { parent_area_id: area.id })}
-            className="text-muted-foreground hover:text-foreground p-1.5"
-            title="Add a product to this area"
-            aria-label="Add a product to this area"
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </button>
-        </div>
+        <CornerHandle kind="area" dragProps={{ ...attributes, ...listeners }} onAdd={() => openCreateModal("product", { parent_area_id: area.id })} />
       }
-      expandButton={
-        <button
-          onClick={() => onExpand(area)}
-          className="text-muted-foreground hover:text-foreground hover:bg-accent p-2 rounded-md transition-colors"
-          title="Expand Area"
-          aria-label="Expand Area"
-        >
-          <Expand className="w-4 h-4" />
-        </button>
-      }
+      expandButton={<ExpandButton kind="area" onClick={() => onExpand(area)} />}
       deleteButton={<DeleteButton onClick={handleDelete} label="Delete area" size="md" className="p-2 rounded-md" />}
       title={
         <EditableTitle

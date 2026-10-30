@@ -1,5 +1,4 @@
 import { memo, useState, lazy, Suspense } from "react";
-import { Expand, GripVertical } from "lucide-react";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { useTasks } from "@/hooks/useTasks";
@@ -12,6 +11,7 @@ import { confirmThen } from "@/lib/entityUtils";
 import { getQuadrantCounts, getMiniStatusCounts } from "@/lib/taskUtils";
 import EditableTitle from "@/components/shared/EditableTitle";
 import ProjectCardShell from "@/components/projects/ProjectCardShell";
+import { ProjectDragHandle, ExpandButton } from "@/components/shared/CardControls";
 
 // Lazy: neither modal is needed until a user opens it from this card.
 const TaskTableModal = lazy(() => import("@/components/projects/TaskTableModal"));
@@ -91,17 +91,7 @@ function ProjectCard({ project, stakeholderIds = [] }) {
       // controls and still show the title; adding a child to a project goes
       // through Expand → the detail modal from the mini card. The (+) is on
       // the full card, and on Area / Product cards, where there's room.
-      dragHandle={
-        <div
-          {...attributes}
-          {...listeners}
-          aria-label="Drag to reorder project"
-          title="Drag to reorder"
-          className="shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-0.5"
-        >
-          <GripVertical className="w-3 h-3" />
-        </div>
-      }
+      dragHandle={<ProjectDragHandle dragProps={{ ...attributes, ...listeners }} />}
       title={
         <EditableTitle
           as="h4"
@@ -113,16 +103,7 @@ function ProjectCard({ project, stakeholderIds = [] }) {
           className="flex-1 min-w-0 font-heading font-semibold text-[11px] leading-tight text-center cursor-text line-clamp-2"
         />
       }
-      expandButton={
-        <button
-          onClick={() => setIsDetailOpen(true)}
-          className="text-muted-foreground hover:text-foreground p-0.5 rounded hover:bg-muted transition-colors"
-          title="Expand Project"
-          aria-label="Expand project"
-        >
-          <Expand className="w-3 h-3" />
-        </button>
-      }
+      expandButton={<ExpandButton kind="project" onClick={() => setIsDetailOpen(true)} />}
       deleteButton={<DeleteButton onClick={handleDelete} label="Delete project" />}
       quadrants={quadrants}
       riskNotes={riskNotes}
