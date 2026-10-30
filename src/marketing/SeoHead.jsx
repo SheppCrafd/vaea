@@ -8,16 +8,26 @@ import { headTagsFor } from "./seo";
 // HTML from the same source (seo.js), so first paint is already correct and
 // this only matters once the visitor starts navigating.
 //
-// Every tag it manages carries data-managed="seo" so a route change can
-// clear the previous route's tags without touching anything hand-written in
-// index.html.
+// It also matters on first load: Base44's hosting serves the home page's
+// HTML for every path, so /workplace arrives with the home page's
+// description, canonical and structured data. Tags are therefore replaced by
+// what they are (the same name, property or rel, and every JSON-LD block),
+// not only by the data-managed="seo" marker this component adds, which the
+// prerendered HTML doesn't carry. Appending left two canonicals and the home
+// page's description in place. Tags this component doesn't set (charset,
+// viewport, theme-color, icons) are left alone.
 export default function Seo({ pathname }) {
   useEffect(() => {
     const { title, meta, link, jsonLd } = headTagsFor(pathname);
     document.title = title;
 
-    const previous = document.head.querySelectorAll('[data-managed="seo"]');
-    previous.forEach((el) => el.remove());
+    const stale = [
+      '[data-managed="seo"]',
+      'script[type="application/ld+json"]',
+      ...meta.map((m) => (m.name ? `meta[name="${m.name}"]` : `meta[property="${m.property}"]`)),
+      ...link.map((l) => `link[rel="${l.rel}"]`),
+    ];
+    document.head.querySelectorAll(stale.join(",")).forEach((el) => el.remove());
 
     const add = (tag, attrs) => {
       const el = document.createElement(tag);
