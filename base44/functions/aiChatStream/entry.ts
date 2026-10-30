@@ -1692,6 +1692,7 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCal
           for (const el of doc.body?.content || []) {
             for (const run of el.paragraph?.elements || []) if (run.textRun?.content) text += run.textRun.content;
           }
+          trace(`read_google_doc("${doc.title || document_id}")`, { document_id });
           return { connected: true, title: doc.title, text };
         } catch (error) {
           return { connected: true, error: `Couldn't read the doc: ${error.message}` };
@@ -1707,6 +1708,7 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCal
         try {
           const accessToken = await refreshGoogleAccessToken(googleCalendar.refreshToken);
           const data = await googleCalendarFetch(`${GOOGLE_SHEETS_API}/${encodeURIComponent(spreadsheet_id)}/values/${encodeURIComponent(range || 'A1:Z1000')}`, accessToken);
+          trace(`read_google_sheet() — ${(data.values || []).length} row${(data.values || []).length === 1 ? '' : 's'}`, { spreadsheet_id });
           return { connected: true, values: data.values || [] };
         } catch (error) {
           return { connected: true, error: `Couldn't read the sheet: ${error.message}` };
@@ -1727,6 +1729,7 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCal
             index: i,
             text: (s.pageElements || []).flatMap((el) => (el.shape?.text?.textElements || []).map((t) => t.textRun?.content || '')).join('').trim(),
           }));
+          trace(`read_google_slides("${presentation.title || presentation_id}")`, { presentation_id });
           return { connected: true, title: presentation.title, slides };
         } catch (error) {
           return { connected: true, error: `Couldn't read the presentation: ${error.message}` };
@@ -1742,6 +1745,7 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCal
         try {
           const accessToken = await refreshGoogleAccessToken(googleCalendar.refreshToken);
           const data = await googleCalendarFetch(`${GOOGLE_TASKS_API}/users/@me/lists`, accessToken);
+          trace(`list_google_task_lists() — ${(data.items || []).length} list${(data.items || []).length === 1 ? '' : 's'}`, {});
           return { connected: true, taskLists: data.items || [] };
         } catch (error) {
           return { connected: true, error: `Couldn't list Google Task lists: ${error.message}` };
@@ -1783,6 +1787,7 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCal
             title: item.title,
             type: item.questionItem?.question ? Object.keys(item.questionItem.question).find((k) => k.endsWith('Question')) : null,
           }));
+          trace(`read_google_form("${form.info?.title || form_id}")`, { form_id });
           return { connected: true, title: form.info?.title, questions, responderUri: form.responderUri };
         } catch (error) {
           return { connected: true, error: `Couldn't read the form: ${error.message}` };
@@ -1799,6 +1804,7 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCal
           const accessToken = await refreshGoogleAccessToken(googleCalendar.refreshToken);
           const data = await googleCalendarFetch(`${GOOGLE_FORMS_API}/${encodeURIComponent(form_id)}/responses`, accessToken);
           const responses = data.responses || [];
+          trace(`list_google_form_responses() — ${responses.length} response${responses.length === 1 ? '' : 's'}`, { form_id });
           return { connected: true, count: responses.length, responses };
         } catch (error) {
           return { connected: true, error: `Couldn't list form responses: ${error.message}` };

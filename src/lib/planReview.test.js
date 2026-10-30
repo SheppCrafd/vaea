@@ -86,6 +86,16 @@ describe("connectorHoldReason", () => {
     );
   });
 
+  it("treats any reader it doesn't know as outside content", () => {
+    expect(connectorHoldReason([{ action: "CREATE_CLICKUP_TASK", args: {} }], [{ label: 'read_google_doc("Plan")' }])).toBe(
+      "This chat read content from outside Vaea, so changes to your connected apps wait for your yes."
+    );
+  });
+
+  it("trusts the user's own notes", () => {
+    expect(connectorHoldReason([{ action: "WRITE_VAULT_NOTE", args: {} }], [{ label: 'read_vault_note("Vaea Memory.md")' }])).toBeNull();
+  });
+
   it("knows which steps touch a connected app", () => {
     expect(isConnectorStep("SEND_SLACK_MESSAGE")).toBe(true);
     expect(isConnectorStep("CREATE_CLICKUP_TASK")).toBe(true);

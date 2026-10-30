@@ -105,7 +105,12 @@ export function makeToolRunner({ plan, liveTrace = [], dataset, externalVault, o
       };
     }
     const result = await runLocalTool(name, args || {}, { dataset, externalVault });
-    const entry = describeLiveResult(name, args || {}, result);
+    // Every live call leaves a line, even ones without a custom label (mail,
+    // Slack, Granola, Google files...): planReview.js reads this trace to
+    // know the turn read outside content, and the user should see it too.
+    // The detail keeps only the args, not what came back, so a long email
+    // doesn't bloat the saved message.
+    const entry = describeLiveResult(name, args || {}, result) || { label: `${name}()`, detail: { args: args || {} } };
     if (entry) {
       liveTrace.push(entry);
       // Emitted live, the instant this tool call actually finishes — mirrors

@@ -15,7 +15,16 @@
 // Pure: both take the plan and data and return plain values, so they are
 // tested without storage (planReview.test.js).
 
-// The tools whose results come from outside the user's own board and notes.
+// Read tools whose results are the user's own: the board, its checkpoints
+// and workflow cards, and their own notes. Every other tool that ran this
+// turn counts as outside content (deny by default), so a reader added later
+// is covered without anyone remembering to list it here.
+const OWN_CONTENT_TOOLS = new Set([
+  "search_workspace", "audit_workspace", "suggest_task_fields", "list_backups", "list_workflow_cards",
+  "list_vault_notes", "read_vault_note", "search_vault", "audit_vault",
+]);
+
+// Plain words for the outside sources the reason names.
 const OUTSIDE_SOURCES = [
   [/^(list|read)_(gmail|outlook)_message/, "email"],
   [/^list_slack_messages/, "Slack messages"],
@@ -36,10 +45,10 @@ export function isConnectorStep(action) {
 function outsideSourcesRead(liveTrace) {
   const found = [];
   for (const entry of liveTrace || []) {
-    const name = String(entry?.label || "").split("(")[0].trim();
-    for (const [pattern, word] of OUTSIDE_SOURCES) {
-      if (pattern.test(name) && !found.includes(word)) found.push(word);
-    }
+    const name = String(entry?.label || "").split(/[\s(]/)[0].trim();
+    if (!name || OWN_CONTENT_TOOLS.has(name)) continue;
+    const word = OUTSIDE_SOURCES.find(([pattern]) => pattern.test(name))?.[1] || "content from outside Vaea";
+    if (!found.includes(word)) found.push(word);
   }
   return found;
 }
