@@ -34,7 +34,7 @@ export default function Home() {
               sorting.
             </p>
             <div className="mkt-hero-rise mt-8 [--rise-delay:180ms]">
-              <CtaRow note="No card · your information stays on your computer" />
+              <CtaRow note="No card · saved on your computer by default" />
             </div>
           </div>
 
@@ -123,7 +123,7 @@ export default function Home() {
         flip
         time="9:30 AM"
         story="Everything Bob has touched this morning is saved in a folder on his laptop."
-        title="Your information stays on your computer"
+        title="Your work is saved on your computer"
         visual={<StorageTerminal />}
         cta={{ to: "/privacy", label: "Exactly what leaves, and when" }}
       >
@@ -132,8 +132,10 @@ export default function Home() {
           There's no company database holding your work.
         </p>
         <p>
-          If you'd rather sync it across devices, you can switch that on — and switch it back off.
-          You can also run Vaea Chat entirely on your own computer, with nothing sent out at all.
+          When you ask Vaea Chat something, a copy of your board goes to the AI service for that
+          one answer, and isn't kept afterward. If you'd rather sync across devices, you can switch
+          that on, and back off. You can also run Vaea Chat entirely on your own computer, with
+          nothing sent out at all.
         </p>
       </ShowBlock>
 
@@ -172,7 +174,7 @@ export default function Home() {
         items={[
           "your work, at sea level",
           "it asks before it removes anything",
-          "your information stays with you",
+          "your files, on your computer",
           "works offline",
           "every feature included",
         ]}
@@ -202,7 +204,7 @@ export default function Home() {
 
       <ClosingCta
         title="Set it all down."
-        note="No card · your information stays on your computer"
+        note="No card · saved on your computer by default"
         image="/img/marketing/closing-lagoon.jpg"
       />
     </>

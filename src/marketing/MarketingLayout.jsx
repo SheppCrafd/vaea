@@ -51,7 +51,7 @@ export default function MarketingLayout() {
           Start your board
         </Link>
         <p className="mt-1.5 text-center font-mono text-[0.66rem] tracking-tight text-muted-foreground">
-          No card · your info stays on your computer
+          No card · saved on your computer by default
         </p>
       </div>
       <div className="h-24 md:hidden" aria-hidden="true" />

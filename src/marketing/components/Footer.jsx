@@ -88,7 +88,7 @@ export default function Footer() {
         <p className="font-mono tracking-tight">
           Updated{" "}
           {new Date(`${SITE_MODIFIED}T00:00:00`).toLocaleDateString("en-US", { month: "long", year: "numeric" })} ·
-          your information stays on your computer by default.
+          your work is saved on your computer by default.
         </p>
       </div>
     </footer>

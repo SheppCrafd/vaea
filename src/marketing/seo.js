@@ -40,7 +40,7 @@ export const ROUTES = [
     changefreq: "weekly",
     title: "Vaea — one calm board for everything you're carrying",
     description:
-      "The calm place to organize every project you're juggling. An assistant does the sorting and asks before it removes anything, and your information stays on your own computer.",
+      "The calm place to organize every project you're juggling. An assistant does the sorting and asks before it removes anything, and your work is saved on your own computer by default.",
   },
   {
     path: "/vaea-chat",
@@ -271,7 +271,7 @@ export function organizationLd() {
     logo: `${SITE_URL}/android-chrome-512x512.png`,
     founder: PERSON,
     sameAs: [SITE_REPO],
-    description: "Vaea is built and maintained by one person. Your information stays on your own computer by default.",
+    description: "Vaea is built and maintained by one person. Your work is saved on your own computer by default.",
   };
 }
 
@@ -298,7 +298,7 @@ export function softwareApplicationLd() {
     screenshot: OG_IMAGE,
     dateModified: SITE_MODIFIED,
     description:
-      "One board for all your projects and tasks, grouped by the part of life they belong to, with Vaea Chat making changes after showing you first. Your information stays on your own computer by default, and the whole thing can be self-hosted.",
+      "One board for all your projects and tasks, grouped by the part of life they belong to, with Vaea Chat making changes after showing you first. Your work is saved on your own computer by default, and the whole thing can be self-hosted.",
     author: { "@id": `${SITE_URL}/#maker` },
     publisher: { "@id": `${SITE_URL}/#org` },
     featureList: [

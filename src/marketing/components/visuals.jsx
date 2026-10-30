@@ -252,7 +252,7 @@ export function StorageTerminal() {
     <TerminalBlock
       title="your-folder"
       showPrompt
-      code={["ls", "# areas.json   projects.json   tasks.json", "# people.json   notes.json", "", "# times your work was sent anywhere: 0"].join("\n")}
+      code={["ls", "# areas.json   projects.json   tasks.json", "# people.json   notes.json", "", "# your work, in plain files you can open"].join("\n")}
     />
   );
 }
