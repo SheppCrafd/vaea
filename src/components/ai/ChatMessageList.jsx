@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
-import { TriangleAlert, ShieldCheck, History } from "lucide-react";
+import { TriangleAlert, ShieldCheck, History, SlidersHorizontal } from "lucide-react";
+import { openReviewRules } from "@/lib/reviewRulesPanel";
 import ChatIcon from "@/components/ai/ChatIcon";
 import ChatToolLogDetail, { humanizeAction } from "@/components/ai/ChatToolLogDetail";
 import { sanitizeUrl } from "@/lib/sanitizeUrl";
@@ -234,26 +235,64 @@ function ChatAssistantMessage({ m, onOpenDetail, isNew, onFinishTyping }) {
 // tool-log trace above it (already-happened, informational) and from the
 // reply text (prose) by design: this is the one place the transcript asks
 // the user to actually decide something.
-function PendingActionCard({ actions, holdReason, onConfirm, onCancel, resolving }) {
+//
+// When auto-approve's reviewer held the plan (reviewProblems, from
+// planReview.js), the card says so, puts each reason under the step it's
+// about, and links to the rules. The buttons are the same as any other
+// waiting plan: the user's yes still runs it, Cancel still drops it.
+function PendingActionCard({ actions, holdReason, reviewProblems, onConfirm, onCancel, resolving }) {
+  const problems = Array.isArray(reviewProblems) ? reviewProblems : [];
+  const held = problems.length > 0;
+  const planWide = problems.filter((p) => p.step == null || !actions?.[p.step]);
+  const byStep = (i) => problems.filter((p) => p.step === i);
   return (
     <div className="mt-1.5 rounded-lg border border-destructive/25 bg-destructive/[0.05] overflow-hidden max-w-md">
       <div className="px-3 py-1.5 flex items-center gap-1.5 border-b border-destructive/15">
         <TriangleAlert className="w-3.5 h-3.5 text-destructive/80 shrink-0" />
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-destructive/80">Confirm to proceed</span>
+        <span className="flex-1 text-xs font-medium text-destructive/90">
+          {held ? "Auto-approve held this plan" : "Waiting for your yes"}
+        </span>
+        {held && (
+          <button
+            type="button"
+            onClick={() => openReviewRules({ rule: problems[0].rule })}
+            className="-my-0.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] text-muted-foreground hover:text-foreground hover:bg-background/60 transition-colors"
+          >
+            <SlidersHorizontal className="w-3 h-3" /> Edit Rules
+          </button>
+        )}
       </div>
       {/* Why this one waits when it otherwise wouldn't (planReview.js). */}
-      {holdReason && <p className="px-3 pt-2 text-xs text-muted-foreground">{holdReason}</p>}
-      <ul className="px-3 py-2 space-y-0.5">
+      {!held && holdReason && <p className="px-3 pt-2 text-xs text-muted-foreground">{holdReason}</p>}
+      {planWide.map((p) => (
+        <p key={p.text} className="px-3 pt-2 text-xs text-destructive/90">{p.text}</p>
+      ))}
+      <ul className="px-3 py-2 space-y-1">
         {(actions || []).map((a, i) => {
           // The target of the action, when the plan carries one — a title on
           // a create, otherwise a name/label. Without it a plan that stages
           // three creates reads as three identical "Create Task" lines with
           // no way to tell which task each one is.
           const target = a.args?.title || a.args?.name || a.args?.label || a.title;
+          const reasons = byStep(i);
           return (
-            <li key={i} className="text-foreground/90">
-              {humanizeAction(a.action)}
-              {target ? <span className="text-muted-foreground"> — {target}</span> : null}
+            <li key={i} className={reasons.length ? "text-foreground" : held ? "text-foreground/60" : "text-foreground/90"}>
+              <span className="flex items-start gap-1.5">
+                {held && (
+                  <span
+                    aria-hidden="true"
+                    className={`mt-[0.45em] w-1.5 h-1.5 shrink-0 rounded-full ${reasons.length ? "bg-destructive" : "bg-muted-foreground/40"}`}
+                  />
+                )}
+                <span className="min-w-0">
+                  {reasons.length > 0 && <span className="sr-only">Held: </span>}
+                  {humanizeAction(a.action)}
+                  {target ? <span className="text-muted-foreground"> — {target}</span> : null}
+                </span>
+              </span>
+              {reasons.map((p) => (
+                <span key={p.text} className={`block text-xs text-destructive/90 ${held ? "pl-3" : ""}`}>{p.text}</span>
+              ))}
             </li>
           );
         })}
@@ -294,10 +333,17 @@ function CheckpointLine({ detail, onRevert, resolving }) {
   return (
     <div className="mt-1.5 max-w-md space-y-1 text-xs text-muted-foreground">
       {autoApproved && (
-        <p className="flex items-start gap-1.5" title={autoApproved}>
+        <div className="flex items-start gap-1.5">
           <ShieldCheck className="w-3.5 h-3.5 shrink-0 mt-px text-primary/70" />
-          <span>Auto-approved: checked against your board first.</span>
-        </p>
+          <p className="min-w-0 flex-1" title={autoApproved}>Auto-approved: it passed the review rules.</p>
+          <button
+            type="button"
+            onClick={() => openReviewRules()}
+            className="shrink-0 -my-0.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] hover:text-foreground hover:bg-accent transition-colors"
+          >
+            <SlidersHorizontal className="w-3 h-3" /> Rules
+          </button>
+        </div>
       )}
       <div className="flex items-start gap-1.5">
         <History className="w-3.5 h-3.5 shrink-0 mt-px" />
@@ -401,6 +447,7 @@ export default function ChatMessageList({ messages, isComputing, isLoading, isPl
             <PendingActionCard
               actions={m.pending_action.actions}
               holdReason={m.pending_action.hold_reason}
+              reviewProblems={m.pending_action.review_problems}
               onConfirm={() => onConfirm(m)}
               onCancel={() => onCancel(m)}
               resolving={resolvingId === m.id}

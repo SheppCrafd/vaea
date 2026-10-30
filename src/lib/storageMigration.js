@@ -22,6 +22,40 @@ export async function copyAllKeys({ read, write }) {
   }
 }
 
+// Makes the destination an exact copy of the source: every key the source
+// has is written, and every key it lacks is removed. copyAllKeys alone would
+// leave the destination's own extra collections behind (say, the cloud
+// board's people when this device has none), mixing two boards into one.
+export async function replaceAllKeys({ read, write, remove }) {
+  for (const key of ALL_KEYS) {
+    const value = await read(key);
+    if (value != null) await write(key, value);
+    else await remove(key);
+  }
+}
+
+// Every stored key from one backend, in the same file format the manual
+// device mode saves and opens ({ version, exportedAt, data }), so a board
+// about to be replaced can be downloaded first and opened again later.
+export async function readBoardSnapshot({ read }) {
+  const data = {};
+  for (const key of ALL_KEYS) {
+    const value = await read(key);
+    if (value != null) data[key] = value;
+  }
+  return { version: 1, exportedAt: new Date().toISOString(), data };
+}
+
+export function downloadBoardSnapshot(snapshot, filename) {
+  const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
 // Real entity collections only (not the AI identity/vault-connection keys
 // above) — those are low-stakes to overwrite; a whole workspace of Areas/
 // Products/Projects/Tasks is not. Checked BEFORE copyAllKeys runs in either

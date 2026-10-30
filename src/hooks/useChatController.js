@@ -16,8 +16,8 @@ import { loadMicrosoftConnection } from "@/lib/microsoftConnection";
 import { loadOutlookConnection } from "@/lib/outlookConnection";
 import { saveSnippet, findSnippet } from "@/lib/snippetsStore";
 import { loadAgentBehavior } from "@/lib/agentBehaviorSettings";
-import { connectorHoldReason, reviewPlan } from "@/lib/planReview";
-import { loadBoardData, restoreSnapshot } from "@/lib/backupSnapshots";
+import { connectorHoldReason, reviewPlan, conversationFrom } from "@/lib/planReview";
+import { loadBoardData, listSnapshots, restoreSnapshot } from "@/lib/backupSnapshots";
 import { confirmThen } from "@/lib/entityUtils";
 import { loadSlackConnection } from "@/lib/slackConnection";
 import { loadClickUpConnection } from "@/lib/clickupConnection";
@@ -27,7 +27,8 @@ import { stripUserNotesSection } from "@/lib/selfNote";
 import { matchesProtocolTrigger } from "@/lib/protocolReminder";
 import { usePositionedMenu } from "@/hooks/usePositionedMenu";
 import { useCreateChatSession } from "@/hooks/useChatSessions";
-import { useChatMessages, useCreateChatMessage, useUpdateChatMessage } from "@/hooks/useChatMessages";
+import { useChatMessages, useCreateChatMessage, useUpdateChatMessage, fetchRecentMessages } from "@/hooks/useChatMessages";
+import { openReviewRules } from "@/lib/reviewRulesPanel";
 import { useAiIdentity } from "@/hooks/useAiIdentity";
 import { computeWorkspaceDelta, buildReflectionInstruction } from "@/lib/reflectionSummary";
 import { runReflectionIfDue } from "@/lib/reflectionTrigger";
@@ -707,7 +708,7 @@ export function useChatController({ activeProjectId } = {}) {
         markMessageNew(created.id);
         if (session.id !== activeSessionIdRef.current) setReflectionSessionId(session.id);
       },
-    });
+    }, { latest: agent.purpose || "", history: [] });
     const agents = await loadAgents();
     await saveAgents(agents.map((a) => (a.id === agent.id ? { ...a, lastRunAt: new Date().toISOString() } : a)));
   };
@@ -881,7 +882,11 @@ export function useChatController({ activeProjectId } = {}) {
   // typewriter-skip/markMessageNew choice handleSend already made; a
   // resumed reply always gets the normal markMessageNew treatment since
   // nothing streamed live for it.
-  const applyAssistantReply = async (sessionId, data, messageOptions = {}) => {
+  // `conversation` ({ latest, history }) is what the auto-approve reviewer
+  // checks the plan against. Left out, it reads the session's recent
+  // messages; an agent run passes its own purpose instead, since no one
+  // typed a message for it.
+  const applyAssistantReply = async (sessionId, data, messageOptions = {}, conversation = null) => {
     const reply = data.reply || "Done.";
     // Genuinely null/undefined for any turn that never queued more than
     // PLAN_TOOL_CALL_THRESHOLD tool calls (see planMicroAgents.js) — NOT
@@ -936,23 +941,39 @@ export function useChatController({ activeProjectId } = {}) {
     // outside content (email, Slack, meeting notes, a web page) never changes
     // a connected app without a yes; and with "Auto-approve after a review"
     // on, a plan that would wait is checked against the board instead, and
-    // runs if a checkpoint can undo all of it.
-    const { approvalQueueEnabled, autoApproveEnabled } = await loadAgentBehavior();
+    // runs only if it breaks none of the reviewer's rules. The reviewer is
+    // app code, not a model: it reads what the model read (the user's latest
+    // message, the chat before it, the board, the tools the chat ran) and
+    // judges every plan the same way whichever model wrote it, Local Mode
+    // included. The user sets its rules in the Review Rules panel.
+    const { approvalQueueEnabled, autoApproveEnabled, reviewRules } = await loadAgentBehavior();
     const connectorHold = connectorHoldReason(executable, liveTrace);
     const wouldWait = executable.some((a) => DESTRUCTIVE_ACTIONS.has(a.action));
     let review = null;
     if (!approvalQueueEnabled && !connectorHold && wouldWait && autoApproveEnabled) {
-      review = reviewPlan(executable, await loadBoardData(), { waitingActions: (a) => DESTRUCTIVE_ACTIONS.has(a.action) });
+      const [board, checkpoints, recent] = await Promise.all([
+        loadBoardData(), listSnapshots(), conversation ? null : fetchRecentMessages(sessionId).catch(() => []),
+      ]);
+      review = reviewPlan(executable, board, { checkpoints, liveTrace, rules: reviewRules,
+        conversation: conversation || conversationFrom((recent || []).map((m) => ({ role: m.role, content: stripToolLog(m.content || "") }))),
+      });
     }
     if (approvalQueueEnabled || connectorHold || (wouldWait && !review?.ok)) {
       setLiveSteps([]);
       proposeVaultNotesIfAny(executable);
-      const holdReason = connectorHold || (review && !review.ok ? `Auto-approve held this: ${review.summary[0].toLowerCase()}${review.summary.slice(1)}` : null);
+      const held = review && !review.ok;
+      const holdReason = connectorHold || (held ? review.summary : null);
       await createMessage.mutateAsync(
         {
           session_id: sessionId, role: "assistant",
           content: buildLoggedContent(reply, liveTrace.map((l) => l.label)),
-          pending_action: { actions: executable, ...(holdReason ? { hold_reason: holdReason } : {}) },
+          // review_problems: every rule the plan broke, each naming its step,
+          // so the card can say why and point at what it held.
+          pending_action: {
+            actions: executable,
+            ...(holdReason ? { hold_reason: holdReason } : {}),
+            ...(held ? { review_problems: review.problems } : {}),
+          },
           ...(liveTrace.length ? { tool_log_detail: { liveTrace } } : {}),
         },
         messageOptions
@@ -1016,6 +1037,15 @@ export function useChatController({ activeProjectId } = {}) {
     if (useMatch) {
       const snippet = await findSnippet(useMatch[1].trim());
       setInput(snippet ? snippet.text : input);
+      return;
+    }
+
+    // /rules opens the Review Rules panel. Like /snippet it never reaches the
+    // model: the rules are the user's to set, and the assistant has no way
+    // to change them.
+    if (/^\/rules\s*$/i.test(input)) {
+      setInput("");
+      openReviewRules();
       return;
     }
 

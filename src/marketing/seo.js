@@ -165,7 +165,7 @@ export const ASSISTANT_FAQ = [
   },
   {
     q: "Could it do something I didn't want?",
-    a: "It acts when you ask, or when an agent you set up runs on its schedule. By default it asks before it removes or sends anything. A checkpoint of your whole board, named after the change, is saved before any multi-step change, so a mistake is easy to walk back. Want every change to wait for you? Turn on “Approve every action”. Want removals to run on their own? “Auto-approve after a review” checks each one against your board and saves a checkpoint first; sent messages still wait for your yes.",
+    a: "It acts when you ask, or when an agent you set up runs on its schedule. By default it asks before it removes or sends anything. A checkpoint of your whole board, named after the change, is saved before any multi-step change, so a mistake is easy to walk back. Want every change to wait for you? Turn on “Approve every action”. Want removals to run on their own? “Auto-approve after a review” runs one only if it passes rules you set: you asked for it, you named what goes, and a checkpoint can undo it. Anything else waits for your yes, with the reason.",
   },
   {
     q: "Does it watch how I work?",

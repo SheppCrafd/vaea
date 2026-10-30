@@ -10,6 +10,7 @@ import AppShell from '@/components/layout/AppShell';
 import Header from '@/components/layout/Header';
 import Dashboard from '@/pages/Dashboard';
 import CommandPalette from '@/components/command/CommandPalette';
+import ReviewRulesHost from '@/components/ai/ReviewRulesPanel';
 import ChatLauncherButton from '@/components/ai/ChatLauncherButton';
 import ConnectorSuggestionBanner from '@/components/shared/ConnectorSuggestionBanner';
 import { useAppStore } from '@/lib/store';
@@ -139,6 +140,7 @@ const AuthenticatedApp = () => {
           <div className="flex-1 min-h-0">
             <Suspense fallback={null}>
               <CommandPalette />
+              <ReviewRulesHost />
               <Routes>
                 <Route path="chat" element={<ChatPage />} />
                 <Route path="settings" element={<SettingsPage />} />

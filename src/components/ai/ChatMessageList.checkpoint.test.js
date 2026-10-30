@@ -16,7 +16,8 @@ describe("ChatMessageList checkpoints and holds", () => {
       } }],
       { onRevert: () => {} }
     );
-    expect(html).toContain("Auto-approved: checked against your board first.");
+    expect(html).toContain("Auto-approved: it passed the review rules.");
+    expect(html).toContain("Rules");
     expect(html).toContain("Deleted project &quot;Q1 Newsletter&quot; from Marketing");
     expect(html).toContain(">Revert<");
   });
@@ -37,5 +38,23 @@ describe("ChatMessageList checkpoints and holds", () => {
     } }]);
     expect(html).toContain("This chat read email, so changes to your connected apps wait for your yes.");
     expect(html).toContain("Yes, do it");
+  });
+
+  it("puts each review reason under the step it held, with the usual buttons", () => {
+    const html = render([{ ...base, id: "m1", content: "Deleting both.", pending_action: {
+      actions: [
+        { action: "DELETE_PROJECT", args: { project_id: "j1" }, title: "Launch" },
+        { action: "DELETE_TASK", args: { task_id: "t1" }, title: "Draft copy" },
+      ],
+      hold_reason: "It deletes the \"Launch\" project, which your messages don't name.",
+      review_problems: [{ rule: "named", text: "It deletes the \"Launch\" project, which your messages don't name.", step: 0 }],
+    } }]);
+    expect(html).toContain("Auto-approve held this plan");
+    expect(html).toContain("Edit Rules");
+    expect(html).toMatch(/Held: <\/span>Delete Project/);
+    expect(html.indexOf("which your messages don&#x27;t name")).toBeGreaterThan(html.indexOf("Launch"));
+    expect(html.indexOf("which your messages don&#x27;t name")).toBeLessThan(html.indexOf("Draft copy"));
+    expect(html).toContain("Yes, do it");
+    expect(html).toContain("Cancel");
   });
 });

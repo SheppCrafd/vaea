@@ -8,7 +8,7 @@ globalThis.localStorage = {
   removeItem: () => {},
 };
 
-const { destinationHasData, copyAllKeys } = await import("./storageMigration.js");
+const { destinationHasData, copyAllKeys, replaceAllKeys, readBoardSnapshot } = await import("./storageMigration.js");
 
 describe("destinationHasData — the guard behind Settings' cloud/device storage switch (real bug: switching used to unconditionally overwrite a destination that already had real data, no warning)", () => {
   it("returns false for a genuinely empty destination", async () => {
@@ -48,5 +48,26 @@ describe("copyAllKeys — unchanged behavior, still unconditionally overwrites (
     expect(store.areas).toEqual([{ id: "a1" }]);
     // Every other key read as null was never written.
     expect(Object.keys(store)).toEqual(["areas"]);
+  });
+});
+
+describe("replaceAllKeys — the Replace choice when both places already hold a board", () => {
+  it("makes the destination an exact copy, removing keys the source doesn't have", async () => {
+    const dest = { areas: [{ id: "old" }], stakeholders: [{ id: "cloud-only" }] };
+    const read = vi.fn(async (key) => (key === "areas" ? [{ id: "a1" }] : null));
+    const write = vi.fn(async (key, value) => { dest[key] = value; });
+    const remove = vi.fn(async (key) => { delete dest[key]; });
+    await replaceAllKeys({ read, write, remove });
+    expect(dest).toEqual({ areas: [{ id: "a1" }] });
+  });
+});
+
+describe("readBoardSnapshot — the copy downloaded before a board is replaced", () => {
+  it("collects every stored key in the file format Vaea can open again", async () => {
+    const read = vi.fn(async (key) => (key === "tasks" ? [{ id: "t1" }] : null));
+    const snapshot = await readBoardSnapshot({ read });
+    expect(snapshot.version).toBe(1);
+    expect(snapshot.data).toEqual({ tasks: [{ id: "t1" }] });
+    expect(typeof snapshot.exportedAt).toBe("string");
   });
 });

@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 // use this instead of hand-rolling another one.
 const Switch = React.forwardRef(
   ({ checked, onCheckedChange, disabled, size = "default", className, id, "aria-labelledby": ariaLabelledBy, ...props }, ref) => {
-    const dims = size === "sm" ? { track: "w-8 h-4.5", thumb: "w-3.5 h-3.5", on: "translate-x-3.5" } : { track: "w-9 h-5", thumb: "w-4 h-4", on: "translate-x-4" };
+    const dims = size === "sm" ? { track: "w-8 h-[18px]", thumb: "w-3.5 h-3.5", on: "translate-x-3.5" } : { track: "w-9 h-5", thumb: "w-4 h-4", on: "translate-x-4" };
     return (
       <button
         ref={ref}

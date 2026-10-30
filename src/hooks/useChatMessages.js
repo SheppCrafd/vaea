@@ -25,6 +25,16 @@ async function localMessagesAscending(sessionId) {
   return all.slice().sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
 }
 
+// The last `limit` messages of a session, oldest first, read fresh from
+// whichever backend holds the chat. The auto-approve reviewer reads these to
+// check a plan against what the user actually said (planReview.js).
+export async function fetchRecentMessages(sessionId, limit = 12) {
+  if (!sessionId) return [];
+  if (await isLocalChat()) return (await localMessagesAscending(sessionId)).slice(-limit);
+  const desc = await base44.entities.ChatMessage.filter({ session_id: sessionId }, "-created_date", limit, 0);
+  return [...desc].reverse();
+}
+
 // True server-side lazy loading — "so that memory on the page is not
 // overused" means the *fetch* has to stay bounded, not just the render.
 // Only the most recent PAGE_SIZE messages are ever fetched eagerly; opening

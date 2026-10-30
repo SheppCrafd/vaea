@@ -395,7 +395,7 @@ export async function writeKey(key, value) {
   return writeDeviceKey(key, value);
 }
 
-async function removeDeviceKey(key) {
+export async function removeDeviceKey(key) {
   if (supportsFileSystemAccess) {
     if (!dirHandle) throw new Error("Your data folder isn't connected. Reconnect it in Settings → Data Storage.");
     try {

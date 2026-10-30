@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { CHAT_COMMANDS } from "@/lib/chatCommands";
+import { openReviewRules } from "@/lib/reviewRulesPanel";
+
+// Commands that open something in the app instead of going to the model.
+// Picking one from the menu runs it at once and removes the typed token.
+const INSTANT_COMMANDS = { rules: () => openReviewRules() };
 
 // Matches a trailing "/" + letters token — at the very start of the input,
 // or anywhere else as long as it's preceded by whitespace (so "please /log"
@@ -37,6 +42,11 @@ export function useSlashCommand(input, setInput) {
 
   const applyCommand = (name) => {
     if (slashIndex === -1) return;
+    if (INSTANT_COMMANDS[name]) {
+      setInput(input.slice(0, slashIndex).trimEnd());
+      INSTANT_COMMANDS[name]();
+      return;
+    }
     setInput(`${input.slice(0, slashIndex)}/${name} `);
   };
 

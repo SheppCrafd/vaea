@@ -21,7 +21,9 @@
   board. By default, removals and sent messages wait for the user's approval;
   other edits apply right away and are listed step by step. "Approve every
   action" makes every change wait; "Auto-approve after a review" lets removals
-  run once they pass a check against the board. A checkpoint, named after the
+  run once they pass review rules the user can edit: the user asked for the
+  change, named what goes, and a checkpoint can undo it. The rules are checked
+  by the app itself, not by an AI model. A checkpoint, named after the
   change, is saved before multi-step and auto-approved changes and can be
   reverted from the chat. In a turn that read outside content (email, Slack,
   meeting notes, a web page), changes to connected apps always wait.

@@ -6,7 +6,8 @@ import { useAiIdentity, useSaveAiIdentity } from "@/hooks/useAiIdentity";
 import { useReflectionPreferences, useSaveReflectionPreferences } from "@/hooks/useReflectionPreferences";
 import { useVaultConnected } from "@/hooks/useVaultConnected";
 import { syncIdentityToSelfNote } from "@/lib/selfNote";
-import { loadAgentBehavior, saveAgentBehavior } from "@/lib/agentBehaviorSettings";
+import { loadAgentBehavior, updateAgentBehavior as patchAgentBehavior, subscribeAgentBehavior } from "@/lib/agentBehaviorSettings";
+import { openReviewRules } from "@/lib/reviewRulesPanel";
 import { Switch } from "@/components/ui/switch";
 import { SettingsCard } from "@/components/ui/settings-card";
 import IdentityField, { FIELDS } from "@/components/settings/IdentityField";
@@ -65,13 +66,15 @@ export default function AiPreferencesSection() {
   // cache for this one since nothing else in the app reads it live the way
   // identity/reflection prefs are.
   const [agentBehavior, setAgentBehavior] = useState(null);
+  // Patched on what's stored now, and kept in step with the Review Rules
+  // panel, which edits the same settings and can be open at the same time.
   useEffect(() => {
     loadAgentBehavior().then(setAgentBehavior);
+    return subscribeAgentBehavior(setAgentBehavior);
   }, []);
   const updateAgentBehavior = async (patch) => {
-    const next = { ...agentBehavior, ...patch };
-    setAgentBehavior(next);
-    await saveAgentBehavior(next);
+    setAgentBehavior((prev) => ({ ...prev, ...patch }));
+    await patchAgentBehavior(patch);
   };
 
   useEffect(() => {
@@ -236,8 +239,15 @@ export default function AiPreferencesSection() {
             <div>
               <p id="auto-approve-label" className="text-sm font-medium">Auto-approve after a review</p>
               <p className="text-xs text-muted-foreground mt-0.5 max-w-md">
-                Removals and restores run without asking once Vaea checks them against your board and saves a checkpoint named after the change. Undo one with Revert in the chat, or from Checkpoints. Sent messages and deletions in your other apps still wait for your “Yes, do it”: a checkpoint can't undo them.
+                Removals and restores run without asking when they pass Vaea's review rules: you asked for the change, you named what goes, and a checkpoint can undo it. Vaea saves that checkpoint, named after the change, so Revert in the chat undoes it. Anything that fails a rule waits for your “Yes, do it”, with the reason.
               </p>
+              <button
+                type="button"
+                onClick={() => openReviewRules()}
+                className="mt-2 text-xs px-2.5 py-1 border border-input rounded-md hover:bg-accent transition-colors"
+              >
+                Edit Rules
+              </button>
             </div>
             <Switch
               className="mt-0.5"
