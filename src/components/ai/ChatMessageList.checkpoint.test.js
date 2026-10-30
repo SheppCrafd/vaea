@@ -16,8 +16,8 @@ describe("ChatMessageList checkpoints and holds", () => {
       } }],
       { onRevert: () => {} }
     );
-    expect(html).toContain("Auto-approved.");
-    expect(html).toContain("Checkpoint: Deleted project &quot;Q1 Newsletter&quot; from Marketing");
+    expect(html).toContain("Auto-approved: checked against your board first.");
+    expect(html).toContain("Deleted project &quot;Q1 Newsletter&quot; from Marketing");
     expect(html).toContain(">Revert<");
   });
 

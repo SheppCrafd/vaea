@@ -5,7 +5,8 @@ import { cn } from "@/lib/utils";
 // app isn't registered) without removing it. Hovering or focusing it shows
 // "Coming soon". The content is `inert`, so nothing inside can be clicked,
 // focused or typed into; the wrapper itself takes focus so keyboard users
-// still hear why it's unavailable.
+// still hear why it's unavailable, and a tap on a phone (no hover there)
+// focuses it and shows the note too.
 //
 // `placement="corner"` pins the note to the top-right corner (for a whole
 // card); the default shows it just above the wrapped control.
@@ -22,7 +23,7 @@ export default function ComingSoon({ children, className, placement = "above", l
         className
       )}
     >
-      <div inert className="opacity-50 grayscale select-none transition-opacity group-hover/soon:opacity-60">
+      <div inert className="pointer-events-none opacity-50 grayscale select-none transition-opacity group-hover/soon:opacity-60">
         {children}
       </div>
       <span
@@ -31,7 +32,7 @@ export default function ComingSoon({ children, className, placement = "above", l
         className={cn(
           "pointer-events-none absolute z-30 whitespace-nowrap rounded-md bg-foreground px-2 py-1 text-[11px] font-medium text-background shadow-md",
           "opacity-0 translate-y-0.5 transition-[opacity,transform] duration-150",
-          "group-hover/soon:opacity-100 group-hover/soon:translate-y-0 group-focus-visible/soon:opacity-100 group-focus-visible/soon:translate-y-0",
+          "group-hover/soon:opacity-100 group-hover/soon:translate-y-0 group-focus/soon:opacity-100 group-focus/soon:translate-y-0",
           placement === "corner" ? "right-4 top-4" : "left-0 bottom-full mb-1.5"
         )}
       >

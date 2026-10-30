@@ -286,33 +286,36 @@ function PendingActionCard({ actions, holdReason, onConfirm, onCancel, resolving
 // the one place real assistant output belongs (see --font-terminal in
 // index.css).
 // The checkpoint saved just before a message's change ran, by name, with a
-// way to undo it. Auto-approved changes say so, with what the review checked.
+// way to undo it. Auto-approved changes say so in one short line; what the
+// review checked is on hover. The checkpoint's name wraps rather than
+// truncating: the name is the point.
 function CheckpointLine({ detail, onRevert, resolving }) {
   const { checkpoint, auto_approved: autoApproved, reverted_at: revertedAt } = detail;
   return (
-    <div className="mt-1 max-w-md text-xs text-muted-foreground">
+    <div className="mt-1.5 max-w-md space-y-1 text-xs text-muted-foreground">
       {autoApproved && (
-        <p className="flex items-start gap-1.5">
+        <p className="flex items-start gap-1.5" title={autoApproved}>
           <ShieldCheck className="w-3.5 h-3.5 shrink-0 mt-px text-primary/70" />
-          <span>Auto-approved. {autoApproved}</span>
+          <span>Auto-approved: checked against your board first.</span>
         </p>
       )}
-      <p className="flex items-center gap-1.5 mt-0.5">
-        <History className="w-3.5 h-3.5 shrink-0" />
-        <span className="min-w-0 truncate" title={checkpoint.label}>Checkpoint: {checkpoint.label}</span>
-        {revertedAt ? (
-          <span className="shrink-0 text-foreground/70">· Reverted</span>
-        ) : onRevert ? (
+      <div className="flex items-start gap-1.5">
+        <History className="w-3.5 h-3.5 shrink-0 mt-px" />
+        <p className="min-w-0 flex-1 break-words">
+          Checkpoint: <span className="text-foreground/80">{checkpoint.label}</span>
+          {revertedAt && <span className="text-foreground/70"> · Reverted</span>}
+        </p>
+        {!revertedAt && onRevert && (
           <button
             type="button"
             onClick={onRevert}
             disabled={resolving}
-            className="shrink-0 ml-1 px-2 py-0.5 border border-border rounded-md text-foreground/80 hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
+            className="shrink-0 -my-0.5 px-2 py-0.5 border border-border rounded-md text-foreground/80 hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
           >
             {resolving ? "Reverting…" : "Revert"}
           </button>
-        ) : null}
-      </p>
+        )}
+      </div>
     </div>
   );
 }
