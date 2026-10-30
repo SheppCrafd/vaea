@@ -20,6 +20,7 @@ import { CARD_VIEW_STORAGE_KEY, CARD_VIEW_CHANGE_EVENT } from "@/lib/cardViewCon
 import { APPEARANCE_CHANGE_EVENT, THEME_MODES, ACCENT_KEYS } from "@/lib/appearanceConstants";
 import { loadAiIdentity, saveAiIdentity } from "@/lib/aiPreferences";
 import { createSnapshot, restoreSnapshot } from "@/lib/backupSnapshots";
+import { nameCheckpoint } from "@/lib/checkpointNames";
 import { loadNotificationRules, saveNotificationRules } from "@/lib/notificationRules";
 import { loadAgents, saveAgents } from "@/lib/agentsStore";
 import { loadPromptTemplates, savePromptTemplates } from "@/lib/promptTemplatesStore";
@@ -995,8 +996,8 @@ export async function executeAction(action, args) {
     }
 
     case "CREATE_BACKUP": {
-      const snapshot = await createSnapshot(args.label || "Manual backup (via chat)");
-      return { toolResult: { snapshot } };
+      const saved = await createSnapshot(args.label || "Saved from Vaea Chat");
+      return { toolResult: { snapshot: saved?.id ?? null, label: saved?.label } };
     }
 
     case "RESTORE_BACKUP": {
@@ -1335,9 +1336,15 @@ export function stripToolLog(content) {
 // if given, is awaited after each step actually finishes — this is what
 // lets the UI reveal tool-call lines as they really happen instead of only
 // after the whole plan completes.
-export async function executeActionSequence(actions, { onStep } = {}) {
-  if (planNeedsSnapshot(actions)) {
-    await createSnapshot(`Before ${actions.length > 1 ? `${actions.length}-step plan` : actions[0].action}`);
+//
+// A checkpoint is saved first when the plan is risky (planNeedsSnapshot) or
+// the caller asks for one (`checkpoint: true`, auto-approve). It's named
+// after what the plan does and where (checkpointNames.js); `source: "csv"`
+// words it as an import. `onCheckpoint` gets { id, label } once saved.
+export async function executeActionSequence(actions, { onStep, checkpoint = false, source, onCheckpoint } = {}) {
+  if (checkpoint || planNeedsSnapshot(actions)) {
+    const saved = await createSnapshot((data) => nameCheckpoint(actions, data, { source }));
+    if (saved) onCheckpoint?.(saved);
   }
 
   const tempIdMap = {};

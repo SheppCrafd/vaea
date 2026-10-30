@@ -30,14 +30,31 @@ async function writeIndex(index) {
   }
 }
 
+// Every board collection, as it is right now.
+export async function loadBoardData() {
+  const entries = await Promise.all(COLLECTIONS.map(async (name) => [name, await localDb[name].list()]));
+  return Object.fromEntries(entries);
+}
+
 // Snapshots every collection and prepends it to the index, newest first.
+// `label` is the checkpoint's name, or a function that gets the board data
+// just captured and returns one (checkpointNames.js names a checkpoint after
+// what the change did and where, which needs the names of what's there).
+// Returns { id, label }, or null if it couldn't be saved.
 // Best-effort throughout: a failure here (storage quota, private browsing)
 // must never block the AI action or CSV import it's protecting — losing the
 // safety net is better than losing the ability to use the app.
 export async function createSnapshot(label) {
   try {
-    const entries = await Promise.all(COLLECTIONS.map(async (name) => [name, await localDb[name].list()]));
-    const data = Object.fromEntries(entries);
+    const data = await loadBoardData();
+    const entries = Object.entries(data);
+    if (typeof label === "function") {
+      try {
+        label = label(data);
+      } catch {
+        label = "Change from Vaea Chat";
+      }
+    }
     const counts = Object.fromEntries(entries.map(([name, items]) => [name, items.length]));
     const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const created_at = new Date().toISOString();
@@ -57,7 +74,7 @@ export async function createSnapshot(label) {
       })
     );
     await writeIndex(kept);
-    return id;
+    return { id, label };
   } catch {
     return null;
   }
@@ -73,9 +90,10 @@ export async function listSnapshots() {
 // restoring is itself undoable instead of a one-way door.
 export async function restoreSnapshot(id) {
   const data = await readKey(SNAPSHOT_PREFIX + id);
-  if (!data) throw new Error("That backup no longer exists. Vaea keeps the 8 most recent and removes older ones automatically.");
+  if (!data) throw new Error("That checkpoint no longer exists. Vaea keeps the 8 most recent and removes older ones automatically.");
 
-  await createSnapshot("Before restore (auto)");
+  const entry = (await readIndex()).find((e) => e.id === id);
+  await createSnapshot(entry?.label ? `Restored checkpoint "${entry.label}"` : "Restored an earlier checkpoint");
 
   for (const name of COLLECTIONS) {
     await localDb[name].replaceAll(data[name] || []);

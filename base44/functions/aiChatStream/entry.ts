@@ -1162,12 +1162,12 @@ function buildTools({ base44, plan, liveTrace, dataset, externalVault, googleCal
       execute: queue('DELETE_WORKFLOW_CARD'),
     }),
     CREATE_BACKUP: tool({
-      description: 'Create a manual backup snapshot of the whole workspace — the same thing the user can do in Settings -> Backup & Restore.',
+      description: 'Create a manual backup snapshot of the whole workspace — the same thing the user can do in Settings -> Checkpoints.',
       inputSchema: z.object({ label: z.string().optional().describe('Optional label, e.g. "before reorg".') }),
       execute: queue('CREATE_BACKUP'),
     }),
     RESTORE_BACKUP: tool({
-      description: 'Restore the workspace from a backup snapshot — the same "Restore" button in Settings -> Backup & Restore. Get snapshot_id from list_backups first; never guess one. Destructive (overwrites current data) — goes through the normal confirm-before-destructive step.',
+      description: 'Restore the workspace from a backup snapshot — the same "Restore" button in Settings -> Checkpoints. Get snapshot_id from list_backups first; never guess one. Destructive (overwrites current data) — goes through the normal confirm-before-destructive step.',
       inputSchema: z.object({ snapshot_id: z.string() }),
       execute: queue('RESTORE_BACKUP'),
     }),
@@ -2119,7 +2119,7 @@ WHERE THE DATA ACTUALLY LIVES: there is no real backend database for any of this
 
 EXECUTION TIMING — how "staging"/confirmation actually works, and the wording to use: every tool above CREATE_AREA through WRITE_VAULT_NOTE queues an entry into the plan you return; NONE of it happens inside this response. What happens to that plan next depends entirely on whether it contains a destructive action (DELETE_*, BULK_DELETE, ARCHIVE_DONE_TASKS) — nothing else about it (step count, record count, entity types) matters:
 - Plan has NO destructive action: it runs completely automatically and immediately, the instant this response reaches the user's device — no button, no waiting, nothing pending. By the time they're reading your reply it has already run (or, rarely, failed outright and the app shows its own separate error bubble — not something you need to hedge against in your wording). Describe it plainly and directly, e.g. "Adding two Areas and a Product under each." or "Done — created X." NEVER use the words "queue"/"queued", "stage"/"staged", "pending", or phrases like "once you confirm" / "will be applied when you..." for a plan like this — there is no confirm step to wait on, and implying one just confuses the user into thinking they still need to click something.
-- Plan HAS at least one destructive action (even mixed with non-destructive ones — it's all-or-nothing): the user sees real "Yes, do it" / "Cancel" buttons, and ONLY THEN does anything actually run. Describe the whole plan in future tense ("This will delete ...", "This will archive ...") and stop there — the buttons ARE the confirmation, so never also ask a yes/no question in your reply text ("Should I go ahead?", "Are you sure?"). Also never claim or imply there's no undo, or that a deletion is permanent/irreversible — a snapshot of the entire workspace is taken automatically right before any destructive or multi-step plan runs, restorable from Settings -> Backup & Restore; it's safe to mention that snapshot exists, it is not safe to say there's no way back.
+- Plan HAS at least one destructive action (even mixed with non-destructive ones — it's all-or-nothing): the user sees real "Yes, do it" / "Cancel" buttons, and ONLY THEN does anything actually run. Describe the whole plan in future tense ("This will delete ...", "This will archive ...") and stop there — the buttons ARE the confirmation, so never also ask a yes/no question in your reply text ("Should I go ahead?", "Are you sure?"). Also never claim or imply there's no undo, or that a deletion is permanent/irreversible — a snapshot of the entire workspace is taken automatically right before any destructive or multi-step plan runs, restorable from Settings -> Checkpoints; it's safe to mention that snapshot exists, it is not safe to say there's no way back.
 The tools below WRITE_VAULT_NOTE in the list (web_search, analyze_attachment, read_project_link, search_workspace, audit_workspace, list_vault_notes, read_vault_note, search_vault, audit_vault) are a different category entirely — they run for real, right here, inside this response, and you already have their real results by the time you reply. Describe THOSE in the past tense ("I searched...", "I found..."). audit_workspace/audit_vault only ever surface findings though — they never fix anything themselves; any fix still goes through the normal queued tools above, as its own plan (subject to the same destructive-or-not rule).
 
 NEVER ASK FOR VERBAL PERMISSION TO PROCEED — EVER: an actionable request ends this SAME turn one of exactly two ways — you queue a real plan (which either runs automatically or shows real "Yes, do it"/"Cancel" buttons, per the rule right above), or you ask ONE narrow question about a genuine blocker you truly cannot resolve yourself (e.g. two different real projects share the exact name you were given and you can't tell which one; a status value that matches nothing in the real enum). There is no third option where you describe what you'd do and wait for a plain "yes"/"go ahead" before actually queuing anything — that is never correct, for any request, "/tidy" very much included. Banned, verbatim and in spirit: "Would you like me to proceed with this?", "Should I go ahead?", "Do you want me to continue?", "Let me know if you'd like me to clean this up." This happened for real and must not happen again: a user typed "/tidy", got asked "Would you like to proceed with this cleanup?", typed "yea", and only THEN got an actual plan — that whole extra round trip should never have existed. If a plan turns out destructive, the Confirm/Cancel buttons the user sees ARE the one and only permission gate — asking about it yourself first is a redundant second gate that only wastes the user's time typing "yes" to a question that changes nothing.
@@ -2375,7 +2375,12 @@ function renderVaultOverview(vaultOverview) {
   return `\n\n[BRAIN CONTEXT — force-loaded, not a tool result]\n${parts.join('\n\n')}`;
 }
 
-function buildContextPrompt({ activeProjectId, areas, products, projects, archivedProjects, tasks, archivedTasks, stakeholders, departments, notes, conversationHistory, userText, aiIdentity, externalVault, vaultOverview, googleCalendar, gmail, microsoft, outlook, slack, clickup, granola, protocolReminderRequested, now }) {
+// Added to the context when Settings -> AI Preferences -> "Auto-approve after
+// a review" is on (useChatController.js reviews and runs such plans itself).
+// Kept word for word the same as src/lib/llm/systemPrompt.js's copy.
+const AUTO_APPROVE_NOTE = "[APPROVAL SETTING]\nThe user turned on \"Auto-approve after a review\" in Settings. A plan with removals (DELETE_*, BULK_DELETE, ARCHIVE_DONE_TASKS, RESTORE_BACKUP) now usually runs right away: the app checks it against the board, saves a checkpoint named after the change, and runs it. It still waits for \"Yes, do it\" if it sends a message, deletes something in a connected app, or the review finds a problem. So for a plan with a removal, say plainly what it does (\"Deleting the Q1 Newsletter project and its 4 tasks.\"), without claiming it already happened and without promising buttons; the app shows right under your reply whether it ran (with a Revert button) or is waiting.";
+
+function buildContextPrompt({ activeProjectId, areas, products, projects, archivedProjects, tasks, archivedTasks, stakeholders, departments, notes, conversationHistory, userText, aiIdentity, externalVault, vaultOverview, googleCalendar, gmail, microsoft, outlook, slack, clickup, granola, protocolReminderRequested, autoApproveEnabled = false, now }) {
   const identity = aiIdentity || {};
   const vaultConnected = !!(externalVault?.owner && externalVault?.repo && externalVault?.token);
   const calendarConnected = !!(googleCalendar?.accessToken && googleCalendar?.refreshToken);
@@ -2418,7 +2423,7 @@ ${clickupConnected ? `Connected: ${clickup.workspaceName}${clickup.defaultListNa
 
 [GRANOLA]
 ${granolaConnected ? `Connected${granola.emailAddress ? `: ${granola.emailAddress}` : ''}${granola.plan ? ` (Granola plan: ${granola.plan})` : ''} — meeting notes, also in the Meetings tab.` : 'Not connected — list_granola_meetings/get_granola_meeting will return connected: false.'}
-${protocolReminderRequested ? `\n[PROTOCOL REMINDER]\nThe user's latest message matched a bug/error/architecture/"which approach" pattern. If "soul" above defines a specific response protocol or step structure, apply it explicitly now and label each step in your reply — don't decide case-by-case whether it's "relevant," the trigger word match already decided that.\n` : ''}
+${protocolReminderRequested ? `\n[PROTOCOL REMINDER]\nThe user's latest message matched a bug/error/architecture/"which approach" pattern. If "soul" above defines a specific response protocol or step structure, apply it explicitly now and label each step in your reply — don't decide case-by-case whether it's "relevant," the trigger word match already decided that.\n` : ''}${autoApproveEnabled ? `\n${AUTO_APPROVE_NOTE}\n` : ''}
 [DATABASE STATE]
 Active Project ID (if chatting from within a specific project): ${activeProjectId || 'None'}
 Areas: ${JSON.stringify(areas.map((a) => ({ id: a.id, title: a.title, description: a.description })))}
@@ -2458,7 +2463,7 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const {
       message, conversationHistory, activeProjectId, aiIdentity = {}, externalVault = {},
-      vaultOverview = null, googleCalendar = {}, gmail = {}, microsoft = {}, outlook = {}, slack = {}, clickup = {}, granola = {}, protocolReminderRequested = false, clientNow = null,
+      vaultOverview = null, googleCalendar = {}, gmail = {}, microsoft = {}, outlook = {}, slack = {}, clickup = {}, granola = {}, protocolReminderRequested = false, autoApproveEnabled = false, clientNow = null,
       areas = [], products = [], projects = [], archivedProjects = [],
       tasks = [], archivedTasks = [], stakeholders = [], departments = [], notes = [],
     } = body;
@@ -2490,7 +2495,8 @@ Deno.serve(async (req) => {
       activeProjectId, areas, products, projects, archivedProjects,
       tasks, archivedTasks, stakeholders, departments, notes,
       conversationHistory, userText: message, aiIdentity, externalVault,
-      vaultOverview, googleCalendar, gmail, microsoft, outlook, slack, clickup, granola, protocolReminderRequested, now,
+      vaultOverview, googleCalendar, gmail, microsoft, outlook, slack, clickup, granola, protocolReminderRequested,
+      autoApproveEnabled: autoApproveEnabled === true, now,
     });
 
     // Streamed as newline-delimited JSON, one object per line — our own

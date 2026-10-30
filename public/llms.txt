@@ -18,16 +18,20 @@
   week's focus items. Selecting a stakeholder highlights every card and row
   they touch.
 - Vaea Chat: an AI assistant that creates, updates and completes items on the
-  board. Removals and sent messages wait for the user's approval; other edits
-  apply right away and are listed step by step (an "Approve every action"
-  setting gates all of them). A snapshot is taken before multi-step changes.
+  board. By default, removals and sent messages wait for the user's approval;
+  other edits apply right away and are listed step by step. "Approve every
+  action" makes every change wait; "Auto-approve after a review" lets removals
+  run once they pass a check against the board. A checkpoint, named after the
+  change, is saved before multi-step and auto-approved changes and can be
+  reverted from the chat. In a turn that read outside content (email, Slack,
+  meeting notes, a web page), changes to connected apps always wait.
 - Chat can also search the web, read an attached PDF/image/doc, follow a
   project's links, search and audit the whole workspace, and export entities
   to CSV.
-- Vaea Workplace: Vaea Calendar merges Google Workspace and Microsoft 365
-  calendars (plus committed project due dates) into one agenda; Vmail is a
-  native mail client over Gmail and Outlook. Chat can read and act across both,
-  approve-first. Meeting notes pasted into chat (/parse-notes) become tasks,
+- Vaea Workplace: Vaea Calendar shows committed project due dates in one
+  agenda; Google Workspace and Microsoft 365 calendars join it once those
+  connections launch (coming soon). Vmail is a mail client for Gmail and
+  Outlook (coming soon). Meeting notes pasted into chat (/parse-notes) become tasks,
   decisions, and follow-ups; Vaea does not record or transcribe meetings.
 - Mind Map: a live map of how a connected set of notes link to each other,
   plus a free-draw canvas for sketching out a process.
@@ -35,8 +39,9 @@
   tasks and user-defined rules, computed when the page loads (there is no
   always-on server).
 - Connectors, each authorized individually and stored on the user's device:
-  Google Workspace, Gmail, Microsoft 365, Outlook, Slack, ClickUp, Granola
-  (meeting notes, shown in a Meetings tab).
+  ClickUp (personal API token) and Granola (meeting notes, shown in a
+  Meetings tab) today; Google Workspace, Gmail, Microsoft 365, Outlook and
+  Slack are coming soon.
 - Notes (Vaea Brain): an optional connection to the user's own set of notes,
   kept in their own account. The assistant reads and adds to them directly;
   nothing is stored on Vaea's servers.

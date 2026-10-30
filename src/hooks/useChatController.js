@@ -16,6 +16,8 @@ import { loadMicrosoftConnection } from "@/lib/microsoftConnection";
 import { loadOutlookConnection } from "@/lib/outlookConnection";
 import { saveSnippet, findSnippet } from "@/lib/snippetsStore";
 import { loadAgentBehavior } from "@/lib/agentBehaviorSettings";
+import { connectorHoldReason, reviewPlan } from "@/lib/planReview";
+import { loadBoardData, restoreSnapshot } from "@/lib/backupSnapshots";
 import { loadSlackConnection } from "@/lib/slackConnection";
 import { loadClickUpConnection } from "@/lib/clickupConnection";
 import { fetchVaultOverview, SELF_NOTE_PATH } from "@/lib/githubApi";
@@ -428,6 +430,9 @@ export function useChatController({ activeProjectId } = {}) {
     const clickup = await loadClickUpConnection();
     // Granola: refreshed here, access token only (see granolaChat.js).
     const granola = await granolaForChat();
+    // Lets the model word a removal plan to match what will happen to it
+    // (AUTO_APPROVE_NOTE in systemPrompt.js).
+    const { autoApproveEnabled } = await loadAgentBehavior();
 
     // Settings -> AI Model: if the user brought their own provider key, the
     // plan is decided entirely client-side (src/lib/llm/byokChat.js) —
@@ -447,6 +452,7 @@ export function useChatController({ activeProjectId } = {}) {
           conversationHistory: payload.conversationHistory,
           aiIdentity: await loadAiIdentity(),
           protocolReminderRequested: payload.protocolReminderRequested,
+          autoApproveEnabled,
           externalVault,
           vaultOverview,
           googleCalendar,
@@ -504,6 +510,7 @@ export function useChatController({ activeProjectId } = {}) {
         // decided client-side from the user's own just-typed message, not
         // re-derived here.
         protocolReminderRequested: payload.protocolReminderRequested,
+        autoApproveEnabled,
         areas: areas.filter((a) => !a.deleted_at),
         products: products.filter((p) => !p.deleted_at),
         projects: projectsActive,
@@ -923,15 +930,28 @@ export function useChatController({ activeProjectId } = {}) {
     // staged action, not a separate approval queue — see chatActions.js's
     // DESTRUCTIVE_ACTIONS comment for why this one gate is the real
     // mechanism a widened toggle should reuse rather than duplicate.
-    const { approvalQueueEnabled } = await loadAgentBehavior();
-    if (approvalQueueEnabled || executable.some((a) => DESTRUCTIVE_ACTIONS.has(a.action))) {
+    //
+    // Two more reasons a plan waits, from planReview.js: a turn that read
+    // outside content (email, Slack, meeting notes, a web page) never changes
+    // a connected app without a yes; and with "Auto-approve after a review"
+    // on, a plan that would wait is checked against the board instead, and
+    // runs if a checkpoint can undo all of it.
+    const { approvalQueueEnabled, autoApproveEnabled } = await loadAgentBehavior();
+    const connectorHold = connectorHoldReason(executable, liveTrace);
+    const wouldWait = executable.some((a) => DESTRUCTIVE_ACTIONS.has(a.action));
+    let review = null;
+    if (!approvalQueueEnabled && !connectorHold && wouldWait && autoApproveEnabled) {
+      review = reviewPlan(executable, await loadBoardData(), { waitingActions: (a) => DESTRUCTIVE_ACTIONS.has(a.action) });
+    }
+    if (approvalQueueEnabled || connectorHold || (wouldWait && !review?.ok)) {
       setLiveSteps([]);
       proposeVaultNotesIfAny(executable);
+      const holdReason = connectorHold || (review && !review.ok ? `Auto-approve held this: ${review.summary[0].toLowerCase()}${review.summary.slice(1)}` : null);
       await createMessage.mutateAsync(
         {
           session_id: sessionId, role: "assistant",
           content: buildLoggedContent(reply, liveTrace.map((l) => l.label)),
-          pending_action: { actions: executable },
+          pending_action: { actions: executable, ...(holdReason ? { hold_reason: holdReason } : {}) },
           ...(liveTrace.length ? { tool_log_detail: { liveTrace } } : {}),
         },
         messageOptions
@@ -941,7 +961,12 @@ export function useChatController({ activeProjectId } = {}) {
 
     setLiveSteps((prev) => [...prev, describePlan(executable)]);
     const paceReveal = executable.length <= MAX_PACED_STEPS;
+    let checkpoint = null;
     const results = await executeActionSequence(executable, {
+      // An auto-approved plan always gets its own checkpoint, so Revert
+      // undoes exactly this change.
+      checkpoint: !!review?.ok,
+      onCheckpoint: (saved) => { checkpoint = saved; },
       onStep: async (step) => {
         setLiveSteps((prev) => [...prev, describeToolCall(step)]);
         if (paceReveal) await sleep(STEP_REVEAL_DELAY_MS);
@@ -958,7 +983,11 @@ export function useChatController({ activeProjectId } = {}) {
     await createMessage.mutateAsync(
       {
         session_id: sessionId, role: "assistant", content,
-        tool_log_detail: { liveTrace, plan: executable, steps: results, reasoning },
+        tool_log_detail: {
+          liveTrace, plan: executable, steps: results, reasoning,
+          ...(checkpoint ? { checkpoint } : {}),
+          ...(review?.ok ? { auto_approved: review.summary } : {}),
+        },
       },
       messageOptions
     );
@@ -1115,7 +1144,9 @@ export function useChatController({ activeProjectId } = {}) {
     try {
       setLiveSteps([describePlan(actions)]);
       const paceReveal = actions.length <= MAX_PACED_STEPS;
+      let checkpoint = null;
       const results = await executeActionSequence(actions, {
+        onCheckpoint: (saved) => { checkpoint = saved; },
         onStep: async (step) => {
           setLiveSteps((prev) => [...prev, describeToolCall(step)]);
           if (paceReveal) await sleep(STEP_REVEAL_DELAY_MS);
@@ -1135,7 +1166,7 @@ export function useChatController({ activeProjectId } = {}) {
       await createMessage.mutateAsync(
         {
           session_id: message.session_id, role: "assistant", content: buildLoggedContent("Done.", toolLog),
-          tool_log_detail: { plan: actions, steps: results },
+          tool_log_detail: { plan: actions, steps: results, ...(checkpoint ? { checkpoint } : {}) },
         },
         { onSuccess: (created) => markMessageNew(created.id) }
       );
@@ -1189,6 +1220,34 @@ export function useChatController({ activeProjectId } = {}) {
     }
   };
 
+  // Puts the board back to the checkpoint saved just before this message's
+  // change (restoreSnapshot saves a checkpoint of the current board first,
+  // so a revert can itself be undone from Backups). Marks the message so
+  // its Revert button turns into "Reverted".
+  const handleRevert = async (message) => {
+    const checkpoint = message.tool_log_detail?.checkpoint;
+    if (!checkpoint?.id) return;
+    setResolvingId(message.id);
+    try {
+      await restoreSnapshot(checkpoint.id);
+      await updateMessage.mutateAsync({
+        id: message.id,
+        data: {
+          session_id: message.session_id, role: message.role, content: message.content,
+          tool_log_detail: { ...message.tool_log_detail, reverted_at: new Date().toISOString() },
+        },
+      });
+      await invalidateAppQueries();
+    } catch (error) {
+      await createMessage.mutateAsync(
+        { session_id: message.session_id, role: "assistant", content: `⚠️ Couldn't revert: ${error.message}` },
+        { onSuccess: (created) => markMessageNew(created.id) }
+      );
+    } finally {
+      setResolvingId(null);
+    }
+  };
+
   const dismissAuthPrompt = () => setAuthPromptVisible(false);
   // redirectToLogin() targets Base44's hosted /login page route, which
   // doesn't work for this app's deployment (see LoginScreen.jsx) —
@@ -1227,5 +1286,6 @@ export function useChatController({ activeProjectId } = {}) {
     handleSend,
     handleConfirm,
     handleCancel,
+    handleRevert,
   };
 }

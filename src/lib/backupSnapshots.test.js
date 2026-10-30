@@ -25,7 +25,7 @@ describe("backupSnapshots: create/list/restore round-trip", () => {
     await executeAction("CREATE_AREA", { title: "Area A", description: "" });
     await executeAction("CREATE_AREA", { title: "Area B", description: "" });
 
-    const id = await createSnapshot("manual test snapshot");
+    const { id } = await createSnapshot("manual test snapshot");
     expect(id).toBeTruthy();
 
     const snapshots = await listSnapshots();
@@ -36,7 +36,7 @@ describe("backupSnapshots: create/list/restore round-trip", () => {
 
   it("restores collections to exactly the snapshot's state, undoing changes made after it", async () => {
     const { toolResult: { area } } = await executeAction("CREATE_AREA", { title: "Original", description: "" });
-    const id = await createSnapshot("before the mistake");
+    const { id } = await createSnapshot("before the mistake");
 
     // Simulate a bad bulk change after the snapshot: delete the area, add junk.
     await executeAction("DELETE_AREA", { area_id: area.id });
@@ -52,14 +52,14 @@ describe("backupSnapshots: create/list/restore round-trip", () => {
 
   it("restoring itself is undoable via the auto 'before restore' snapshot", async () => {
     await executeAction("CREATE_AREA", { title: "Keep me", description: "" });
-    const goodId = await createSnapshot("good state");
+    const { id: goodId } = await createSnapshot("good state");
     await executeAction("CREATE_AREA", { title: "Extra", description: "" });
 
     await restoreSnapshot(goodId);
     expect(await localDb.areas.list()).toHaveLength(1);
 
     const snapshots = await listSnapshots();
-    const autoSnapshot = snapshots.find((s) => s.label === "Before restore (auto)");
+    const autoSnapshot = snapshots.find((s) => s.label === 'Restored checkpoint "good state"');
     expect(autoSnapshot).toBeTruthy();
 
     // The auto-snapshot captured the 2-area state right before the restore —
@@ -88,7 +88,7 @@ describe("backupSnapshots: wired into chatActions' executeActionSequence", () =>
     ]);
     const snapshots = await listSnapshots();
     expect(snapshots).toHaveLength(1);
-    expect(snapshots[0].label).toContain("2-step plan");
+    expect(snapshots[0].label).toBe('Added area "Platform" and product "Core"');
   });
 
   it("auto-snapshots before a BULK_CREATE even as a single-step plan", async () => {
@@ -103,7 +103,7 @@ describe("backupSnapshots: wired into chatActions' executeActionSequence", () =>
     ]);
     const snapshots = await listSnapshots();
     expect(snapshots).toHaveLength(1);
-    expect(snapshots[0].label).toBe("Before BULK_CREATE");
+    expect(snapshots[0].label).toBe('Added task "T1" to "Project"');
   });
 
   it("does not snapshot a single ordinary action", async () => {

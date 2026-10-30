@@ -1334,7 +1334,7 @@ export const TOOL_CATALOG = [
   // --- Full UI parity: every one of these mirrors an action a real user can
   // already take by hand in the app's own UI (Notifications' rule builder,
   // the chat sidebar's Agents/Prompt Templates cards, the Workflow Canvas,
-  // Settings -> AI Preferences, Settings -> Backup & Restore) — so asking
+  // Settings -> AI Preferences, Settings -> Checkpoints) — so asking
   // the assistant to do it is never a dead end just because that surface
   // happens to be a newer part of the app. ---
 
@@ -1452,7 +1452,7 @@ export const TOOL_CATALOG = [
   {
     name: "CREATE_BACKUP",
     staged: true,
-    description: "Create a manual backup snapshot of the whole workspace — the same thing the user can do in Settings -> Backup & Restore. A snapshot is also always taken automatically before any risky multi-step plan, so this is for an on-demand extra one.",
+    description: "Create a manual backup snapshot of the whole workspace — the same thing the user can do in Settings -> Checkpoints. A snapshot is also always taken automatically before any risky multi-step plan, so this is for an on-demand extra one.",
     parameters: { type: "object", properties: { label: { type: "string", description: "Optional label, e.g. \"before reorg\"." } }, required: [] },
   },
   {
@@ -1464,7 +1464,7 @@ export const TOOL_CATALOG = [
   {
     name: "RESTORE_BACKUP",
     staged: true,
-    description: "Restore the workspace from a backup snapshot — the same \"Restore\" button in Settings -> Backup & Restore. Get snapshot_id from list_backups first; never guess one. Destructive (overwrites current data) — goes through the normal confirm-before-destructive step.",
+    description: "Restore the workspace from a backup snapshot — the same \"Restore\" button in Settings -> Checkpoints. Get snapshot_id from list_backups first; never guess one. Destructive (overwrites current data) — goes through the normal confirm-before-destructive step.",
     parameters: { type: "object", properties: { snapshot_id: { type: "string" } }, required: ["snapshot_id"] },
   },
   {

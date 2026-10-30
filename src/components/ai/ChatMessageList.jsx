@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
-import { TriangleAlert } from "lucide-react";
+import { TriangleAlert, ShieldCheck, History } from "lucide-react";
 import ChatIcon from "@/components/ai/ChatIcon";
 import ChatToolLogDetail, { humanizeAction } from "@/components/ai/ChatToolLogDetail";
 import { sanitizeUrl } from "@/lib/sanitizeUrl";
@@ -234,13 +234,15 @@ function ChatAssistantMessage({ m, onOpenDetail, isNew, onFinishTyping }) {
 // tool-log trace above it (already-happened, informational) and from the
 // reply text (prose) by design: this is the one place the transcript asks
 // the user to actually decide something.
-function PendingActionCard({ actions, onConfirm, onCancel, resolving }) {
+function PendingActionCard({ actions, holdReason, onConfirm, onCancel, resolving }) {
   return (
     <div className="mt-1.5 rounded-lg border border-destructive/25 bg-destructive/[0.05] overflow-hidden max-w-md">
       <div className="px-3 py-1.5 flex items-center gap-1.5 border-b border-destructive/15">
         <TriangleAlert className="w-3.5 h-3.5 text-destructive/80 shrink-0" />
         <span className="text-[10px] font-semibold uppercase tracking-wider text-destructive/80">Confirm to proceed</span>
       </div>
+      {/* Why this one waits when it otherwise wouldn't (planReview.js). */}
+      {holdReason && <p className="px-3 pt-2 text-xs text-muted-foreground">{holdReason}</p>}
       <ul className="px-3 py-2 space-y-0.5">
         {(actions || []).map((a, i) => {
           // The target of the action, when the plan carries one — a title on
@@ -283,7 +285,39 @@ function PendingActionCard({ actions, onConfirm, onCancel, resolving }) {
 // register as the marketing site's hero mockup, not a decorative match: it's
 // the one place real assistant output belongs (see --font-terminal in
 // index.css).
-export default function ChatMessageList({ messages, isComputing, isLoading, isPlanning, liveSteps, streamingText, iconChoice, hasMore, onLoadMore, resolvingId, onConfirm, onCancel, newMessageIds, onMessageTyped }) {
+// The checkpoint saved just before a message's change ran, by name, with a
+// way to undo it. Auto-approved changes say so, with what the review checked.
+function CheckpointLine({ detail, onRevert, resolving }) {
+  const { checkpoint, auto_approved: autoApproved, reverted_at: revertedAt } = detail;
+  return (
+    <div className="mt-1 max-w-md text-xs text-muted-foreground">
+      {autoApproved && (
+        <p className="flex items-start gap-1.5">
+          <ShieldCheck className="w-3.5 h-3.5 shrink-0 mt-px text-primary/70" />
+          <span>Auto-approved. {autoApproved}</span>
+        </p>
+      )}
+      <p className="flex items-center gap-1.5 mt-0.5">
+        <History className="w-3.5 h-3.5 shrink-0" />
+        <span className="min-w-0 truncate" title={checkpoint.label}>Checkpoint: {checkpoint.label}</span>
+        {revertedAt ? (
+          <span className="shrink-0 text-foreground/70">· Reverted</span>
+        ) : onRevert ? (
+          <button
+            type="button"
+            onClick={onRevert}
+            disabled={resolving}
+            className="shrink-0 ml-1 px-2 py-0.5 border border-border rounded-md text-foreground/80 hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
+          >
+            {resolving ? "Reverting…" : "Revert"}
+          </button>
+        ) : null}
+      </p>
+    </div>
+  );
+}
+
+export default function ChatMessageList({ messages, isComputing, isLoading, isPlanning, liveSteps, streamingText, iconChoice, hasMore, onLoadMore, resolvingId, onConfirm, onCancel, onRevert, newMessageIds, onMessageTyped }) {
   const containerRef = useRef(null);
   const [openDetail, setOpenDetail] = useState(null);
   // Tracks whether the user was already at (or very near) the bottom right
@@ -363,8 +397,16 @@ export default function ChatMessageList({ messages, isComputing, isLoading, isPl
           {m.pending_action && (
             <PendingActionCard
               actions={m.pending_action.actions}
+              holdReason={m.pending_action.hold_reason}
               onConfirm={() => onConfirm(m)}
               onCancel={() => onCancel(m)}
+              resolving={resolvingId === m.id}
+            />
+          )}
+          {m.tool_log_detail?.checkpoint?.label && (
+            <CheckpointLine
+              detail={m.tool_log_detail}
+              onRevert={onRevert ? () => onRevert(m) : undefined}
               resolving={resolvingId === m.id}
             />
           )}

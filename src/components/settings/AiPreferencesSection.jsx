@@ -229,7 +229,21 @@ export default function AiPreferencesSection() {
               className="mt-0.5"
               checked={agentBehavior.approvalQueueEnabled}
               aria-labelledby="approval-queue-label"
-              onCheckedChange={(v) => updateAgentBehavior({ approvalQueueEnabled: v })}
+              onCheckedChange={(v) => updateAgentBehavior(v ? { approvalQueueEnabled: true, autoApproveEnabled: false } : { approvalQueueEnabled: false })}
+            />
+          </div>
+          <div className="flex items-start justify-between gap-4 mt-4 pt-4 border-t border-border">
+            <div>
+              <p id="auto-approve-label" className="text-sm font-medium">Auto-approve after a review</p>
+              <p className="text-xs text-muted-foreground mt-0.5 max-w-md">
+                Removals and restores run without asking, once Vaea checks them against your board and saves a checkpoint named after the change. Undo any of them with Revert in the chat or under Backups. Sent messages and changes in connected apps still wait for your “Yes, do it”, because a checkpoint can't undo them.
+              </p>
+            </div>
+            <Switch
+              className="mt-0.5"
+              checked={agentBehavior.autoApproveEnabled}
+              aria-labelledby="auto-approve-label"
+              onCheckedChange={(v) => updateAgentBehavior(v ? { autoApproveEnabled: true, approvalQueueEnabled: false } : { autoApproveEnabled: false })}
             />
           </div>
           <div className="flex items-start justify-between gap-4 mt-4 pt-4 border-t border-border">

@@ -65,7 +65,7 @@ export default function CsvImportForm() {
       const { records } = parseCsv(text);
       const { actions, errors } = buildHierarchyPlan(records, { areas, products, projects, tasks });
       if (actions.length) {
-        await executeActionSequence(actions);
+        await executeActionSequence(actions, { source: "csv" });
         ["areas", "products", "projects", "tasks"].forEach((key) =>
           queryClient.invalidateQueries({ queryKey: [key] })
         );

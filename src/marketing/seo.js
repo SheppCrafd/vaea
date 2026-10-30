@@ -1,8 +1,9 @@
 // Single source of truth for every marketing route's <head>. Imported both
 // by the runtime <SeoHead> component (client-side nav) and by
 // scripts/prerender.mjs (build-time static HTML) so the two can never drift.
-// Plain JS on purpose — no JSX, no imports — so the prerender bundler picks
-// it up with zero config.
+// Plain JS on purpose — no JSX, and only one tiny import (which connectors
+// can connect in this build, for the Workplace FAQ).
+import { ANY_CALENDAR_AVAILABLE, ANY_MAIL_AVAILABLE } from "../lib/connectorAvailability.js";
 
 export const SITE_URL = "https://vaea.base44.app";
 export const SITE_NAME = "Vaea";
@@ -164,7 +165,7 @@ export const ASSISTANT_FAQ = [
   },
   {
     q: "Could it do something I didn't want?",
-    a: "It acts when you ask, or when an agent you set up runs on its schedule. It never removes or sends anything without your yes. A backup of your whole board is saved before any multi-step change, so a mistake is easy to walk back from Settings → Backup & Restore. Want every change to wait for you? Turn on “Approve every action”.",
+    a: "It acts when you ask, or when an agent you set up runs on its schedule. By default it asks before it removes or sends anything. A checkpoint of your whole board, named after the change, is saved before any multi-step change, so a mistake is easy to walk back. Want every change to wait for you? Turn on “Approve every action”. Want removals to run on their own? “Auto-approve after a review” checks each one against your board and saves a checkpoint first; sent messages still wait for your yes.",
   },
   {
     q: "Does it watch how I work?",
@@ -181,7 +182,7 @@ export const ASSISTANT_STEPS = [
   ["It looks at your board", "Your current board is sent along so it can see what's actually there. Just for that one question — nothing is kept."],
   ["It makes the change", "It works through the steps and lists each one as it goes, so you can see exactly what changed."],
   ["Removals wait for you", "Anything that deletes something or sends a message stops for your “Yes, do it” first. Want every change to wait? Turn on “Approve every action” in Settings."],
-  ["You can walk it back", "A backup of your whole board is saved before any multi-step change. Restore it from Settings → Backup & Restore."],
+  ["You can walk it back", "A checkpoint of your whole board is saved before any multi-step change, named after what changed and where. Revert it from the chat or from Settings → Checkpoints."],
 ];
 
 export const BRAIN_FAQ = [
@@ -202,7 +203,9 @@ export const BRAIN_FAQ = [
 export const WORKPLACE_FAQ = [
   {
     q: "Which accounts can I connect?",
-    a: "Google and Microsoft, for both calendar and email. Connect one or both — every calendar lands in a single agenda alongside your project due dates, and your mail comes into one inbox.",
+    a: ANY_CALENDAR_AVAILABLE && ANY_MAIL_AVAILABLE
+      ? "Google and Microsoft, for both calendar and email. Connect one or both — every calendar lands in a single agenda alongside your project due dates, and your mail comes into one inbox."
+      : "Google and Microsoft calendar and email connections are coming soon. Until then, the agenda shows your project due dates, and you can connect ClickUp, Granola meeting notes and your own notes.",
   },
   {
     q: "Can Vaea Chat act on my email and calendar?",

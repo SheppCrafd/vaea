@@ -188,6 +188,7 @@ export default function ChatBox({ startOpen = false }) {
             resolvingId={chat.resolvingId}
             onConfirm={chat.handleConfirm}
             onCancel={chat.handleCancel}
+            onRevert={chat.handleRevert}
             newMessageIds={chat.newMessageIds}
             onMessageTyped={chat.clearNewMessage}
           />

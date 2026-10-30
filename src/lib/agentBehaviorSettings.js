@@ -12,8 +12,13 @@
 // reading it to compare BYOK providers side by side.
 import { createDeviceKeyStore } from "@/lib/deviceKeyStore";
 
+// autoApproveEnabled is the opposite of approvalQueueEnabled: a change that
+// would wait for a yes is reviewed against the board instead (planReview.js)
+// and runs after a named checkpoint is saved. Settings keeps at most one of
+// the two on.
 export const DEFAULTS = {
   approvalQueueEnabled: false,
+  autoApproveEnabled: false,
   autoSchedulingEnabled: false,
 };
 

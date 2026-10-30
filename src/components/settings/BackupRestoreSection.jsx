@@ -33,8 +33,9 @@ export default function BackupRestoreSection() {
   }, []);
 
   const handleRestore = (id) => {
+    const label = snapshots.find((s) => s.id === id)?.label;
     confirmThen(
-      "Restore this backup? Your current data will be replaced (a fresh backup of the current state is taken first, so this itself can be undone).",
+      `Put your board back to how it was before "${label}"? Anything changed after it is undone too. Vaea saves a checkpoint of the board as it is now first, so you can undo this.`,
       async () => {
         setRestoringId(id);
         try {
@@ -49,7 +50,7 @@ export default function BackupRestoreSection() {
           // no way to tell what state the data was actually left in.
           toast({
             variant: "destructive",
-            title: "Backup not restored",
+            title: "Checkpoint not restored",
             description: error?.message || "The restore stopped partway. Check your board before relying on it.",
           });
         } finally {
@@ -61,13 +62,13 @@ export default function BackupRestoreSection() {
 
   return (
     <SettingsCard>
-      <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">Backups</p>
+      <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">Checkpoints</p>
       <p className="text-xs text-muted-foreground mb-4">
-        A snapshot of everything is taken automatically before any multi-step AI plan, bulk create/delete, or CSV import. Restore one below if something went wrong.
+        Vaea saves a checkpoint of your whole board before any multi-step change from Vaea Chat, any removal it auto-approves, and any CSV import. Each one is named after the change. Restore one to put the board back to how it was just before that change. Vaea keeps the 8 most recent.
       </p>
 
       {snapshots.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No backups yet — one is created the first time a bulk change runs.</p>
+        <p className="text-sm text-muted-foreground">No checkpoints yet. The first one is saved the next time Vaea Chat makes a multi-step change.</p>
       ) : (
         <div className="flex flex-col gap-2">
           {snapshots.map((snap) => (
@@ -75,7 +76,7 @@ export default function BackupRestoreSection() {
               <div className="min-w-0">
                 <p className="font-medium truncate">{snap.label}</p>
                 <p className="text-xs text-muted-foreground">
-                  {new Date(snap.created_at).toLocaleString()} · {summarizeCounts(snap.counts)}
+                  {new Date(snap.created_at).toLocaleString()} · board before: {summarizeCounts(snap.counts)}
                 </p>
               </div>
               <button

@@ -52,7 +52,7 @@ export default function StorageSection() {
           // cloud storage) — copyAllKeys itself has no such check, it just
           // overwrites every key unconditionally. See storageMigration.js.
           if (await destinationHasData({ read: cloudStorage.readKey })) {
-            setError("Your cloud storage already has data in it — switching would overwrite it. Back it up first (Settings → Backup & Restore), or clear the cloud data before switching.");
+            setError("Your cloud storage already has data in it — switching would overwrite it. Back it up first (Settings → Checkpoints), or clear the cloud data before switching.");
             setBusy(false);
             return;
           }
