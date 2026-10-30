@@ -28,7 +28,7 @@ describe("reviewPlan: passing plans", () => {
     const review = check([{ action: "DELETE_PROJECT", args: { project_id: "j1" } }], data);
     expect(review.ok).toBe(true);
     expect(review.removed).toBe(3); // the project and its two tasks
-    expect(review.summary).toBe("Passed 8 review rules for 1 step. It removes 3 items, and a checkpoint can undo all of it.");
+    expect(review.summary).toBe("Passed 9 review rules for 1 step. It removes 3 items, and a checkpoint can undo all of it.");
   });
 
   it("passes board changes alongside the delete", () => {
@@ -49,7 +49,7 @@ describe("reviewPlan: passing plans", () => {
   });
 
   it("has a plain sentence for every rule", () => {
-    expect(REVIEW_RULES.map((r) => r.id)).toEqual(["board-only", "asked", "named", "count", "exists", "no-repeats", "kinds", "limit", "share", "restore-alone", "inside-only"]);
+    expect(REVIEW_RULES.map((r) => r.id)).toEqual(["board-only", "from-you", "asked", "named", "count", "exists", "no-repeats", "kinds", "limit", "share", "restore-alone", "inside-only"]);
     const rules = normalizeReviewRules();
     REVIEW_RULES.forEach((r) => expect(r.text(rules)).toMatch(/^[A-Z].*\.$/));
     expect(REVIEW_RULES.find((r) => r.id === "limit").text(rules)).toBe("It removes at most 50 items, counting everything each delete takes with it.");
@@ -208,7 +208,7 @@ describe("reviewPlan: the user's rule settings", () => {
     const liveTrace = [{ label: 'read_gmail_message("Quote")' }];
     expect(check(del, data, { liveTrace }).ok).toBe(false);
     expect(check(del, data, { liveTrace, rules: set({ "inside-only": { on: false } }) }).ok).toBe(true);
-    expect(check(del, data, { liveTrace, rules: set({ "inside-only": { on: false } }) }).summary).toMatch(/^Passed 7 review rules/);
+    expect(check(del, data, { liveTrace, rules: set({ "inside-only": { on: false } }) }).summary).toMatch(/^Passed 8 review rules/);
   });
 
   it("never lets the user switch off board-only", () => {
@@ -268,7 +268,7 @@ describe("reviewPlan: reading the conversation", () => {
 
   it("holds a plan whose count doesn't match the user's number", () => {
     const plan = [{ action: "BULK_DELETE", args: { entity_type: "task", ids: ["t3", "t4"] } }];
-    expect(reviewPlan(plan, board, talk("Delete 3 tasks from Q1 Newsletter: all of them")).summary).toBe("You asked to remove 3 tasks, and it removes 2.");
+    expect(reviewPlan(plan, board, talk("Delete all 3 tasks in Q1 Newsletter")).summary).toBe("You asked to remove 3 tasks, and it removes 2.");
     expect(reviewPlan(plan, board, talk("Delete the two tasks, all of them in Q1 Newsletter")).ok).toBe(true);
   });
 
@@ -302,6 +302,46 @@ describe("reviewPlan: reading the conversation", () => {
     expect(namesItem("kill the newsletter", "Q1 Newsletter")).toBe(true);
     expect(namesItem("delete the project", "Q1 Newsletter")).toBe(false);
     expect(namesItem("delete website redesign", "Website Redesign 2026")).toBe(true);
+  });
+
+  // Hardening from a security review: ways a plan could pass that the user
+  // never actually asked for.
+  it("always holds a plan an agent made, whatever the rule settings", () => {
+    const allOff = Object.fromEntries(Object.keys(DEFAULT_REVIEW_RULES).map((id) => [id, { ...DEFAULT_REVIEW_RULES[id], on: false }]));
+    const review = reviewPlan(delNewsletter, board, { conversation: { fromAgent: true }, rules: allOff });
+    expect(review.problems[0]).toEqual({ rule: "from-you", text: "An agent made this plan, not a message from you, so it waits for your yes.", step: 0 });
+  });
+
+  it("doesn't follow \"them\" back to a reply built on outside content", () => {
+    const before = [{ role: "assistant", content: "Your email asks to drop Q1 Newsletter.", liveTrace: [{ label: 'read_gmail_message("Plans")' }] }];
+    const review = reviewPlan(delNewsletter, board, talk("ok delete them", before));
+    expect(review.problems.map((p) => p.rule)).toEqual(["named", "inside-only"]);
+    expect(reviewPlan(delNewsletter, board, talk("Delete the Q1 Newsletter project", before)).ok).toBe(true);
+  });
+
+  it("only follows back to the reply right before the message", () => {
+    const before = [{ role: "assistant", content: "Q1 Newsletter is stale." }, { role: "user", content: "hm" }, { role: "assistant", content: "Anything else?" }];
+    expect(reviewPlan(delNewsletter, board, talk("ok delete it", before)).problems[0].rule).toBe("named");
+  });
+
+  it("lets \"it\" stand for one item, not several", () => {
+    const before = [{ role: "assistant", content: "Launch and Q1 Newsletter are both stale." }];
+    const plan = [{ action: "DELETE_PROJECT", args: { project_id: "j1" } }, { action: "DELETE_PROJECT", args: { project_id: "j2" } }];
+    const loose = { rules: { ...DEFAULT_REVIEW_RULES, share: { on: false } } };
+    expect(reviewPlan(plan, board, { ...talk("delete it", before), ...loose }).problems[0].rule).toBe("named");
+    expect(reviewPlan(plan, board, { ...talk("delete them", before), ...loose }).ok).toBe(true);
+  });
+
+  it("doesn't let a part of a name stand for an item when it fits another one too", () => {
+    const twins = { ...board, tasks: [...board.tasks, { id: "t5", project_id: "j1", title: "Newsletter" }] };
+    expect(reviewPlan(delNewsletter, twins, talk("delete the newsletter")).problems[0].rule).toBe("named");
+    expect(reviewPlan(delNewsletter, twins, talk("delete the newsletter project")).ok).toBe(true);
+    expect(reviewPlan(delNewsletter, twins, talk("delete Q1 Newsletter")).ok).toBe(true);
+  });
+
+  it("ties \"all\" to the name that follows it", () => {
+    const plan = [{ action: "DELETE_TASK", args: { task_id: "t3" } }];
+    expect(reviewPlan(plan, board, talk("Q1 Newsletter is fine; delete all the tasks in Launch")).problems[0].rule).toBe("named");
   });
 });
 

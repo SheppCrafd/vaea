@@ -708,7 +708,7 @@ export function useChatController({ activeProjectId } = {}) {
         markMessageNew(created.id);
         if (session.id !== activeSessionIdRef.current) setReflectionSessionId(session.id);
       },
-    }, { latest: agent.purpose || "", history: [] });
+    }, { fromAgent: true });
     const agents = await loadAgents();
     await saveAgents(agents.map((a) => (a.id === agent.id ? { ...a, lastRunAt: new Date().toISOString() } : a)));
   };
@@ -884,8 +884,8 @@ export function useChatController({ activeProjectId } = {}) {
   // nothing streamed live for it.
   // `conversation` ({ latest, history }) is what the auto-approve reviewer
   // checks the plan against. Left out, it reads the session's recent
-  // messages; an agent run passes its own purpose instead, since no one
-  // typed a message for it.
+  // messages. An agent run passes { fromAgent: true }: no one typed a
+  // message for it, so its removals always wait (planReview.js from-you).
   const applyAssistantReply = async (sessionId, data, messageOptions = {}, conversation = null) => {
     const reply = data.reply || "Done.";
     // Genuinely null/undefined for any turn that never queued more than
@@ -955,7 +955,7 @@ export function useChatController({ activeProjectId } = {}) {
         loadBoardData(), listSnapshots(), conversation ? null : fetchRecentMessages(sessionId).catch(() => []),
       ]);
       review = reviewPlan(executable, board, { checkpoints, liveTrace, rules: reviewRules,
-        conversation: conversation || conversationFrom((recent || []).map((m) => ({ role: m.role, content: stripToolLog(m.content || "") }))),
+        conversation: conversation || conversationFrom((recent || []).map((m) => ({ role: m.role, content: stripToolLog(m.content || ""), liveTrace: m.tool_log_detail?.liveTrace }))),
       });
     }
     if (approvalQueueEnabled || connectorHold || (wouldWait && !review?.ok)) {

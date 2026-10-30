@@ -170,12 +170,16 @@ export function normalizeReviewRules(stored) {
   return out;
 }
 
+const LOCKED_RULES = new Set(["board-only", "from-you"]);
+
 // The rulebook, in the order it's checked. `text` is the rule as one
-// sentence for the current settings. board-only is locked on: without it,
+// sentence for the current settings. Two are locked on: without board-only,
 // auto-approve could send a message or change another app with nothing to
-// undo it.
+// undo it; without from-you, an agent the assistant wrote (perhaps on an
+// email's say-so) could delete on a schedule with no one asking.
 export const REVIEW_RULES = [
   { id: "board-only", title: "Board Only", locked: true, text: () => "Every step changes only your board, so a checkpoint can undo it. Nothing is sent, and nothing changes in another app or in your settings." },
+  { id: "from-you", title: "From You", locked: true, text: () => "The plan answers a message you sent. Plans from agents and check-ins always wait for your yes." },
   { id: "asked", title: "You Asked for It", text: () => "Your last message asks to remove something, or to restore a checkpoint. \"Don't delete anything\" doesn't count." },
   { id: "named", title: "Named by You", text: () => "Every item it deletes is named in your last message, or sits inside something you named with \"all\" or \"every\", or was in the reply you meant by \"them\" or \"those\"." },
   { id: "count", title: "Matches Your Number", text: () => "When you give a number (\"delete 3 tasks\"), it removes exactly that many." },
@@ -254,19 +258,24 @@ const COMMON_WORDS = new Set([
   "area", "areas", "product", "products", "project", "projects", "task", "tasks", "note", "notes", "plan", "list", "item",
 ]);
 
-// Does `text` name the item titled `title`? The whole title in order, or,
-// for a longer title, every distinctive word of it.
-export function namesItem(text, title) {
+// How `text` names the item titled `title`: "full" (the whole title, in
+// order), "partial" (every distinctive word of it, in any order), or null.
+// A partial match counts only when it can't mean another item (namedIn).
+function matchKind(text, title) {
   const t = norm(text);
   const name = norm(title).trim();
-  if (!name) return false;
-  if (t.includes(` ${name} `)) return true;
+  if (!name) return null;
+  if (t.includes(` ${name} `)) return "full";
   const distinct = name.split(" ").filter((w) => w.length >= 3 && !COMMON_WORDS.has(w));
   // People usually leave a year or number off a title ("Website Redesign 2026").
   const words = distinct.some((w) => !/^\d+$/.test(w)) ? distinct.filter((w) => !/^\d+$/.test(w)) : distinct;
-  if (!words.length) return false;
-  if (words.length === 1) return words[0].length >= 4 && t.includes(` ${words[0]} `);
-  return words.every((w) => t.includes(` ${w} `));
+  if (!words.length) return null;
+  if (words.length === 1) return words[0].length >= 4 && t.includes(` ${words[0]} `) ? "partial" : null;
+  return words.every((w) => t.includes(` ${w} `)) ? "partial" : null;
+}
+
+export function namesItem(text, title) {
+  return matchKind(text, title) !== null;
 }
 
 const REMOVE_VERBS = "delete|deleting|remove|removing|clear|clean up|cleanup|tidy|get rid of|wipe|erase|drop|trash|purge|archive|discard|scrap|ditch|toss|dump|eliminate|kill";
@@ -332,21 +341,38 @@ const SPEC_BY_COLLECTION = { areas: AREA, products: PRODUCT, projects: PROJECT, 
 const titleOf = (e) => e?.title || e?.name || e?.label || "";
 
 // A session's messages (oldest first) as the conversation reviewPlan reads:
-// the latest user message, and everything up to it.
+// the latest user message, and everything up to it. Each message keeps the
+// tools its turn ran (liveTrace), so a reply built on outside content is
+// known to be.
 export function conversationFrom(messages) {
   const history = (messages || []).filter((m) => m && (m.role === "user" || m.role === "assistant"));
   const last = history.map((m) => m.role).lastIndexOf("user");
   return { latest: last >= 0 ? String(history[last].content || "") : "", history: history.slice(0, last + 1) };
 }
 
-// The latest user message and what came just before it. `conversation` is
-// { latest, history: [{ role, content }] }, oldest first.
+// The latest user message, and the one assistant reply right before it
+// (what "them" or "it" can point back to). `conversation` is
+// { latest, history: [{ role, content, liveTrace }] }, oldest first, or
+// { fromAgent: true } for a plan no one typed a message for.
 function readConversation(conversation) {
   const latest = String(conversation?.latest || "");
   const history = Array.isArray(conversation?.history) ? conversation.history : [];
   const lastUser = history.map((m) => m.role).lastIndexOf("user");
-  const before = history.slice(Math.max(0, lastUser - 4), lastUser).map((m) => String(m.content || "")).join("\n");
-  return { latest, before, known: !!latest.trim() };
+  const prev = lastUser > 0 && history[lastUser - 1]?.role === "assistant" ? history[lastUser - 1] : null;
+  return {
+    latest,
+    before: String(prev?.content || ""),
+    beforeSources: outsideSourcesRead(prev?.liveTrace),
+    fromAgent: conversation?.fromAgent === true,
+    known: !!latest.trim(),
+  };
+}
+
+// "all the tasks in Launch": the name has to follow the "all", not sit
+// anywhere in the message.
+function namedAfterAll(text, title) {
+  const words = norm(text).trim().split(" ");
+  return words.some((w, i) => ALL_WORDS.test(` ${w} `) && namesItem(words.slice(i + 1, i + 12).join(" "), title));
 }
 
 // Judges a plan against REVIEW_RULES. `data` is the board (loadBoardData),
@@ -360,7 +386,7 @@ export function reviewPlan(actions, data = {}, { checkpoints = [], liveTrace = [
   const rules = normalizeReviewRules(storedRules);
   const problems = [];
   const fail = (rule, text, step = null) => {
-    if (rule !== "board-only" && !rules[rule]?.on) return;
+    if (!LOCKED_RULES.has(rule) && !rules[rule]?.on) return;
     if (!problems.some((p) => p.text === text)) problems.push({ rule, text, step });
   };
 
@@ -421,11 +447,34 @@ export function reviewPlan(actions, data = {}, { checkpoints = [], liveTrace = [
   const talk = readConversation(conversation);
   const removes = removals.length > 0 || archiveDoneStep !== null || planMade > 0;
   const firstRemoval = removals[0]?.step ?? archiveDoneStep;
-  const namedByUser = (r) => namesItem(talk.latest, titleOf(r.entity))
-    || (ALL_WORDS.test(norm(talk.latest)) && ancestorsOf(r.collection, r.entity, data).some((a) => namesItem(talk.latest, titleOf(a))));
-  const namedEarlier = (r) => REFERS_BACK.test(norm(talk.latest)) && namesItem(talk.before, titleOf(r.entity));
 
-  if ((removes || restoreStep !== null) && !talk.known) {
+  // A partial name ("the newsletter") counts only if no other item on the
+  // board answers to it too, unless the kind is said as well ("the
+  // newsletter project").
+  const everyItem = Object.entries(SPEC_BY_COLLECTION).flatMap(([c]) => (data[c] || []).filter(live).map((e) => [c, e]));
+  const namedIn = (text, r) => {
+    const kind = matchKind(text, titleOf(r.entity));
+    if (kind === "full") return true;
+    if (kind !== "partial") return false;
+    if (new RegExp(` ${r.word}s? `).test(norm(text))) return true;
+    return !everyItem.some(([, e]) => e.id !== r.entity.id && matchKind(text, titleOf(e)));
+  };
+  const namedByUser = (r) => namedIn(talk.latest, r)
+    || ancestorsOf(r.collection, r.entity, data).some((a) => namedAfterAll(talk.latest, titleOf(a)));
+  // "it", "that", "this" point back to one item; "them", "those" to several.
+  // Only the reply right before your message counts, and not one built on
+  // outside content (which could have put the names there).
+  const singular = !/ (them|those|these|both|all|everything|ones|the rest) /.test(norm(talk.latest));
+  const canReferBack = REFERS_BACK.test(norm(talk.latest)) && !talk.beforeSources.length;
+  const earlierOnly = removals.filter((r) => !namedByUser(r));
+  const namedEarlier = (r) => canReferBack && namedIn(talk.before, r) && !(singular && earlierOnly.length > 1);
+
+  // From you: a plan an agent or check-in made, with no message from you
+  // behind it, always waits. An agent's purpose isn't proof of what you
+  // want: the assistant can write one too.
+  if ((removes || restoreStep !== null) && talk.fromAgent) {
+    fail("from-you", "An agent made this plan, not a message from you, so it waits for your yes.", firstRemoval ?? restoreStep);
+  } else if ((removes || restoreStep !== null) && !talk.known) {
     fail("asked", "Vaea couldn't read the message this plan answers.", firstRemoval ?? restoreStep);
   } else {
     // You asked for it.
@@ -476,9 +525,11 @@ export function reviewPlan(actions, data = {}, { checkpoints = [], liveTrace = [
   // Nothing from outside. Outside text can carry instructions aimed at the
   // assistant. A removal the user named in their own latest message can't
   // have come from there; anything else waits for a yes.
-  const sources = outsideSourcesRead(liveTrace);
+  // The reply right before your message counts too: a summary of an email
+  // carries the email's words.
+  const sources = [...new Set([...outsideSourcesRead(liveTrace), ...talk.beforeSources])];
   if (sources.length) {
-    const unnamed = removals.find((r) => !namesItem(talk.latest, titleOf(r.entity)));
+    const unnamed = removals.find((r) => !namedIn(talk.latest, r));
     const other = unnamed?.step ?? (archiveDoneStep !== null && !DONE_WORDS.test(norm(talk.latest)) ? archiveDoneStep : null) ?? restoreStep;
     if (other !== null && other !== undefined) {
       fail("inside-only", `The chat read ${listWords(sources)} while making this plan, and you didn't name ${unnamed ? `the "${titleOf(unnamed.entity) || "untitled"}" ${unnamed.word}` : "this change"} yourself.`, other);
