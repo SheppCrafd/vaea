@@ -283,7 +283,7 @@ export default function DeviceStorageGate({ children }) {
                 <span>
                   <span className="block text-sm font-medium">Secure device storage</span>
                   <span className="block text-xs text-muted-foreground mt-0.5">
-                    Stays only on this device, never uploaded anywhere.
+                    Saved only on this device. Vaea Chat sends a copy to the AI service for each answer.
                   </span>
                 </span>
               </button>

@@ -2,9 +2,11 @@
 // `vite build` (package.json "postbuild"). For every route in
 // src/marketing/seo.js it renders the real DOM to a string and injects it —
 // plus that route's <title>/meta/canonical/OG/JSON-LD — into the built
-// dist/index.html template, writing dist/<route>/index.html. Base44's
-// static hosting then serves real HTML on first byte; the SPA hydrates over
-// it and takes over client-side navigation.
+// dist/index.html template, writing dist/<route>/index.html. The SPA
+// hydrates over it and takes over client-side navigation. Base44's hosting
+// only serves those per-route files at their exact path
+// (/workplace/index.html); a plain /workplace gets dist/index.html, so the
+// root file is written to be safe for every path (see below).
 //
 // If this step fails, the build still produced a working SPA — the routes
 // just fall back to index.html's default head. So a prerender failure is
@@ -98,7 +100,18 @@ async function main() {
   for (const route of ROUTES) {
     try {
       const appHtml = renderRoute(route.path);
-      const head = headToHtml(headTagsFor(route.path));
+      // dist/index.html is also what Base44's hosting serves for every other
+      // path (/workplace gets the home page's HTML; only an exact file path
+      // like /workplace/index.html reaches that page's own file). So the root
+      // file must not claim a canonical URL or og:url: crawlers that don't run
+      // JavaScript would read every page as a copy of the home page, and
+      // Google would see a canonical that disagrees with the rendered one.
+      // SeoHead sets both for the actual path once the page runs.
+      const tags = headTagsFor(route.path);
+      const servedForEveryPath = route.loc === "/";
+      const head = headToHtml(servedForEveryPath
+        ? { ...tags, link: tags.link.filter((l) => l.rel !== "canonical"), meta: tags.meta.filter((m) => m.property !== "og:url") }
+        : tags);
       let html = replaceRegion(template, "HEAD", head);
       html = replaceRegion(html, "BODY", `<div id="root">${appHtml}</div>`);
 
