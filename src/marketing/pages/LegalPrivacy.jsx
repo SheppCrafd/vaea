@@ -33,7 +33,7 @@ const SECTIONS = [
   {
     heading: "Chat history",
     body: [
-      "Your conversations with the assistant — not your board — are stored by the hosted service so that they are available on your return. You may delete them. Deleting your account removes them.",
+      "Your conversations with the assistant — not your board — are stored by the hosted service so that they are available on your return. You may delete them, and deleting your account deletes all of them.",
     ],
   },
   {
@@ -63,7 +63,7 @@ const SECTIONS = [
   {
     heading: "Your rights",
     body: [
-      "Because your data resides on your device, you already have direct access to export or delete most of it. For anything held by the hosted service — chat history, a board in cloud storage, your account — you can delete your account from the settings screen, which clears it. You may also contact us (see the About page) with any request concerning your data.",
+      "Because your data resides on your device, you already have direct access to export or delete most of it. For anything held by the hosted service — chat history, a board in cloud storage, your account — you can delete your account from the settings screen. That deletes your chat history and any board in cloud storage, and disables the account. Your sign-in email stays with our hosting provider until you ask us to remove it. You may also contact us (see the About page) with any request concerning your data.",
       "Depending on your jurisdiction, you may have rights under laws such as the GDPR or CCPA to access, correct, or delete personal data, and to object to processing. We honour these requests; email is the route.",
     ],
   },

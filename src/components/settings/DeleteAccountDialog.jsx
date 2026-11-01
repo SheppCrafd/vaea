@@ -9,12 +9,11 @@ import { useToast } from "@/components/ui/use-toast";
 
 const CONFIRM_PHRASE = "DELETE";
 
-// Best-effort account deletion — the Base44 SDK has no endpoint (even
-// service-role) to remove the underlying login credential itself, so this
-// disables the User record and clears the profile via the deactivateAccount
-// backend function, then logs out client-side. Deliberately doesn't touch
-// Projects/Tasks/Areas/Products — those are shared team data, not personal
-// data, and must not disappear as a side effect of one person's account.
+// Account deletion: the deactivateAccount function deletes this person's
+// chat history and any board kept in cloud storage, then disables the
+// account (the hosting platform has no API to remove the login itself).
+// A board saved in a folder on this device is the person's own file and
+// isn't touched; the dialog says so.
 export default function DeleteAccountDialog({ onClose }) {
   const { logout } = useAuth();
   const { toast } = useToast();
@@ -48,9 +47,9 @@ export default function DeleteAccountDialog({ onClose }) {
       </div>
 
       <div className="space-y-2 text-xs text-muted-foreground mb-4">
-        <p>This disables your account, signs you out, and clears your profile name and photo.</p>
-        <p>Your team's projects, tasks, and other shared data are <span className="font-medium text-foreground">not</span> affected or deleted.</p>
-        <p>This doesn't remove your login from Base44 entirely — contact Base44 support for that.</p>
+        <p>This deletes your chat history and any board saved in cloud storage, then signs you out. It can't be undone.</p>
+        <p>A board saved in a folder on this device stays there. Delete the folder yourself if you want it gone too.</p>
+        <p>Your sign-in email stays on record with our hosting provider. To have it removed as well, contact us from the About page.</p>
       </div>
 
       <label htmlFor="delete-confirm" className="text-xs font-medium block mb-1">
@@ -65,7 +64,7 @@ export default function DeleteAccountDialog({ onClose }) {
       />
 
       <Button variant="destructive" className="w-full" disabled={!canDelete || isDeleting} onClick={handleDelete}>
-        {isDeleting ? "Deleting..." : "Permanently delete account"}
+        {isDeleting ? "Deleting…" : "Delete my account"}
       </Button>
     </Modal>
   );

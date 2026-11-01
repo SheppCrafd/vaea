@@ -98,7 +98,7 @@ export function Section({ id, eyebrow, title, lede, className, headingClassName,
 
 // One primary action per screen + a quiet secondary. The primary carries
 // the only CTA glow on the page (the signal color).
-export function CtaRow({ className, primaryLabel = "Start your board", primaryTo = "/signup", secondaryLabel = "Open the board", secondaryTo = "/app", note }) {
+export function CtaRow({ className, primaryLabel = "Create a free account", primaryTo = "/signup", secondaryLabel = "Try it without an account", secondaryTo = "/app", note }) {
   return (
     <div className={cn("flex flex-col items-start gap-4", className)}>
       <div className="flex flex-wrap items-center gap-3">

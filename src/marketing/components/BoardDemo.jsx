@@ -25,7 +25,7 @@ import { BOARD, CHAT_PROMPT, tasksOfProduct, tasksOfBoard } from "../fixtures";
 // (there's no drag context here) and the buttons do nothing. Visitors can
 // hover the board (the cards' hover states, the risk and question flags'
 // hover text) but can't change
-// it: titles aren't editable// it: titles aren't editable and nothing saves (useDemoLock.js).
+// it: titles aren't editable and nothing saves (useDemoLock.js).
 //
 // hero=true types the assistant prompt line and drops the "Harbor 2.0 launch" card
 // into Marketing mid-demo. Reduced motion → the final state, static.
@@ -158,14 +158,27 @@ export default function BoardDemo({ hero = false, className }) {
       return;
     }
     let cancelled = false;
-    const timers = [];
-    const at = (fn, ms) => timers.push(setTimeout(fn, ms));
+    // Pending timers only: each id is dropped once it fires, so the set
+    // doesn't grow loop after loop.
+    const timers = new Set();
+    const at = (fn, ms) => {
+      const id = setTimeout(() => { timers.delete(id); fn(); }, ms);
+      timers.add(id);
+    };
+    // Off-screen, the loop idles instead of re-rendering the board every
+    // 26ms; it restarts from the top when the board scrolls back into view.
+    let onScreen = true;
+    const io = typeof IntersectionObserver !== "undefined" && frameRef.current
+      ? new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; })
+      : null;
+    if (io) io.observe(frameRef.current);
 
     // One loop: rebuild the board, type the instruction, drop the card,
     // hold on the finished state, then start over. Opacity/translate only —
     // nothing resizes across the cycle.
     const runCycle = () => {
       if (cancelled) return;
+      if (!onScreen) return at(runCycle, 1000);
       setTyped("");
       setAdded(false);
       setCycle((c) => c + 1);
@@ -184,6 +197,7 @@ export default function BoardDemo({ hero = false, className }) {
     runCycle();
     return () => {
       cancelled = true;
+      io?.disconnect();
       timers.forEach(clearTimeout);
     };
   }, [hero]);

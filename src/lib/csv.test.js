@@ -84,10 +84,12 @@ describe("toCsv", () => {
     expect(csv).toBe("title\r\nQ3 = growth");
   });
 
-  it("round-trips a neutralized formula-looking value back through parseCsv unchanged from what was written", () => {
+  it("guards a formula-looking value on export, and import restores the original text", () => {
+    // Inside Vaea the title is plain text; every export guards it again.
     const csv = toCsv(["title"], [{ title: "=HYPERLINK(\"http://evil.com\")" }]);
+    expect(csv).toContain("'=HYPERLINK");
     const { records } = parseCsv(csv);
-    expect(records[0].title.startsWith("'=")).toBe(true);
+    expect(records[0].title).toBe("=HYPERLINK(\"http://evil.com\")");
   });
 });
 
@@ -222,5 +224,13 @@ describe("countActionsByType", () => {
       { action: "CREATE_PROJECT" }, { action: "CREATE_PROJECT" }, { action: "CREATE_TASK" },
     ];
     expect(countActionsByType(actions)).toEqual({ area: 1, product: 1, project: 2, task: 1 });
+  });
+});
+
+describe("csv round trip", () => {
+  it("restores a title that toCsv guarded against formula injection", () => {
+    const text = toCsv(["title"], [{ title: "=review by Friday" }, { title: "-5% budget" }]);
+    expect(text).toContain("'=review by Friday");
+    expect(parseCsv(text).records.map((r) => r.title)).toEqual(["=review by Friday", "-5% budget"]);
   });
 });

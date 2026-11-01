@@ -32,7 +32,7 @@ export default function VaeaChat() {
               removes something or sends a message stops for your yes first.
             </p>
             <div className="mt-7">
-              <CtaRow primaryLabel="Turn on Vaea Chat" note="Signing in turns on Vaea Chat — the board works without it." />
+              <CtaRow primaryLabel="Sign up to use Vaea Chat" note="Signing in turns on Vaea Chat — the board works without it." />
             </div>
           </div>
           <Reveal delay={90} className="mt-12">
@@ -111,7 +111,7 @@ export default function VaeaChat() {
       <ShowBlock
         time="11:20 AM"
         story="Lee, Harborline's engineering lead, sets up the in-house version on his own machine."
-        title="Answer Vaea Chat with Claude Code, on your own machine"
+        title="For developers: answer Vaea Chat with Claude Code"
         visual={<ClaudeCodeTerminal />}
         cta={{ to: "/privacy", label: "Local Mode, step by step" }}
       >
@@ -141,13 +141,13 @@ export default function VaeaChat() {
 
       <Marquee items={["you ask", "it makes the change", "it lists every step", "removals wait for you", "a checkpoint before big changes"]} />
 
-      <Section id="faq" eyebrow="the fair questions" title="What it sends, and what it can't do">
+      <Section id="faq" eyebrow="fair questions" title="What it sends, and what it can't do">
         <Reveal className="mt-8">
           <Faq items={ASSISTANT_FAQ} />
         </Reveal>
       </Section>
 
-      <ClosingCta title="Tell it what changed. It does the rest." note="Your own account or your own computer, if you'd rather" />
+      <ClosingCta title="Tell Vaea Chat what changed. It updates your board." note="Your own account or your own computer, if you'd rather" />
     </>
   );
 }

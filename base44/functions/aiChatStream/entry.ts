@@ -2450,6 +2450,29 @@ ${conversationHistory || '(none yet)'}
 ${userText}`;
 }
 
+// Limits that keep one account from running up the app's AI costs.
+// The rate limit is per server instance (functions keep no shared state),
+// so it's best-effort, but it stops a single client hammering the gateway.
+const MAX_BODY_BYTES = 3_000_000;
+const MAX_MESSAGE_CHARS = 20_000;
+const MAX_HISTORY_MESSAGES = 60;
+const RATE_WINDOW_MS = 60_000;
+const RATE_MAX_REQUESTS = 20;
+const recentRequests = new Map<string, number[]>();
+function overRateLimit(userId: string) {
+  const now = Date.now();
+  const times = (recentRequests.get(userId) || []).filter((t) => now - t < RATE_WINDOW_MS);
+  times.push(now);
+  recentRequests.set(userId, times);
+  if (recentRequests.size > 5000) {
+    for (const [id, ts] of recentRequests) if (!ts.some((t) => now - t < RATE_WINDOW_MS)) recentRequests.delete(id);
+  }
+  return times.length > RATE_MAX_REQUESTS;
+}
+// What the person sees when something fails. The real error goes to the
+// function log, not to the browser.
+const FRIENDLY_ERROR = "Vaea Chat couldn't finish that reply. Try again in a moment.";
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -2467,7 +2490,20 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await req.json();
+    if (overRateLimit(user.id)) {
+      return Response.json({ error: "You're sending messages faster than Vaea Chat can answer. Wait a minute, then try again." }, { status: 429 });
+    }
+    const rawBody = await req.text();
+    if (rawBody.length > MAX_BODY_BYTES) {
+      return Response.json({ error: "That request is too large for Vaea Chat. Start a new chat, or attach smaller files." }, { status: 413 });
+    }
+    const body = JSON.parse(rawBody);
+    if (typeof body.message === 'string' && body.message.length > MAX_MESSAGE_CHARS) {
+      return Response.json({ error: `Messages can be up to ${MAX_MESSAGE_CHARS.toLocaleString('en-US')} characters. Shorten it, or attach the text as a file.` }, { status: 413 });
+    }
+    if (Array.isArray(body.conversationHistory) && body.conversationHistory.length > MAX_HISTORY_MESSAGES) {
+      body.conversationHistory = body.conversationHistory.slice(-MAX_HISTORY_MESSAGES);
+    }
     const {
       message, conversationHistory, activeProjectId, aiIdentity = {}, externalVault = {},
       vaultOverview = null, googleCalendar = {}, gmail = {}, microsoft = {}, outlook = {}, slack = {}, clickup = {}, granola = {}, protocolReminderRequested = false, autoApproveEnabled = false, clientNow = null,
@@ -2630,7 +2666,8 @@ Deno.serve(async (req) => {
           // part) — the client's reader is listening for exactly this event
           // type to reject invokeAssistant's promise into the same error
           // bubble a pre-flight failure above already shows.
-          emit({ type: 'error', message: error.message });
+          console.error('aiChatStream generation failed:', error?.message);
+          emit({ type: 'error', message: FRIENDLY_ERROR });
         } finally {
           controller.close();
         }
@@ -2639,6 +2676,7 @@ Deno.serve(async (req) => {
 
     return new Response(stream, { headers: { 'Content-Type': 'application/x-ndjson' } });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('aiChatStream request failed:', error?.message);
+    return Response.json({ error: FRIENDLY_ERROR }, { status: 500 });
   }
 });

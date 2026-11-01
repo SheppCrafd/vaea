@@ -138,7 +138,7 @@ export default function About() {
         </Container>
       </ParallaxBackdrop>
 
-      <ClosingCta title="Put your portfolio on one board." note="No card required · saved on your computer by default" />
+      <ClosingCta title="Put every project on one board." note="No card required · saved on your computer by default" />
     </>
   );
 }

@@ -60,7 +60,7 @@ export default function Compare() {
               <thead>
                 <tr className="border-b border-foreground/[0.12]">
                   <th className="py-3 pr-4 font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                    &nbsp;
+                    <span className="sr-only">Question</span>
                   </th>
                   <th className="py-3 pr-4 font-display text-base font-semibold text-foreground">Vaea</th>
                   <th className="py-3 font-display text-base font-semibold text-muted-foreground">

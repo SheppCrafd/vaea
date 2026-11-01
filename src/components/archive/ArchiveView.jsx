@@ -83,7 +83,7 @@ export default function ArchiveView() {
               <div>
                 <p className="font-medium text-sm flex items-center gap-2">
                   {item.title}
-                  <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${item.is_archived ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary"}`}>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${item.is_archived ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary"}`}>
                     {item.is_archived ? "Archived" : "Active"}
                   </span>
                 </p>

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useDraft, clearDraft } from "@/lib/formDrafts";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAreas } from "@/hooks/useAreas";
@@ -7,20 +8,26 @@ import FormField from "@/components/shared/FormField";
 import { Select } from "@/components/ui/select";
 
 export default function ProductForm({ onDone, prefill = null }) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const [title, setTitle] = useDraft("product.title");
+  const [description, setDescription] = useDraft("product.description");
   // Seeded from the card that opened this modal (the (+) on an area card).
   const [areaId, setAreaId] = useState(prefill?.parent_area_id || "");
   const { data: areas = [] } = useAreas();
   const createProduct = useCreateProduct();
 
+  // isPending only updates after a re-render, so clicks in the same tick
+  // (a double-click) all passed it and created duplicates. The ref blocks
+  // a second submit until this one settles.
+  const submitting = useRef(false);
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!title.trim() || !areaId || createProduct.isPending) return;
+    if (submitting.current) return;
+    submitting.current = true;
     createProduct.mutate(
       { parent_area_id: areaId, title, description },
       // A failure is shown by the global mutation toast (query-client.js).
-      { onSuccess: () => onDone?.() }
+      { onSuccess: () => { clearDraft("product.title", "product.description"); onDone?.(); }, onSettled: () => { submitting.current = false; } }
     );
   };
 

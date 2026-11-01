@@ -45,7 +45,9 @@ export function parseCsv(text) {
   const headers = headerRow.map((h) => h.trim());
   const records = dataRows.map((cells) => {
     const record = {};
-    headers.forEach((h, idx) => { record[h] = (cells[idx] ?? "").trim(); });
+    // A leading apostrophe before = + - @ is the guard toCsv adds against
+    // formula injection; drop it so a title round-trips unchanged.
+    headers.forEach((h, idx) => { record[h] = (cells[idx] ?? "").trim().replace(/^'(?=[=+\-@])/, ""); });
     return record;
   });
   return { headers, records };

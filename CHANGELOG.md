@@ -4,6 +4,36 @@ All notable changes to Vaea, in [Keep a Changelog](https://keepachangelog.com/en
 style. Vaea ships continuously rather than in numbered releases, so entries
 are grouped by date instead of a version number.
 
+## 2026-11-01 (QA fixes)
+
+### Fixed
+
+- **Data that can't be read is never overwritten.** A corrupt file, a revoked
+  folder or a failed cloud read used to load as an empty board, and the next
+  change replaced the real data. Vaea now shows a banner and pauses editing.
+- **Two tabs or devices no longer erase each other's changes.** Every save
+  re-reads the stored copy first, and other tabs refresh.
+- **Offline:** saves work offline; a section that hasn't loaded yet shows a
+  short message instead of crashing the page.
+- **Saving to a file (Firefox, Safari, phones):** the Save button is no
+  longer hidden behind the chat button, and a cancelled download still
+  counts as unsaved.
+- **Sign-in links:** the address can no longer point sign-in at another
+  site or plant a session.
+- **Account deletion** now deletes chat history and any cloud-stored board,
+  as the Privacy Policy says.
+- Double-clicking Create no longer makes duplicates; deleting a project
+  offers Undo; create forms keep what you typed if closed.
+- Accessibility: landmarks and headings on every app page, contrast fixes,
+  keyboard-scrollable code, Escape closes the phone menu and chat panel.
+- Chat server: rate and size limits, plain error messages.
+
+### Changed
+
+- Home leads with "Make the next right choice irresistible." and describes
+  Vaea as an executive assistant; buttons read "Create a free account" and
+  "Try it without an account".
+
 ## 2026-11-01
 
 ### Changed

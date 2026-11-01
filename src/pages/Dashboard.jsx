@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from "react";
+import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
+import { lazyRoute } from "@/lib/lazyRoute";
 import { useSearchParams } from "react-router";
 import { Boxes, Filter, Plus } from "lucide-react";
 import { useAreas } from "@/hooks/useAreas";
@@ -16,10 +17,10 @@ import QueryError from "@/components/shared/QueryError";
 // Lazy: none of these four render until a user action (Create, or expanding
 // an Area/Product/Project), so they don't need to be in Dashboard's initial
 // bundle — the route everyone hits first.
-const AreaModal = lazy(() => import("@/components/areas/AreaModal"));
-const CreateModal = lazy(() => import("@/components/modals/CreateModal"));
-const ProductDetailModal = lazy(() => import("@/components/products/ProductDetailModal"));
-const ProjectDetailModal = lazy(() => import("@/components/projects/ProjectDetailModal"));
+const AreaModal = lazyRoute(() => import("@/components/areas/AreaModal"), { compact: true });
+const CreateModal = lazyRoute(() => import("@/components/modals/CreateModal"), { compact: true });
+const ProductDetailModal = lazyRoute(() => import("@/components/products/ProductDetailModal"), { compact: true });
+const ProjectDetailModal = lazyRoute(() => import("@/components/projects/ProjectDetailModal"), { compact: true });
 
 export default function Dashboard() {
   const { data: areas = [], isLoading: areasLoading, isError: areasError, error: areasErrorObj, refetch: refetchAreas } = useAreas();

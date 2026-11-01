@@ -39,7 +39,7 @@ export default function TerminalBlock({ title = "terminal", code, showPrompt = t
             <span className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]" />
             <span className="w-2.5 h-2.5 rounded-full bg-[#27c93f]" />
           </div>
-          <span className="font-terminal text-[11px] text-white/40 truncate">{title}</span>
+          <span className="font-terminal text-[11px] text-white/60 truncate">{title}</span>
         </div>
         <button
           type="button"
@@ -53,13 +53,13 @@ export default function TerminalBlock({ title = "terminal", code, showPrompt = t
           )}
         </button>
       </div>
-      <div className="bg-[#0c0c0c] px-4 py-4 overflow-x-auto">
+      <div className="bg-[#0c0c0c] px-4 py-4 overflow-x-auto outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/40" tabIndex={0} role="region" aria-label={title ? `${title} commands` : "Commands"}>
         <pre className="font-terminal text-[13px] leading-relaxed">
           {lines.map((line, i) => {
             const isComment = line.trimStart().startsWith("#");
             const isBlank = line.trim() === "";
             if (isBlank) return <div key={i}>&nbsp;</div>;
-            if (isComment) return <div key={i} className="text-white/35">{line}</div>;
+            if (isComment) return <div key={i} className="text-white/55">{line}</div>;
             if (!showPrompt) return <div key={i} className="text-white/90 whitespace-pre">{line}</div>;
             return (
               <div key={i} className="text-white/90">

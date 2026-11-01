@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useDraft, clearDraft } from "@/lib/formDrafts";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAreas } from "@/hooks/useAreas";
@@ -12,12 +13,12 @@ import { Select } from "@/components/ui/select";
 import { useLastUsedValue } from "@/hooks/useLastUsedValue";
 
 export default function ProjectForm({ onDone, prefill = null }) {
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useDraft("project.title");
   // Seeded from the card that opened this modal (the (+) on a product card
   // fills both; the (+) on a bare area card fills just the area).
   const [areaId, setAreaId] = useState(prefill?.parent_area_id || "");
   const [productId, setProductId] = useState(prefill?.parent_product_id || "");
-  const [objective, setObjective] = useState("");
+  const [objective, setObjective] = useDraft("project.objective");
   const [ownerName, setOwnerName] = useLastUsedValue("project_owner_name");
   const [dueDate, setDueDate] = useState("");
   const [stakeholderIds, setStakeholderIds] = useState([]);
@@ -28,9 +29,15 @@ export default function ProjectForm({ onDone, prefill = null }) {
 
   const availableProducts = products.filter((p) => p.parent_area_id === areaId);
 
+  // isPending only updates after a re-render, so clicks in the same tick
+  // (a double-click) all passed it and created duplicates. The ref blocks
+  // a second submit until this one settles.
+  const submitting = useRef(false);
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!title.trim() || !areaId || createProject.isPending) return;
+    if (submitting.current) return;
+    submitting.current = true;
     const payload = {
       title,
       parent_area_id: areaId,
@@ -42,7 +49,7 @@ export default function ProjectForm({ onDone, prefill = null }) {
     if (dueDate) payload.due_date = dueDate;
     if (stakeholderIds.length) payload.stakeholder_ids = stakeholderIds;
     // A failure is shown by the global mutation toast (query-client.js).
-    createProject.mutate(payload, { onSuccess: () => onDone?.() });
+    createProject.mutate(payload, { onSuccess: () => { clearDraft("project.title", "project.objective"); onDone?.(); }, onSettled: () => { submitting.current = false; } });
   };
 
   return (

@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { startProviderSignIn } from '@/lib/signIn';
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
@@ -186,7 +187,7 @@ export const AuthProvider = ({ children }) => {
   // itself calls base44.auth.loginWithProvider/loginViaEmailPassword
   // directly so it can offer the full provider/email picker.
   const navigateToLogin = () => {
-    base44.auth.loginWithProvider('google', window.location.pathname + window.location.search);
+    startProviderSignIn('google', window.location.pathname + window.location.search);
   };
 
   // LoginScreen's "Continue without signing in" — remembers the choice so

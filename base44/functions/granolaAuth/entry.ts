@@ -63,6 +63,7 @@ Deno.serve(async (req) => {
 
     return Response.json({ error: 'Unknown action.' }, { status: 400 });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('granolaAuth failed:', error?.message);
+    return Response.json({ error: "The connection couldn't be completed. Try again in a moment." }, { status: 500 });
   }
 });

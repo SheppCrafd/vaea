@@ -38,10 +38,13 @@ async function readTokens(res, providerName, action) {
     throw new Error(body.error_description || `${providerName} rejected the ${action} (${res.status}).`);
   }
   const data = await res.json();
+  // A refresh may not return a new refresh token. Leave the key out then:
+  // callers spread this over the stored connection, and an undefined
+  // value would erase the refresh token they already have.
   return {
     accessToken: data.access_token,
-    refreshToken: data.refresh_token,
-    expiresAt: Date.now() + data.expires_in * 1000,
+    ...(data.refresh_token ? { refreshToken: data.refresh_token } : {}),
+    expiresAt: Date.now() + (Number(data.expires_in) || 3600) * 1000,
   };
 }
 

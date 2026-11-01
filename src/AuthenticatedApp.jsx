@@ -1,4 +1,5 @@
-import { Suspense, lazy, useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
+import { lazyRoute } from '@/lib/lazyRoute';
 import { Route, Routes, Navigate, useLocation, useNavigate } from 'react-router';
 import PageNotFound from './lib/PageNotFound';
 import { useAuth } from '@/lib/AuthContext';
@@ -13,6 +14,7 @@ import CommandPalette from '@/components/command/CommandPalette';
 import ReviewRulesHost from '@/components/ai/ReviewRulesPanel';
 import ChatLauncherButton from '@/components/ai/ChatLauncherButton';
 import ConnectorSuggestionBanner from '@/components/shared/ConnectorSuggestionBanner';
+import StorageReadErrorBanner from '@/components/shared/StorageReadErrorBanner';
 import { useAppStore } from '@/lib/store';
 // Code-split, like /chat and /settings already are — pulls in react-markdown
 // and its own session/action machinery, none of which every page needs
@@ -20,28 +22,28 @@ import { useAppStore } from '@/lib/store';
 // floating popout is reachable from every /app/* route, not just Dashboard —
 // needed for OPEN_APP_SECTION (chatActions.js) to be able to pop it open
 // while navigating the user to some other tab entirely.
-const ChatBox = lazy(() => import('@/components/ai/ChatBox'));
+const ChatBox = lazyRoute(() => import('@/components/ai/ChatBox'), { compact: true });
 // /chat and /settings are code-split out of the main bundle — they're
 // reached only by an explicit click (never on first load), so there's no
 // reason to make every visitor download and parse their code (react-markdown,
 // the chat session UI, the appearance settings panel) up front. Dashboard —
 // the route everyone hits first — stays a static import.
-const ChatPage = lazy(() => import('@/pages/ChatPage'));
-const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
-const VaultSetupGuidePage = lazy(() => import('@/pages/VaultSetupGuidePage'));
-const LocalModeSetupGuidePage = lazy(() => import('@/pages/LocalModeSetupGuidePage'));
-const GoogleWorkspaceOAuthCallbackPage = lazy(() => import('@/pages/GoogleWorkspaceOAuthCallbackPage'));
-const ClickUpOAuthCallbackPage = lazy(() => import('@/pages/ClickUpOAuthCallbackPage'));
-const GmailOAuthCallbackPage = lazy(() => import('@/pages/GmailOAuthCallbackPage'));
-const MicrosoftOAuthCallbackPage = lazy(() => import('@/pages/MicrosoftOAuthCallbackPage'));
-const OutlookOAuthCallbackPage = lazy(() => import('@/pages/OutlookOAuthCallbackPage'));
-const GranolaOAuthCallbackPage = lazy(() => import('@/pages/GranolaOAuthCallbackPage'));
-const MeetingsPage = lazy(() => import('@/pages/MeetingsPage'));
-const SlackOAuthCallbackPage = lazy(() => import('@/pages/SlackOAuthCallbackPage'));
-const VaeaCalendarPage = lazy(() => import('@/pages/VaeaCalendarPage'));
-const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
-const MindMapPage = lazy(() => import('@/pages/MindMapPage'));
-const VmailPage = lazy(() => import('@/pages/VmailPage'));
+const ChatPage = lazyRoute(() => import('@/pages/ChatPage'));
+const SettingsPage = lazyRoute(() => import('@/pages/SettingsPage'));
+const VaultSetupGuidePage = lazyRoute(() => import('@/pages/VaultSetupGuidePage'));
+const LocalModeSetupGuidePage = lazyRoute(() => import('@/pages/LocalModeSetupGuidePage'));
+const GoogleWorkspaceOAuthCallbackPage = lazyRoute(() => import('@/pages/GoogleWorkspaceOAuthCallbackPage'));
+const ClickUpOAuthCallbackPage = lazyRoute(() => import('@/pages/ClickUpOAuthCallbackPage'));
+const GmailOAuthCallbackPage = lazyRoute(() => import('@/pages/GmailOAuthCallbackPage'));
+const MicrosoftOAuthCallbackPage = lazyRoute(() => import('@/pages/MicrosoftOAuthCallbackPage'));
+const OutlookOAuthCallbackPage = lazyRoute(() => import('@/pages/OutlookOAuthCallbackPage'));
+const GranolaOAuthCallbackPage = lazyRoute(() => import('@/pages/GranolaOAuthCallbackPage'));
+const MeetingsPage = lazyRoute(() => import('@/pages/MeetingsPage'));
+const SlackOAuthCallbackPage = lazyRoute(() => import('@/pages/SlackOAuthCallbackPage'));
+const VaeaCalendarPage = lazyRoute(() => import('@/pages/VaeaCalendarPage'));
+const NotificationsPage = lazyRoute(() => import('@/pages/NotificationsPage'));
+const MindMapPage = lazyRoute(() => import('@/pages/MindMapPage'));
+const VmailPage = lazyRoute(() => import('@/pages/VmailPage'));
 // Add page imports here
 
 // Everything reachable only via /app/* — Dashboard, AppShell, the chat
@@ -49,6 +51,27 @@ const VmailPage = lazy(() => import('@/pages/VmailPage'));
 // module, which App.jsx only reaches through lazy(). Visitors sitting on the
 // /login or /signup screen never download or parse any of it; only a visit
 // to /app/* (or the `/` → /app redirect) triggers this chunk's fetch.
+// Every app page gets one <h1> naming it, for screen readers and page
+// outlines. Hidden visually: the tab bar already shows where you are. Pages
+// with their own visible <h1> (the setup guides, Not found) are skipped.
+const PAGE_TITLES = [
+  ["/app/chat", "Vaea Chat"],
+  ["/app/settings/vault-setup", null],
+  ["/app/settings/local-mode-setup", null],
+  ["/app/settings", "Settings"],
+  ["/app/calendar", "Vaea Calendar"],
+  ["/app/notifications", "Notifications"],
+  ["/app/mindmap", "Mind Map"],
+  ["/app/vmail", "Vmail"],
+  ["/app/meetings", "Meetings"],
+];
+function PageHeading({ pathname }) {
+  const path = pathname.replace(/\/+$/, "") || "/app";
+  const match = PAGE_TITLES.find(([p]) => path === p || path.startsWith(p + "/"));
+  const title = path === "/app" ? "Dashboard" : match ? match[1] : null;
+  return title ? <h1 className="sr-only">{title}</h1> : null;
+}
+
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
   const location = useLocation();
@@ -136,8 +159,10 @@ const AuthenticatedApp = () => {
       <ChatControllerProvider>
         <div className="h-screen flex flex-col overflow-hidden">
           <Header />
+          <StorageReadErrorBanner />
           <ConnectorSuggestionBanner />
-          <div className="flex-1 min-h-0">
+          <main id="main" className="flex-1 min-h-0">
+            <PageHeading pathname={location.pathname} />
             <Suspense fallback={null}>
               <CommandPalette />
               <ReviewRulesHost />
@@ -186,7 +211,7 @@ const AuthenticatedApp = () => {
                 )
               )}
             </Suspense>
-          </div>
+          </main>
         </div>
       </ChatControllerProvider>
     </DeviceStorageGate>

@@ -1,4 +1,5 @@
-import { memo, useState, lazy, Suspense } from "react";
+import { memo, useState, Suspense } from "react";
+import { lazyRoute } from "@/lib/lazyRoute";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { useTasks } from "@/hooks/useTasks";
@@ -14,8 +15,8 @@ import ProjectCardShell from "@/components/projects/ProjectCardShell";
 import { ProjectDragHandle, ExpandButton } from "@/components/shared/CardControls";
 
 // Lazy: neither modal is needed until a user opens it from this card.
-const TaskTableModal = lazy(() => import("@/components/projects/TaskTableModal"));
-const ProjectDetailModal = lazy(() => import("@/components/projects/ProjectDetailModal"));
+const TaskTableModal = lazyRoute(() => import("@/components/projects/TaskTableModal"), { compact: true });
+const ProjectDetailModal = lazyRoute(() => import("@/components/projects/ProjectDetailModal"), { compact: true });
 
 // Mini card: the dashboard's default project face is deliberately just
 // title + quadrant + a 3-bucket stats bar. Everything else that used to live
@@ -48,7 +49,7 @@ function ProjectCard({ project, stakeholderIds = [] }) {
 
   const handleDelete = () => {
     confirmThen(
-      `Delete project "${project.title}"? This cannot be undone.`,
+      `Delete project "${project.title}" and its tasks? You can undo this straight after.`,
       () => deleteProject.mutate(project.id)
     );
   };

@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     const clientId = Deno.env.get('CLICKUP_CLIENT_ID');
     const clientSecret = Deno.env.get('CLICKUP_CLIENT_SECRET');
     if (!clientId || !clientSecret) {
-      return Response.json({ error: 'ClickUp isn\'t configured on this deployment yet — run `base44 secrets set CLICKUP_CLIENT_ID=... CLICKUP_CLIENT_SECRET=...`.' }, { status: 500 });
+      return Response.json({ error: "ClickUp sign-in isn't set up on this server yet. Connect with a personal ClickUp token instead." }, { status: 500 });
     }
 
     const tokenRes = await fetch('https://api.clickup.com/api/v2/oauth/token', {
@@ -56,6 +56,7 @@ Deno.serve(async (req) => {
 
     return Response.json({ accessToken: access_token, workspaceId: team.id, workspaceName: team.name });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('exchangeClickUpToken failed:', error?.message);
+    return Response.json({ error: "The connection couldn't be completed. Try again in a moment." }, { status: 500 });
   }
 });

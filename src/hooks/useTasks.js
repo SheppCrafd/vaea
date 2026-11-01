@@ -119,10 +119,10 @@ export function useAllTasks() {
 export function useTasksForProjects(projectIds = []) {
   const { data: allTasks = [], ...rest } = useAllTasks();
   const idsKey = projectIds.join(",");
-  const tasks = useMemo(
-    () => allTasks.filter((t) => projectIds.includes(t.project_id)),
-    [allTasks, idsKey]
-  );
+  const tasks = useMemo(() => {
+    const ids = new Set(idsKey ? idsKey.split(",") : []);
+    return allTasks.filter((t) => ids.has(t.project_id));
+  }, [allTasks, idsKey]);
   return { ...rest, data: tasks };
 }
 

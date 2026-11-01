@@ -158,7 +158,7 @@ export function StoryIntro({ time, title, children, note = true }) {
           )}
           {note && (
             <p className="mt-4 text-[0.92rem] text-muted-foreground">
-              Bob is an example. Everything he does on these pages is the real Vaea.
+              Bob is an example. Every screen on these pages is the real Vaea; anything marked Coming soon isn't switched on yet.
             </p>
           )}
         </Reveal>

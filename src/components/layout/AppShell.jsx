@@ -31,6 +31,13 @@ import MobileSidebarDrawer from "@/components/shared/MobileSidebarDrawer";
 // the same drag context. React context follows the component tree, not the
 // DOM tree, so this also still reaches everything rendered into a Portal
 // (AreaModal, ProjectDetailModal, ProductDetailModal, etc.).
+// Collapsing or expanding a panel removes the button that was clicked;
+// focus moves to the button that now does the opposite, so a keyboard user
+// isn't dropped back to the top of the page.
+function focusSoon(label) {
+  requestAnimationFrame(() => document.querySelector(`button[aria-label="${label}"]`)?.focus());
+}
+
 export default function AppShell({ children }) {
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [isNotepadOpen, setIsNotepadOpen] = useState(false);
@@ -93,13 +100,13 @@ export default function AppShell({ children }) {
         {/* text-foreground re-resolves inherited `color` against the dark
             token scope — without it, unclassed text inside inherits the
             page's light-mode color and vanishes on the dark panel. */}
-        <aside style={{ gridArea: "leftsidebar" }} className={`text-sidebar-foreground overflow-hidden rounded-2xl flex flex-col ${!isMobile && isLeftSidebarOpen ? "bg-sidebar shadow-xl" : ""}`}>
+        <aside aria-label="Stakeholders" style={{ gridArea: "leftsidebar" }} className={`text-sidebar-foreground overflow-hidden rounded-2xl flex flex-col ${!isMobile && isLeftSidebarOpen ? "bg-sidebar shadow-xl" : ""}`}>
           {!isMobile && isLeftSidebarOpen && (
             <>
               <div className="h-14 shrink-0 flex items-center justify-between pl-4 pr-3">
                 <p className="text-sm font-semibold text-foreground truncate">Stakeholders</p>
                 <button
-                  onClick={toggleLeftSidebar}
+                  onClick={() => { toggleLeftSidebar(); focusSoon("Expand stakeholders panel"); }}
                   aria-label="Collapse stakeholders panel"
                   className="text-muted-foreground hover:text-foreground hover:bg-accent p-2 rounded-md transition-colors shrink-0"
                 >
@@ -123,7 +130,7 @@ export default function AppShell({ children }) {
           <div className="h-14 shrink-0 flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 mb-2 rounded-2xl bg-background/70 supports-[backdrop-filter]:bg-background/55 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_1px_0_0_hsl(var(--foreground)/0.06),0_16px_32px_-24px_hsl(200_30%_12%/0.3)] dark:shadow-[0_1px_0_0_hsl(var(--foreground)/0.08),0_0_24px_-8px_hsl(var(--foreground)/0.10)]">
             {(isMobile || !isLeftSidebarOpen) && (
               <button
-                onClick={() => (isMobile ? setIsMobileLeftDrawerOpen(true) : toggleLeftSidebar())}
+                onClick={() => (isMobile ? setIsMobileLeftDrawerOpen(true) : (toggleLeftSidebar(), focusSoon("Collapse stakeholders panel")))}
                 aria-label="Expand stakeholders panel"
                 className="text-muted-foreground hover:text-foreground hover:bg-accent p-2 -ml-2 rounded-md transition-colors shrink-0"
               >
@@ -158,7 +165,7 @@ export default function AppShell({ children }) {
             </div>
             {(isMobile || !isRightSidebarOpen) && (
               <button
-                onClick={() => (isMobile ? setIsMobileRightDrawerOpen(true) : toggleRightSidebar())}
+                onClick={() => (isMobile ? setIsMobileRightDrawerOpen(true) : (toggleRightSidebar(), focusSoon("Collapse focus panel")))}
                 aria-label="Expand focus panel"
                 className="ml-auto text-muted-foreground hover:text-foreground hover:bg-accent p-2 rounded-md transition-colors shrink-0"
               >
@@ -166,19 +173,20 @@ export default function AppShell({ children }) {
               </button>
             )}
           </div>
-          <main className="flex-1 min-h-0 overflow-y-auto px-1 pt-2 pb-36">
+          {/* The page-level <main> is in AuthenticatedApp, around every route. */}
+          <div className="flex-1 min-h-0 overflow-y-auto px-1 pt-2 pb-36">
             {children}
-          </main>
+          </div>
         </div>
 
         {/* Same treatment as the left rail (and Chat/Settings' rails) — all
             four side panels share one token-driven surface. */}
-        <aside style={{ gridArea: "sidebar" }} className={`text-sidebar-foreground overflow-hidden rounded-2xl flex flex-col ${!isMobile && isRightSidebarOpen ? "bg-sidebar shadow-xl" : ""}`}>
+        <aside aria-label="Focus and stats" style={{ gridArea: "sidebar" }} className={`text-sidebar-foreground overflow-hidden rounded-2xl flex flex-col ${!isMobile && isRightSidebarOpen ? "bg-sidebar shadow-xl" : ""}`}>
           {!isMobile && isRightSidebarOpen && (
             <>
               <div className="h-14 shrink-0 flex items-center justify-between pl-3 pr-4">
                 <button
-                  onClick={toggleRightSidebar}
+                  onClick={() => { toggleRightSidebar(); focusSoon("Expand focus panel"); }}
                   aria-label="Collapse focus panel"
                   className="text-muted-foreground hover:text-foreground hover:bg-accent p-2 rounded-md transition-colors shrink-0"
                 >

@@ -113,7 +113,7 @@ async function main() {
         ? { ...tags, link: tags.link.filter((l) => l.rel !== "canonical"), meta: tags.meta.filter((m) => m.property !== "og:url") }
         : tags);
       let html = replaceRegion(template, "HEAD", head);
-      html = replaceRegion(html, "BODY", `<div id="root">${appHtml}</div>`);
+      html = replaceRegion(html, "BODY", `<div id="root" data-prerendered-route="${esc(route.loc)}">${appHtml}</div>`);
 
       const outDir = route.loc === "/" ? DIST : join(DIST, route.loc.replace(/^\/+/, ""));
       await mkdir(outDir, { recursive: true });

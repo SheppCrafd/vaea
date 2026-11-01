@@ -70,15 +70,15 @@ export default function ProductDetailModal({ product, onClose }) {
 
           <div className="flex items-center justify-between border-t border-b border-border py-3">
             <div className="flex flex-col">
-              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Progress</span>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Progress</span>
               <span className="text-sm font-bold text-primary">{completionPct}%</span>
             </div>
             <div className="flex flex-col items-center">
-              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Tasks</span>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Tasks</span>
               <span className="text-sm font-semibold text-foreground">{doneCount} <span className="text-muted-foreground font-normal">/ {productTasks.length}</span></span>
             </div>
             <div className="flex flex-col items-end">
-              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Projects</span>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Projects</span>
               <span className="text-sm font-semibold text-foreground">{projects.length}</span>
             </div>
           </div>

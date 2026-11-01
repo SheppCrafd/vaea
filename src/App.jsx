@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { ThemeProvider } from "next-themes"
 import { Toaster } from "@/components/ui/toaster"
 import ConfirmDialog from "@/components/shared/ConfirmDialog"
@@ -29,6 +29,11 @@ import MarketingApp from '@/marketing/MarketingApp';
 const AuthenticatedApp = lazy(() => import('./AuthenticatedApp'));
 
 function App() {
+  // index.html hides prerendered markup that was made for a different
+  // address; the first commit here has rendered the right page.
+  useEffect(() => {
+    document.documentElement.classList.remove('prerender-mismatch')
+  }, [])
 
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>

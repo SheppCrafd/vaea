@@ -1,24 +1,16 @@
-import { useState } from "react";
 import { Link } from "react-router";
 import { Container, Eyebrow } from "../components/ui";
 import ParallaxBackdrop from "../components/ParallaxBackdrop";
 
-// One of these is picked at random each time the page loads. Kept light —
-// a 404 is the one surface where a little personality reads as care rather
-// than sloppiness — but on-theme and free of inside jokes.
-const MESSAGES = [
-  ["That page isn't on the board.", "The link may be old, or the page moved. Here's the way back."],
-  ["This one drifted out with the tide.", "Whatever you were after has moved. Try one of these."],
-  ["Nothing at this coordinate.", "The page you asked for isn't here. The board still is."],
-  ["You've wandered past the last marker.", "There's no page at this link — but there is a way back."],
-  ["404 — below sea level.", "This address doesn't lead anywhere. These do."],
-  ["Just sand and horizon here.", "The page moved or never existed. Pick a direction."],
-  ["The map ends at this point.", "No page at this address. Head back to solid ground."],
-  ["This page is off exploring somewhere.", "It isn't at this link. Start again from home."],
-];
+// One plain message, the same every time: a random pick changed the text
+// after the page loaded (the prerendered copy and the browser chose
+// differently), and the jokes read as filler on an error page.
+const TITLE = "Page not found";
+const BODY = "This link doesn't lead to a page on Vaea. It may be old, or the page may have moved.";
 
 export default function NotFound() {
-  const [[title, body]] = useState(() => MESSAGES[Math.floor(Math.random() * MESSAGES.length)]);
+  const title = TITLE;
+  const body = BODY;
 
   return (
     <ParallaxBackdrop

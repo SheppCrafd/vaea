@@ -48,10 +48,10 @@ export default function MarketingLayout() {
           to="/signup"
           className="flex w-full items-center justify-center rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground shadow-[0_10px_24px_-12px_hsl(var(--signal)/0.6)]"
         >
-          Start your board
+          Create a free account
         </Link>
         <p className="mt-1.5 text-center font-mono text-[0.66rem] tracking-tight text-muted-foreground">
-          No card · saved on your computer by default
+          No card needed. Saved on your computer by default.
         </p>
       </div>
       <div className="h-24 md:hidden" aria-hidden="true" />

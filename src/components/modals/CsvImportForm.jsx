@@ -99,7 +99,9 @@ export default function CsvImportForm() {
         <div className="text-xs rounded-md border border-border p-3 space-y-1 max-h-40 overflow-y-auto">
           <p className="font-medium">
             {totalCreated === 0
-              ? "Nothing created."
+              ? result.errors.length
+                ? "Nothing was created."
+                : "Nothing was created. Vaea found no rows it could read. Check that the first row has the template's column names (area_title, product_title, project_title, task_description), or download the template above."
               : Object.entries(result.counts)
                   .filter(([, count]) => count > 0)
                   .map(([key, count]) => `${count} ${LABELS[key]}${count === 1 ? "" : "s"}`)

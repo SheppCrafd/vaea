@@ -79,7 +79,7 @@ export default function ParallaxBackdrop({
           decoding="async"
           loading={eager ? "eager" : "lazy"}
           style={{ objectPosition: position }}
-          // 32px of side bleed so the mouse slide never shows an edge.
+          // 32px of side bleed beyond the section on each side.
           // max-w-none: Tailwind's base caps every img at 100% wide, which
           // would silently cut the bleed off.
           className="mkt-photo absolute -inset-x-8 -inset-y-[40%] h-[180%] w-[calc(100%+4rem)] max-w-none object-cover will-change-transform"

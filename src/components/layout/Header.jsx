@@ -98,7 +98,15 @@ export default function Header() {
     // marketing site's content.
     <header className="h-16 shrink-0 flex items-center justify-between px-6 relative z-10 bg-background/70 supports-[backdrop-filter]:bg-background/55 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_1px_0_0_hsl(var(--foreground)/0.06),0_16px_32px_-24px_hsl(200_30%_12%/0.3)] dark:shadow-[0_1px_0_0_hsl(var(--foreground)/0.08),0_0_24px_-8px_hsl(var(--foreground)/0.10)]">
       <div className="flex items-center gap-3">
-        <span className="text-lg tracking-tight font-bold [font-family:'JetBrains_Mono',_monospace]">Vaea</span>
+        {/* Always leads back to the Dashboard, which reopens its tab
+            (ensureTabOpen) even after the person closed it. */}
+        <Link
+          to="/app"
+          aria-label="Vaea Dashboard"
+          className="text-lg tracking-tight font-bold [font-family:'JetBrains_Mono',_monospace] rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          Vaea
+        </Link>
 
         {/* Each tab is a Link (navigate) + a separate close button, not a
             button nested inside the Link's own <a> — nesting interactive
@@ -114,7 +122,7 @@ export default function Header() {
             settings ≈ 240px), so 60vw keeps 6–7 typical tabs visible before
             the scroll engages. no-scrollbar hides the 10px chrome once it
             does; the effect above keeps the active tab scrolled into view. */}
-        <nav ref={navRef} onScroll={updateTabEdges} style={tabMask} className="hidden md:flex items-center gap-1 ml-2 overflow-x-auto no-scrollbar max-w-[60vw]">
+        <nav aria-label="Open pages" ref={navRef} onScroll={updateTabEdges} style={tabMask} className="hidden md:flex items-center gap-1 ml-2 overflow-x-auto no-scrollbar max-w-[60vw]">
           {openTabs.map((tab) => {
             const { key, label, to, Icon } = tab;
             const active = tab.isActive(location.pathname);

@@ -1,4 +1,5 @@
-import { memo, useState, lazy, Suspense } from "react";
+import { memo, useState, Suspense } from "react";
+import { lazyRoute } from "@/lib/lazyRoute";
 import { Expand, GripVertical, Link2, Plus, X } from "lucide-react";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Select } from "@/components/ui/select";
@@ -27,8 +28,8 @@ import { filterActiveTasks, getQuadrantCounts, isTaskDone } from "@/lib/taskUtil
 import { getDueDateColorClass, DUE_DATE_STATUS_SELECT_OPTIONS } from "@/lib/projectUtils";
 
 // Lazy: neither modal is needed until a user opens it from this card.
-const TaskTableModal = lazy(() => import("@/components/projects/TaskTableModal"));
-const ProjectDetailModal = lazy(() => import("@/components/projects/ProjectDetailModal"));
+const TaskTableModal = lazyRoute(() => import("@/components/projects/TaskTableModal"), { compact: true });
+const ProjectDetailModal = lazyRoute(() => import("@/components/projects/ProjectDetailModal"), { compact: true });
 
 // The original always-visible, always-editable project card — kept alongside
 // the mini-card default (ProjectCard.jsx) as a toggle-able view (see
@@ -60,7 +61,7 @@ function NoteBox({ title, notes, allStakeholders, tintStyle, placeholder, onAdd,
       className={`w-full rounded px-2 py-1 border border-border/60 transition-colors z-20 ${className}`}
       style={notes.length > 0 ? tintStyle : undefined}
     >
-      <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider text-left mb-0.5">{title}</p>
+      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider text-left mb-0.5">{title}</p>
       <div className="flex items-center gap-1">
         <input
           value={text}
@@ -210,7 +211,7 @@ function ProjectCardFull({ project, stakeholderIds = [] }) {
   const deleteProject = useDeleteProject();
   const handleDelete = () => {
     confirmThen(
-      `Delete project "${project.title}"? This cannot be undone.`,
+      `Delete project "${project.title}" and its tasks? You can undo this straight after.`,
       () => deleteProject.mutate(project.id)
     );
   };
@@ -375,7 +376,7 @@ function ProjectCardFull({ project, stakeholderIds = [] }) {
             value={project.due_date_status || "ESTIMATED"}
             onChange={(e) => updateProject.mutate({ id: project.id, data: { due_date_status: e.target.value } })}
             aria-label="Due date status"
-            className="text-[9px] bg-transparent px-1 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="text-[10px] bg-transparent px-1 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
             options={DUE_DATE_STATUS_SELECT_OPTIONS}
             title="Estimate: a best guess. Committed: promised to someone, and shown on the calendar."
           />

@@ -33,6 +33,7 @@ export function useCreateChatSession() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data) => (await chatBackend()).create(data),
+    meta: { errorTitle: "Couldn't start the chat" },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["chatSessions"] }),
   });
 }
@@ -41,6 +42,7 @@ export function useUpdateChatSession() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, data }) => (await chatBackend()).update(id, data),
+    meta: { errorTitle: "Couldn't update the chat" },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["chatSessions"] }),
   });
 }
@@ -48,6 +50,7 @@ export function useUpdateChatSession() {
 export function useDeleteChatSession() {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: { errorTitle: "Couldn't delete the chat" },
     mutationFn: async (id) => {
       const config = await loadAiProviderConfig();
       const isLocal = isLocalBridgeConfigured(config);

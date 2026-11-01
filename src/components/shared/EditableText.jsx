@@ -32,7 +32,7 @@ export default function EditableText({ value, onSave, placeholder = "—", class
   return (
     <Tag
       id={id}
-      aria-label={ariaLabel}
+      aria-label={ariaLabel || placeholder || undefined}
       value={text}
       onChange={handleChange}
       onFocus={onFocus}

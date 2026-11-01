@@ -141,7 +141,7 @@ export default function Privacy() {
             <p>
               Pull anything into a spreadsheet at any time. Save your settings as a small file to move
               to another device. Switch cloud storage on or off without losing anything. Delete your account
-              from the settings screen, which clears the hosted side.
+              from the settings screen to delete your chats and any board kept in cloud storage.
             </p>
           </Block>
 
@@ -185,7 +185,7 @@ export default function Privacy() {
         </Reveal>
       </Section>
 
-      <ClosingCta title="Keep your work where you can see it." note="On your computer · take it with you anytime" />
+      <ClosingCta title="Keep your work on your own computer." note="On your computer · take it with you anytime" />
     </>
   );
 }

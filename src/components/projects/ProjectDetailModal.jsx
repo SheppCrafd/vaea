@@ -353,7 +353,7 @@ export default function ProjectDetailModal({ project, onClose }) {
             <div className="flex items-center gap-2">
               <DeleteButton
                 onClick={() =>
-                  confirmThen(`Delete project "${project.title}"? This cannot be undone.`, () => {
+                  confirmThen(`Delete project "${project.title}" and its tasks? You can undo this straight after.`, () => {
                     deleteProject.mutate(project.id);
                     onClose();
                   })

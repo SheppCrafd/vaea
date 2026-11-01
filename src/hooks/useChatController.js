@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { startProviderSignIn } from '@/lib/signIn';
 import { useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { localDb } from "@/lib/localDb";
@@ -1294,7 +1295,7 @@ export function useChatController({ activeProjectId } = {}) {
   // loginWithProvider() hits a real API route instead. One-click Google
   // default, since this is a small inline recovery prompt, not the full
   // provider/email picker LoginScreen shows for the main auth gate.
-  const signInForChat = () => base44.auth.loginWithProvider('google', window.location.pathname + window.location.search);
+  const signInForChat = () => startProviderSignIn('google', window.location.pathname + window.location.search);
 
   return {
     input, setInput,

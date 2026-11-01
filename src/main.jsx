@@ -22,6 +22,13 @@ import '@/index.css'
 import { migrateLegacyStorageKeys } from '@/lib/migrateLegacyStorage'
 import { clearRetiredConnectorsWhenReady } from '@/lib/retiredConnectors'
 
+// Old addresses rewritten before anything renders, so the page doesn't draw
+// one route and then swap to another (that measured a 0.63 layout shift).
+// MarketingApp keeps <Navigate> routes for these as a fallback.
+const LEGACY_PATHS = { '/assistant': '/vaea-chat', '/product': '/', '/self-hosting': '/privacy' }
+const legacyTarget = LEGACY_PATHS[window.location.pathname.replace(/\/+$/, '')]
+if (legacyTarget) window.history.replaceState(null, '', legacyTarget + window.location.search + window.location.hash)
+
 migrateLegacyStorageKeys()
 clearRetiredConnectorsWhenReady()
 

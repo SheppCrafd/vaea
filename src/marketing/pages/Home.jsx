@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { Container, Eyebrow, Section, CtaRow, Reveal, Float } from "../components/ui";
+import { Container, Section, CtaRow, Reveal, Float } from "../components/ui";
 import { ShowBlock, ProofStrip, Manifesto, Marquee, Faq, ClosingCta } from "../components/blocks";
 import ParallaxBackdrop from "../components/ParallaxBackdrop";
 import BoardDemo from "../components/BoardDemo";
@@ -24,18 +24,19 @@ export default function Home() {
       >
         <Container>
           <div className="max-w-[54rem]">
-            <Eyebrow className="mkt-hero-rise mb-4">one board · an assistant that sorts · on your computer by default</Eyebrow>
             {/* Not animated in — it's the LCP element; it must be final on
                 first paint. The lighter elements around it carry the entrance. */}
             <h1 className="text-balance font-display text-[clamp(2.9rem,8vw,5.8rem)] font-semibold leading-[1.0] tracking-[-0.04em] text-foreground">
-              Your work, at sea level.
+              Make the next right choice irresistible.
             </h1>
+            {/* The slogan sets the promise; this line says what Vaea is. */}
             <p className="mkt-hero-rise mt-6 max-w-[42rem] text-pretty text-[1.12rem] leading-relaxed text-muted-foreground [--rise-delay:120ms]">
-              The calm place to organize everything you're carrying — with an assistant that does the
-              sorting.
+              Vaea is an executive assistant for every project you run. It keeps them on one board and
+              updates the board when you tell it what changed. It asks before it removes anything, and
+              your work is saved on your computer by default.
             </p>
             <div className="mkt-hero-rise mt-8 [--rise-delay:180ms]">
-              <CtaRow note="No card · saved on your computer by default" />
+              <CtaRow note="No card needed. Saved on your computer by default." />
             </div>
           </div>
 
@@ -48,7 +49,7 @@ export default function Home() {
       </ParallaxBackdrop>
 
       <ProofStrip
-        items={["Source is public", "Works with no internet", "No sign-up needed to try the board", "Every feature included"]}
+        items={["Source is public", "Keeps working offline", "No sign-up needed to try the board", "Every feature included"]}
       />
 
       {/* The story: Bob's morning. Each block below is a moment in his day
@@ -84,7 +85,7 @@ export default function Home() {
         flip
         time="9:10 AM"
         story="The brief flagged Website relaunch: three finished tasks to clear and a due date that won't hold. Bob tells Vaea Chat to clear them and move the date. Archiving removes something, so it lists the plan and waits for his yes."
-        title="Vaea Chat does the change, it doesn't just describe it"
+        title="Vaea Chat makes the change instead of describing it"
         visual={<ChatDemo onDark />}
         cta={{ to: "/vaea-chat", label: "See how Vaea Chat works" }}
       >
@@ -165,19 +166,17 @@ export default function Home() {
         flip
         time="10:15 AM"
         story="Harborline's IT team wants nothing to leave the office network, so the company's copy of Vaea runs in-house."
-        title="Clone it, run it on localhost, keep every request in-house"
+        title="Your IT team can run it in-house"
         visual={<ClaudeCodeTerminal />}
-        cta={{ to: "/privacy", label: "Local Mode, step by step" }}
+        cta={{ to: "/privacy", label: "How in-house setup works" }}
       >
         <p>
-          The source is public and the hosted version runs the same code. Copy the repository down,
-          start Vaea on your own machine, and turn on Local Mode.
+          Vaea's source code is public, and the hosted version runs the same code. Your IT team can
+          run Vaea on its own machines and switch on Local Mode.
         </p>
         <p>
-          Then point Claude Code at it from inside your working copy and it answers Vaea Chat as the
-          model — <code className="font-mono text-[0.9em]">/local-relay</code> for one message,{" "}
-          <code className="font-mono text-[0.9em]">/l</code> when you're relaying all day. No request
-          leaves your network.
+          Vaea Chat then gets its answers from an AI model running inside your network, so no part
+          of the conversation leaves the building.
         </p>
       </ShowBlock>
 
@@ -193,7 +192,7 @@ export default function Home() {
 
       <Marquee
         items={[
-          "your work, at sea level",
+          "an executive assistant for your projects",
           "it asks before it removes anything",
           "your files, on your computer",
           "works offline",
@@ -224,8 +223,8 @@ export default function Home() {
       </Section>
 
       <ClosingCta
-        title="Set it all down."
-        note="No card · saved on your computer by default"
+        title="Let Vaea handle the follow-through."
+        note="No card needed. Saved on your computer by default."
         image="/img/marketing/closing-lagoon.jpg"
       />
     </>

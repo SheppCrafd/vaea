@@ -80,8 +80,14 @@ export function Marquee({ items }) {
   return (
     <div className="mkt-marquee-mask overflow-hidden border-y border-foreground/[0.07] bg-card/30 py-3.5">
       <div className="mkt-marquee">
+        {/* The second copy exists only so the loop is seamless; screen
+            readers get each phrase once. */}
         {row.map((t, i) => (
-          <span key={i} className="font-mono text-[0.72rem] uppercase tracking-[0.18em] text-muted-foreground">
+          <span
+            key={i}
+            aria-hidden={i >= items.length || undefined}
+            className="font-mono text-[0.72rem] uppercase tracking-[0.18em] text-muted-foreground"
+          >
             {t}
           </span>
         ))}
@@ -159,7 +165,7 @@ export function ClosingCta({ title, note, image }) {
                 image ? "bg-white text-[hsl(200_40%_16%)]" : "bg-primary-foreground text-primary",
               )}
             >
-              Start your board
+              Create a free account
             </Link>
             <Link
               to="/app"
@@ -170,7 +176,7 @@ export function ClosingCta({ title, note, image }) {
                   : "border-primary-foreground/25 text-primary-foreground hover:border-primary-foreground/50",
               )}
             >
-              Open the board
+              Try it without an account
             </Link>
           </div>
           {note && (
@@ -197,7 +203,9 @@ export function ClosingCta({ title, note, image }) {
           className="pointer-events-none absolute inset-0 -z-10"
           style={{
             background:
-              "linear-gradient(180deg, hsl(200 48% 8% / 0.62) 0%, hsl(200 48% 8% / 0.30) 45%, hsl(200 48% 8% / 0.30) 55%, hsl(200 48% 8% / 0.62) 100%)",
+              // At least 0.55 behind the text: over a pale horizon (Workplace's
+              // photo) a lighter middle left the white headline at 2.7:1.
+              "linear-gradient(180deg, hsl(200 48% 8% / 0.66) 0%, hsl(200 48% 8% / 0.55) 40%, hsl(200 48% 8% / 0.55) 60%, hsl(200 48% 8% / 0.66) 100%)",
           }}
         />
         {inner}

@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
     const clientSecret = Deno.env.get('SLACK_CLIENT_SECRET');
     if (!clientId || !clientSecret) {
       return Response.json(
-        { error: 'Slack isn\'t configured on this deployment yet — run `base44 secrets set SLACK_CLIENT_ID=... SLACK_CLIENT_SECRET=...`.' },
+        { error: "Slack sign-in isn't set up on this server yet. Try again later." },
         { status: 500 }
       );
     }
@@ -59,6 +59,7 @@ Deno.serve(async (req) => {
 
     return Response.json({ accessToken, workspaceId, workspaceName, userId, username });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('exchangeSlackToken failed:', error?.message);
+    return Response.json({ error: "The connection couldn't be completed. Try again in a moment." }, { status: 500 });
   }
 });

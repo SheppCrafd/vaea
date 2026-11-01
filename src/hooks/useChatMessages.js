@@ -114,6 +114,7 @@ export function useCreateChatMessage() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data) => ((await isLocalChat()) ? localDb.chatMessages.create(data) : base44.entities.ChatMessage.create(data)),
+    meta: { errorTitle: "Couldn't send your message" },
     // Append directly to the cached "recent" page instead of invalidating
     // and refetching skip=0/limit=PAGE_SIZE — a refetch would slide the
     // window forward by one and open a gap against whatever older pages
@@ -128,6 +129,7 @@ export function useUpdateChatMessage() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, data }) => ((await isLocalChat()) ? localDb.chatMessages.update(id, data) : base44.entities.ChatMessage.update(id, data)),
+    meta: { errorTitle: "Couldn't update the message" },
     onSuccess: (_, variables) => {
       if (variables?.data?.session_id) {
         queryClient.invalidateQueries({ queryKey: ["chatMessages", variables.data.session_id] });

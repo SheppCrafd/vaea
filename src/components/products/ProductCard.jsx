@@ -1,4 +1,5 @@
-import { memo, useState, lazy, Suspense } from "react";
+import { memo, useState, Suspense } from "react";
+import { lazyRoute } from "@/lib/lazyRoute";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { useFilter } from "@/lib/FilterContext";
@@ -19,7 +20,7 @@ import { CornerHandle, ExpandButton } from "@/components/shared/CardControls";
 
 // Lazy: only needed once a user opens the detail view, not on the initial
 // card-grid render — same reasoning as Dashboard.jsx's modal imports.
-const ProductDetailModal = lazy(() => import("@/components/products/ProductDetailModal"));
+const ProductDetailModal = lazyRoute(() => import("@/components/products/ProductDetailModal"), { compact: true });
 
 function ProductCard({ product, forceFullProjects = false }) {
   const [isDetailOpen, setIsDetailOpen] = useState(false);

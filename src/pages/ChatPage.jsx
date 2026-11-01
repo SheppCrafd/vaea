@@ -118,9 +118,9 @@ export default function ChatPage() {
   return (
     <div className="h-full flex overflow-hidden gap-3 px-3 pb-3">
       {!isMobile && isSidebarOpen && (
-        <aside className="text-sidebar-foreground w-64 shrink-0 overflow-hidden rounded-2xl bg-sidebar shadow-xl flex flex-col">
+        <aside aria-label="Chat history" className="text-sidebar-foreground w-64 shrink-0 overflow-hidden rounded-2xl bg-sidebar shadow-xl flex flex-col">
           <div className="h-14 shrink-0 flex items-center justify-between pl-4 pr-3">
-            <p className="text-sm font-semibold text-foreground truncate">Chat History</p>
+            <h2 className="text-sm font-semibold text-foreground truncate">Chat History</h2>
             <button
               onClick={toggleSidebar}
               aria-label="Collapse chat history panel"

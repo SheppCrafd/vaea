@@ -101,29 +101,74 @@ export async function seedCollections(data) {
 const cache = new Map(); // name -> item[]
 const loading = new Map(); // name -> in-flight Promise<item[]>
 
+// A collection whose stored copy exists but couldn't be read (a corrupt
+// file, a revoked folder permission, a network error in cloud mode). It is
+// never treated as empty: an empty cache here used to let the next create()
+// write `[newItem]` over the user's real data. Reads and writes to it throw
+// until the user retries, and the app shows a banner (StorageReadErrorBanner).
+export class CollectionReadError extends Error {
+  constructor(name, cause) {
+    super(`Vaea couldn't read your saved ${name}. Nothing has been changed. Check your connection or data folder, then try again.`, { cause });
+    this.name = "CollectionReadError";
+    this.title = "Couldn't read your saved data";
+    this.collection = name;
+  }
+}
+const unreadable = new Map(); // name -> CollectionReadError
+const readErrorListeners = new Set();
+function notifyReadErrors() {
+  readErrorListeners.forEach((fn) => fn([...unreadable.keys()]));
+}
+export function subscribeReadErrors(fn) {
+  readErrorListeners.add(fn);
+  fn([...unreadable.keys()]);
+  return () => readErrorListeners.delete(fn);
+}
+export function unreadableCollections() {
+  return [...unreadable.keys()];
+}
+// Forget the failed reads so the next read tries storage again.
+export function retryUnreadable() {
+  for (const name of unreadable.keys()) cache.delete(name);
+  unreadable.clear();
+  notifyReadErrors();
+}
+
+// Reads straight from storage. Missing data (never written) is an empty
+// collection; anything that fails to read throws CollectionReadError.
+async function readStored(name) {
+  try {
+    if (await isFileBackedModeAvailable()) {
+      const res = await fetch(`${FILE_API_PREFIX}${name}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const items = await res.json();
+      if (!Array.isArray(items)) throw new Error("not a list");
+      return items;
+    }
+    const items = (await readKey(name)) ?? [];
+    if (!Array.isArray(items)) throw new Error("not a list");
+    return items;
+  } catch (err) {
+    const error = new CollectionReadError(name, err);
+    unreadable.set(name, error);
+    notifyReadErrors();
+    throw error;
+  }
+}
+
 async function loadCollection(name) {
+  if (unreadable.has(name)) throw unreadable.get(name);
   if (cache.has(name)) return cache.get(name);
   if (loading.has(name)) return loading.get(name);
 
   const promise = (async () => {
-    let items = [];
-    if (await isFileBackedModeAvailable()) {
-      try {
-        const res = await fetch(`${FILE_API_PREFIX}${name}`);
-        items = res.ok ? await res.json() : [];
-      } catch {
-        items = [];
-      }
-    } else {
-      try {
-        items = (await readKey(name)) ?? [];
-      } catch {
-        items = [];
-      }
+    try {
+      const items = await readStored(name);
+      cache.set(name, items);
+      return items;
+    } finally {
+      loading.delete(name);
     }
-    cache.set(name, items);
-    loading.delete(name);
-    return items;
   })();
 
   loading.set(name, promise);
@@ -137,6 +182,39 @@ async function loadCollection(name) {
 async function readCollection(name) {
   const items = await loadCollection(name);
   return items.slice();
+}
+
+// For read-modify-write: always re-read the stored copy, never the cache.
+// Another tab (or, in cloud mode, another device) may have written since
+// this tab last read, and writing from a stale cache would erase its
+// changes. Runs inside the collection lock, so this tab's own writes stay
+// in order.
+async function readForWrite(name) {
+  if (unreadable.has(name)) throw unreadable.get(name);
+  const items = await readStored(name);
+  cache.set(name, items);
+  return items.slice();
+}
+
+// Tells other open tabs which collection changed, so they drop their copy
+// and re-read instead of showing (and later writing back) stale data.
+const TAB_ID = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : String(Math.random());
+const channel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("vaea-localdb") : null;
+const externalChangeListeners = new Set();
+if (channel) {
+  channel.onmessage = (event) => {
+    const { name, from } = event.data || {};
+    if (!name || from === TAB_ID) return;
+    cache.delete(name);
+    emit(name);
+    externalChangeListeners.forEach((fn) => fn(name));
+  };
+}
+// Called when another tab changed a collection (AuthenticatedApp refreshes
+// its queries).
+export function onExternalChange(fn) {
+  externalChangeListeners.add(fn);
+  return () => externalChangeListeners.delete(fn);
 }
 
 async function writeCollection(name, items) {
@@ -155,6 +233,7 @@ async function writeCollection(name, items) {
   }
   cache.set(name, items);
   emit(name);
+  channel?.postMessage({ name, from: TAB_ID });
 }
 
 // Serializes every read-modify-write cycle (create/update/updateMany/
@@ -201,13 +280,13 @@ function createCollection(name) {
     create: async (data) => withCollectionLock(name, async () => {
       const now = new Date().toISOString();
       const item = { id: crypto.randomUUID(), created_date: now, updated_date: now, ...data };
-      const items = await readCollection(name);
+      const items = await readForWrite(name);
       items.push(item);
       await writeCollection(name, items);
       return item;
     }),
     update: async (id, patch) => withCollectionLock(name, async () => {
-      const items = await readCollection(name);
+      const items = await readForWrite(name);
       const index = items.findIndex((item) => item.id === id);
       // Plain words for the toast; the id stays in the console-visible
       // `cause` for debugging, not the message a person reads.
@@ -230,7 +309,7 @@ function createCollection(name) {
       const idSet = new Set(ids);
       const now = new Date().toISOString();
       const updated = [];
-      const items = (await readCollection(name)).map((item) => {
+      const items = (await readForWrite(name)).map((item) => {
         if (!idSet.has(item.id)) return item;
         const merged = { ...item, ...(typeof patch === "function" ? patch(item) : patch), updated_date: now };
         updated.push(merged);
@@ -240,7 +319,7 @@ function createCollection(name) {
       return updated;
     }),
     delete: async (id) => withCollectionLock(name, async () => {
-      const items = await readCollection(name);
+      const items = await readForWrite(name);
       await writeCollection(name, items.filter((item) => item.id !== id));
       return { id };
     }),

@@ -32,7 +32,7 @@ export default function Brain() {
               Your own notes, in reach of Vaea Chat
             </h1>
             <p className="mt-6 max-w-[40rem] text-[1.08rem] leading-relaxed text-muted-foreground">
-              Connect a personal notes vault you already keep in your own account. Vaea Chat reads it
+              Connect a folder of notes kept in your own GitHub account. Vaea Chat reads it
               for context and writes to it when you ask — and none of it is stored on Vaea's servers.
               See how the notes link up as a map, or sketch a process on a free-draw canvas.
             </p>
@@ -57,7 +57,7 @@ export default function Brain() {
       <ShowBlock
         time="4:35 PM"
         story="He asks Vaea Chat to write it up. The note lands in his own notes, linked to the two projects the new date changes."
-        title="A vault Vaea connects to, not one it holds"
+        title="Your notes stay in your account, not Vaea's"
         visual={<MindMapDemo />}
         cta={{ to: "/privacy", label: "Exactly what leaves, and when" }}
       >
@@ -67,8 +67,7 @@ export default function Brain() {
           you want without losing anything.
         </p>
         <p>
-          It's the same kind of connection a coding assistant gets to a folder of notes, brought into
-          the app instead of living in a separate tool.
+          Vaea Chat reads them for context, and writes a new note only when you ask it to.
         </p>
       </ShowBlock>
 
@@ -118,7 +117,7 @@ export default function Brain() {
         </Reveal>
       </Section>
 
-      <ClosingCta title="Give Vaea Chat something to remember." note="Your notes stay in your own account" />
+      <ClosingCta title="Keep your decisions where Vaea Chat can find them." note="Your notes stay in your own account" />
     </>
   );
 }

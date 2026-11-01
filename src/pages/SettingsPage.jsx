@@ -52,10 +52,13 @@ function SectionNavContent({ activeSection, onSelect }) {
           key={key}
           onClick={() => onSelect(key)}
           aria-current={activeSection === key ? "true" : undefined}
-          title={CONNECTOR_AVAILABLE[key] === false ? "Coming soon" : undefined}
-          className={`text-left text-sm px-3 py-2 rounded-md transition-colors ${activeSection === key ? "bg-secondary text-foreground font-medium" : CONNECTOR_AVAILABLE[key] === false ? "text-muted-foreground/50 hover:text-muted-foreground hover:bg-secondary/60" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"}`}
+          className={`flex items-center justify-between gap-2 text-left text-sm px-3 py-2 rounded-md transition-colors ${activeSection === key ? "bg-secondary text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"}`}
         >
-          {label}
+          <span className="truncate">{label}</span>
+          {/* Shown in text, not only by fading the item (that measured 2.1:1). */}
+          {CONNECTOR_AVAILABLE[key] === false && (
+            <span className="shrink-0 text-[10px] font-medium text-muted-foreground border border-border rounded-full px-1.5 py-px">Soon</span>
+          )}
         </button>
       ))}
     </nav>
@@ -146,7 +149,7 @@ export default function SettingsPage() {
   return (
     <div className="h-full flex overflow-hidden gap-3 px-3 pb-3">
       {!isMobile && isSidebarOpen && (
-        <aside className="text-sidebar-foreground w-56 shrink-0 overflow-hidden rounded-2xl bg-sidebar shadow-xl flex flex-col">
+        <aside aria-label="Settings sections" className="text-sidebar-foreground w-56 shrink-0 overflow-hidden rounded-2xl bg-sidebar shadow-xl flex flex-col">
           <div className="h-14 shrink-0 flex items-center justify-between pl-4 pr-3">
             <p className="text-sm font-semibold text-foreground truncate">Sections</p>
             <button

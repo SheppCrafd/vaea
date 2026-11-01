@@ -14,7 +14,7 @@ export const OG_IMAGE = `${SITE_URL}/og-image.png`;
 export const SITE_REPO = "https://github.com/SheppCrafd/vaea";
 // Bump when page copy materially changes. Surfaced visibly in the footer and
 // as `dateModified` in structured data (a freshness signal for search + AI).
-export const SITE_MODIFIED = "2026-10-30";
+export const SITE_MODIFIED = "2026-11-01";
 
 // The person behind the project. Real, public identity (the GitHub + Gravatar
 // are already public) — used for the /about card, the footer, and the
@@ -38,9 +38,9 @@ export const ROUTES = [
     loc: "/",
     priority: "1.0",
     changefreq: "weekly",
-    title: "Vaea — one calm board for everything you're carrying",
+    title: "Vaea — an executive assistant for every project you run",
     description:
-      "One calm board for every project you're juggling. An assistant sorts it and asks before it removes anything. Your work is saved on your computer by default.",
+      "An executive assistant for your projects. Ask in plain words and Vaea updates your board, asking before it removes anything. Saved on your computer by default.",
   },
   {
     path: "/vaea-chat",
@@ -300,7 +300,7 @@ export function softwareApplicationLd() {
     screenshot: OG_IMAGE,
     dateModified: SITE_MODIFIED,
     description:
-      "One board for all your projects and tasks, grouped by the part of life they belong to, with Vaea Chat making changes after showing you first. Your work is saved on your own computer by default, and the whole thing can be self-hosted.",
+      "An executive assistant for your projects: one board for every project and task, and Vaea Chat, which makes the changes you ask for and asks before removing anything. Your work is saved on your own computer by default, and the whole thing can be self-hosted.",
     author: { "@id": `${SITE_URL}/#maker` },
     publisher: { "@id": `${SITE_URL}/#org` },
     featureList: [

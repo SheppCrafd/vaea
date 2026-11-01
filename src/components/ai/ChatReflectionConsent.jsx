@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/lib/AuthContext";
+import { loadAiProviderConfig, isLocalBridgeConfigured } from "@/lib/aiProviderConfig";
 import { Link } from "react-router";
 import { Sparkles } from "lucide-react";
 import { useReflectionPreferences, useSaveReflectionPreferences } from "@/hooks/useReflectionPreferences";
@@ -28,8 +30,18 @@ export default function ChatReflectionConsent() {
   // default (off), same as every other field prefs.consent === false leaves
   // untouched.
   const [userAnalysisOptIn, setUserAnalysisOptIn] = useState(false);
+  // Check-ins need chat to work: a signed-in account, or Local Mode. A
+  // guest who can't chat yet isn't asked about them before anything else.
+  const { isAuthenticated } = useAuth();
+  const [localMode, setLocalMode] = useState(false);
+  useEffect(() => {
+    let live = true;
+    loadAiProviderConfig().then((c) => live && setLocalMode(isLocalBridgeConfigured(c)));
+    return () => { live = false; };
+  }, []);
 
   if (!prefs || prefs.consent !== null || dismissed) return null;
+  if (!isAuthenticated && !localMode) return null;
 
   const decide = (consent) => {
     // Setting lastReflectionAt/lastDreamAt to now on Allow, not leaving them
@@ -79,17 +91,17 @@ export default function ChatReflectionConsent() {
           conversations, not just workspace facts, to get better at
           responding — that's always about ITS replies, not you, unless the
           checkbox below is checked. */}
-      <p className="text-[11px] text-muted-foreground/80 pl-6">
+      <p className="text-[11px] text-muted-foreground pl-6">
         About once a day, it also reviews its own recent replies to learn what worked and what didn't. That review is about its replies, not you: it doesn't analyze your tone, habits, or personality unless you check the box below.
       </p>
-      <div className="flex items-start gap-2 pl-6 text-[11px] text-muted-foreground/80">
+      <div className="flex items-start gap-2 pl-6 text-[11px] text-muted-foreground">
         <Checkbox checked={userAnalysisOptIn} onCheckedChange={setUserAnalysisOptIn} aria-label="Also notice patterns in how I communicate or work" className="mt-0.5" />
         <span className="cursor-pointer" onClick={() => setUserAnalysisOptIn((v) => !v)}>
           Also let it notice patterns in how I communicate or work, and save what it learns.
         </span>
       </div>
       <div className="flex items-center justify-between gap-2 pl-6">
-        <p className="text-[11px] text-muted-foreground/80">Turn this on or off anytime in Settings → AI Preferences.</p>
+        <p className="text-[11px] text-muted-foreground">Turn this on or off anytime in Settings → AI Preferences.</p>
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => decide(false)}

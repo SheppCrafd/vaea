@@ -30,7 +30,7 @@ export default function QuadrantGrid({ quadrants, onOpen, size = "mini", classNa
     quadrants.some((q) => q.hasHighlightedStakeholder) && "includes the highlighted stakeholder",
   ].filter(Boolean);
 
-  return (
+  const grid = (
     <button
       type="button"
       onClick={onOpen}
@@ -55,5 +55,14 @@ export default function QuadrantGrid({ quadrants, onOpen, size = "mini", classNa
         </div>
       ))}
     </button>
+  );
+  // Full cards have room to say what the numbers are; mini tiles rely on
+  // the hover text above.
+  if (size !== "full") return grid;
+  return (
+    <div className="shrink-0 flex flex-col items-center gap-1">
+      {grid}
+      <span aria-hidden="true" className="text-[10px] leading-none text-muted-foreground">Tasks by priority</span>
+    </div>
   );
 }

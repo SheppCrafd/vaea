@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useDraft, clearDraft } from "@/lib/formDrafts";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useProjects } from "@/hooks/useProjects";
@@ -12,7 +13,7 @@ import { Select } from "@/components/ui/select";
 export default function TaskForm({ onDone, prefill = null }) {
   // description is seeded when the modal is opened from a Notepad row's
   // "create a task"; project from the (+) on a project card. Both editable.
-  const [description, setDescription] = useState(prefill?.description || "");
+  const [description, setDescription] = useDraft("task.description", prefill?.description || "");
   const [projectId, setProjectId] = useState(prefill?.project_id || "");
   const [quadrant, setQuadrant] = useState("");
   const [stakeholderIds, setStakeholderIds] = useState([]);
@@ -20,14 +21,20 @@ export default function TaskForm({ onDone, prefill = null }) {
   const { data: allStakeholders = [] } = useStakeholders();
   const createTask = useCreateTask();
 
+  // isPending only updates after a re-render, so clicks in the same tick
+  // (a double-click) all passed it and created duplicates. The ref blocks
+  // a second submit until this one settles.
+  const submitting = useRef(false);
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!description.trim() || !projectId || createTask.isPending) return;
+    if (submitting.current) return;
+    submitting.current = true;
     const payload = { project_id: projectId, description };
     if (quadrant !== "") payload.quadrant = Number(quadrant);
     if (stakeholderIds.length) payload.stakeholder_ids = stakeholderIds;
     // A failure is shown by the global mutation toast (query-client.js).
-    createTask.mutate(payload, { onSuccess: () => onDone?.() });
+    createTask.mutate(payload, { onSuccess: () => { clearDraft("task.description"); onDone?.(); }, onSettled: () => { submitting.current = false; } });
   };
 
   return (

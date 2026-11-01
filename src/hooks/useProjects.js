@@ -1,4 +1,6 @@
+import { createElement } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/components/ui/use-toast";
 import { localDb } from "@/lib/localDb";
 import { excludeSoftDeleted, requireLiveParent, allowOptionalLiveParent, assertLiveParent } from "@/lib/entityUtils";
 
@@ -150,6 +152,16 @@ export async function deleteProject(id) {
   return project;
 }
 
+// Reverses deleteProject: clears deleted_at on the project and on exactly
+// the tasks that delete stamped (same timestamp), leaving tasks deleted
+// earlier on their own still deleted.
+export async function undeleteProject(project) {
+  const stamp = project.deleted_at;
+  const tasks = await localDb.tasks.filter({ project_id: project.id });
+  await localDb.tasks.updateMany(tasks.filter((t) => stamp && t.deleted_at === stamp).map((t) => t.id), { deleted_at: null });
+  return localDb.projects.update(project.id, { deleted_at: null });
+}
+
 // Restores a project and un-cascades archived_at from its tasks. Same
 // deepest-first ordering: tasks un-archive first, so the project never
 // reappears in the active list before its own tasks are already visible too.
@@ -189,14 +201,33 @@ export function useArchiveProject() {
   });
 }
 
+// Every project delete offers Undo for a few seconds, from whichever
+// button started it (card, full card, or the project window).
 export function useDeleteProject() {
   const queryClient = useQueryClient();
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["projects"] });
+    queryClient.invalidateQueries({ queryKey: ["archivedProjects"] });
+    queryClient.invalidateQueries({ queryKey: ["allTasks"] });
+  };
   return useMutation({
     mutationFn: deleteProject,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projects"] });
-      queryClient.invalidateQueries({ queryKey: ["archivedProjects"] });
-      queryClient.invalidateQueries({ queryKey: ["allTasks"] });
+    meta: { errorTitle: "Couldn't delete project" },
+    onSuccess: async (project) => {
+      refresh();
+      if (!project) return;
+      // Loaded here, not at the top: the toast component touches window
+      // when imported, and this hook is also imported where there is none.
+      const { ToastAction } = await import("@/components/ui/toast");
+      toast({
+        title: "Project deleted",
+        description: project.title,
+        action: createElement(
+          ToastAction,
+          { altText: "Undo deleting this project", onClick: () => undeleteProject(project).then(refresh) },
+          "Undo",
+        ),
+      });
     },
   });
 }

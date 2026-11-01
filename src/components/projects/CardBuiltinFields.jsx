@@ -25,7 +25,7 @@ export default function CardBuiltinFields({ project, onUpdate, className = "" })
     <div className={`flex flex-col gap-2 ${className}`}>
       {enabled.includes("problem_statement") && (
         <div>
-          <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider">Problem Statement</p>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Problem Statement</p>
           <EditableText
             value={project.problem_statement}
             onSave={(v) => onUpdate({ problem_statement: v })}
@@ -38,7 +38,7 @@ export default function CardBuiltinFields({ project, onUpdate, className = "" })
 
       {enabled.includes("metrics") && (
         <div>
-          <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider">Impact &amp; Outcome</p>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Impact &amp; Outcome</p>
           {shownMetrics.length === 0 ? (
             <p className="text-[10px] text-muted-foreground">—</p>
           ) : (
@@ -55,7 +55,7 @@ export default function CardBuiltinFields({ project, onUpdate, className = "" })
 
       {enabled.includes("related_products") && (
         <div>
-          <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider">Related Products</p>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Related Products</p>
           {relatedProducts.length === 0 ? (
             <p className="text-[10px] text-muted-foreground">—</p>
           ) : (

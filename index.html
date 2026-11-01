@@ -38,33 +38,38 @@
          PRERENDER markers per route at build time; these values are the
          fallback for any path that isn't prerendered. -->
     <!-- PRERENDER:HEAD:START -->
-    <title>Vaea — one calm board for everything you're carrying</title>
+    <title>Vaea — an executive assistant for every project you run</title>
     <meta
       name="description"
-      content="The calm place to organize every project you're juggling. An assistant does the sorting and shows you first, and your work is saved on your own computer by default."
+      content="An executive assistant for your projects. Ask in plain words and Vaea updates your board, asking before it removes anything. Saved on your computer by default."
     />
     <meta name="robots" content="index, follow" />
     <!-- No canonical or og:url here: the host serves this file for every path. SeoHead sets both for the real path. -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Vaea" />
-    <meta property="og:title" content="Vaea — one calm board for everything you're carrying" />
+    <meta property="og:title" content="Vaea — an executive assistant for every project you run" />
     <meta
       property="og:description"
-      content="The calm place to organize every project you're juggling. An assistant does the sorting and shows you first, and your work is saved on your own computer by default."
+      content="An executive assistant for your projects. Ask in plain words and Vaea updates your board, asking before it removes anything. Saved on your computer by default."
     />
     <meta property="og:image" content="https://vaea.base44.app/og-image.png" />
     <meta property="og:image:alt" content="The Vaea board — projects grouped by the part of life they belong to" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Vaea — one calm board for everything you're carrying" />
+    <meta name="twitter:title" content="Vaea — an executive assistant for every project you run" />
     <meta
       name="twitter:description"
-      content="The calm place to organize every project you're juggling. An assistant does the sorting and shows you first, and your work is saved on your own computer by default."
+      content="An executive assistant for your projects. Ask in plain words and Vaea updates your board, asking before it removes anything. Saved on your computer by default."
     />
     <meta name="twitter:image" content="https://vaea.base44.app/og-image.png" />
     <!-- PRERENDER:HEAD:END -->
   </head>
   <body>
     <!-- PRERENDER:BODY:START --><div id="root"></div><!-- PRERENDER:BODY:END -->
+    <!-- The host serves the home page's file for any address it doesn't
+         have an exact file for, so /workplace can arrive holding the home
+         page's markup. Hide prerendered markup made for a different
+         address until the app renders the right page (App.jsx shows it). -->
+    <script>(function(){var r=document.getElementById("root"),f=r&&r.getAttribute("data-prerendered-route");if(!f)return;var p=location.pathname.replace(/\/index\.html$/,"").replace(/\/+$/,"")||"/";if(p!==f)document.documentElement.classList.add("prerender-mismatch");})();</script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

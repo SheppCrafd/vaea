@@ -1,7 +1,7 @@
 # Vaea
 
-> Vaea is a local-first project portfolio dashboard with an AI assistant that
-> acts on the same data you see. You nest your work as areas → products →
+> Vaea is an executive assistant for your projects: a local-first project
+> dashboard with an AI assistant that acts on the same data you see. You nest your work as areas → products →
 > projects → tasks on one board; the assistant (Vaea Chat) reads that board and
 > makes concrete edits — create a project, add tasks, mark a focus item — and
 > asks before removing anything or sending a message. Project data is stored in files on

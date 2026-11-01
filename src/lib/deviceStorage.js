@@ -282,6 +282,11 @@ export async function loadSnapshotFile(file) {
   importSnapshotData(parsed);
 }
 
+// Starts the download. It does NOT mark the data saved: a page can't tell
+// whether the person kept the file or cancelled the dialog, so the save bar
+// asks, and markManualSaved() clears the flag only on their yes. The object
+// URL is revoked later, not in the same tick: Firefox can cancel a download
+// whose URL is revoked straight after the click.
 export function downloadSnapshotFile(filename = "vaea-data.json") {
   const snapshot = exportSnapshot();
   const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
@@ -289,8 +294,14 @@ export function downloadSnapshotFile(filename = "vaea-data.json") {
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+// The person confirmed the downloaded file saved.
+export function markManualSaved() {
   manualDirty = false;
   notify();
 }

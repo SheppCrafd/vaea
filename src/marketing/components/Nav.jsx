@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, NavLink } from "react-router";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,8 @@ const LINKS = [
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const toggleRef = useRef(null);
+  const menuRef = useRef(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -29,6 +31,20 @@ export default function Nav() {
     return () => {
       document.body.style.overflow = "";
     };
+  }, [open]);
+
+  // The open menu takes focus; Escape closes it and focus returns to the
+  // button that opened it.
+  useEffect(() => {
+    if (!open) return undefined;
+    menuRef.current?.querySelector("a")?.focus();
+    const onKey = (e) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      toggleRef.current?.focus();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
   return (
@@ -68,23 +84,25 @@ export default function Nav() {
             to="/signup"
             className="mkt-lift inline-flex items-center rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-[0_10px_24px_-12px_hsl(var(--signal)/0.6)]"
           >
-            Start your board
+            Create account
           </Link>
         </div>
 
         <button
           type="button"
+          ref={toggleRef}
           onClick={() => setOpen((v) => !v)}
           className="inline-flex h-10 w-10 items-center justify-center rounded-full text-foreground lg:hidden"
           aria-label={open ? "Close menu" : "Open menu"}
           aria-expanded={open}
+          aria-controls="site-menu"
         >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </nav>
 
       {open && (
-        <div className="fixed inset-x-0 top-16 bottom-0 z-40 bg-background/95 backdrop-blur-xl lg:hidden">
+        <div id="site-menu" ref={menuRef} className="fixed inset-x-0 top-16 bottom-0 z-40 bg-background/95 backdrop-blur-xl lg:hidden">
           <div className="flex flex-col gap-1 px-6 py-6">
             {LINKS.map((l) => (
               <NavLink
@@ -109,7 +127,7 @@ export default function Nav() {
               onClick={() => setOpen(false)}
               className="mt-2 inline-flex items-center justify-center rounded-full bg-primary px-4 py-3 text-base font-medium text-primary-foreground"
             >
-              Start your board
+              Create account
             </Link>
           </div>
         </div>

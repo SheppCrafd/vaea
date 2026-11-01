@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { startProviderSignIn } from '@/lib/signIn';
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
@@ -54,7 +55,7 @@ export default function LoginScreen() {
       // from the signed-in email's domain, which doesn't work at all for
       // Apple (no recognizable domain, sometimes a hidden relay address).
       const withProvider = `${returnTo}${returnTo.includes("?") ? "&" : "?"}signin_provider=${provider}`;
-      base44.auth.loginWithProvider(provider, withProvider);
+      startProviderSignIn(provider, withProvider);
     } catch {
       setError("Couldn't start sign-in — try again in a moment.");
     }
@@ -82,7 +83,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-background px-4 py-16">
+    <main className="relative min-h-screen flex items-center justify-center bg-background px-4 py-16">
       <AuthAmbience />
       <div className="relative max-w-sm w-full rounded-[1.75rem] bg-card/75 backdrop-blur-xl p-8 space-y-5 shadow-[0_0_0_1px_hsl(var(--foreground)/0.05),inset_0_1px_0_0_hsl(var(--card)),0_32px_64px_-32px_hsl(200_30%_12%/0.35)] dark:shadow-[0_0_0_1px_hsl(var(--foreground)/0.10),inset_0_1px_0_0_hsl(var(--card)),0_0_60px_-10px_hsl(var(--foreground)/0.12)]">
         <div className="text-center space-y-3">
@@ -93,7 +94,7 @@ export default function LoginScreen() {
             <img src="/android-chrome-512x512.png" alt="" className="w-full h-full object-cover" />
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-medium">Sign in to Vaea</p>
+            <h1 className="text-sm font-medium">Sign in to Vaea</h1>
             <p className="text-xs text-muted-foreground">
               Your board is saved on this device unless you turn on cloud storage. Sign in to use Vaea Chat.
             </p>
@@ -171,6 +172,6 @@ export default function LoginScreen() {
           </Link>
         </p>
       </div>
-    </div>
+    </main>
   );
 }

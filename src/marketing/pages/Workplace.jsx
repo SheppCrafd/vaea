@@ -141,7 +141,7 @@ export default function Workplace() {
       </Section>
 
       <ClosingCta
-        title="Bring the day into one view."
+        title="See your day next to your projects."
         note="Your accounts, connected one at a time"
         image="/img/marketing/workplace-closing.jpg"
       />

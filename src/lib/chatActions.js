@@ -1195,7 +1195,10 @@ export async function executeAction(action, args) {
 // Serializes records to CSV and triggers a browser download — no server
 // round-trip, matching every other chat action's local-only execution.
 function downloadCsv(entityType, records) {
-  const headers = records.length ? Object.keys(records[0]) : [];
+  // Every field any record has, in first-seen order: records only carry the
+  // optional fields that were ever set, so the first record's keys alone
+  // dropped columns other rows had.
+  const headers = [...new Set(records.flatMap((r) => Object.keys(r)))];
   const csvText = toCsv(headers, records);
   const blob = new Blob([csvText], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);

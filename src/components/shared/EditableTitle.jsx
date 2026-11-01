@@ -10,13 +10,16 @@ import { titleWithBreakHints } from "@/lib/entityUtils";
 export default function EditableTitle({ as: Tag = "h3", value, onInput, onBlur, onKeyDown, className = "", tooltip }) {
   return (
     <Tag
-      className={`outline-none focus:ring-1 focus:ring-primary/40 rounded ${className}`}
+      // Long titles stop at three lines (the full title shows on hover) and
+      // break anywhere, so one long name can't push the whole board down.
+      // Editing lifts the limit.
+      className={`outline-none focus:ring-1 focus:ring-primary/40 rounded ${className.includes("line-clamp") ? "" : "line-clamp-3 focus:line-clamp-none"} [overflow-wrap:anywhere] ${className}`}
       contentEditable
       suppressContentEditableWarning
       onInput={onInput}
       onBlur={onBlur}
       onKeyDown={onKeyDown}
-      title={tooltip}
+      title={tooltip ?? (typeof value === "string" ? value : undefined)}
     >
       {titleWithBreakHints(value)}
     </Tag>

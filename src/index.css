@@ -268,6 +268,12 @@
   height: 0;
 }
 
+/* See index.html: prerendered markup for a different address stays hidden
+   until the app has rendered the page that was asked for. */
+html.prerender-mismatch #root {
+  visibility: hidden;
+}
+
 @keyframes chat-launch-pulse {
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.1); opacity: 0.85; }

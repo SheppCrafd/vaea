@@ -11,6 +11,7 @@ import {
   isManualDirty,
   subscribeStatus,
   downloadSnapshotFile,
+  markManualSaved,
   loadSnapshotFile,
   startFreshManual,
   writeKey,
@@ -258,9 +259,9 @@ export default function DeviceStorageGate({ children }) {
       <div className="max-w-sm w-full text-center space-y-4">
         {phase === "choose-mode" && (
           <>
-            <p className="text-sm font-medium">Where should your data live?</p>
+            <h1 className="text-sm font-medium">Where should your data live?</h1>
             <p className="text-xs text-muted-foreground">
-              Either way, your chats are kept with the account you sign in with. This choice covers your areas, products, projects, and tasks.
+              This choice covers your areas, products, projects and tasks. If you sign in, your chats are saved with your account.
             </p>
             <div className="flex flex-col gap-2.5 pt-1 text-left">
               <button
@@ -269,7 +270,7 @@ export default function DeviceStorageGate({ children }) {
               >
                 <Cloud className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
                 <span>
-                  <span className="block text-sm font-medium">Save on cloud</span>
+                  <span className="block text-sm font-medium">Save to the cloud</span>
                   <span className="block text-xs text-muted-foreground mt-0.5">
                     Saved to your account, so it's there on any device you sign in to.
                   </span>
@@ -296,7 +297,7 @@ export default function DeviceStorageGate({ children }) {
 
         {phase === "cloud-needs-auth" && (
           <>
-            <p className="text-sm font-medium">Sign in to save on cloud</p>
+            <h1 className="text-sm font-medium">Sign in to save to the cloud</h1>
             <p className="text-xs text-muted-foreground">
               Cloud storage is tied to your account, so it can find your data again on any device — you'll need to
               sign in first.
@@ -326,22 +327,22 @@ export default function DeviceStorageGate({ children }) {
 
         {phase === "disconnected" && (
           <>
-            <p className="text-sm font-medium">Connect your device folder</p>
+            <h1 className="text-sm font-medium">Connect your device folder</h1>
             <p className="text-xs text-muted-foreground">
-              Vaea stores everything as plain files on this device — nothing is sent to a server. Pick or create a folder to use.
+              Vaea saves your board as plain files in a folder on this device. Pick or create a folder to use.
             </p>
             <button onClick={handleConnect} className="text-sm px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md transition-colors">
               Choose a folder
             </button>
             <p className="text-[11px] text-muted-foreground/70">
-              One exception: your chats are kept with the account you sign in with, not in this folder.
+              Vaea Chat sends a copy of your board to the AI service for each answer. If you sign in, your chats are saved with your account, not in this folder.
             </p>
           </>
         )}
 
         {phase === "needs-permission" && (
           <>
-            <p className="text-sm font-medium">Resume access to your data</p>
+            <h1 className="text-sm font-medium">Resume access to your data</h1>
             <p className="text-xs text-muted-foreground">
               Vaea remembers the folder "{folderName}" from last time. Your browser needs a one-click confirmation to use it again this session.
             </p>
@@ -358,7 +359,7 @@ export default function DeviceStorageGate({ children }) {
 
         {phase === "manual-needed" && (
           <>
-            <p className="text-sm font-medium">Load your data</p>
+            <h1 className="text-sm font-medium">Load your data</h1>
             <p className="text-xs text-muted-foreground">
               This browser can't grant Vaea direct access to a folder on this device, so data lives only in this tab and is saved by exporting a file. Load a previous export, or start fresh.
             </p>
@@ -379,7 +380,7 @@ export default function DeviceStorageGate({ children }) {
 
         {phase === "manual-legacy-found" && (
           <>
-            <p className="text-sm font-medium">Save your existing data</p>
+            <h1 className="text-sm font-medium">Save your existing data</h1>
             <p className="text-xs text-muted-foreground">
               We found Vaea data still sitting in this browser from before. This browser can't save it to a folder automatically — download it as a file now so it isn't lost. Nothing is removed from the browser until you do.
             </p>
@@ -398,22 +399,37 @@ export default function DeviceStorageGate({ children }) {
 // Persistent affordance for manual-mode sessions: shows whenever there are
 // changes since the last export, since that's the only durable save action
 // available in this mode.
+// Bottom centre, clear of the corner launchers (chat bottom-right, notepad
+// bottom-left), which used to cover its Save button.
 function ManualSaveBar() {
   const [dirty, setDirty] = useState(isManualDirty());
+  const [asking, setAsking] = useState(false);
 
   useEffect(() => subscribeStatus(() => setDirty(isManualDirty())), []);
 
   if (!dirty) return null;
 
+  const pill = "text-xs px-3 py-1.5 font-medium rounded-full transition-colors flex items-center gap-1.5";
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 bg-card border border-border rounded-full pl-3 pr-1 py-1 shadow-lg">
-      <span className="text-xs text-muted-foreground">Unsaved changes</span>
-      <button
-        onClick={() => downloadSnapshotFile()}
-        className="text-xs px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-full transition-colors flex items-center gap-1.5"
-      >
-        <Save className="w-3.5 h-3.5" /> Save
-      </button>
+    <div role="status" className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-2 bg-card border border-border rounded-full pl-3 pr-1 py-1 shadow-lg">
+      {asking ? (
+        <>
+          <span className="text-xs text-foreground">Did the file save?</span>
+          <button onClick={() => { markManualSaved(); setAsking(false); }} className={`${pill} bg-primary hover:bg-primary/90 text-primary-foreground`}>
+            Yes
+          </button>
+          <button onClick={() => downloadSnapshotFile()} className={`${pill} text-muted-foreground hover:text-foreground hover:bg-secondary`}>
+            Save again
+          </button>
+        </>
+      ) : (
+        <>
+          <span className="text-xs text-muted-foreground">Unsaved changes</span>
+          <button onClick={() => { downloadSnapshotFile(); setAsking(true); }} className={`${pill} bg-primary hover:bg-primary/90 text-primary-foreground`}>
+            <Save className="w-3.5 h-3.5" /> Save
+          </button>
+        </>
+      )}
     </div>
   );
 }

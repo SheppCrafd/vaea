@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { X, ChevronLeft, Paperclip, Maximize2, Info, Settings } from "lucide-react";
+import { X, History, Paperclip, Maximize2, Info, Settings } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { useSharedChatController } from "@/lib/ChatControllerContext";
 import { useWindowGeometry } from "@/hooks/useWindowGeometry";
@@ -104,6 +104,11 @@ export default function ChatBox({ startOpen = false }) {
           whatever state it's already reached, live generation included. */}
       <div
         ref={containerRef}
+        // Escape closes the panel, unless a menu or dialog inside it is open
+        // (that overlay handles its own Escape first).
+        onKeyDown={(e) => {
+          if (e.key === "Escape" && document.body.dataset.overlay !== "open") setIsChatOpen(false);
+        }}
         style={isChatOpen ? { position: "fixed", left: geometry.x, top: geometry.y, width: geometry.width, height: geometry.height } : undefined}
         className={`z-[110] font-sans bg-card shadow-[0_0_0_1px_hsl(var(--foreground)/0.06),0_28px_58px_-12px_hsl(200_30%_12%/0.35)] rounded-2xl flex flex-col overflow-hidden transition-none ${isChatOpen ? "" : "hidden"}`}
       >
@@ -113,25 +118,25 @@ export default function ChatBox({ startOpen = false }) {
             onMouseDown={handleHeaderMouseDown}
             className="bg-primary px-4 py-3 flex items-center justify-between text-primary-foreground cursor-move select-none"
           >
-            <div className="flex flex-col items-start gap-0.5">
-              <button
-                ref={chat.iconPicker.triggerRef}
-                onClick={chat.iconPicker.toggle}
-                className="flex items-center gap-2"
-                aria-label="Choose chat icon"
-              >
-                <ChatIcon iconChoice={chat.iconChoice} className="w-5 h-5" />
-                <span className="font-terminal font-semibold text-sm">{chat.aiIdentity.name || "Vaea Chat"}</span>
-              </button>
+            <button
+              ref={chat.iconPicker.triggerRef}
+              onClick={chat.iconPicker.toggle}
+              className="flex items-center gap-2"
+              aria-label="Choose chat icon"
+            >
+              <ChatIcon iconChoice={chat.iconChoice} className="w-5 h-5" />
+              <span className="font-terminal font-semibold text-sm">{chat.aiIdentity.name || "Vaea Chat"}</span>
+            </button>
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setIsSessionListOpen((v) => !v)}
                 aria-label="Chat history"
-                className="text-primary-foreground/70 hover:text-primary-foreground -mt-0.5"
+                aria-expanded={isSessionListOpen}
+                title="Chat history"
+                className="text-primary-foreground/80 hover:text-primary-foreground transition-colors"
               >
-                <ChevronLeft className="w-3.5 h-3.5" />
+                <History className="w-3.5 h-3.5" />
               </button>
-            </div>
-            <div className="flex items-center gap-2">
               <Info
                 className="w-3.5 h-3.5 text-primary-foreground/70 cursor-help"
                 aria-label="Privacy notice"

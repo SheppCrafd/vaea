@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Plus, Sparkles, ListPlus } from "lucide-react";
+import { Plus, Sparkles, ListPlus, X } from "lucide-react";
 import Modal from "@/components/shared/Modal";
 import { Button } from "@/components/ui/button";
 import { DeleteButton } from "@/components/ui/delete-button";
@@ -167,6 +167,14 @@ export default function NotepadModal({ onClose }) {
           <h2 className="text-lg font-bold font-heading leading-none">Notepad</h2>
           <p className="text-xs text-muted-foreground mt-0.5">Quick notes with stakeholders, products, projects, and dates — turn any row into a task or hand it to Vaea.</p>
         </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close notepad"
+          className="shrink-0 self-start p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
       </div>
 
       <div className="p-4 border-b border-border flex items-start gap-2">
