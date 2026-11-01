@@ -4,7 +4,7 @@ import TerminalBlock from "@/components/settings/TerminalBlock";
 import { useReveal, prefersReducedMotion } from "../useReveal";
 import { useScrollTyping } from "../useScrollTyping";
 import { useDemoLock } from "../useDemoLock";
-import { CHAT_MESSAGES, BRIEF_MESSAGES, VMAIL_FOLDERS, CALENDAR_GROUPS } from "../fixtures";
+import { CHAT_MESSAGES, BRIEF_MESSAGES, NOTES_MESSAGES, VMAIL_FOLDERS, CALENDAR_GROUPS } from "../fixtures";
 
 // The demos render the REAL app components with fixture data. They're
 // lazy-loaded and only mounted once their block scrolls into view, so:
@@ -77,6 +77,8 @@ const chatListProps = {
   resolvingId: null,
   onConfirm: noop,
   onCancel: noop,
+  // So a checkpoint line shows its Revert button, as in the app.
+  onRevert: noop,
   onMessageTyped: noop,
 };
 
@@ -102,6 +104,7 @@ function typedConversation([user, reply]) {
         content: prefix + text.slice(0, replyShown),
         typing: !done,
         pending_action: done ? reply.pending_action : undefined,
+        tool_log_detail: done ? reply.tool_log_detail : undefined,
       });
     }
     return out;
@@ -112,6 +115,7 @@ function typedConversation([user, reply]) {
 const CONVERSATIONS = {
   plan: typedConversation(CHAT_MESSAGES),
   brief: typedConversation(BRIEF_MESSAGES),
+  notes: typedConversation(NOTES_MESSAGES),
 };
 
 // Below a page's hero: types as the visitor scrolls (useScrollTyping.js),
@@ -145,7 +149,8 @@ function ScrollChatDemo({ onDark, conversation }) {
 const EMPTY_SET = new Set();
 
 // `conversation`: "plan" (the archive-and-move request that waits for a
-// yes) or "brief" (the morning /daily-brief). The hero always loops "plan".
+// yes), "brief" (the morning /daily-brief) or "notes" (/parse-notes adding
+// tasks, with its checkpoint line). The hero always loops "plan".
 export function ChatDemo({ onDark = false, hero = false, conversation = "plan" }) {
   return hero ? <HeroChatDemo onDark={onDark} /> : <ScrollChatDemo onDark={onDark} conversation={conversation} />;
 }

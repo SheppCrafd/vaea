@@ -227,6 +227,38 @@ export const CALENDAR_GROUPS = [
   day(3, [{ h: 0, title: "Website relaunch due", source: "Vaea project" }]),
 ];
 
+// The 1:45 PM beat on Workplace: Dana's design-review notes through
+// /parse-notes. Adding tasks runs straight away (no confirm card), and a
+// plan of more than one step saves a checkpoint first, so the reply carries
+// the same tool log and checkpoint line a real turn does. fixtures.test.js
+// checks every line against chatActions.js describePlan/describeToolCall
+// and checkpointNames.js.
+export const NOTES_PROJECT = { id: "demo-project-launch", title: "Harbor 2.0 launch" };
+export const NOTES_TASKS = [
+  "Swap the launch hero to the dusk photo",
+  "Cut the pricing page to two plans",
+  "Send final screens to Lumen Studio",
+  "Book the launch-day QA pass with Dana",
+];
+export const NOTES_ACTIONS = NOTES_TASKS.map((title) => ({ action: "CREATE_TASK", args: { project_id: NOTES_PROJECT.id, title } }));
+export const NOTES_MESSAGES = [
+  {
+    id: "nu1",
+    role: "user",
+    content:
+      "/parse-notes Design review, Harbor 2.0 launch. Dana, Bob, Priya. Decided: hero uses the dusk photo, pricing page goes to two plans. Lumen gets final screens. Dana runs launch-day QA.",
+  },
+  {
+    id: "na1",
+    role: "assistant",
+    content:
+      "```tool-log\nplan · 4 steps across 4 tasks\n" +
+      NOTES_TASKS.map((t) => `create_task("${t}")`).join("\n") +
+      "\n```\n\nAdded 4 tasks to Harbor 2.0 launch from Dana's notes. The pricing change has no owner yet. Who should take it?",
+    tool_log_detail: { checkpoint: { id: "demo-checkpoint", label: "Added 4 tasks to Harbor 2.0 launch" } },
+  },
+];
+
 // The 9:05 AM beat on Home: Bob's /daily-brief. The reply follows the
 // command's real structure (aiChatStream entry.ts "/daily-brief": board,
 // calendar, inbox, then one line on what comes first), and the tool-log

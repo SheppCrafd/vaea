@@ -1,6 +1,6 @@
 import { Container, Eyebrow, Section, CtaRow, Reveal, Float } from "../components/ui";
 import { ShowBlock, Faq, Marquee, ClosingCta } from "../components/blocks";
-import { CalendarDemo, VmailDemo } from "../components/visuals";
+import { CalendarDemo, VmailDemo, ChatDemo } from "../components/visuals";
 import { StoryRegion, StoryIntro, Elsewhere } from "../components/story";
 import { ANY_CALENDAR_AVAILABLE, ANY_MAIL_AVAILABLE } from "@/lib/connectorAvailability";
 import { WORKPLACE_FAQ } from "../seo";
@@ -60,19 +60,23 @@ export default function Workplace() {
         </p>
       </ShowBlock>
 
-      <Section time="1:45 PM" title="Meeting notes become tasks" lede="The design review settles four things for the launch. Bob pastes Dana's notes into Vaea Chat, and each one becomes a task on Harbor 2.0 launch.">
-        <Reveal className="mt-5 max-w-[46rem] space-y-3.5 text-[1.02rem] leading-relaxed text-muted-foreground">
-          <p>
-            Paste your notes into Vaea Chat with{" "}
-            <code className="font-mono text-[0.9em]">/parse-notes</code>. It pulls out the tasks,
-            decisions, and follow-ups, and adds them to your board.
-          </p>
-          <p>
-            Vaea doesn't record or transcribe meetings itself. Paste the notes from wherever you keep
-            them, or connect Granola and Vaea Chat reads them from there.
-          </p>
-        </Reveal>
-      </Section>
+      <ShowBlock
+        flip
+        time="1:45 PM"
+        story="The design review settles four things for the launch. Bob pastes Dana's notes into Vaea Chat, and each one becomes a task on Harbor 2.0 launch."
+        title="Meeting notes become tasks"
+        visual={<ChatDemo conversation="notes" />}
+      >
+        <p>
+          Paste your notes into Vaea Chat with{" "}
+          <code className="font-mono text-[0.9em]">/parse-notes</code>. It pulls out the tasks,
+          decisions, and follow-ups, adds them to your board, and asks about anything left unclear.
+        </p>
+        <p>
+          Vaea doesn't record or transcribe meetings itself. Paste the notes from wherever you keep
+          them, or connect Granola and Vaea Chat reads them from there.
+        </p>
+      </ShowBlock>
 
       <Section time="1:55 PM" title="Ready for a 1:1 in a minute" lede="Before Lee's 1:1, Bob picks Lee on the board, and every project and task Lee is on lights up. Then he asks Vaea Chat to summarize Auth rework, blocker first.">
         <Reveal className="mt-5 max-w-[46rem] space-y-3.5 text-[1.02rem] leading-relaxed text-muted-foreground">
@@ -84,7 +88,6 @@ export default function Workplace() {
       </Section>
 
       <ShowBlock
-        flip
         tone="dark"
         time="2:35 PM"
         story="Priya's revised quote lands at 2:30. Bob asks Vaea Chat to forward it to Marta for sign-off, and it waits for his yes before sending."

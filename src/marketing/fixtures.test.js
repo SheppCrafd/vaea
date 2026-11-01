@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { describePlan } from "@/lib/chatActions";
+import { describePlan, describeToolCall } from "@/lib/chatActions";
+import { nameCheckpoint } from "@/lib/checkpointNames";
 import { toMinutes } from "./components/storyTime";
-import { CHAT_MESSAGES, BRIEF_MESSAGES, CALENDAR_GROUPS } from "./fixtures";
+import { CHAT_MESSAGES, BRIEF_MESSAGES, NOTES_MESSAGES, NOTES_ACTIONS, NOTES_PROJECT, CALENDAR_GROUPS } from "./fixtures";
 
 // The pages and story.jsx touch `window` at import, so their times are
 // read from the source instead.
@@ -16,6 +17,15 @@ describe("marketing fixtures", () => {
   it("the plan demo's tool-log line is what the app writes for that plan", () => {
     const reply = CHAT_MESSAGES[1];
     expect(toolLog(reply.content)[0]).toBe(describePlan(reply.pending_action.actions));
+  });
+
+  it("the notes demo shows the tool log and checkpoint a real turn would", () => {
+    const reply = NOTES_MESSAGES[1];
+    const steps = NOTES_ACTIONS.map((a) => ({ action: a.action, toolResult: { task: { title: a.args.title } } }));
+    expect(toolLog(reply.content)).toEqual([describePlan(NOTES_ACTIONS), ...steps.map(describeToolCall)]);
+    expect(reply.pending_action).toBeUndefined(); // adding tasks doesn't wait
+    const board = { projects: [NOTES_PROJECT], tasks: [], areas: [], products: [] };
+    expect(reply.tool_log_detail.checkpoint.label).toBe(nameCheckpoint(NOTES_ACTIONS, board));
   });
 
   it("the brief only reads, so it carries no plan and no confirm card", () => {
