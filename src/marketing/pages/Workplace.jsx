@@ -38,14 +38,14 @@ export default function Workplace() {
       </section>
 
       <StoryRegion>
-      <StoryIntro time="1:00 PM">
-        Bob's afternoon belongs to other people: Dana's design review now, Priya's quote waiting, and
-        a 1:1 with Lee tomorrow.
+      <StoryIntro time="12:30 PM">
+        After lunch, Bob's day belongs to other people: Dana's design review at 1:00, his 1:1 with Lee
+        at 2:00, and Marta's budget review at 3:30.
       </StoryIntro>
 
       <ShowBlock
-        time="1:05 PM"
-        story="Bob's calendars and his project due dates sit in one agenda. The review has started, and API v2 is due at 4."
+        time="12:35 PM"
+        story="Bob's calendars and his project due dates sit in one agenda: three meetings this afternoon, and API v2 due today."
         title="Every calendar, and your due dates, in one view"
         soon={ANY_CALENDAR_AVAILABLE ? undefined : "Google and Microsoft calendar connections are coming soon. Your project due dates already show in the agenda."}
         visual={<CalendarDemo />}
@@ -60,11 +60,34 @@ export default function Workplace() {
         </p>
       </ShowBlock>
 
+      <Section time="1:45 PM" title="Meeting notes become tasks" lede="The design review settles four things for the launch. Bob pastes Dana's notes into Vaea Chat, and each one becomes a task on Harbor 2.0 launch.">
+        <Reveal className="mt-5 max-w-[46rem] space-y-3.5 text-[1.02rem] leading-relaxed text-muted-foreground">
+          <p>
+            Paste your notes into Vaea Chat with{" "}
+            <code className="font-mono text-[0.9em]">/parse-notes</code>. It pulls out the tasks,
+            decisions, and follow-ups, and adds them to your board.
+          </p>
+          <p>
+            Vaea doesn't record or transcribe meetings itself. Paste the notes from wherever you keep
+            them, or connect Granola and Vaea Chat reads them from there.
+          </p>
+        </Reveal>
+      </Section>
+
+      <Section time="1:55 PM" title="Ready for a 1:1 in a minute" lede="Before Lee's 1:1, Bob picks Lee on the board, and every project and task Lee is on lights up. Then he asks Vaea Chat to summarize Auth rework, blocker first.">
+        <Reveal className="mt-5 max-w-[46rem] space-y-3.5 text-[1.02rem] leading-relaxed text-muted-foreground">
+          <p>
+            <code className="font-mono text-[0.9em]">/summarize</code> gives you where a project
+            stands in a few lines: what's done, what's stuck, and the questions still open.
+          </p>
+        </Reveal>
+      </Section>
+
       <ShowBlock
         flip
         tone="dark"
-        time="2:30 PM"
-        story="Priya's revised quote lands, right above Marta's note asking for it."
+        time="2:35 PM"
+        story="Priya's revised quote lands at 2:30. Bob asks Vaea Chat to forward it to Marta for sign-off, and it waits for his yes before sending."
         title="Gmail and Outlook, read and written in one client"
         soon={ANY_MAIL_AVAILABLE ? undefined : "Gmail and Outlook connections are coming soon."}
         visual={<VmailDemo onDark />}
@@ -79,14 +102,27 @@ export default function Workplace() {
         </p>
       </ShowBlock>
 
-      <Section time="3:15 PM" title="Meeting notes become tasks" lede="After the review, Dana's notes become tasks on Bob's board.">
+      <Section
+        time="3:15 PM"
+        title="Vaea Calendar finds time for the work"
+        lede="Bob owes the leadership team a launch brief before tomorrow's 2:00 kickoff. He gives the task 90 minutes, and Vaea Calendar blocks the first free slot: tomorrow at 10:00."
+        soon={ANY_CALENDAR_AVAILABLE ? undefined : "Auto-scheduling needs a Google or Microsoft calendar connection, which is coming soon."}
+      >
         <Reveal className="mt-5 max-w-[46rem] space-y-3.5 text-[1.02rem] leading-relaxed text-muted-foreground">
           <p>
-            Paste your notes into Vaea Chat with{" "}
-            <code className="font-mono text-[0.9em]">/parse-notes</code>. It pulls out the tasks,
-            decisions, and follow-ups, and adds them to your board.
+            Turn on auto-scheduling in Settings and give a task a duration. Vaea Calendar finds the
+            first free slot in your working hours and books it. It's off by default, so your calendar
+            only changes when you ask.
           </p>
-          <p>Vaea doesn't record or transcribe meetings itself — bring the notes from wherever you keep them.</p>
+        </Reveal>
+      </Section>
+
+      <Section time="3:25 PM" title="The numbers for Marta, as a spreadsheet" lede="Before the 3:30 budget review, Bob asks Vaea Chat for his projects in a spreadsheet. It saves every project on his board to a file Marta can open in Excel or Google Sheets.">
+        <Reveal className="mt-5 max-w-[46rem] space-y-3.5 text-[1.02rem] leading-relaxed text-muted-foreground">
+          <p>
+            Projects, tasks, people or notes: ask for any of them and Vaea Chat saves the full list as
+            a CSV file. Archived and deleted items stay out.
+          </p>
         </Reveal>
       </Section>
 

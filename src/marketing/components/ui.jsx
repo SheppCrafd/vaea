@@ -43,8 +43,27 @@ export function Reveal({ as: Tag = "div", delay = 0, className, children, ...res
 
 // A titled section: mono eyebrow + <h2> + optional lede, all revealing
 // together. `id` doubles as the scroll anchor for in-page nav.
+// A "Coming soon" pill beside a heading, for a feature that can't connect
+// yet; `note` (a sentence) shows on hover and is read out with it.
+export function SoonPill({ note, dark }) {
+  return (
+    <span
+      tabIndex={0}
+      title={note}
+      aria-label={`Coming soon. ${note}`}
+      className={cn(
+        "ml-3 inline-block translate-y-[-0.35em] cursor-help whitespace-nowrap rounded-full border px-2.5 py-0.5 align-middle font-sans text-[0.72rem] font-medium tracking-normal outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        dark ? "border-primary-foreground/25 text-primary-foreground/70" : "border-foreground/15 text-muted-foreground",
+      )}
+    >
+      Coming soon
+    </span>
+  );
+}
+
 // `time` (story.jsx): the moment in Bob's day, shown in place of the eyebrow.
-export function Section({ id, eyebrow, title, lede, className, headingClassName, children, time }) {
+// `soon`: as on ShowBlock, a sentence that adds a "Coming soon" pill.
+export function Section({ id, eyebrow, title, lede, className, headingClassName, children, time, soon }) {
   return (
     <section id={id} data-story-time={time} className={cn("scroll-mt-24 py-[calc(var(--mkt-section-y)*0.75)]", className)}>
       <Container>
@@ -63,6 +82,7 @@ export function Section({ id, eyebrow, title, lede, className, headingClassName,
                 )}
               >
                 {title}
+                {soon && <SoonPill note={soon} />}
               </h2>
             )}
             {lede && (

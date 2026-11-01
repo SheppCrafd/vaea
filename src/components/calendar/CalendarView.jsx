@@ -2,6 +2,7 @@ import { Video, Loader2, TriangleAlert, CalendarDays } from "lucide-react";
 import { Link } from "react-router";
 import ComingSoon from "@/components/shared/ComingSoon";
 import { ANY_CALENDAR_AVAILABLE } from "@/lib/connectorAvailability";
+import { localDayKey, dateFromDayKey } from "@/lib/dayKey";
 
 // The real Vaea Calendar agenda/week rendering, split out of
 // VaeaCalendarPage.jsx so the marketing page can render this exact
@@ -13,8 +14,9 @@ function WeekView({ groups }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(today.getTime() + i * 24 * 60 * 60 * 1000);
-    return { key: d.toISOString().slice(0, 10), date: d };
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    return { key: localDayKey(d), date: d };
   });
   const byKey = new Map(groups);
   return (
@@ -102,7 +104,7 @@ export default function CalendarView({
               {groups.map(([key, dayItems]) => (
                 <div key={key} className="card-enter bg-card border border-foreground/[0.04] rounded-2xl shadow-md p-5">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                    {new Date(key).toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
+                    {dateFromDayKey(key).toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
                   </p>
                   <div className="flex flex-col divide-y divide-border">
                     {dayItems.map((item) => (

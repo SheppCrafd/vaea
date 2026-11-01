@@ -4,7 +4,7 @@ import TerminalBlock from "@/components/settings/TerminalBlock";
 import { useReveal, prefersReducedMotion } from "../useReveal";
 import { useScrollTyping } from "../useScrollTyping";
 import { useDemoLock } from "../useDemoLock";
-import { CHAT_MESSAGES, VMAIL_FOLDERS, CALENDAR_GROUPS } from "../fixtures";
+import { CHAT_MESSAGES, BRIEF_MESSAGES, VMAIL_FOLDERS, CALENDAR_GROUPS } from "../fixtures";
 
 // The demos render the REAL app components with fixture data. They're
 // lazy-loaded and only mounted once their block scrolls into view, so:
@@ -80,49 +80,58 @@ const chatListProps = {
   onMessageTyped: noop,
 };
 
-// The demo reply split the way ChatMessageList splits it: the tool-log line
-// shows at once, the sentence after it types.
-const [CHAT_USER, CHAT_REPLY] = CHAT_MESSAGES;
-const REPLY_SPLIT = CHAT_REPLY.content.indexOf("```\n\n") + 5;
-const REPLY_PREFIX = CHAT_REPLY.content.slice(0, REPLY_SPLIT);
-const REPLY_TEXT = CHAT_REPLY.content.slice(REPLY_SPLIT);
-const CHAT_TOTAL = CHAT_USER.content.length + REPLY_TEXT.length;
-
-// The messages at `count` typed characters: Bob's line first, then the
-// reply; the confirm card appears once the reply is complete.
-function chatAt(count) {
-  const userShown = Math.min(count, CHAT_USER.content.length);
-  const replyShown = Math.max(0, count - CHAT_USER.content.length);
-  const out = [{ ...CHAT_USER, content: CHAT_USER.content.slice(0, userShown), typing: userShown < CHAT_USER.content.length }];
-  if (replyShown > 0) {
-    const done = count >= CHAT_TOTAL;
-    out.push({
-      ...CHAT_REPLY,
-      content: REPLY_PREFIX + REPLY_TEXT.slice(0, replyShown),
-      typing: !done,
-      pending_action: done ? CHAT_REPLY.pending_action : undefined,
-    });
-  }
-  return out;
+// A two-message conversation split the way ChatMessageList splits a reply:
+// the tool-log lines show at once, the text after them types. Returns the
+// total characters to type and the messages at `count` typed characters:
+// Bob's line first, then the reply; a confirm card appears once the reply
+// is complete.
+function typedConversation([user, reply]) {
+  const fence = reply.content.indexOf("```\n\n");
+  const split = fence === -1 ? 0 : fence + 5;
+  const prefix = reply.content.slice(0, split);
+  const text = reply.content.slice(split);
+  const total = user.content.length + text.length;
+  const at = (count) => {
+    const userShown = Math.min(count, user.content.length);
+    const replyShown = Math.max(0, count - user.content.length);
+    const out = [{ ...user, content: user.content.slice(0, userShown), typing: userShown < user.content.length }];
+    if (replyShown > 0) {
+      const done = count >= total;
+      out.push({
+        ...reply,
+        content: prefix + text.slice(0, replyShown),
+        typing: !done,
+        pending_action: done ? reply.pending_action : undefined,
+      });
+    }
+    return out;
+  };
+  return { total, at };
 }
+
+const CONVERSATIONS = {
+  plan: typedConversation(CHAT_MESSAGES),
+  brief: typedConversation(BRIEF_MESSAGES),
+};
 
 // Below a page's hero: types as the visitor scrolls (useScrollTyping.js),
 // finishing when the demo's top reaches a quarter of the way down the
 // screen. The stage height is fixed and the list scrolls internally, so
 // nothing outside it resizes as the text fills in.
-function ScrollChatDemo({ onDark }) {
+function ScrollChatDemo({ onDark, conversation }) {
+  const { total, at } = CONVERSATIONS[conversation];
   const [ref, shown] = useReveal();
   // Timed from the demo window's visible top edge, not the message area
   // under its label bar.
   const frameRef = useRef(null);
-  const count = useScrollTyping(frameRef, CHAT_TOTAL);
+  const count = useScrollTyping(frameRef, total);
   return (
     <div ref={frameRef}>
     <DemoStage label="Bob’s chat" onDark={onDark}>
       <div ref={ref} className="flex h-[360px] flex-col">
         {shown ? (
           <Suspense fallback={<div className="flex-1" />}>
-            <ChatMessageList messages={chatAt(count)} newMessageIds={EMPTY_SET} {...chatListProps} />
+            <ChatMessageList messages={at(count)} newMessageIds={EMPTY_SET} {...chatListProps} />
           </Suspense>
         ) : (
           <div className="flex-1" />
@@ -135,8 +144,10 @@ function ScrollChatDemo({ onDark }) {
 
 const EMPTY_SET = new Set();
 
-export function ChatDemo({ onDark = false, hero = false }) {
-  return hero ? <HeroChatDemo onDark={onDark} /> : <ScrollChatDemo onDark={onDark} />;
+// `conversation`: "plan" (the archive-and-move request that waits for a
+// yes) or "brief" (the morning /daily-brief). The hero always loops "plan".
+export function ChatDemo({ onDark = false, hero = false, conversation = "plan" }) {
+  return hero ? <HeroChatDemo onDark={onDark} /> : <ScrollChatDemo onDark={onDark} conversation={conversation} />;
 }
 
 // A page's hero: loops on a timer, the reply re-typing every ~9s.

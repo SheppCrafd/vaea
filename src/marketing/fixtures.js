@@ -5,15 +5,16 @@
 // is persisted.
 //
 // Every demo shows one invented user's week, so they agree with each other:
-// Bob Bobson, head of product at Harborline, a small software company
-// that makes the Harbor app. His people: Dana Kim (design lead), Lee Park
-// (engineer on Auth rework), Priya Shah at Lumen Studio (the launch vendor)
-// and Marta Ruiz (Finance). The board, inbox, calendar, chat and notes map
+// Bob Bobson, chief operating officer at Harborline, a small software
+// company that makes the Harbor app; Vaea is his executive assistant. His
+// people: Dana Kim (design lead), Lee Park (engineering lead, Auth rework),
+// Priya Shah at Lumen Studio (the launch vendor) and Marta Ruiz (Finance). The board, inbox, calendar, chat and notes map
 // (VaultGraph.jsx DEMO_GRAPH) all refer to the same projects and people;
 // change one and check the others still line up. Bob is a sample user,
 // never presented as a customer or quoted.
 
 import { getQuadrantCounts, getMiniStatusCounts } from "@/lib/taskUtils";
+import { localDayKey } from "@/lib/dayKey";
 
 // Minimal task records — only the fields getQuadrantCounts /
 // getMiniStatusCounts read (quadrant, status, is_weekly_focus).
@@ -185,12 +186,19 @@ function day(offset, items) {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
   d.setDate(d.getDate() + offset);
-  const key = d.toISOString().slice(0, 10);
+  const key = localDayKey(d);
+  // Set the clock time rather than adding hours to midnight, which lands an
+  // hour off on the days the clocks change.
+  const at = (h, m = 0) => {
+    const t = new Date(d);
+    t.setHours(h, m, 0, 0);
+    return t;
+  };
   return [
     key,
     items.map((it, i) => ({
       id: `${key}-${i}`,
-      date: new Date(d.getTime() + it.h * 3600000 + (it.m || 0) * 60000),
+      date: at(it.h, it.m),
       title: it.title,
       source: it.source,
       meetLink: it.meet || undefined,
@@ -198,16 +206,42 @@ function day(offset, items) {
   ];
 }
 
+// Bob's day on the marketing pages (story.jsx CHAPTERS) runs 9:00 to 5:00
+// against this agenda; the times in the page copy match these.
 export const CALENDAR_GROUPS = [
   day(0, [
-    { h: 9, title: "Standup", source: "Google", meet: true },
-    { h: 13, title: "Design review with Dana: Harbor 2.0 launch", source: "Microsoft 365", meet: true },
-    { h: 16, title: "Due: API v2", source: "Vaea" },
+    // A project due date is a whole day, so the app lists it at midnight,
+    // first, as "<project> due" from "Vaea project" (VaeaCalendarPage.jsx).
+    { h: 0, title: "API v2 due", source: "Vaea project" },
+    { h: 9, m: 30, title: "Leadership standup", source: "Google Calendar", meet: true },
+    { h: 11, m: 30, title: "Vendor call: Priya, Lumen Studio", source: "Google Calendar", meet: true },
+    { h: 13, title: "Design review with Dana: Harbor 2.0 launch", source: "Outlook", meet: true },
+    { h: 14, title: "1:1 with Lee: Auth rework", source: "Google Calendar", meet: true },
+    { h: 15, m: 30, title: "Budget review with Marta", source: "Outlook", meet: true },
   ]),
   day(1, [
-    { h: 11, title: "Vendor call: Priya, Lumen Studio", source: "Google", meet: true },
-    { h: 14, title: "1:1 with Lee: Auth rework", source: "Google", meet: true },
-    { h: 16, title: "Focus block", source: "Google" },
+    // The block Vaea Calendar finds for the launch brief at 3:15 PM.
+    { h: 10, title: "Write the launch brief", source: "Google Calendar" },
+    { h: 14, title: "Harbor 2.0 launch: kickoff", source: "Google Calendar", meet: true },
   ]),
-  day(3, [{ h: 10, title: "Due: Website relaunch", source: "Vaea" }]),
+  day(3, [{ h: 0, title: "Website relaunch due", source: "Vaea project" }]),
+];
+
+// The 9:05 AM beat on Home: Bob's /daily-brief. The reply follows the
+// command's real structure (aiChatStream entry.ts "/daily-brief": board,
+// calendar, inbox, then one line on what comes first), and the tool-log
+// lines are the labels toolRunner.js writes for those reads. It only reads,
+// so there's no plan line and no confirm card.
+export const BRIEF_MESSAGES = [
+  { id: "bu1", role: "user", content: "/daily-brief" },
+  {
+    id: "ba1",
+    role: "assistant",
+    content:
+      "```tool-log\naudit_workspace() — 2 findings\nlist_calendar_events()\nlist_gmail_messages()\n```\n\n" +
+      "**Today:** leadership standup at 9:30, Priya at 11:30, Dana's design review at 1:00, Lee at 2:00, Marta at 3:30. API v2 is due today.\n\n" +
+      "**Board:** Auth rework has a blocked task and two open questions. Website relaunch has 3 finished tasks to clear.\n\n" +
+      "**Inbox:** 2 unread: Dana's round-2 designs and Lee's passkeys PR.\n\n" +
+      "Start with Auth rework: the blocker needs your call before Lee's 1:1.",
+  },
 ];

@@ -6,6 +6,7 @@ import BoardDemo from "../components/BoardDemo";
 import { ChatDemo, VmailDemo, StorageTerminal, ClaudeCodeTerminal } from "../components/visuals";
 import { StoryRegion, StoryIntro, Elsewhere } from "../components/story";
 import { HOME_FAQ } from "../seo";
+import { ANY_CALENDAR_AVAILABLE, ANY_MAIL_AVAILABLE } from "@/lib/connectorAvailability";
 
 export default function Home() {
   return (
@@ -53,17 +54,36 @@ export default function Home() {
       {/* The story: Bob's morning. Each block below is a moment in his day
           beside the real feature it shows (see components/story.jsx). */}
       <StoryRegion>
-      <StoryIntro time="8:40 AM" title="Meet Bob.">
-        Bob Bobson runs product at Harborline: three products, six projects, and a launch nobody has
-        planned yet. He starts by asking Vaea to set up the Harbor 2.0 launch.
+      <StoryIntro time="9:00 AM" title="Meet Bob.">
+        Bob Bobson is chief operating officer at Harborline. Marketing, Platform and Ops report to
+        him, and his calendar is booked from 9:30 to 4:00. Vaea is his executive assistant: it keeps
+        his board, reads his calendar and inbox, and handles the follow-through.
       </StoryIntro>
+
+      {/* SHOW 0 — the morning brief */}
+      <ShowBlock
+        id="brief"
+        time="9:05 AM"
+        story="Bob types /daily-brief. Vaea Chat reads his board, his calendar and his inbox, and tells him what needs him first."
+        title="A brief on the whole day before the first meeting"
+        soon={ANY_CALENDAR_AVAILABLE || ANY_MAIL_AVAILABLE ? undefined : "Calendar and email in the brief need Google or Microsoft connections, which are coming soon. The board part works today."}
+        visual={<ChatDemo conversation="brief" />}
+        cta={{ to: "/vaea-chat", label: "See what else Vaea Chat does" }}
+      >
+        <p>
+          One command covers the morning: what's overdue or due today, what's on the calendar, and
+          what's unread and from whom. It reads only the accounts you've connected, and ends with the
+          one thing to deal with first.
+        </p>
+      </ShowBlock>
 
       {/* SHOW A — flagship, dark stage */}
       <ShowBlock
         id="vaea-chat"
         tone="dark"
-        time="8:52 AM"
-        story="Website relaunch has three finished tasks in the way and a due date that won't hold. Bob asks Vaea Chat to clear them and move the date. Archiving removes something, so it lists the plan and waits for his yes."
+        flip
+        time="9:10 AM"
+        story="The brief flagged Website relaunch: three finished tasks to clear and a due date that won't hold. Bob tells Vaea Chat to clear them and move the date. Archiving removes something, so it lists the plan and waits for his yes."
         title="Vaea Chat does the change, it doesn't just describe it"
         visual={<ChatDemo onDark />}
         cta={{ to: "/vaea-chat", label: "See how Vaea Chat works" }}
@@ -78,9 +98,8 @@ export default function Home() {
       {/* SHOW B — the board */}
       <ShowBlock
         id="board"
-        flip
-        time="9:05 AM"
-        story="Before standup, Bob reads the board. Auth rework has a blocked task and two open questions. Vendor review has a budget risk."
+        time="9:25 AM"
+        story="Before the 9:30 leadership standup, Bob reads the board. Auth rework has a blocked task and two open questions. Vendor review has a budget risk."
         title="One board that shows where each thing sits"
         visual={<BoardDemo />}
         cta={{ to: "/vaea-chat", label: "See Vaea Chat on the board" }}
@@ -99,9 +118,11 @@ export default function Home() {
       {/* SHOW C — Workplace + Brain fold in */}
       <ShowBlock
         id="connected"
-        time="9:20 AM"
-        story="Priya's revised quote is in his inbox, and Dana's design review is at 1:00. Both sit next to the board."
+        flip
+        time="9:50 AM"
+        story="Back from standup, Bob works through his inbox. Vaea Chat drafts his reply to Dana's round-2 designs and turns Lee's PR email into a review task on the board."
         title="Your calendar, email, and notes — under the same Vaea Chat"
+        soon={ANY_MAIL_AVAILABLE ? undefined : "Gmail and Outlook connections are coming soon."}
         visual={<VmailDemo />}
         cta={{ to: "/workplace", label: "See Vaea Workplace" }}
       >
@@ -120,9 +141,8 @@ export default function Home() {
       {/* SHOW D — device / trust */}
       <ShowBlock
         id="yours"
-        flip
-        time="9:30 AM"
-        story="Everything Bob has touched this morning is saved in a folder on his laptop."
+        time="10:00 AM"
+        story="Bob's board holds the vendor budget and his notes on his team. All of it is saved in a folder on his laptop."
         title="Your work is saved on your computer"
         visual={<StorageTerminal />}
         cta={{ to: "/privacy", label: "Exactly what leaves, and when" }}
@@ -142,8 +162,9 @@ export default function Home() {
       {/* SHOW E — self-hosting, the private-company path */}
       <ShowBlock
         id="self-hosting"
-        time="9:45 AM"
-        story="Harborline's IT team wants nothing to leave the office network, so their copy of Vaea runs in-house."
+        flip
+        time="10:15 AM"
+        story="Harborline's IT team wants nothing to leave the office network, so the company's copy of Vaea runs in-house."
         title="Clone it, run it on localhost, keep every request in-house"
         visual={<ClaudeCodeTerminal />}
         cta={{ to: "/privacy", label: "Local Mode, step by step" }}

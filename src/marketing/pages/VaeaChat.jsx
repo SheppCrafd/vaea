@@ -6,9 +6,11 @@ import { StoryRegion, StoryIntro, Elsewhere } from "../components/story";
 import { ASSISTANT_FAQ, ASSISTANT_STEPS } from "../seo";
 
 const CAN = [
-  "Look something up online while answering",
+  "Research a question online, with sources",
   "Read a file you've attached",
-  "Open a link to see what's there",
+  "Compare two options and recommend one",
+  "Summarize a project or a long thread",
+  "Draft an email from one sentence",
   "Check your whole board for things that slipped",
   "Pull anything into a spreadsheet",
   "Read and add to your linked notes",
@@ -42,13 +44,13 @@ export default function VaeaChat() {
       </section>
 
       <StoryRegion>
-      <StoryIntro time="12:10 PM">
-        Lunch is Bob's first quiet stretch. Lee wants to know how this morning's changes happened, and
-        where the conversation went.
+      <StoryIntro time="10:30 AM">
+        Priya from Lumen Studio calls at 11:30 about the launch quote. Bob has an hour, and he hands
+        the prep to Vaea Chat.
       </StoryIntro>
 
       <ParallaxBackdrop src="/img/marketing/vaeachat-band.jpg" strength={132} scrim={0.88} position="50% 50%">
-        <Section time="12:15 PM" title="Five steps, with a stop before anything final" lede="What happened between Bob's request at 8:52 and his yes.">
+        <Section time="10:35 AM" title="Five steps, with a stop before anything final" lede="What happens between each of Bob's requests and his yes.">
           <Reveal className="mt-8">
             <ol className="divide-y divide-foreground/[0.08] border-y border-foreground/[0.08]">
               {ASSISTANT_STEPS.map(([t, d], i) => (
@@ -66,45 +68,8 @@ export default function VaeaChat() {
       </ParallaxBackdrop>
 
       <ShowBlock
-        flip
-        tone="dark"
-        time="12:30 PM"
-        story="Harborline's security lead asks where the conversation goes. Bob has three answers."
-        title="Run it however you're comfortable"
-        visual={<LocalModeTerminal />}
-      >
-        <p>
-          The built-in model works the moment you sign in. Prefer your own AI account? Connect it and
-          Vaea Chat talks straight to it from your browser.
-        </p>
-        <p>
-          Or keep everything in-house: point it at a model running on your own computer. Then no part
-          of the conversation leaves the machine.
-        </p>
-      </ShowBlock>
-
-      <ShowBlock
-        time="12:40 PM"
-        story="Lee sets up the in-house version on his own machine."
-        title="Answer Vaea Chat with Claude Code, on your own machine"
-        visual={<ClaudeCodeTerminal />}
-        cta={{ to: "/privacy", label: "Local Mode, step by step" }}
-      >
-        <p>
-          Clone the repository, run Vaea on localhost, and turn on Local Mode. Vaea Chat then writes
-          each question to a folder on your machine instead of calling out to any service.
-        </p>
-        <p>
-          Point Claude Code at that folder in your Vaea working copy and it answers as the model —
-          with its own tools. Run <code className="font-mono text-[0.9em]">/local-relay</code> to
-          take one pending message, or <code className="font-mono text-[0.9em]">/l</code> for the same
-          thing with less to type when you're relaying all day.
-        </p>
-      </ShowBlock>
-
-      <ShowBlock
-        time="12:55 PM"
-        story="Before the 1:00 review, Bob asks Vaea Chat to check the whole board for anything that slipped."
+        time="10:45 AM"
+        story="Bob attaches Lumen's first quote and asks Vaea Chat to compare it with what launch campaigns like Harbor 2.0 usually cost, with sources."
         title="It can reach past your task list"
         visual={
           <ul className="divide-y divide-foreground/[0.08] border-y border-foreground/[0.08]">
@@ -124,6 +89,52 @@ export default function VaeaChat() {
           Ask it to check your board and it flags what's overdue, what has no owner, and where you have near-duplicates. Then it makes the fixes, stopping for your yes before it removes anything.
         </p>
       </ShowBlock>
+
+      <ShowBlock
+        flip
+        tone="dark"
+        time="11:10 AM"
+        story="Before the call, Harborline's security lead asks where those conversations go. Bob has three answers."
+        title="Run it however you're comfortable"
+        visual={<LocalModeTerminal />}
+      >
+        <p>
+          The built-in model works the moment you sign in. Prefer your own AI account? Connect it and
+          Vaea Chat talks straight to it from your browser.
+        </p>
+        <p>
+          Or keep everything in-house: point it at a model running on your own computer. Then no part
+          of the conversation leaves the machine.
+        </p>
+      </ShowBlock>
+
+      <ShowBlock
+        time="11:20 AM"
+        story="Lee, Harborline's engineering lead, sets up the in-house version on his own machine."
+        title="Answer Vaea Chat with Claude Code, on your own machine"
+        visual={<ClaudeCodeTerminal />}
+        cta={{ to: "/privacy", label: "Local Mode, step by step" }}
+      >
+        <p>
+          Clone the repository, run Vaea on localhost, and turn on Local Mode. Vaea Chat then writes
+          each question to a folder on your machine instead of calling out to any service.
+        </p>
+        <p>
+          Point Claude Code at that folder in your Vaea working copy and it answers as the model —
+          with its own tools. Run <code className="font-mono text-[0.9em]">/local-relay</code> to
+          take one pending message, or <code className="font-mono text-[0.9em]">/l</code> for the same
+          thing with less to type when you're relaying all day.
+        </p>
+      </ShowBlock>
+
+      <Section time="12:00 PM" title="What was agreed goes straight onto the board" lede="Priya agreed to cut the print run and send a revised quote by 2:30. Bob says so in one sentence, and Vaea Chat adds the follow-up to Vendor review and a sign-off task for Marta.">
+        <Reveal className="mt-5 max-w-[46rem] space-y-3.5 text-[1.02rem] leading-relaxed text-muted-foreground">
+          <p>
+            Tell Vaea Chat what changed the way you'd tell a colleague. It finds the project, adds the
+            tasks and notes, and lists each step it took.
+          </p>
+        </Reveal>
+      </Section>
 
       <Elsewhere current="/vaea-chat" />
       </StoryRegion>

@@ -49,13 +49,13 @@ export default function Brain() {
       </ParallaxBackdrop>
 
       <StoryRegion>
-      <StoryIntro time="6:10 PM">
-        Before he logs off, Bob writes down why the launch moved to Nov 14, so nobody has to ask again
-        next week.
+      <StoryIntro time="4:30 PM">
+        The meetings are done. Before he logs off, Bob writes down why the launch moved to Nov 14, so
+        nobody has to ask again next week.
       </StoryIntro>
 
       <ShowBlock
-        time="6:15 PM"
+        time="4:35 PM"
         story="He asks Vaea Chat to write it up. The note lands in his own notes, linked to the two projects the new date changes."
         title="A vault Vaea connects to, not one it holds"
         visual={<MindMapDemo />}
@@ -75,8 +75,8 @@ export default function Brain() {
       <ShowBlock
         flip
         tone="dark"
-        time="6:30 PM"
-        story="The decision isn't a task, so it doesn't belong on the board. It belongs with the rest of what Bob has worked out."
+        time="4:45 PM"
+        story="The decision isn't a task, so it doesn't belong on the board. It belongs with the rest of what Bob has worked out, and so does the day: he runs /vault-log, and Vaea Chat writes up what happened."
         title="A place for the things that aren't tasks"
         visual={
           <ul className="divide-y divide-white/10 border-y border-white/10">
@@ -97,6 +97,15 @@ export default function Brain() {
           as a new version in your own GitHub repository, so earlier versions are never lost.
         </p>
       </ShowBlock>
+
+      <Section time="5:00 PM" title="Tomorrow starts where today ended" lede="Bob closes his laptop at 5:00. When he opens Vaea in the morning, Vaea Chat can greet him with a check-in written from his board: what's due, what's stuck, and what changed.">
+        <Reveal className="mt-5 max-w-[46rem] space-y-3.5 text-[1.02rem] leading-relaxed text-muted-foreground">
+          <p>
+            Check-ins are optional. They only read your board and never change it. Turn them on or off
+            in Settings.
+          </p>
+        </Reveal>
+      </Section>
 
       <Elsewhere current="/brain" />
       </StoryRegion>

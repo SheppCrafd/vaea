@@ -4,6 +4,23 @@ All notable changes to Vaea, in [Keep a Changelog](https://keepachangelog.com/en
 style. Vaea ships continuously rather than in numbered releases, so entries
 are grouped by date instead of a version number.
 
+## 2026-11-01
+
+### Changed
+
+- The marketing site follows its sample user through a full working day,
+  9:00 to 5:00: Bob is now Harborline's chief operating officer and Vaea his
+  executive assistant, from the morning `/daily-brief` through meeting prep,
+  notes turned into tasks, a forwarded quote, a scheduled work block, a
+  spreadsheet for the budget review and the end-of-day write-up.
+
+### Fixed
+
+- Vaea Calendar filed events under their UTC date and read day headings as
+  UTC midnight, so in the Americas each day's heading showed the day before,
+  and all-day events and project due dates appeared on the previous evening.
+  Days now follow your own time zone.
+
 ## 2026-10-30
 
 ### Added

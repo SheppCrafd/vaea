@@ -3,15 +3,17 @@ import { Link } from "react-router";
 import { cn } from "@/lib/utils";
 import { Container, Reveal } from "./ui";
 
-// The marketing site tells one sample user's day: Bob Bobson, head of
-// product at Harborline (see fixtures.js). Each page is one part of that
-// day and stands on its own; the pages link to each other in no set order.
-// Every beat pairs a moment in Bob's day with the real feature beside it.
+// The marketing site tells one sample user's working day, 9:00 to 5:00:
+// Bob Bobson, chief operating officer at Harborline, with Vaea as his
+// executive assistant (see fixtures.js; the times match CALENDAR_GROUPS).
+// Each page is one part of that day and stands on its own; the pages link
+// to each other in no set order. Every beat pairs a moment in Bob's day
+// with the real feature beside it.
 export const CHAPTERS = [
-  { path: "/", time: "8:40 AM", title: "Bob sets it all down", line: "Three products, six projects, and a launch nobody has planned yet." },
-  { path: "/vaea-chat", time: "12:10 PM", title: "Lee asks how the changes happened", line: "What happens between Bob's request and his yes, and where it runs." },
-  { path: "/workplace", time: "1:00 PM", title: "The review, the quote, the 1:1", line: "Dana's designs, Priya's quote and Lee's PR, in one view." },
-  { path: "/brain", time: "6:10 PM", title: "Bob writes down why", line: "Why the launch moved to Nov 14, kept where his notes already are." },
+  { path: "/", time: "9:00 AM", title: "Bob starts the day", line: "The brief, the first changes and the inbox, before the 9:30 standup." },
+  { path: "/vaea-chat", time: "10:30 AM", title: "Bob preps for the vendor call", line: "Research, a comparison and a security question, before Priya calls at 11:30." },
+  { path: "/workplace", time: "12:30 PM", title: "Meetings, mail and sign-offs", line: "Dana's review, Lee's 1:1, Priya's quote and Marta's budget, in one view." },
+  { path: "/brain", time: "4:30 PM", title: "Bob closes the day", line: "Why the launch moved, written down where his notes already are, by 5:00." },
 ];
 
 import { toMinutes, timeAtLine, hourLabel } from "./storyTime";

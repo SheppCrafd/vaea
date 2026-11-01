@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import { cn } from "@/lib/utils";
-import { Container, Eyebrow, Reveal, CtaRow, Float } from "./ui";
+import { Container, Eyebrow, Reveal, CtaRow, Float, SoonPill } from "./ui";
 import ParallaxBackdrop from "./ParallaxBackdrop";
 
 // Larger recurring page blocks.
@@ -11,22 +11,7 @@ import ParallaxBackdrop from "./ParallaxBackdrop";
 // day (shown in place of the eyebrow) and `story` is the line saying what
 // he's doing in the demo beside it. `soon` (a sentence) marks a feature
 // that can't connect yet: a "Coming soon" pill beside the title, with the
-// sentence on hover.
-export function SoonPill({ note, dark }) {
-  return (
-    <span
-      tabIndex={0}
-      title={note}
-      aria-label={`Coming soon. ${note}`}
-      className={cn(
-        "ml-3 inline-block translate-y-[-0.35em] cursor-help whitespace-nowrap rounded-full border px-2.5 py-0.5 align-middle font-sans text-[0.72rem] font-medium tracking-normal outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        dark ? "border-primary-foreground/25 text-primary-foreground/70" : "border-foreground/15 text-muted-foreground",
-      )}
-    >
-      Coming soon
-    </span>
-  );
-}
+// sentence on hover (SoonPill, in ui.jsx).
 
 export function ShowBlock({ id, eyebrow, title, children, visual, flip, tone, cta, time, story, soon }) {
   const dark = tone === "dark";

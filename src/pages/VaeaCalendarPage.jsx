@@ -8,6 +8,7 @@ import { useProjects } from "@/hooks/useProjects";
 import { getProjectDueDate, getProjectDueStatus } from "@/lib/projectUtils";
 import StandalonePageHeader from "@/components/shared/StandalonePageHeader";
 import CalendarView from "@/components/calendar/CalendarView";
+import { localDayKey, parseCalendarDate } from "@/lib/dayKey";
 
 // Vaea Calendar — a native page (not a wrapper around one connector) that
 // auto-aggregates every connected, time/date-relevant source: Google
@@ -19,14 +20,10 @@ import CalendarView from "@/components/calendar/CalendarView";
 // via Vaea Chat already works today through the existing calendar tool
 // catalog (CREATE_CALENDAR_EVENT etc.) — this page is the read surface for
 // the same data, not a second source of truth.
-function dayKey(date) {
-  return date.toISOString().slice(0, 10);
-}
-
 function groupByDay(items) {
   const groups = new Map();
   for (const item of items) {
-    const key = dayKey(item.date);
+    const key = localDayKey(item.date);
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(item);
   }
@@ -87,7 +84,7 @@ export default function VaeaCalendarPage() {
     : [
         ...(googleEvents || []).map((e) => ({
           id: `google-${e.id}`,
-          date: new Date(e.start?.dateTime || e.start?.date),
+          date: parseCalendarDate(e.start?.dateTime || e.start?.date),
           title: e.summary || "(no title)",
           source: "Google Calendar",
           meetLink: e.hangoutLink,
@@ -103,7 +100,7 @@ export default function VaeaCalendarPage() {
           .filter((p) => getProjectDueStatus(p) === "COMMITTED" && getProjectDueDate(p))
           .map((p) => ({
             id: `project-${p.id}`,
-            date: new Date(getProjectDueDate(p)),
+            date: parseCalendarDate(getProjectDueDate(p)),
             title: `${p.title} due`,
             source: "Vaea project",
           })),
